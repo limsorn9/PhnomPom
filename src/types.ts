@@ -440,6 +440,7 @@ export interface SystemNotification {
 export type ActiveTab = 
   | 'dashboard'
   | 'homeroom_dashboard'
+  | 'ai_teacher'
   | 'activity_logs'
   | 'school_admin'
   | 'school_management'

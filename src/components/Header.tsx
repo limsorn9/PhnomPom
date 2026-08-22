@@ -40,7 +40,8 @@ import {
   Library as LibraryIcon,
   Cloud,
   FileSpreadsheet as FileSpreadsheetIcon,
-  History
+  History,
+  Sparkles
 } from 'lucide-react';
 import { NotificationsModal } from './NotificationsModal';
 
@@ -92,6 +93,11 @@ export const Header: React.FC<HeaderProps> = ({
       title: language === 'en' ? 'Dashboard Overview' : 'ផ្ទាំងគ្រប់គ្រងទូទៅ',
       subtitle: language === 'en' ? 'School statistics and overview' : 'ទិន្នន័យស្ថិតិ និងសមិទ្ធផលសាលារៀន',
       icon: LayoutDashboard
+    },
+    ai_teacher: {
+      title: language === 'en' ? 'AI Teaching Assistant' : '🤖 AI សម្រាប់គ្រូបង្រៀន',
+      subtitle: language === 'en' ? 'AI Lesson Plan, Slides, Curriculum, Test Generator & Educational Games' : 'បង្កើតកិច្ចតែងការ ស្លាយ កម្មវិធីសិក្សា វិញ្ញាសាតេស្ត និងល្បែងសិក្សាឌីជីថល',
+      icon: Sparkles
     },
     activity_logs: {
       title: language === 'en' ? 'Audit Trail & Activity Logs' : 'កំណត់ត្រាសកម្មភាព & សវនកម្មប្រព័ន្ធ',

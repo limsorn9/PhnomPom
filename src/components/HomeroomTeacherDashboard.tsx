@@ -75,7 +75,8 @@ export const HomeroomTeacherDashboard: React.FC = () => {
     updateDailyClassLog,
     deleteDailyClassLog,
     toggleArchiveDailyClassLog,
-    currentUser
+    currentUser,
+    setActiveTab
   } = useSchool();
 
   // Determine default grade & section from logged in teacher or default to 6 ក
@@ -373,6 +374,15 @@ export const HomeroomTeacherDashboard: React.FC = () => {
               {totalNotificationsCount}
             </span>
           )}
+        </button>
+
+        {/* AI TEACHER FAST SHORTCUT */}
+        <button
+          onClick={() => setActiveTab('ai_teacher')}
+          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 text-slate-950 shadow-xs hover:from-amber-400 hover:to-orange-400 transition-all whitespace-nowrap cursor-pointer ml-auto border border-amber-300"
+        >
+          <Sparkles className="w-4 h-4 text-slate-950" />
+          <span>🤖 AI សម្រាប់គ្រូ (Lesson & Games)</span>
         </button>
       </div>
 

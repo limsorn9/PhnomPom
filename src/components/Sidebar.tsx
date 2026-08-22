@@ -33,7 +33,8 @@ import {
   FileText,
   Building2,
   Printer,
-  History
+  History,
+  Sparkles
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 
@@ -89,6 +90,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       labelKh: 'ផ្ទាំងគ្រប់គ្រងទូទៅ',
       labelEn: 'Dashboard',
       icon: LayoutDashboard,
+    },
+    {
+      id: 'ai_teacher',
+      labelKh: '🤖 AI សម្រាប់គ្រូបង្រៀន',
+      labelEn: 'AI Teaching Assistant',
+      icon: Sparkles,
+      badge: 'AI ✨',
+      badgeColor: 'bg-amber-100 text-amber-800 font-bold border border-amber-300',
     },
     {
       id: 'activity_logs',
