@@ -25,6 +25,7 @@ interface ParentMeetingsTabProps {
   onAddMeeting: (meeting: Omit<ParentMeeting, 'id' | 'createdAt'>) => void;
   onUpdateMeeting: (id: string, updated: Partial<ParentMeeting>) => void;
   onDeleteMeeting: (id: string) => void;
+  onOpenClassCommitteePrint?: () => void;
 }
 
 export const ParentMeetingsTab: React.FC<ParentMeetingsTabProps> = ({
@@ -33,7 +34,8 @@ export const ParentMeetingsTab: React.FC<ParentMeetingsTabProps> = ({
   selectedSection,
   onAddMeeting,
   onUpdateMeeting,
-  onDeleteMeeting
+  onDeleteMeeting,
+  onOpenClassCommitteePrint
 }) => {
   const [selectedMeeting, setSelectedMeeting] = useState<ParentMeeting | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -129,10 +131,22 @@ export const ParentMeetingsTab: React.FC<ParentMeetingsTabProps> = ({
 
       {/* Parent Committee Showcase */}
       <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/50 to-slate-50 rounded-xl p-4 border border-blue-200/80 shadow-xs space-y-3">
-        <h4 className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
-          <Building2 className="w-4 h-4 text-blue-600" />
-          តំណាងគណៈកម្មការមាតាបិតាទ្រទ្រង់ថ្នាក់ទី {selectedGrade} «{selectedSection}»
-        </h4>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h4 className="text-xs font-bold text-blue-900 flex items-center gap-1.5 font-moul">
+            <Building2 className="w-4 h-4 text-blue-600" />
+            សមាសភាពគណៈកម្មការគ្រប់គ្រងថ្នាក់រៀន (គ.ក.ថ.) ទី {selectedGrade} «{selectedSection}»
+          </h4>
+
+          {onOpenClassCommitteePrint && (
+            <button
+              onClick={onOpenClassCommitteePrint}
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer self-start"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>បោះពុម្ពឯកសារ គ.ក.ថ. (តារាង & រចនាសម្ព័ន្ធរូបថត)</span>
+            </button>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {[

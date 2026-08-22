@@ -42,6 +42,7 @@ import {
   SchoolOfficialStamp,
   AngkorPageWatermark
 } from './AngkorMotif';
+import { ScoreTablePrintModal } from './ScoreTablePrintModal';
 
 const MONTHS_LIST = [
   'តុលា',
@@ -109,6 +110,7 @@ export const ClassroomScores: React.FC = () => {
   const [selectedStudentForHonor, setSelectedStudentForHonor] = useState<StudentScoreRecord | null>(null);
   const [isExportingScores, setIsExportingScores] = useState(false);
   const [showSubjectSettingsModal, setShowSubjectSettingsModal] = useState(false);
+  const [showScoreTablePrintModal, setShowScoreTablePrintModal] = useState(false);
 
   // Scoring Modes: 'by_student' | 'by_subject' | 'matrix' | 'feedback'
   const [scoringMode, setScoringMode] = useState<'by_student' | 'by_subject' | 'matrix' | 'feedback'>('by_student');
@@ -595,11 +597,11 @@ export const ClassroomScores: React.FC = () => {
 
           <button
             id="print-scores-table-btn"
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-semibold rounded-xl shadow-sm transition-colors"
-            title="បោះពុម្ពតារាងស្រង់ពិន្ទុប្រចាំខែ"
+            onClick={() => setShowScoreTablePrintModal(true)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all active:scale-95"
+            title="បោះពុម្ពតារាងស្រង់ពិន្ទុប្រចាំខែជាទម្រង់ MoEYS"
           >
-            <Printer className="w-3.5 h-3.5 text-indigo-600" />
+            <Printer className="w-3.5 h-3.5" />
             <span>បោះពុម្ពតារាងពិន្ទុ</span>
           </button>
         </div>
@@ -751,8 +753,19 @@ export const ClassroomScores: React.FC = () => {
                 តារាងស្រង់ពិន្ទុប្រចាំខែ {selectedMonth} - ថ្នាក់ទី {selectedGrade}{selectedSection} ({selectedAcademicYear})
               </h3>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <span>ប្រព័ន្ធនិទ្ទេសសកម្ម: <strong>{gradingScaleType === 'khmer_term' ? 'ខ្មែរ (ល្អណាស់, ល្អ, ល្អបង្គួរ...)' : 'អក្សរ (A, B, C, D, E)'}</strong></span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <span>ប្រព័ន្ធនិទ្ទេសសកម្ម: <strong>{gradingScaleType === 'khmer_term' ? 'ខ្មែរ (ល្អណាស់, ល្អ, ល្អបង្គួរ...)' : 'អក្សរ (A, B, C, D, E)'}</strong></span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowScoreTablePrintModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold rounded-xl transition-colors no-print"
+                title="បោះពុម្ពតារាងពិន្ទុ"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>បោះពុម្ព</span>
+              </button>
             </div>
           </div>
 
@@ -1814,6 +1827,26 @@ export const ClassroomScores: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Official Score Table Print Modal */}
+      <ScoreTablePrintModal
+        isOpen={showScoreTablePrintModal}
+        onClose={() => setShowScoreTablePrintModal(false)}
+        selectedGrade={selectedGrade}
+        selectedSection={selectedSection}
+        selectedMonth={selectedMonth}
+        selectedAcademicYear={selectedAcademicYear}
+        classStudents={classStudents}
+        scores={scores}
+        examSubjects={examSubjects}
+        homeroomTeacher={homeroomTeacher}
+        schoolProfile={schoolProfile}
+        gradingScaleType={gradingScaleType}
+        getFormattedGrade={getFormattedGrade}
+        onSelectMonth={setSelectedMonth}
+        onSelectGrade={setSelectedGrade}
+        onSelectSection={setSelectedSection}
+      />
     </div>
   );
 };

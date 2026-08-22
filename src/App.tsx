@@ -25,15 +25,12 @@ import { BulkDataImportExportModal } from './components/BulkDataImportExportModa
 import { GoogleDriveSyncModal } from './components/GoogleDriveSyncModal';
 import { AuthScreen } from './components/AuthScreen';
 import { StandaloneHtmlExportModal } from './components/StandaloneHtmlExportModal';
+import { SchoolProfileModal } from './components/SchoolProfileModal';
 import { initAuth, googleSignIn, logout } from './services/googleAuth';
 import { User } from 'firebase/auth';
 import {
-  X,
-  Save,
   MapPin,
-  Facebook,
-  Phone,
-  ExternalLink
+  Facebook
 } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
@@ -49,7 +46,6 @@ const MainLayout: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
-  const [profileForm, setProfileForm] = useState(schoolProfile);
   const [isExportHtmlOpen, setIsExportHtmlOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [isDriveSyncOpen, setIsDriveSyncOpen] = useState(false);
@@ -88,15 +84,11 @@ const MainLayout: React.FC = () => {
   };
 
   const handleOpenSettings = () => {
-    setProfileForm(schoolProfile);
     setIsSettingsOpen(true);
   };
 
-  const handleSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateSchoolProfile(profileForm);
-    setIsSettingsOpen(false);
-    showToast('បានរក្សាទុកព័ត៌មានសាលារៀនដោយជោគជ័យ!');
+  const handleSaveProfile = (updatedProfile: typeof schoolProfile) => {
+    updateSchoolProfile(updatedProfile);
   };
 
   // If user is not logged in, show AuthScreen
@@ -202,196 +194,14 @@ const MainLayout: React.FC = () => {
         </footer>
       </div>
 
-      {/* Settings Modal (School Profile Editor) */}
-      {isSettingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150 font-battambang">
-          <div className="bg-white rounded-2xl max-w-xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200">
-            <div className="bg-gradient-to-r from-blue-900 to-indigo-900 p-5 text-white flex items-center justify-between rounded-t-2xl">
-              <div>
-                <h3 className="text-base font-bold font-moul">កែប្រែព័ត៌មានសាលារៀន</h3>
-                <p className="text-xs text-blue-100">
-                  កំណត់ឈ្មោះសាលា ទីតាំងភូមិសាស្ត្រ នាយកសាលា និងតំណភ្ជាប់បណ្ដាញសង្គម
-                </p>
-              </div>
-              <button
-                onClick={() => setIsSettingsOpen(false)}
-                className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveProfile} className="p-6 space-y-4 text-xs">
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">
-                  ឈ្មោះសាលារៀនជាភាសាខ្មែរ <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={profileForm.nameKhmer}
-                  onChange={(e) => setProfileForm({ ...profileForm, nameKhmer: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-moul text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">
-                  ឈ្មោះសាលាជាអក្សរឡាតាំង
-                </label>
-                <input
-                  type="text"
-                  value={profileForm.nameLatin}
-                  onChange={(e) => setProfileForm({ ...profileForm, nameLatin: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-times focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">កូដសាលា (School ID)</label>
-                  <input
-                    type="text"
-                    value={profileForm.schoolCode}
-                    onChange={(e) => setProfileForm({ ...profileForm, schoolCode: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-times focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">ឆ្នាំសិក្សា</label>
-                  <input
-                    type="text"
-                    value={profileForm.academicYear}
-                    onChange={(e) => setProfileForm({ ...profileForm, academicYear: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Geographic Location */}
-              <div className="border-t border-slate-200 pt-3">
-                <h4 className="font-bold text-slate-800 text-xs mb-2 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                  ទីតាំងភូមិសាស្ត្ររដ្ឋបាល
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-slate-700 font-medium mb-1">ខេត្ត / រាជធានី</label>
-                    <input
-                      type="text"
-                      value={profileForm.province}
-                      onChange={(e) => setProfileForm({ ...profileForm, province: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-700 font-medium mb-1">ក្រុង / ស្រុក / ខណ្ឌ</label>
-                    <input
-                      type="text"
-                      value={profileForm.district}
-                      onChange={(e) => setProfileForm({ ...profileForm, district: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-700 font-medium mb-1">ឃុំ / សង្កាត់</label>
-                    <input
-                      type="text"
-                      value={profileForm.commune}
-                      onChange={(e) => setProfileForm({ ...profileForm, commune: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-700 font-medium mb-1">ភូមិ</label>
-                    <input
-                      type="text"
-                      value={profileForm.village}
-                      onChange={(e) => setProfileForm({ ...profileForm, village: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Leadership Contact */}
-              <div className="border-t border-slate-200 pt-3">
-                <h4 className="font-bold text-slate-800 text-xs mb-2 flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                  គណៈគ្រប់គ្រង និងទំនាក់ទំនង
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-slate-700 font-medium mb-1">ឈ្មោះនាយកសាលា</label>
-                    <input
-                      type="text"
-                      value={profileForm.principalName}
-                      onChange={(e) => setProfileForm({ ...profileForm, principalName: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-700 font-medium mb-1">លេខទូរស័ព្ទនាយក</label>
-                    <input
-                      type="text"
-                      value={profileForm.principalPhone}
-                      onChange={(e) => setProfileForm({ ...profileForm, principalPhone: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-times focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* External Links: Google Maps and Facebook */}
-              <div className="border-t border-slate-200 pt-3">
-                <h4 className="font-bold text-slate-800 text-xs mb-2 flex items-center gap-1.5">
-                  <ExternalLink className="w-3.5 h-3.5 text-indigo-600" />
-                  តំណភ្ជាប់ទីតាំង និងបណ្ដាញសង្គម
-                </h4>
-                <div className="space-y-2.5">
-                  <div>
-                    <label className="block text-slate-700 font-medium mb-1">តំណភ្ជាប់ Google Maps Location</label>
-                    <input
-                      type="url"
-                      value={profileForm.mapUrl || ''}
-                      onChange={(e) => setProfileForm({ ...profileForm, mapUrl: e.target.value })}
-                      placeholder="https://maps.app.goo.gl/..."
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-times text-[11px] focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-700 font-medium mb-1">ទំព័រ Facebook Page</label>
-                    <input
-                      type="url"
-                      value={profileForm.facebookPage || ''}
-                      onChange={(e) => setProfileForm({ ...profileForm, facebookPage: e.target.value })}
-                      placeholder="https://web.facebook.com/..."
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-times text-[11px] focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-3 flex justify-end gap-2 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setIsSettingsOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
-                >
-                  បោះបង់
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow flex items-center gap-2 transition-transform active:scale-95"
-                >
-                  <Save className="w-4 h-4" />
-                  រក្សាទុកព័ត៌មាន
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Settings Modal (School Profile Editor with Validation) */}
+      <SchoolProfileModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        initialProfile={schoolProfile}
+        onSave={handleSaveProfile}
+        showToast={showToast}
+      />
 
       {/* Standalone HTML Exporter Modal */}
       <StandaloneHtmlExportModal

@@ -612,6 +612,38 @@ export interface ClassCouncilOfficer {
   notes?: string;
 }
 
+export interface ClassManagementCommitteeMember {
+  id: string;
+  order: number;
+  honorific: string; // នាមស័ព្ទ (លោកស្រី, លោក, ក្រុមប្រឹក្សាកុមារ, etc.)
+  fullName: string; // នាមត្រកូល និងនាមខ្លួន
+  gender: 'ស្រី' | 'ប្រុស' | Gender;
+  workplace: string; // អង្គភាពឬស្ថាប័ន( ទីកន្លែងធ្វើការ )
+  occupation: string; // មុខរបរបច្ចុប្បន្ន
+  role: 'president' | 'deputy_president_1' | 'deputy_president_2' | 'member'; // តួនាទីក្នុងគណៈកម្មការ (ប្រធាន, អនុប្រធាន, សមាជិក)
+  roleTitleKhmer: string;
+  phone: string; // លេខទូរស័ព្ទ
+  gradeSection: string; // ថ្នាក់ទី (e.g. 3ក, 6ក)
+  livelihoodStatus: string; // ស្ថានភាពជីវភាព (ជីវភាពមធ្យម, ជីវភាពធូរធារ, ជីវភាពក្រីក្រ, etc.)
+  occupationCategory: string; // សូមជ្រើសរើសមុខរបរ (កសិករ, សិស្ស, អាជីវករ, etc.)
+  photoUrl?: string; // រូបថតផ្លូវការ
+}
+
+export interface ClassManagementCommitteeDoc {
+  id: string;
+  grade: number;
+  section: string;
+  academicYear: string;
+  schoolNameKhmer: string;
+  districtOfficeKhmer: string;
+  provinceKhmer: string;
+  lunarDateKhmer: string;
+  solarDateKhmer: string;
+  homeroomTeacherName: string;
+  principalName: string;
+  members: ClassManagementCommitteeMember[];
+}
+
 export interface ClassCouncil {
   grade: number;
   section: string;

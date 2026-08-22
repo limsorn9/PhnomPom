@@ -34,6 +34,7 @@ interface HomeroomHeaderProps {
   urgentNotificationsCount?: number;
   onOpenNotifications?: () => void;
   onPrintClassSummary: () => void;
+  onOpenClassCommitteePrint?: () => void;
   isTeacherRole: boolean;
 }
 
@@ -56,6 +57,7 @@ export const HomeroomHeader: React.FC<HomeroomHeaderProps> = ({
   urgentNotificationsCount = 0,
   onOpenNotifications,
   onPrintClassSummary,
+  onOpenClassCommitteePrint,
   isTeacherRole
 }) => {
   const attendancePercentage = totalStudents > 0
@@ -153,6 +155,17 @@ export const HomeroomHeader: React.FC<HomeroomHeaderProps> = ({
               ))}
             </select>
           </div>
+
+          {onOpenClassCommitteePrint && (
+            <button
+              onClick={onOpenClassCommitteePrint}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-xs cursor-pointer"
+              title="បោះពុម្ពឯកសារ គ.ក.ថ. (តារាងសមាសភាព & រចនាសម្ព័ន្ធរូបថត)"
+            >
+              <Award className="w-4 h-4 text-blue-200" />
+              <span>ឯកសារ គ.ក.ថ.</span>
+            </button>
+          )}
 
           <button
             onClick={onPrintClassSummary}

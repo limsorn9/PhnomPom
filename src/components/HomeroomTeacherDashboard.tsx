@@ -10,6 +10,7 @@ import { ParentMeetingsTab } from './homeroom/ParentMeetingsTab';
 import { HomeroomNotificationsTab } from './homeroom/HomeroomNotificationsTab';
 import { AtRiskStudentsTab } from './homeroom/AtRiskStudentsTab';
 import { DailyClassLogsTab } from './homeroom/DailyClassLogsTab';
+import { ClassCommitteePrintModal } from './ClassCommitteePrintModal';
 import {
   Users,
   CheckCircle2,
@@ -36,6 +37,7 @@ import {
 
 export const HomeroomTeacherDashboard: React.FC = () => {
   const {
+    schoolProfile,
     students,
     teachers,
     classrooms,
@@ -95,6 +97,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
   // Selected Student for Detail Modal
   const [selectedStudentDetail, setSelectedStudentDetail] = useState<Student | null>(null);
   const [showClassSummaryPrint, setShowClassSummaryPrint] = useState(false);
+  const [showClassCommitteeModal, setShowClassCommitteeModal] = useState(false);
 
   // Derived statistics for current class
   const classStudents = students.filter(
@@ -189,6 +192,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
         urgentNotificationsCount={urgentRequests.length}
         onOpenNotifications={() => setActiveSubTab('notifications')}
         onPrintClassSummary={() => setShowClassSummaryPrint(true)}
+        onOpenClassCommitteePrint={() => setShowClassCommitteeModal(true)}
         isTeacherRole={currentUser?.role === 'teacher'}
       />
 
@@ -452,6 +456,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
           onAddMeeting={addParentMeeting}
           onUpdateMeeting={updateParentMeeting}
           onDeleteMeeting={deleteParentMeeting}
+          onOpenClassCommitteePrint={() => setShowClassCommitteeModal(true)}
         />
       )}
 
@@ -620,6 +625,20 @@ export const HomeroomTeacherDashboard: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* CLASS COMMITTEE (គ.ក.ថ.) PRINT & ORG CHART MODAL */}
+      {showClassCommitteeModal && (
+        <ClassCommitteePrintModal
+          isOpen={showClassCommitteeModal}
+          onClose={() => setShowClassCommitteeModal(false)}
+          selectedGrade={selectedGrade}
+          selectedSection={selectedSection}
+          selectedAcademicYear="២០២៥-២០២៦"
+          schoolProfile={schoolProfile}
+          homeroomTeacher={currentTeacher}
+          classStudents={classStudents}
+        />
       )}
     </div>
   );

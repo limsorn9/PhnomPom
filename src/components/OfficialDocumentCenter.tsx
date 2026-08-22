@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { MoEYSRoyalHeader, AngkorPageWatermark, SchoolOfficialStamp } from './AngkorMotif';
+import { ClassCommitteePrintModal } from './ClassCommitteePrintModal';
 import {
   Printer,
   FileText,
@@ -56,6 +57,7 @@ export type DocumentType =
   | 'asset_inventory_report'
   | 'school_development_plan_summary'
   // 5. គណៈកម្មការ & ការគ្រប់គ្រងថ្នាក់ (Class Governance & Council)
+  | 'class_committee_doc'
   | 'class_council_structure'
   | 'classroom_inspection_checklist';
 
@@ -287,9 +289,21 @@ export const DOCUMENT_TEMPLATES: DocumentTemplateMeta[] = [
 
   // Category: class_governance
   {
+    id: 'class_committee_doc',
+    titleKhmer: '១៨. គណៈកម្មការគ្រប់គ្រងថ្នាក់រៀន (គ.ក.ថ.)',
+    titleLatin: 'Classroom Management Committee (Landscape & Org Chart)',
+    category: 'class_governance',
+    categoryNameKhmer: 'ការគ្រប់គ្រងថ្នាក់ & គណៈកម្មការ',
+    targetType: 'classroom',
+    description: 'តារាងសមាសភាពផ្លូវការ (Landscape) និងរចនាសម្ព័ន្ធរូបថត (Portrait Org Chart) គ.ក.ថ.',
+    icon: Award,
+    accentColor: 'text-blue-800 bg-blue-50 border-blue-200',
+    isVerifiedMoEYS: true
+  },
+  {
     id: 'class_council_structure',
-    titleKhmer: '១៨. រចនាសម្ព័ន្ធគណៈកម្មការថ្នាក់រៀន',
-    titleLatin: 'Classroom Council Leadership Structure',
+    titleKhmer: '១៩. រចនាសម្ព័ន្ធក្រុមប្រឹក្សាកុមារថ្នាក់រៀន',
+    titleLatin: 'Classroom Children Council Leadership Structure',
     category: 'class_governance',
     categoryNameKhmer: 'ការគ្រប់គ្រងថ្នាក់ & គណៈកម្មការ',
     targetType: 'classroom',
@@ -300,7 +314,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplateMeta[] = [
   },
   {
     id: 'classroom_inspection_checklist',
-    titleKhmer: '១៩. បញ្ជីត្រួតពិនិត្យអធិការកិច្ចថ្នាក់រៀន',
+    titleKhmer: '២០. បញ្ជីត្រួតពិនិត្យអធិការកិច្ចថ្នាក់រៀន',
     titleLatin: 'Classroom Inspection & Environment Audit',
     category: 'class_governance',
     categoryNameKhmer: 'ការគ្រប់គ្រងថ្នាក់ & គណៈកម្មការ',
@@ -342,6 +356,7 @@ export const OfficialDocumentCenter: React.FC = () => {
   const [selectedGrade, setSelectedGrade] = useState<number>(1);
   const [selectedSection, setSelectedSection] = useState<string>('ក');
   const [selectedMonth, setSelectedMonth] = useState<string>('ឆមាសទី១');
+  const [showCommitteeModal, setShowCommitteeModal] = useState<boolean>(false);
 
   // Paper & Print configuration
   const [paperSize, setPaperSize] = useState<'a4' | 'letter'>('a4');
@@ -1378,6 +1393,77 @@ export const OfficialDocumentCenter: React.FC = () => {
               )}
 
               {/* ---------------------------------------------------- */}
+              {/* TEMPLATE 18: CLASSROOM MANAGEMENT COMMITTEE (គ.ក.ថ.) */}
+              {/* ---------------------------------------------------- */}
+              {selectedDoc === 'class_committee_doc' && (
+                <div className="space-y-4 pt-1">
+                  <div className="flex items-center justify-between bg-blue-50 p-3 rounded-xl border border-blue-200">
+                    <div>
+                      <p className="font-bold text-xs text-blue-950 font-moul">ឯកសារគណៈកម្មការគ្រប់គ្រងថ្នាក់រៀន (គ.ក.ថ.)</p>
+                      <p className="text-[11px] text-blue-800 font-battambang">មានទាំងទម្រង់តារាងផ្លូវការ (Landscape) និងរចនាសម្ព័ន្ធរូបថត (Portrait Org Chart)</p>
+                    </div>
+                    <button
+                      onClick={() => setShowCommitteeModal(true)}
+                      className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      <span>បើកផ្ទាំងបោះពុម្ព & កែសម្រួលរូបថត</span>
+                    </button>
+                  </div>
+
+                  <div className="text-center space-y-1">
+                    <h1 className="font-moul text-base text-blue-950">
+                      សមាសភាពគណៈកម្មការគ្រប់គ្រងថ្នាក់រៀន ( គ.ក.ថ. )
+                    </h1>
+                    <p className="text-xs font-semibold text-slate-600">ថ្នាក់ទី {selectedGrade}«{selectedSection}» ឆ្នាំសិក្សា {selectedAcademicYear}</p>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[11px] text-left border-collapse border border-slate-900 mt-2">
+                      <thead>
+                        <tr className="bg-slate-100 font-bold text-slate-900 text-center font-battambang">
+                          <th className="border border-slate-900 p-1.5 w-8">ល.រ</th>
+                          <th className="border border-slate-900 p-1.5 w-16">នាមស័ព្ទ</th>
+                          <th className="border border-slate-900 p-1.5 min-w-24">នាមត្រកូល និងនាមខ្លួន</th>
+                          <th className="border border-slate-900 p-1.5 w-12">ភេទ</th>
+                          <th className="border border-slate-900 p-1.5">អង្គភាព/ទីកន្លែងធ្វើការ</th>
+                          <th className="border border-slate-900 p-1.5">មុខរបរ</th>
+                          <th className="border border-slate-900 p-1.5">តួនាទី</th>
+                          <th className="border border-slate-900 p-1.5">លេខទូរស័ព្ទ</th>
+                          <th className="border border-slate-900 p-1.5 w-14">ថ្នាក់ទី</th>
+                          <th className="border border-slate-900 p-1.5">ស្ថានភាពជីវភាព</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { no: '១', hon: 'លោកស្រី', name: 'ហៀម ម៉ុំ', sex: 'ស្រី', work: 'ភូមិភ្នំពុំ', occ: 'កសិករ', role: 'ប្រធាន', tel: '097 538 5753', cls: `${selectedGrade}${selectedSection}`, liv: 'ជីវភាពមធ្យម' },
+                          { no: '២', hon: 'លោកស្រី', name: 'មាស សុខុម', sex: 'ស្រី', work: 'ភូមិភ្នំពុំ', occ: 'កសិករ', role: 'អនុប្រធាន', tel: '097 5555 001', cls: `${selectedGrade}${selectedSection}`, liv: 'ជីវភាពមធ្យម' },
+                          { no: '៣', hon: 'លោកស្រី', name: 'លៀវ សុខណា', sex: 'ស្រី', work: 'ភូមិភ្នំពុំ', occ: 'កសិករ', role: 'អនុប្រធាន', tel: '070 314 043', cls: `${selectedGrade}${selectedSection}`, liv: 'ជីវភាពមធ្យម' },
+                          { no: '៤', hon: 'លោកស្រី', name: 'ផន យាន', sex: 'ស្រី', work: 'ភូមិភ្នំពុំ', occ: 'កសិករ', role: 'សមាជិក', tel: '012 889 921', cls: `${selectedGrade}${selectedSection}`, liv: 'ជីវភាពមធ្យម' },
+                          { no: '៥', hon: 'លោក', name: 'ឃី ចាន់ថា', sex: 'ប្រុស', work: 'ភូមិភ្នំពុំ', occ: 'កសិករ', role: 'សមាជិក', tel: '015 298 995', cls: `${selectedGrade}${selectedSection}`, liv: 'ជីវភាពមធ្យម' },
+                          { no: '៦', hon: 'លោកស្រី', name: 'លាប ឡៃ', sex: 'ស្រី', work: 'ភូមិភ្នំពុំ', occ: 'កសិករ', role: 'សមាជិក', tel: '015 445 573', cls: `${selectedGrade}${selectedSection}`, liv: 'ជីវភាពមធ្យម' },
+                          { no: '៧', hon: 'កុមារ', name: 'ផៃ សំអាត', sex: 'ស្រី', work: 'ភូមិភ្នំពុំ', occ: 'សិស្ស', role: 'សមាជិក', tel: '096 272 0170', cls: `${selectedGrade}${selectedSection}`, liv: 'ជីវភាពមធ្យម' }
+                        ].map((row, i) => (
+                          <tr key={i} className="hover:bg-slate-50">
+                            <td className="border border-slate-900 p-1.5 text-center font-bold">{row.no}</td>
+                            <td className="border border-slate-900 p-1.5 text-center">{row.hon}</td>
+                            <td className="border border-slate-900 p-1.5 font-bold font-moul text-xs">{row.name}</td>
+                            <td className="border border-slate-900 p-1.5 text-center">{row.sex}</td>
+                            <td className="border border-slate-900 p-1.5 text-center">{row.work}</td>
+                            <td className="border border-slate-900 p-1.5 text-center">{row.occ}</td>
+                            <td className="border border-slate-900 p-1.5 text-center font-bold text-blue-950">{row.role}</td>
+                            <td className="border border-slate-900 p-1.5 text-center font-times font-bold">{row.tel}</td>
+                            <td className="border border-slate-900 p-1.5 text-center font-semibold">{row.cls}</td>
+                            <td className="border border-slate-900 p-1.5 text-center">{row.liv}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* ---------------------------------------------------- */}
               {/* TEMPLATE 10: CLASS COUNCIL STRUCTURE (រចនាសម្ព័ន្ធគណៈកម្មការថ្នាក់) */}
               {/* ---------------------------------------------------- */}
               {selectedDoc === 'class_council_structure' && (
@@ -1569,6 +1655,20 @@ export const OfficialDocumentCenter: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Classroom Management Committee Full Print Modal */}
+      {showCommitteeModal && (
+        <ClassCommitteePrintModal
+          isOpen={showCommitteeModal}
+          onClose={() => setShowCommitteeModal(false)}
+          selectedGrade={selectedGrade}
+          selectedSection={selectedSection}
+          selectedAcademicYear={selectedAcademicYear}
+          schoolProfile={schoolProfile}
+          homeroomTeacher={teachers.find(t => t.id === selectedTeacherId)}
+          classStudents={students.filter(s => s.grade === selectedGrade && s.section === selectedSection)}
+        />
+      )}
     </div>
   );
 };
