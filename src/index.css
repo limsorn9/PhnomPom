@@ -1,0 +1,379 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  html {
+    font-size: 14.5px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: 'Kantumruy Pro', 'Khmer OS Battambang', 'Battambang', 'Siemreap', 'Noto Serif Khmer', system-ui, sans-serif;
+    line-height: 1.65;
+    letter-spacing: 0.01em;
+  }
+
+  /* Dark Theme Default Overrides */
+  html.dark {
+    color-scheme: dark;
+    background-color: #0b1120;
+    color: #f1f5f9;
+  }
+
+  html.dark body {
+    background-color: #0b1120;
+    color: #f1f5f9;
+  }
+
+  /* Khmer Heading Fonts */
+  .font-moul {
+    font-family: 'Khmer OS Muol Light', 'Khmer OS Muol', 'Moul', 'Noto Serif Khmer', serif;
+    line-height: 1.6;
+    letter-spacing: 0.02em;
+  }
+
+  .font-battambang {
+    font-family: 'Kantumruy Pro', 'Khmer OS Battambang', 'Battambang', 'Siemreap', sans-serif;
+    line-height: 1.65;
+  }
+
+  .font-kantumruy {
+    font-family: 'Kantumruy Pro', 'Khmer OS Battambang', 'Battambang', 'Siemreap', sans-serif;
+    line-height: 1.65;
+  }
+
+  .font-times {
+    font-family: 'Times New Roman', 'Noto Serif Khmer', Times, serif;
+  }
+
+  /* Prevent Khmer subscript and superscript vowel clipping */
+  h1, h2, h3, h4, h5, h6, p, span, a, label, button, th, td {
+    overflow-wrap: break-word;
+  }
+
+  input, select, textarea {
+    font-family: 'Kantumruy Pro', 'Khmer OS Battambang', 'Battambang', sans-serif;
+    line-height: 1.6;
+  }
+}
+
+/* -------------------------------------------------------------
+   Comprehensive Night Mode / Dark Mode Styles
+   ------------------------------------------------------------- */
+html.dark .bg-slate-100 {
+  background-color: #0b1120 !important;
+}
+
+html.dark .bg-slate-50 {
+  background-color: #111a2e !important;
+}
+
+html.dark .bg-white {
+  background-color: #15203b !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .border-slate-200,
+html.dark .border-slate-100,
+html.dark .border-slate-300 {
+  border-color: #233354 !important;
+}
+
+html.dark .text-slate-900,
+html.dark .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+html.dark .text-slate-700,
+html.dark .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+html.dark .text-slate-400 {
+  color: #64748b !important;
+}
+
+html.dark .divide-slate-200 > *,
+html.dark .divide-slate-100 > * {
+  border-color: #233354 !important;
+}
+
+html.dark input[type="text"],
+html.dark input[type="number"],
+html.dark input[type="date"],
+html.dark input[type="tel"],
+html.dark input[type="email"],
+html.dark input[type="password"],
+html.dark input[type="search"],
+html.dark select,
+html.dark textarea {
+  background-color: #111a2e !important;
+  color: #f8fafc !important;
+  border-color: #2b3d63 !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+html.dark table thead {
+  background-color: #111a2e !important;
+  color: #94a3b8 !important;
+}
+
+html.dark table tbody tr:hover {
+  background-color: #182544 !important;
+}
+
+html.dark .hover\:bg-slate-50:hover {
+  background-color: #182544 !important;
+}
+
+html.dark .hover\:bg-slate-100:hover {
+  background-color: #1d2c50 !important;
+}
+
+html.dark .hover\:bg-slate-200:hover {
+  background-color: #253763 !important;
+}
+
+html.dark .shadow-xl,
+html.dark .shadow-2xl,
+html.dark .shadow-lg,
+html.dark .shadow-md,
+html.dark .shadow-sm {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
+}
+
+html.dark .bg-blue-50 {
+  background-color: rgba(30, 58, 138, 0.25) !important;
+}
+
+html.dark .bg-emerald-50 {
+  background-color: rgba(6, 78, 59, 0.25) !important;
+}
+
+html.dark .bg-amber-50 {
+  background-color: rgba(120, 53, 15, 0.25) !important;
+}
+
+html.dark .bg-rose-50 {
+  background-color: rgba(136, 19, 55, 0.25) !important;
+}
+
+html.dark .bg-purple-50 {
+  background-color: rgba(88, 28, 135, 0.25) !important;
+}
+
+html.dark .bg-indigo-50 {
+  background-color: rgba(49, 46, 129, 0.25) !important;
+}
+
+html.dark .border-blue-200 {
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+html.dark .border-emerald-200 {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+html.dark .border-amber-200 {
+  border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+html.dark .border-rose-200 {
+  border-color: rgba(244, 63, 94, 0.4) !important;
+}
+
+html.dark .border-purple-200 {
+  border-color: rgba(168, 85, 247, 0.4) !important;
+}
+
+html.dark .border-indigo-200 {
+  border-color: rgba(99, 102, 241, 0.4) !important;
+}
+
+/* Angkor Aesthetic & Certificate Elements */
+.angkor-gold-gradient {
+  background: linear-gradient(135deg, #b45309 0%, #d97706 50%, #f59e0b 100%);
+}
+
+.angkor-border-frame {
+  border: 3px double #d97706;
+  box-shadow: inset 0 0 0 2px #fef3c7, 0 4px 20px -4px rgba(180, 83, 9, 0.15);
+}
+
+.angkor-watermark-bg {
+  background-image: radial-gradient(#1e3a8a 0.5px, transparent 0.5px), radial-gradient(#1e3a8a 0.5px, #ffffff 0.5px);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm 12mm 12mm;
+  }
+
+  /* Universal reset for clean printing */
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 10pt !important;
+    line-height: 1.45 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide all UI chrome, sidebars, headers, floating navs, toasts and buttons */
+  .no-print,
+  aside,
+  header,
+  nav,
+  footer,
+  button,
+  .toast,
+  input[type="text"],
+  input[type="search"],
+  select,
+  .sticky,
+  .action-btn {
+    display: none !important;
+  }
+
+  /* When a modal with printable content is opened */
+  .fixed.inset-0 {
+    position: static !important;
+    inset: auto !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .fixed.inset-0 > div {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* If a modal is open, hide the main page behind it */
+  body:has(.fixed.inset-0) > #root > div > .flex-1 > main {
+    display: none !important;
+  }
+
+  /* Unclip any overflow containers that cause page cutting */
+  body, #root, .min-h-screen, main, div, section {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .rounded-2xl, .rounded-3xl, .rounded-xl {
+    border-radius: 4px !important;
+  }
+
+  /* Table styling for print */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto;
+    font-size: 9.5pt !important;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  th, td {
+    border: 1px solid #475569 !important;
+    padding: 3px 5px !important;
+    line-height: 1.35 !important;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  /* Cards grid layout on A4 paper */
+  .print-grid-cards {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8mm !important;
+    page-break-inside: auto;
+  }
+
+  .print-card {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    box-shadow: none !important;
+    border: 1.5px solid #1e3a8a !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-page-break {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  /* Honor Certificate full A4 landscape */
+  .print-certificate {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    width: 100% !important;
+    min-height: 190mm !important;
+    border: 4px double #d97706 !important;
+    padding: 12mm !important;
+  }
+}
+
+/* Custom smooth scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+

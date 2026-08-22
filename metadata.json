@@ -1,0 +1,6 @@
+{
+  "name": "សាលាបឋមសិក្សាភ្នំពុំ - Phnom Pom Primary School",
+  "description": "ប្រព័ន្ធគ្រប់គ្រងសាលាបឋមសិក្សាភ្នំពុំ ភូមិអូរគល់សំយ៉ុង ឃុំបារាំងធ្លាក់ ស្រុកភ្នំព្រឹក ខេត្តបាត់ដំបង - គ្រប់គ្រងសិស្ស គ្រូបង្រៀន ពិន្ទុ វត្តមាន ថវិកា និង Google Workspace",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
