@@ -250,3 +250,174 @@ export const AngkorBorderOrnament: React.FC<{ className?: string }> = ({ classNa
   );
 };
 
+/**
+ * Converts Arabic numerals to Khmer numerals (e.g. 2026 -> ២០២៦)
+ */
+export const toKhmerNumber = (val: number | string): string => {
+  const khmerDigits = ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'];
+  return String(val).replace(/[0-9]/g, match => khmerDigits[parseInt(match, 10)]);
+};
+
+/**
+ * Returns formatted Khmer Solar Date (កាលបរិច្ឆេទសុរិយគតិ)
+ * e.g., "ភ្នំពេញ, ថ្ងៃទី២២ ខែសីហា ឆ្នាំ២០២៦"
+ */
+export const getKhmerSolarDate = (date = new Date(), location = 'ភ្នំពេញ'): string => {
+  const khmerMonths = [
+    'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា',
+    'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'
+  ];
+  const day = toKhmerNumber(date.getDate());
+  const month = khmerMonths[date.getMonth()];
+  const year = toKhmerNumber(date.getFullYear());
+  return `${location}, ថ្ងៃទី${day} ខែ${month} ឆ្នាំ${year}`;
+};
+
+/**
+ * Returns formatted Khmer Lunar Date (កាលបរិច្ឆេទចន្ទគតិ)
+ * e.g., "ថ្ងៃព្រហស្បតិ៍ ១៤កើត ខែស្រាពណ៍ ឆ្នាំមមែ អដ្ឋស័ក ព.ស.២៥៧០"
+ */
+export const getKhmerLunarDate = (date = new Date()): string => {
+  const daysOfWeek = ['ថ្ងៃអាទិត្យ', 'ថ្ងៃចន្ទ', 'ថ្ងៃអង្គារ', 'ថ្ងៃពុធ', 'ថ្ងៃព្រហស្បតិ៍', 'ថ្ងៃសុក្រ', 'ថ្ងៃសៅរ៍'];
+  const dayName = daysOfWeek[date.getDay()];
+  
+  // Buddhist Era (ព.ស.)
+  const buddhistEra = toKhmerNumber(date.getFullYear() + 544);
+  
+  const lunarMonths = [
+    'បុស្ស', 'មាឃ', 'ផល្គុន', 'ចេត្រ', 'ពិសាខ', 'ជេស្ឋ',
+    'អាសាឍ', 'ស្រាពណ៍', 'ភទ្របទ', 'អស្សុជ', 'កត្តិក', 'មិគសិរ'
+  ];
+  const lunarMonth = lunarMonths[date.getMonth()] || 'ស្រាពណ៍';
+
+  // Day of lunar cycle (approximate 1-15 keut / roch)
+  const dayOfMonth = date.getDate();
+  const isKeut = dayOfMonth <= 15;
+  const lunarDayNum = isKeut ? dayOfMonth : (dayOfMonth - 15);
+  const lunarPhase = `${toKhmerNumber(lunarDayNum)}${isKeut ? 'កើត' : 'រោច'}`;
+
+  // Animal zodiac & era for standard Cambodian school administrative forms
+  const zodiac = 'ឆ្នាំមមែ';
+  const era = 'អដ្ឋស័ក';
+
+  return `${dayName} ${lunarPhase} ខែ${lunarMonth} ${zodiac} ${era} ព.ស.${buddhistEra}`;
+};
+
+/**
+ * Clean Circular Stamp Placeholder for Physical School Seal (ត្រាសាលារៀន)
+ * "ចំណែកត្រាសាលារៀន គ្រាន់តែដាក់រង្វង់ទុក ឱ្យដាក់ត្រាទៅបានហើយ"
+ */
+export const SchoolStampCirclePlaceholder: React.FC<{
+  className?: string;
+  size?: 'sm' | 'md' | 'lg';
+  label?: string;
+}> = ({ className = '', size = 'md', label = 'ទីតាំងបោះត្រា' }) => {
+  const sizeClass = size === 'sm' ? 'w-20 h-20' : size === 'lg' ? 'w-32 h-32' : 'w-26 h-26';
+  return (
+    <div className={`relative inline-flex items-center justify-center select-none ${className}`}>
+      <div className={`${sizeClass} rounded-full border-2 border-dashed border-red-500/80 p-1 flex items-center justify-center transition-all bg-red-50/10`}>
+        <div className="w-full h-full rounded-full border border-dotted border-red-400/60 flex items-center justify-center text-center">
+          <span className="text-[9px] font-battambang text-red-500/80 font-medium px-1 leading-tight">
+            ( {label} )
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Standard MoEYS Dual Administrative Signature Block (ទម្រង់រដ្ឋបាលសាលារៀនផ្លូវការ)
+ * - Left: "បានឃើញ និងឯកភាព" (font-moul blue), "នាយកសាលា" (font-moul blue), Stamp Circle Placeholder, Director Name (font-moul red)
+ * - Right: Lunar Date + Solar Date, "គ្រូបន្ទុកថ្នាក់" (font-moul blue), Signature space, Teacher Name (font-moul blue)
+ */
+export const MoEYSOfficialDualSignatures: React.FC<{
+  schoolLocation?: string;
+  principalTitle?: string;
+  principalName?: string;
+  reviewerTitle?: string; // e.g. "បានឃើញ និងឯកភាព"
+  teacherRoleTitle?: string; // e.g. "គ្រូបន្ទុកថ្នាក់" or "ប្រធានគណៈកម្មការ"
+  teacherName?: string;
+  teacherNameColor?: 'blue' | 'red' | 'dark';
+  lunarDate?: string;
+  solarDate?: string;
+  showStampPlaceholder?: boolean;
+  className?: string;
+}> = ({
+  schoolLocation = 'ភ្នំពេញ',
+  principalTitle = 'នាយកសាលា',
+  principalName = 'ស៊ុន ពិសិដ្ឋ',
+  reviewerTitle = 'បានឃើញ និងឯកភាព',
+  teacherRoleTitle = 'គ្រូបន្ទុកថ្នាក់',
+  teacherName = 'សែម ស្រីភឿន',
+  teacherNameColor = 'blue',
+  lunarDate,
+  solarDate,
+  showStampPlaceholder = true,
+  className = ''
+}) => {
+  const formattedLunar = lunarDate || getKhmerLunarDate();
+  const formattedSolar = solarDate || getKhmerSolarDate(new Date(), schoolLocation);
+
+  const teacherColorClass =
+    teacherNameColor === 'red'
+      ? 'text-red-600'
+      : teacherNameColor === 'dark'
+      ? 'text-slate-900'
+      : 'text-blue-700';
+
+  return (
+    <div className={`w-full flex justify-between items-start text-xs font-battambang leading-relaxed pt-6 select-none ${className}`}>
+      {/* LEFT: Approving Authority / School Principal */}
+      <div className="text-center w-72 space-y-1">
+        <p className="font-moul text-blue-700 text-xs sm:text-sm font-bold tracking-wide">
+          {reviewerTitle}
+        </p>
+        <p className="font-moul text-blue-700 text-xs sm:text-sm font-bold">
+          {principalTitle}
+        </p>
+
+        {/* Circular Stamp Placement Area */}
+        <div className="h-28 flex items-center justify-center my-1 relative">
+          {showStampPlaceholder && (
+            <SchoolStampCirclePlaceholder label="ទីតាំងបោះត្រា" />
+          )}
+        </div>
+
+        {/* Principal Name in RED color and Khmer OS Muol Light */}
+        <p className="font-moul text-red-600 font-bold text-xs sm:text-sm tracking-wide pt-1">
+          {principalName}
+        </p>
+      </div>
+
+      {/* RIGHT: Homeroom Teacher / Committee / Creator */}
+      <div className="text-center w-72 space-y-1">
+        {/* Lunar Date (កាលបរិច្ឆេទចន្ទគតិ) */}
+        <p className="text-xs text-blue-900 font-medium leading-tight">
+          {formattedLunar}
+        </p>
+        {/* Solar Date (កាលបរិច្ឆេទសុរិយគតិ) */}
+        <p className="text-xs text-blue-900 font-medium leading-tight">
+          {formattedSolar}
+        </p>
+
+        {/* Teacher Role in Blue & Khmer OS Muol Light */}
+        <p className="font-moul text-blue-700 text-xs sm:text-sm font-bold mt-1">
+          {teacherRoleTitle}
+        </p>
+
+        {/* Manual Signature Blank Space */}
+        <div className="h-28 flex items-center justify-center">
+          <span className="text-slate-300 italic text-[11px]"></span>
+        </div>
+
+        {/* Teacher Name in BLUE color and Khmer OS Muol Light */}
+        <p className={`font-moul ${teacherColorClass} font-bold text-xs sm:text-sm tracking-wide pt-1`}>
+          {teacherName}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+

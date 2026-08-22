@@ -23,6 +23,7 @@ import { HouseholdCensus } from './components/HouseholdCensus';
 import { LibraryManagement } from './components/LibraryManagement';
 import { BulkDataImportExportModal } from './components/BulkDataImportExportModal';
 import { GoogleDriveSyncModal } from './components/GoogleDriveSyncModal';
+import { QuickSearchSpotlightModal } from './components/QuickSearchSpotlightModal';
 import { AuthScreen } from './components/AuthScreen';
 import { StandaloneHtmlExportModal } from './components/StandaloneHtmlExportModal';
 import { SchoolProfileModal } from './components/SchoolProfileModal';
@@ -49,6 +50,19 @@ const MainLayout: React.FC = () => {
   const [isExportHtmlOpen, setIsExportHtmlOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [isDriveSyncOpen, setIsDriveSyncOpen] = useState(false);
+  const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
+
+  // Global keyboard shortcut for Quick Search Spotlight (Ctrl+K or Cmd+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsSpotlightOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Google Auth state
   const [googleUser, setGoogleUser] = useState<User | null>(null);
@@ -122,6 +136,7 @@ const MainLayout: React.FC = () => {
           onExportStandaloneHtml={() => setIsExportHtmlOpen(true)}
           onOpenBulkImport={() => setIsBulkImportOpen(true)}
           onOpenDriveSync={() => setIsDriveSyncOpen(true)}
+          onOpenSpotlightSearch={() => setIsSpotlightOpen(true)}
         />
 
         {/* Dynamic Main Workspace Container */}
@@ -221,6 +236,12 @@ const MainLayout: React.FC = () => {
         onClose={() => setIsDriveSyncOpen(false)}
         googleUser={googleUser}
         onGoogleAuthClick={handleGoogleAuthAction}
+      />
+
+      {/* Global Quick Search Spotlight Modal (Ctrl+K) */}
+      <QuickSearchSpotlightModal
+        isOpen={isSpotlightOpen}
+        onClose={() => setIsSpotlightOpen(false)}
       />
     </div>
   );

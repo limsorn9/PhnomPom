@@ -21,6 +21,7 @@ import {
   ExternalLink,
   LogIn
 } from 'lucide-react';
+import { printElement, downloadElementAsPdf } from '../utils/printUtils';
 
 export const ReportsAndQR: React.FC = () => {
   const {
@@ -60,8 +61,38 @@ export const ReportsAndQR: React.FC = () => {
       s.monthOrSemester === selectedMonth
   );
 
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
+  const getReportTitle = () => {
+    switch (activeReportType) {
+      case 'census': return `ស្ថិតិសិស្សដើមឆ្នាំ_${schoolProfile.academicYear}`;
+      case 'score_sheet': return `តារាងពិន្ទុ_ថ្នាក់ទី${selectedGrade}${selectedSection}_ខែ${selectedMonth}`;
+      case 'finance': return `របាយការណ៍ហិរញ្ញវត្ថុ_${schoolProfile.academicYear}`;
+      case 'student_qr_cards': return `កាតសិស្ស_ថ្នាក់ទី${selectedGrade}${selectedSection}`;
+      case 'staff_qr_cards': return `ប័ណ្ណសម្គាល់បុគ្គលិក_${schoolProfile.academicYear}`;
+      default: return 'របាយការណ៍_MoEYS';
+    }
+  };
+
   const handlePrint = () => {
-    window.print();
+    printElement('reports-printable-container', {
+      landscape: activeReportType === 'census' || activeReportType === 'score_sheet',
+      pageTitle: getReportTitle()
+    });
+  };
+
+  const handleDownloadPdf = async () => {
+    setIsExportingPdf(true);
+    try {
+      const filename = `${getReportTitle()}_${schoolProfile.nameKhmer || 'សាលារៀន'}.pdf`;
+      await downloadElementAsPdf('reports-printable-container', filename, {
+        landscape: activeReportType === 'census' || activeReportType === 'score_sheet'
+      });
+    } catch (err) {
+      console.error('Failed to export report PDF:', err);
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   // Helper for downloading CSV/Excel with UTF-8 BOM for Microsoft Excel compatibility
@@ -180,20 +211,31 @@ export const ReportsAndQR: React.FC = () => {
                 else if (activeReportType === 'student_qr_cards') exportStudentsToExcel();
                 else exportStaffToExcel();
               }}
-              className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+              className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
             >
               <FileSpreadsheet className="w-4 h-4" />
               <span>នាំចេញ Excel</span>
             </button>
 
-            {/* Print / PDF Action */}
+            {/* Download PDF Action */}
+            <button
+              onClick={handleDownloadPdf}
+              disabled={isExportingPdf}
+              className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
+              title="ទាញយកជារូបរាង PDF"
+            >
+              <Download className="w-4 h-4" />
+              <span>{isExportingPdf ? 'កំពុងបង្កើត...' : 'ទាញយកជា PDF'}</span>
+            </button>
+
+            {/* Print Action */}
             <button
               id="print-report-btn"
               onClick={handlePrint}
-              className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition-transform active:scale-95"
+              className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition-transform active:scale-95 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
-              <span>បោះពុម្ព / ទាញយក PDF</span>
+              <span>បោះពុម្ព (Print)</span>
             </button>
           </div>
         </div>
@@ -258,7 +300,10 @@ export const ReportsAndQR: React.FC = () => {
       </div>
 
       {/* Official MoEYS Print Document Container */}
-      <div className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 shadow-md max-w-5xl mx-auto print:shadow-none print:border-none print:p-0">
+      <div
+        id="reports-printable-container"
+        className="bg-white p-8 sm:p-12 rounded-2xl border border-slate-200 shadow-md max-w-5xl mx-auto print:shadow-none print:border-none print:p-0"
+      >
         {/* Ministry & School Official Heading */}
         <div className="flex justify-between items-start text-xs border-b border-slate-300 pb-6 mb-6">
           <div className="space-y-1 text-center sm:text-left">

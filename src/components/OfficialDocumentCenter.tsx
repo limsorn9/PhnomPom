@@ -1,7 +1,18 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useSchool } from '../context/SchoolContext';
-import { MoEYSRoyalHeader, AngkorPageWatermark, SchoolOfficialStamp } from './AngkorMotif';
+import {
+  MoEYSRoyalHeader,
+  AngkorPageWatermark,
+  SchoolOfficialStamp,
+  SchoolStampCirclePlaceholder,
+  MoEYSOfficialDualSignatures,
+  getKhmerLunarDate,
+  getKhmerSolarDate
+} from './AngkorMotif';
 import { ClassCommitteePrintModal } from './ClassCommitteePrintModal';
+import { StudentHealthBookletModal } from './StudentHealthBookletModal';
+import { ClassStudentStatisticsPriModal } from './ClassStudentStatisticsPriModal';
+import { printElement, downloadElementAsPdf } from '../utils/printUtils';
 import {
   Printer,
   FileText,
@@ -29,7 +40,8 @@ import {
   Share2,
   BookOpen,
   ClipboardList,
-  AlertCircle
+  AlertCircle,
+  HeartPulse
 } from 'lucide-react';
 
 export type DocumentCategory = 'all' | 'students' | 'agreements_invitations' | 'staff_admin' | 'school_reports' | 'class_governance';
@@ -59,7 +71,9 @@ export type DocumentType =
   // 5. គណៈកម្មការ & ការគ្រប់គ្រងថ្នាក់ (Class Governance & Council)
   | 'class_committee_doc'
   | 'class_council_structure'
-  | 'classroom_inspection_checklist';
+  | 'classroom_inspection_checklist'
+  | 'class_student_statistics_pri'
+  | 'student_health_booklet';
 
 interface DocumentTemplateMeta {
   id: DocumentType;
@@ -323,6 +337,30 @@ export const DOCUMENT_TEMPLATES: DocumentTemplateMeta[] = [
     icon: CheckCircle,
     accentColor: 'text-emerald-800 bg-emerald-50 border-emerald-200',
     isVerifiedMoEYS: true
+  },
+  {
+    id: 'class_student_statistics_pri',
+    titleKhmer: '២១. តារាងស្ថិតិសិស្សតាមថ្នាក់ (MoEYS PRI)',
+    titleLatin: 'Official Primary Student Statistics Ledger (PRI Form)',
+    category: 'class_governance',
+    categoryNameKhmer: 'ការគ្រប់គ្រងថ្នាក់ & គណៈកម្មការ',
+    targetType: 'classroom',
+    description: 'តារាងស្ថិតិផ្លូវការ MoEYS PRI បែងចែកតាមអាយុ (៦-១១+ ឆ្នាំ) ពិការភាព សុខភាព និងជនជាតិដើមភាគតិច',
+    icon: FileSpreadsheet,
+    accentColor: 'text-blue-700 bg-blue-50 border-blue-200',
+    isVerifiedMoEYS: true
+  },
+  {
+    id: 'student_health_booklet',
+    titleKhmer: '២២. សៀវភៅសុខភាពសិស្ស (៣ទំព័រពេញលេញ)',
+    titleLatin: 'Student Health & Medical History Record Booklet (3 Pages)',
+    category: 'students',
+    categoryNameKhmer: 'សិស្ស & ការសិក្សា',
+    targetType: 'student',
+    description: 'សៀវភៅសុខភាព ៣ ទំព័រ៖ គម្របមុខ ប្រវត្តិជំងឺឆ្លងកាត់ និងតារាងពិនិត្យសុខភាពប្រចាំឆ្នាំ',
+    icon: HeartPulse,
+    accentColor: 'text-rose-600 bg-rose-50 border-rose-200',
+    isVerifiedMoEYS: true
   }
 ];
 
@@ -357,6 +395,8 @@ export const OfficialDocumentCenter: React.FC = () => {
   const [selectedSection, setSelectedSection] = useState<string>('ក');
   const [selectedMonth, setSelectedMonth] = useState<string>('ឆមាសទី១');
   const [showCommitteeModal, setShowCommitteeModal] = useState<boolean>(false);
+  const [showPriModal, setShowPriModal] = useState<boolean>(false);
+  const [showHealthBookletModal, setShowHealthBookletModal] = useState<boolean>(false);
 
   // Paper & Print configuration
   const [paperSize, setPaperSize] = useState<'a4' | 'letter'>('a4');
@@ -428,18 +468,31 @@ export const OfficialDocumentCenter: React.FC = () => {
     });
   }, [selectedCategory, searchQuery]);
 
-  // Print / PDF Handler
+  // Print / PDF Handlers
   const handlePrint = () => {
-    window.print();
+    if (printCanvasRef.current) {
+      printElement(printCanvasRef.current, {
+        landscape: paperOrientation === 'landscape',
+        pageTitle: activeTemplateMeta.titleKhmer
+      });
+    } else {
+      window.print();
+    }
   };
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
+    if (!printCanvasRef.current) return;
     setIsExportingPdf(true);
-    // Trigger native browser PDF printing with high fidelity
-    setTimeout(() => {
-      window.print();
+    try {
+      const filename = `${activeTemplateMeta.titleKhmer}_${schoolProfile.nameKhmer || 'សាលារៀន'}.pdf`;
+      await downloadElementAsPdf(printCanvasRef.current, filename, {
+        landscape: paperOrientation === 'landscape'
+      });
+    } catch (err) {
+      console.error('Failed to export PDF:', err);
+    } finally {
       setIsExportingPdf(false);
-    }, 150);
+    }
   };
 
   return (
@@ -616,6 +669,36 @@ export const OfficialDocumentCenter: React.FC = () => {
               <p className="text-xs text-slate-600 mt-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                 {activeTemplateMeta.description}
               </p>
+
+              {selectedDoc === 'class_committee_doc' && (
+                <button
+                  onClick={() => setShowCommitteeModal(true)}
+                  className="w-full mt-3 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"
+                >
+                  <Award className="w-4 h-4 text-blue-200" />
+                  <span>បើកទម្រង់ពេញលេញ (Landscape & Org Chart)</span>
+                </button>
+              )}
+
+              {selectedDoc === 'class_student_statistics_pri' && (
+                <button
+                  onClick={() => setShowPriModal(true)}
+                  className="w-full mt-3 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-indigo-200" />
+                  <span>បើកផ្ទាំងបោះពុម្ពតារាងស្ថិតិ PRI ពេញលេញ</span>
+                </button>
+              )}
+
+              {selectedDoc === 'student_health_booklet' && (
+                <button
+                  onClick={() => setShowHealthBookletModal(true)}
+                  className="w-full mt-3 py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"
+                >
+                  <HeartPulse className="w-4 h-4 text-rose-200" />
+                  <span>បើកសៀវភៅសុខភាព ៣ ទំព័រពេញលេញ (PDF)</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -1606,46 +1689,52 @@ export const OfficialDocumentCenter: React.FC = () => {
             </div>
 
             {/* DOCUMENT FOOTER & DUAL-SIGNATURES */}
-            <div className="pt-8 mt-6 relative z-10">
-              <div className="flex justify-between items-end">
+            <div className="pt-8 mt-6 relative z-10 border-t border-slate-200">
+              <div className="flex justify-between items-start text-xs font-battambang">
                 {/* Left Seal / Parent / Reviewer Area */}
-                <div className="text-center text-xs space-y-1">
-                  <p className="font-bold text-slate-700">
+                <div className="text-center w-72 space-y-1">
+                  <p className="font-moul text-blue-700 text-xs font-bold">
                     {selectedDoc.includes('parent') ? 'ហត្ថលេខាអាណាព្យាបាលសិស្ស' : 'បានឃើញ និងឯកភាព'}
                   </p>
-                  <p className="text-slate-500">
-                    {selectedDoc.includes('parent') ? '(ស្នាមមេដៃ ឬហត្ថលេខា)' : 'ប្រធានការិយាល័យអប់រំ យុវជន និងកីឡា'}
+                  <p className="font-moul text-blue-700 text-xs font-bold">
+                    {selectedDoc.includes('parent') ? '(ស្នាមមេដៃ ឬហត្ថលេខា)' : 'នាយកសាលា'}
                   </p>
-                  <div className="h-16 flex items-end justify-center">
-                    {selectedDoc.includes('parent') && (
-                      <p className="font-semibold text-slate-700">
-                        {selectedStudent?.guardianName || selectedStudent?.fatherName || ''}
-                      </p>
+                  
+                  <div className="h-28 flex items-center justify-center my-1 relative">
+                    {printSettings.showRoundStamp && !selectedDoc.includes('parent') ? (
+                      <SchoolStampCirclePlaceholder label="ទីតាំងបោះត្រា" />
+                    ) : (
+                      <div className="h-20" />
                     )}
                   </div>
+
+                  <p className="font-moul text-xs text-red-600 font-bold pt-1">
+                    {selectedDoc.includes('parent')
+                      ? (selectedStudent?.guardianName || selectedStudent?.fatherName || 'អាណាព្យាបាល')
+                      : (schoolProfile.principalName || 'ស៊ុន ពិសិដ្ឋ')}
+                  </p>
                 </div>
 
-                {/* Right Seal & Director Signature Area */}
-                <div className="text-center text-xs space-y-1 relative">
-                  <p className="text-slate-600">{schoolProfile.addressKhmer || 'រាជធានីភ្នំពេញ'}, {customFields.dateKhmer}</p>
-                  <p className="font-bold font-moul text-slate-950 text-sm mt-1">នាយកសាលា</p>
+                {/* Right Seal & Teacher / Signee Signature Area with Lunar and Solar dates */}
+                <div className="text-center w-72 space-y-1 relative">
+                  <p className="text-xs text-blue-900 font-medium">
+                    {customFields.dateKhmer || getKhmerLunarDate()}
+                  </p>
+                  <p className="text-xs text-blue-900 font-medium">
+                    {getKhmerSolarDate(new Date(), schoolProfile.district || schoolProfile.addressKhmer || 'ភ្នំពេញ')}
+                  </p>
+                  <p className="font-moul text-blue-700 text-xs font-bold mt-1">
+                    {selectedDoc === 'teacher_duty_appointment' ? 'សាមីខ្លួនទទួលភារកិច្ច' : 'គ្រូបន្ទុកថ្នាក់'}
+                  </p>
 
-                  {/* Red Official Stamp Graphic */}
-                  <div className="h-20 flex items-center justify-center relative my-1">
-                    {printSettings.showRoundStamp && (
-                      <div className="w-24 h-24 rounded-full border-4 border-red-600 flex items-center justify-center text-center p-1 text-red-600 font-bold opacity-85 rotate-[-8deg] shadow-xs select-none">
-                        <div className="border border-red-600 rounded-full w-full h-full flex flex-col items-center justify-center p-1">
-                          <span className="text-[7px] font-moul uppercase leading-tight">{schoolProfile.nameKhmer}</span>
-                          <span className="text-[12px] my-0.5">★</span>
-                          <span className="text-[6px] font-bold">ត្រារដ្ឋបាល</span>
-                        </div>
-                      </div>
-                    )}
+                  {/* Signature Space */}
+                  <div className="h-28 flex items-end justify-center pb-2">
+                    <span className="text-slate-300 italic text-[11px]">( ហត្ថលេខា )</span>
                   </div>
 
                   {printSettings.showDirectorSignature && (
-                    <p className="font-moul text-sm text-red-700 font-bold pt-1">
-                      {schoolProfile.principalName || 'នាយកសាលា'}
+                    <p className="font-moul text-xs text-blue-700 font-bold pt-1">
+                      {teachers.find(t => t.id === selectedTeacherId)?.nameKhmer || 'សែម ស្រីភឿន'}
                     </p>
                   )}
                 </div>
@@ -1667,6 +1756,32 @@ export const OfficialDocumentCenter: React.FC = () => {
           schoolProfile={schoolProfile}
           homeroomTeacher={teachers.find(t => t.id === selectedTeacherId)}
           classStudents={students.filter(s => s.grade === selectedGrade && s.section === selectedSection)}
+        />
+      )}
+
+      {/* Primary Student Statistics (PRI) Full Modal */}
+      {showPriModal && (
+        <ClassStudentStatisticsPriModal
+          isOpen={showPriModal}
+          onClose={() => setShowPriModal(false)}
+          selectedGrade={selectedGrade}
+          selectedSection={selectedSection}
+          academicYear={selectedAcademicYear}
+          schoolProfile={schoolProfile}
+          homeroomTeacher={teachers.find(t => t.id === selectedTeacherId || (t.assignedGrade === selectedGrade && t.assignedSection === selectedSection))}
+          students={students}
+        />
+      )}
+
+      {/* Student Health Booklet (3 Pages) Full Modal */}
+      {showHealthBookletModal && (
+        <StudentHealthBookletModal
+          isOpen={showHealthBookletModal}
+          onClose={() => setShowHealthBookletModal(false)}
+          student={selectedStudent}
+          schoolProfile={schoolProfile}
+          academicYear={selectedAcademicYear}
+          allStudents={students.filter(s => s.grade === selectedGrade && s.section === selectedSection)}
         />
       )}
     </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Student, StudentScoreRecord, ExamSubject, Teacher, SchoolProfile } from '../types';
 import {
   Printer,
@@ -17,8 +17,10 @@ import {
   AngkorWatSilhouette,
   AngkorPageWatermark,
   MoEYSRoyalHeader,
-  SchoolOfficialStamp
+  SchoolOfficialStamp,
+  MoEYSOfficialDualSignatures
 } from './AngkorMotif';
+import { printElement, downloadElementAsPdf } from '../utils/printUtils';
 
 interface ScoreTablePrintModalProps {
   isOpen: boolean;
@@ -67,6 +69,8 @@ export const ScoreTablePrintModal: React.FC<ScoreTablePrintModalProps> = ({
   const [showRemarksColumn, setShowRemarksColumn] = useState<boolean>(true);
   const [compactFont, setCompactFont] = useState<boolean>(classStudents.length > 30);
   const [customTitle, setCustomTitle] = useState<string>('');
+  const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
+  const tableRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
 
@@ -127,7 +131,29 @@ export const ScoreTablePrintModal: React.FC<ScoreTablePrintModalProps> = ({
     : '0.00';
 
   const handlePrint = () => {
-    window.print();
+    if (tableRef.current) {
+      printElement(tableRef.current, {
+        landscape: orientation === 'landscape',
+        pageTitle: `តារាងពិន្ទុ_ថ្នាក់ទី${selectedGrade}${selectedSection}_ខែ${selectedMonth}`
+      });
+    } else {
+      window.print();
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!tableRef.current) return;
+    setIsExportingPdf(true);
+    try {
+      const filename = `តារាងពិន្ទុ_ថ្នាក់ទី${selectedGrade}${selectedSection}_ខែ${selectedMonth}_${selectedAcademicYear}.pdf`;
+      await downloadElementAsPdf(tableRef.current, filename, {
+        landscape: orientation === 'landscape'
+      });
+    } catch (err) {
+      console.error('Failed to export score table PDF:', err);
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   const handleExportCSV = () => {
@@ -214,7 +240,7 @@ export const ScoreTablePrintModal: React.FC<ScoreTablePrintModalProps> = ({
             <button
               type="button"
               onClick={handleExportCSV}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold rounded-xl transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
               title="ទាញយកជា Excel (.csv)"
             >
               <Download className="w-3.5 h-3.5" />
@@ -223,9 +249,20 @@ export const ScoreTablePrintModal: React.FC<ScoreTablePrintModalProps> = ({
 
             <button
               type="button"
+              onClick={handleDownloadPdf}
+              disabled={isExportingPdf}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
+              title="ទាញយកជាឯកសារ PDF (High Resolution)"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>{isExportingPdf ? 'កំពុងបង្កើត PDF...' : 'ទាញយកជា PDF'}</span>
+            </button>
+
+            <button
+              type="button"
               id="confirm-print-scores-btn"
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               <span>បោះពុម្ព (Print Now)</span>
@@ -324,6 +361,8 @@ export const ScoreTablePrintModal: React.FC<ScoreTablePrintModalProps> = ({
         {/* Printable Score Table Canvas */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-50 print:p-0 print:bg-white print:overflow-visible">
           <div
+            ref={tableRef}
+            id="score-table-print-canvas"
             className={`bg-white mx-auto p-6 sm:p-8 rounded-xl border border-slate-300 shadow-sm relative print:border-none print:shadow-none print:p-2 print:m-0 print:w-full ${
               orientation === 'landscape' ? 'max-w-[1240px] print-landscape-mode' : 'max-w-[900px]'
             }`}
@@ -681,45 +720,17 @@ export const ScoreTablePrintModal: React.FC<ScoreTablePrintModalProps> = ({
 
             {/* Official Signatures & Round Red Seal */}
             {showSignatures && (
-              <div className="relative z-1 mt-8 pt-4 border-t-2 border-slate-800 flex justify-between items-end text-xs font-battambang page-break-inside-avoid">
-                {/* Left: School Director Approval & Stamp */}
-                <div className="text-center relative min-w-[200px]">
-                  <p className="font-semibold text-slate-800">បានឃើញ និងឯកភាព</p>
-                  <p className="font-bold text-slate-900 font-moul mt-1 text-xs">
-                    នាយិកាសាលាបឋមសិក្សា
-                  </p>
-
-                  <div className="h-20 flex items-center justify-center my-1 relative">
-                    {showOfficialStamp && (
-                      <div className="absolute -top-3">
-                        <SchoolOfficialStamp
-                          schoolName={schoolProfile.nameKhmer}
-                          districtProvince={`${schoolProfile.district}, ${schoolProfile.province}`}
-                          principalName=""
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <p className="font-bold font-moul text-blue-950 text-xs">
-                    {schoolProfile.principalName}
-                  </p>
-                </div>
-
-                {/* Right: Homeroom Teacher Certification */}
-                <div className="text-center min-w-[200px]">
-                  <p className="font-semibold text-slate-800">
-                    {schoolProfile.district}, ថ្ងៃទី {new Date().getDate()} ខែ {selectedMonth} ឆ្នាំ {new Date().getFullYear()}
-                  </p>
-                  <p className="font-bold text-slate-900 font-moul mt-1 text-xs">
-                    គ្រូបន្ទុកថ្នាក់
-                  </p>
-                  <div className="h-20" />
-                  <p className="font-bold text-slate-900 text-xs">
-                    {homeroomTeacher?.nameKhmer || 'គ្រូបន្ទុកថ្នាក់'}
-                  </p>
-                </div>
-              </div>
+              <MoEYSOfficialDualSignatures
+                schoolLocation={schoolProfile.district || schoolProfile.addressKhmer || 'ភ្នំពេញ'}
+                principalTitle="នាយកសាលា"
+                principalName={schoolProfile.principalName}
+                reviewerTitle="បានឃើញ និងឯកភាព"
+                teacherRoleTitle="គ្រូបន្ទុកថ្នាក់"
+                teacherName={homeroomTeacher?.nameKhmer || 'សែម ស្រីភឿន'}
+                teacherNameColor="blue"
+                showStampPlaceholder={showOfficialStamp}
+                className="mt-8 pt-4 border-t-2 border-slate-800 page-break-inside-avoid"
+              />
             )}
           </div>
         </div>

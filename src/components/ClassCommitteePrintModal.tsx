@@ -30,8 +30,11 @@ import {
   AngkorPageWatermark,
   MoEYSRoyalHeader,
   SchoolOfficialStamp,
+  SchoolStampCirclePlaceholder,
+  MoEYSOfficialDualSignatures,
   KhmerKbachCorner
 } from './AngkorMotif';
+import { printElement, downloadElementAsPdf } from '../utils/printUtils';
 
 interface ClassCommitteePrintModalProps {
   isOpen: boolean;
@@ -247,9 +250,31 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
     setMembers(updated);
   };
 
-  // Trigger Print
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
+  // Trigger Print & PDF
   const handlePrint = () => {
-    window.print();
+    const targetId = activeTab === 'tree' ? 'committee-print-tree-canvas' : 'committee-print-table-canvas';
+    printElement(targetId, {
+      landscape: activeTab !== 'tree',
+      pageTitle: `គណៈកម្មការគ្រប់គ្រងថ្នាក់_ថ្នាក់ទី${selectedGrade}${selectedSection}`
+    });
+  };
+
+  const handleDownloadPdf = async () => {
+    const targetId = activeTab === 'tree' ? 'committee-print-tree-canvas' : 'committee-print-table-canvas';
+    setIsExportingPdf(true);
+    try {
+      const typeLabel = activeTab === 'tree' ? 'រចនាសម្ព័ន្ធរូបថត' : 'តារាងសមាសភាព';
+      const filename = `គណៈកម្មការគ្រប់គ្រងថ្នាក់_${typeLabel}_ថ្នាក់ទី${selectedGrade}${selectedSection}_${schoolProfile.nameKhmer || 'សាលារៀន'}.pdf`;
+      await downloadElementAsPdf(targetId, filename, {
+        landscape: activeTab !== 'tree'
+      });
+    } catch (err) {
+      console.error('Failed to export Committee PDF:', err);
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   // Get specific members by roles
@@ -320,6 +345,16 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownloadPdf}
+              disabled={isExportingPdf}
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              title="ទាញយកឯកសារជាទម្រង់ PDF"
+            >
+              <Download className="w-4 h-4" />
+              <span>{isExportingPdf ? 'កំពុងបង្កើត...' : 'ទាញយកជា PDF'}</span>
+            </button>
+
             <button
               onClick={handlePrint}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
@@ -410,7 +445,10 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
           {/* VIEW 1: LANDSCAPE TABLE (តារាងសមាសភាពគណៈកម្មការ) */}
           {/* ======================================================== */}
           {activeTab === 'table' && (
-            <div className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-200 w-full max-w-[1100px] print:max-w-none print:w-full print:shadow-none print:border-none print:p-4 print-landscape-mode relative">
+            <div
+              id="committee-print-table-canvas"
+              className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-200 w-full max-w-[1100px] print:max-w-none print:w-full print:shadow-none print:border-none print:p-4 print-landscape-mode relative"
+            >
               {/* Background Watermark */}
               {showWatermark && <AngkorPageWatermark opacity={0.04} />}
 
@@ -507,46 +545,19 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
 
               {/* Dual Signatures & Dates (Bottom) */}
               {showSignatures && (
-                <div className="relative z-10 mt-8 pt-4 flex justify-between items-end text-xs font-battambang text-slate-900">
-                  {/* Left: Director Approval */}
-                  <div className="text-center space-y-1 w-64">
-                    <p className="font-semibold">បានឃើញ និងឯកភាព</p>
-                    <p className="font-moul font-bold text-blue-950 text-xs">នាយកសាលា</p>
-                    
-                    {/* Stamp Space */}
-                    <div className="h-24 flex items-center justify-center my-1 relative">
-                      {showStamp && (
-                        <div className="w-24 h-24 rounded-full border-2 border-red-600 flex items-center justify-center text-center p-1 text-red-600 font-bold opacity-85 rotate-[-6deg] select-none">
-                          <div className="border border-dashed border-red-600 rounded-full w-full h-full flex flex-col items-center justify-center p-1">
-                            <span className="text-[6.5px] font-moul leading-tight">{schoolName}</span>
-                            <span className="text-[10px] my-0.5">★</span>
-                            <span className="text-[6px] font-bold">ត្រារដ្ឋបាល</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <p className="font-moul text-xs text-slate-950 font-bold pt-1">
-                      {principalName}
-                    </p>
-                  </div>
-
-                  {/* Right: Homeroom Teacher Signature with Lunar & Solar dates */}
-                  <div className="text-center space-y-1 w-72">
-                    <p className="text-[11px] text-slate-700">{lunarDate}</p>
-                    <p className="text-[11px] text-slate-700">{solarDate}</p>
-                    <p className="font-moul font-bold text-blue-950 text-xs mt-1">គ្រូបន្ទុកថ្នាក់</p>
-                    
-                    {/* Space for Signature */}
-                    <div className="h-24 flex items-end justify-center pb-2">
-                      <span className="text-slate-400 italic text-[11px]">( ហត្ថលេខា )</span>
-                    </div>
-
-                    <p className="font-moul text-xs text-slate-950 font-bold pt-1">
-                      {teacherName}
-                    </p>
-                  </div>
-                </div>
+                <MoEYSOfficialDualSignatures
+                  schoolLocation={districtOffice || 'ភ្នំពុំ'}
+                  principalTitle="នាយកសាលា"
+                  principalName={principalName}
+                  reviewerTitle="បានឃើញ និងឯកភាព"
+                  teacherRoleTitle="គ្រូបន្ទុកថ្នាក់"
+                  teacherName={teacherName}
+                  teacherNameColor="blue"
+                  lunarDate={lunarDate}
+                  solarDate={solarDate}
+                  showStampPlaceholder={showStamp}
+                  className="mt-8 pt-4 border-t border-slate-200"
+                />
               )}
             </div>
           )}
@@ -555,7 +566,10 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
           {/* VIEW 2: PORTRAIT ORG CHART (រចនាសម្ព័ន្ធរូបថត គ.ក.ថ.) */}
           {/* ======================================================== */}
           {activeTab === 'tree' && (
-            <div className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-200 w-full max-w-[850px] print:max-w-none print:w-full print:shadow-none print:border-none print:p-4 relative">
+            <div
+              id="committee-print-tree-canvas"
+              className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-200 w-full max-w-[850px] print:max-w-none print:w-full print:shadow-none print:border-none print:p-4 relative"
+            >
               {/* Background Watermark */}
               {showWatermark && <AngkorPageWatermark opacity={0.04} />}
 
@@ -745,46 +759,19 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
 
               {/* Dual Signatures & Dates (Bottom) */}
               {showSignatures && (
-                <div className="relative z-10 mt-8 pt-4 flex justify-between items-end text-xs font-battambang text-slate-900">
-                  {/* Left: Director Approval */}
-                  <div className="text-center space-y-1 w-56">
-                    <p className="font-semibold">បានឃើញ និងឯកភាព</p>
-                    <p className="font-moul font-bold text-blue-950 text-xs">នាយកសាលា</p>
-                    
-                    {/* Stamp Space */}
-                    <div className="h-20 flex items-center justify-center my-1 relative">
-                      {showStamp && (
-                        <div className="w-20 h-20 rounded-full border-2 border-red-600 flex items-center justify-center text-center p-1 text-red-600 font-bold opacity-85 rotate-[-6deg] select-none">
-                          <div className="border border-dashed border-red-600 rounded-full w-full h-full flex flex-col items-center justify-center p-1">
-                            <span className="text-[5.5px] font-moul leading-tight">{schoolName}</span>
-                            <span className="text-[9px] my-0.5">★</span>
-                            <span className="text-[5px] font-bold">ត្រារដ្ឋបាល</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <p className="font-moul text-xs text-slate-950 font-bold pt-1">
-                      {principalName}
-                    </p>
-                  </div>
-
-                  {/* Right: Homeroom Teacher Signature with Lunar & Solar dates */}
-                  <div className="text-center space-y-1 w-64">
-                    <p className="text-[10.5px] text-slate-700">{lunarDate}</p>
-                    <p className="text-[10.5px] text-slate-700">{solarDate}</p>
-                    <p className="font-moul font-bold text-blue-950 text-xs mt-1">គ្រូបន្ទុកថ្នាក់</p>
-                    
-                    {/* Space for Signature */}
-                    <div className="h-20 flex items-end justify-center pb-2">
-                      <span className="text-slate-400 italic text-[10.5px]">( ហត្ថលេខា )</span>
-                    </div>
-
-                    <p className="font-moul text-xs text-slate-950 font-bold pt-1">
-                      {teacherName}
-                    </p>
-                  </div>
-                </div>
+                <MoEYSOfficialDualSignatures
+                  schoolLocation={districtOffice || 'ភ្នំពុំ'}
+                  principalTitle="នាយកសាលា"
+                  principalName={principalName}
+                  reviewerTitle="បានឃើញ និងឯកភាព"
+                  teacherRoleTitle="គ្រូបន្ទុកថ្នាក់"
+                  teacherName={teacherName}
+                  teacherNameColor="blue"
+                  lunarDate={lunarDate}
+                  solarDate={solarDate}
+                  showStampPlaceholder={showStamp}
+                  className="mt-8 pt-4 border-t border-slate-200"
+                />
               )}
             </div>
           )}

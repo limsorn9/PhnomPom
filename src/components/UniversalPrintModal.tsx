@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { PrintSettings } from '../types';
 import {
@@ -10,16 +10,20 @@ import {
   Sliders,
   Sparkles,
   ShieldCheck,
-  Feather
+  Feather,
+  Download
 } from 'lucide-react';
 import { AngkorPageWatermark, MoEYSRoyalHeader } from './AngkorMotif';
+import { printElement, downloadElementAsPdf } from '../utils/printUtils';
 
 interface UniversalPrintModalProps {
   isOpen: boolean;
   onClose: () => void;
   titleKhmer: string;
   documentSubtitle?: string;
+  targetElementId?: string;
   onConfirmPrint?: () => void;
+  onConfirmPdf?: () => void;
 }
 
 export const UniversalPrintModal: React.FC<UniversalPrintModalProps> = ({
@@ -27,9 +31,12 @@ export const UniversalPrintModal: React.FC<UniversalPrintModalProps> = ({
   onClose,
   titleKhmer,
   documentSubtitle,
-  onConfirmPrint
+  targetElementId,
+  onConfirmPrint,
+  onConfirmPdf
 }) => {
   const { printSettings, setPrintSettings, schoolProfile, currentUser } = useSchool();
+  const [isExporting, setIsExporting] = useState(false);
 
   if (!isOpen) return null;
 
@@ -59,10 +66,35 @@ export const UniversalPrintModal: React.FC<UniversalPrintModalProps> = ({
   const handleTriggerPrint = () => {
     if (onConfirmPrint) {
       onConfirmPrint();
+    } else if (targetElementId) {
+      printElement(targetElementId, { pageTitle: titleKhmer });
     } else {
       window.print();
     }
     onClose();
+  };
+
+  const handleTriggerPdf = async () => {
+    if (onConfirmPdf) {
+      onConfirmPdf();
+      onClose();
+      return;
+    }
+
+    if (targetElementId) {
+      setIsExporting(true);
+      try {
+        await downloadElementAsPdf(targetElementId, `${titleKhmer}_${schoolProfile.nameKhmer || 'សាលារៀន'}.pdf`);
+      } catch (e) {
+        console.error('PDF export failed:', e);
+      } finally {
+        setIsExporting(false);
+        onClose();
+      }
+    } else {
+      window.print();
+      onClose();
+    }
   };
 
   return (
@@ -203,7 +235,7 @@ export const UniversalPrintModal: React.FC<UniversalPrintModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex items-center justify-between">
+        <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
           <button
             type="button"
             onClick={onClose}
@@ -212,14 +244,26 @@ export const UniversalPrintModal: React.FC<UniversalPrintModalProps> = ({
             បោះបង់ (Cancel)
           </button>
 
-          <button
-            type="button"
-            onClick={handleTriggerPrint}
-            className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all"
-          >
-            <Printer className="w-4 h-4" />
-            <span>បោះពុម្ពឥឡូវនេះ (Print Now)</span>
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handleTriggerPdf}
+              disabled={isExporting}
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>{isExporting ? 'កំពុងបង្កើត PDF...' : 'ទាញយកជា PDF'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleTriggerPrint}
+              className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer"
+            >
+              <Printer className="w-4 h-4" />
+              <span>បោះពុម្ពឥឡូវនេះ (Print Now)</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

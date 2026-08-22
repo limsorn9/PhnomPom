@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { Student, Gender, LivingCondition, AcademicHistoryStatus, OrphanStatus } from '../types';
 import { exportStudentsToGoogleSheets } from '../services/googleSheets';
 import { getAccessToken, googleSignIn } from '../services/googleAuth';
+import { StudentSearchIndex } from '../utils/searchIndex';
 import {
   UserPlus,
   Search,
@@ -126,35 +127,43 @@ export const StudentManagement: React.FC = () => {
 
   const [formData, setFormData] = useState(initialFormState);
 
-  // Filter students
-  const filteredStudents = students.filter(student => {
-    const query = (searchQuery || localSearch).trim().toLowerCase();
-    const matchesSearch =
-      query === '' ||
-      student.nameKhmer.toLowerCase().includes(query) ||
-      (student.nameLatin && student.nameLatin.toLowerCase().includes(query)) ||
-      student.code.toLowerCase().includes(query) ||
-      (student.guardianPhone && student.guardianPhone.includes(query)) ||
-      (student.phone && student.phone.includes(query));
+  // Build and memoize Fuzzy Search Index for students
+  const studentSearchIndex = useMemo(() => {
+    return new StudentSearchIndex(students);
+  }, [students]);
 
-    const matchesGrade = selectedGrade === 'all' || student.grade === selectedGrade;
-    const matchesGender = selectedGender === 'all' || student.gender === selectedGender;
-
-    let matchesVulnerability = true;
-    if (selectedVulnerability === 'idpoor') {
-      matchesVulnerability = student.livingCondition === 'ក្រ១' || student.livingCondition === 'ក្រ២' || Boolean(student.idPoorCardNumber);
-    } else if (selectedVulnerability === 'scholarship') {
-      matchesVulnerability = Boolean(student.scholarship && student.scholarship !== 'មិនមាន');
-    } else if (selectedVulnerability === 'orphan') {
-      matchesVulnerability = Boolean(student.orphanStatus && student.orphanStatus !== 'មិនកំព្រា');
-    } else if (selectedVulnerability === 'disability') {
-      matchesVulnerability = Boolean(student.disability && student.disability !== 'មិនពិការ');
-    } else if (selectedVulnerability === 'repeater') {
-      matchesVulnerability = student.academicHistory === 'ត្រួតថ្នាក់';
+  // Filter and fuzzy search students
+  const filteredStudents = useMemo(() => {
+    const query = (searchQuery || localSearch).trim();
+    
+    // Step 1: Apply Fuzzy Search Index if query exists
+    let candidateStudents = students;
+    if (query) {
+      const searchResults = studentSearchIndex.search(query);
+      candidateStudents = searchResults.map(res => res.item);
     }
 
-    return matchesSearch && matchesGrade && matchesGender && matchesVulnerability;
-  });
+    // Step 2: Apply categorical filters (Grade, Gender, Vulnerability)
+    return candidateStudents.filter(student => {
+      const matchesGrade = selectedGrade === 'all' || student.grade === selectedGrade;
+      const matchesGender = selectedGender === 'all' || student.gender === selectedGender;
+
+      let matchesVulnerability = true;
+      if (selectedVulnerability === 'idpoor') {
+        matchesVulnerability = student.livingCondition === 'ក្រ១' || student.livingCondition === 'ក្រ២' || Boolean(student.idPoorCardNumber);
+      } else if (selectedVulnerability === 'scholarship') {
+        matchesVulnerability = Boolean(student.scholarship && student.scholarship !== 'មិនមាន');
+      } else if (selectedVulnerability === 'orphan') {
+        matchesVulnerability = Boolean(student.orphanStatus && student.orphanStatus !== 'មិនកំព្រា');
+      } else if (selectedVulnerability === 'disability') {
+        matchesVulnerability = Boolean(student.disability && student.disability !== 'មិនពិការ');
+      } else if (selectedVulnerability === 'repeater') {
+        matchesVulnerability = student.academicHistory === 'ត្រួតថ្នាក់';
+      }
+
+      return matchesGrade && matchesGender && matchesVulnerability;
+    });
+  }, [students, studentSearchIndex, searchQuery, localSearch, selectedGrade, selectedGender, selectedVulnerability]);
 
   const handleCreateStudent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -562,21 +571,28 @@ export const StudentManagement: React.FC = () => {
         {/* Search & Filters Toolbar */}
         <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row gap-3 items-center justify-between">
           <div className="relative flex-1 w-full max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-blue-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
+              id="student-search-input"
               type="text"
               value={localSearch}
               onChange={e => setLocalSearch(e.target.value)}
-              placeholder="ស្វែងរកតាមឈ្មោះ អត្តលេខ ឬលេខទូរស័ព្ទ..."
-              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="ស្វែងរកតាមឈ្មោះខ្មែរ ឡាតាំង អត្តលេខ ឬទូរស័ព្ទ (Fuzzy Search)..."
+              className="w-full pl-9 pr-16 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
             />
             {localSearch && (
-              <button
-                onClick={() => setLocalSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded-md">
+                  {filteredStudents.length}
+                </span>
+                <button
+                  onClick={() => setLocalSearch('')}
+                  className="text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-100"
+                  title="សម្អាតការស្វែងរក"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             )}
           </div>
 

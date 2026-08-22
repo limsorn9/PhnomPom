@@ -12,7 +12,8 @@ import {
   Award,
   ShieldCheck,
   Building2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  HeartPulse
 } from 'lucide-react';
 
 interface HomeroomHeaderProps {
@@ -35,6 +36,8 @@ interface HomeroomHeaderProps {
   onOpenNotifications?: () => void;
   onPrintClassSummary: () => void;
   onOpenClassCommitteePrint?: () => void;
+  onOpenPriStatistics?: () => void;
+  onOpenHealthBooklet?: () => void;
   isTeacherRole: boolean;
 }
 
@@ -58,6 +61,8 @@ export const HomeroomHeader: React.FC<HomeroomHeaderProps> = ({
   onOpenNotifications,
   onPrintClassSummary,
   onOpenClassCommitteePrint,
+  onOpenPriStatistics,
+  onOpenHealthBooklet,
   isTeacherRole
 }) => {
   const attendancePercentage = totalStudents > 0
@@ -159,20 +164,42 @@ export const HomeroomHeader: React.FC<HomeroomHeaderProps> = ({
           {onOpenClassCommitteePrint && (
             <button
               onClick={onOpenClassCommitteePrint}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-xs cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-xs cursor-pointer"
               title="បោះពុម្ពឯកសារ គ.ក.ថ. (តារាងសមាសភាព & រចនាសម្ព័ន្ធរូបថត)"
             >
               <Award className="w-4 h-4 text-blue-200" />
-              <span>ឯកសារ គ.ក.ថ.</span>
+              <span>គ.ក.ថ.</span>
+            </button>
+          )}
+
+          {onOpenPriStatistics && (
+            <button
+              onClick={onOpenPriStatistics}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-xs cursor-pointer"
+              title="បោះពុម្ពតារាងស្ថិតិសិស្សផ្លូវការ PRI (អាយុ, ពិការភាព, ជនជាតិ)"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-indigo-200" />
+              <span>ស្ថិតិ PRI</span>
+            </button>
+          )}
+
+          {onOpenHealthBooklet && (
+            <button
+              onClick={onOpenHealthBooklet}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition-all shadow-xs cursor-pointer"
+              title="បោះពុម្ពសៀវភៅសុខភាពសិស្ស ៣ ទំព័រ (PDF)"
+            >
+              <HeartPulse className="w-4 h-4 text-rose-200" />
+              <span>សៀវភៅសុខភាព</span>
             </button>
           )}
 
           <button
             onClick={onPrintClassSummary}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white transition-all shadow-xs cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white transition-all shadow-xs cursor-pointer"
           >
             <Printer className="w-4 h-4 text-slate-300" />
-            <span>បោះពុម្ពសង្ខេបថ្នាក់</span>
+            <span>បោះពុម្ពសង្ខេប</span>
           </button>
         </div>
       </div>

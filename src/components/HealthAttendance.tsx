@@ -18,9 +18,13 @@ import {
   Edit2,
   Printer,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  FileSpreadsheet,
+  BookOpen
 } from 'lucide-react';
 import { AttendanceTrendChart } from './AttendanceTrendChart';
+import { StudentHealthBookletModal } from './StudentHealthBookletModal';
+import { ClassStudentStatisticsPriModal } from './ClassStudentStatisticsPriModal';
 
 export const HealthAttendance: React.FC = () => {
   const {
@@ -40,6 +44,10 @@ export const HealthAttendance: React.FC = () => {
   const [selectedGrade, setSelectedGrade] = useState<number>(6);
   const [selectedSection, setSelectedSection] = useState<string>('ក');
   const [session, setSession] = useState<'morning' | 'afternoon'>('morning');
+
+  // Official Modals State
+  const [healthBookletStudent, setHealthBookletStudent] = useState<Student | null>(null);
+  const [showPriModal, setShowPriModal] = useState<boolean>(false);
 
   // Filter students for active class
   const classStudents = students.filter(
@@ -522,9 +530,24 @@ export const HealthAttendance: React.FC = () => {
                   តារាងតាមដានអាហារូបត្ថម្ភ និងសុខភាពសិស្ស (Health & BMI Registry)
                 </h3>
               </div>
-              <span className="text-xs text-slate-500">
-                *គណនាដោយស្វ័យប្រវត្តិតាមរូបមន្ត BMI = ទម្ងន់(kg) / កម្ពស់²(m²)
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => setShowPriModal(true)}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-xs"
+                  title="បោះពុម្ពតារាងស្ថិតិសិស្សផ្លូវការ PRI"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>តារាងស្ថិតិសិស្ស PRI</span>
+                </button>
+                <button
+                  onClick={() => setHealthBookletStudent(classStudents[0] || students[0] || null)}
+                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-xs"
+                  title="បោះពុម្ពសៀវភៅសុខភាព ៣ ទំព័រ (គម្របមុខ, ប្រវត្តិជំងឺ, ការពិនិត្យសុខភាព)"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>សៀវភៅសុខភាព ៣ទំព័រ (PDF)</span>
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -576,14 +599,24 @@ export const HealthAttendance: React.FC = () => {
                       </td>
                       <td className="py-3 px-4 text-slate-500">{student.health.notes || '-'}</td>
                       <td className="py-3 px-4 text-center">
-                        <button
-                          id={`edit-health-${student.id}`}
-                          onClick={() => handleOpenHealthEdit(student)}
-                          className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg transition-colors flex items-center gap-1 mx-auto"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                          កែទិន្នន័យ
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            id={`edit-health-${student.id}`}
+                            onClick={() => handleOpenHealthEdit(student)}
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg transition-colors flex items-center gap-1"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            កែ
+                          </button>
+                          <button
+                            onClick={() => setHealthBookletStudent(student)}
+                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-lg transition-colors flex items-center gap-1"
+                            title="បោះពុម្ពសៀវភៅសុខភាព ៣ ទំព័រសម្រាប់សិស្សនេះ"
+                          >
+                            <BookOpen className="w-3.5 h-3.5 text-rose-600" />
+                            សៀវភៅសុខភាព
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -682,6 +715,32 @@ export const HealthAttendance: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* STUDENT HEALTH BOOKLET (៣ ទំព័រ) MODAL */}
+      {healthBookletStudent && (
+        <StudentHealthBookletModal
+          isOpen={Boolean(healthBookletStudent)}
+          onClose={() => setHealthBookletStudent(null)}
+          student={healthBookletStudent}
+          schoolProfile={schoolProfile}
+          academicYear="២០២៥-២០២៦"
+          allStudents={classStudents.length > 0 ? classStudents : students}
+        />
+      )}
+
+      {/* CLASS STUDENT STATISTICS (PRI) MODAL */}
+      {showPriModal && (
+        <ClassStudentStatisticsPriModal
+          isOpen={showPriModal}
+          onClose={() => setShowPriModal(false)}
+          selectedGrade={selectedGrade}
+          selectedSection={selectedSection}
+          academicYear="២០២៥-២០២៦"
+          schoolProfile={schoolProfile}
+          homeroomTeacher={teachers.find(t => t.assignedGrade === selectedGrade && t.assignedSection === selectedSection)}
+          students={students}
+        />
       )}
     </div>
   );

@@ -52,6 +52,7 @@ interface HeaderProps {
   onExportStandaloneHtml?: () => void;
   onOpenBulkImport?: () => void;
   onOpenDriveSync?: () => void;
+  onOpenSpotlightSearch?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -62,7 +63,8 @@ export const Header: React.FC<HeaderProps> = ({
   isAuthLoading,
   onExportStandaloneHtml,
   onOpenBulkImport,
-  onOpenDriveSync
+  onOpenDriveSync,
+  onOpenSpotlightSearch
 }) => {
   const {
     activeTab,
@@ -323,17 +325,20 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Side: Quick Search, Role Switcher, Notifications & Auth Profile */}
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-          {/* Global Search Input */}
-          <div className="relative hidden xl:block w-48">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              id="global-search-input-top"
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={language === 'en' ? 'Search...' : 'ស្វែងរក...'}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-100/90 focus:bg-white dark:focus:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            />
+          {/* Global Search Input & Quick Spotlight Search Trigger */}
+          <div className="relative hidden md:block w-44 lg:w-56">
+            <button
+              type="button"
+              onClick={onOpenSpotlightSearch}
+              className="w-full flex items-center justify-between pl-8 pr-2 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/70 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 dark:text-slate-400 transition-all text-left group shadow-2xs"
+              title="ស្វែងរកសិស្ស និងគ្រូ (Ctrl+K)"
+            >
+              <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 absolute left-2.5 top-1/2 -translate-y-1/2 transition-colors" />
+              <span className="truncate">{language === 'en' ? 'Quick Search...' : 'ស្វែងរករហ័ស...'}</span>
+              <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-mono font-bold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md">
+                ⌘K
+              </kbd>
+            </button>
           </div>
 
           {/* Google Drive Cloud Sync Quick Button */}

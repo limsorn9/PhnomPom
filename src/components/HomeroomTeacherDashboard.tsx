@@ -11,6 +11,8 @@ import { HomeroomNotificationsTab } from './homeroom/HomeroomNotificationsTab';
 import { AtRiskStudentsTab } from './homeroom/AtRiskStudentsTab';
 import { DailyClassLogsTab } from './homeroom/DailyClassLogsTab';
 import { ClassCommitteePrintModal } from './ClassCommitteePrintModal';
+import { ClassStudentStatisticsPriModal } from './ClassStudentStatisticsPriModal';
+import { StudentHealthBookletModal } from './StudentHealthBookletModal';
 import {
   Users,
   CheckCircle2,
@@ -98,6 +100,8 @@ export const HomeroomTeacherDashboard: React.FC = () => {
   const [selectedStudentDetail, setSelectedStudentDetail] = useState<Student | null>(null);
   const [showClassSummaryPrint, setShowClassSummaryPrint] = useState(false);
   const [showClassCommitteeModal, setShowClassCommitteeModal] = useState(false);
+  const [showPriModal, setShowPriModal] = useState(false);
+  const [showHealthBookletModal, setShowHealthBookletModal] = useState(false);
 
   // Derived statistics for current class
   const classStudents = students.filter(
@@ -193,6 +197,8 @@ export const HomeroomTeacherDashboard: React.FC = () => {
         onOpenNotifications={() => setActiveSubTab('notifications')}
         onPrintClassSummary={() => setShowClassSummaryPrint(true)}
         onOpenClassCommitteePrint={() => setShowClassCommitteeModal(true)}
+        onOpenPriStatistics={() => setShowPriModal(true)}
+        onOpenHealthBooklet={() => setShowHealthBookletModal(true)}
         isTeacherRole={currentUser?.role === 'teacher'}
       />
 
@@ -638,6 +644,32 @@ export const HomeroomTeacherDashboard: React.FC = () => {
           schoolProfile={schoolProfile}
           homeroomTeacher={currentTeacher}
           classStudents={classStudents}
+        />
+      )}
+
+      {/* CLASS STUDENT STATISTICS (PRI) MODAL */}
+      {showPriModal && (
+        <ClassStudentStatisticsPriModal
+          isOpen={showPriModal}
+          onClose={() => setShowPriModal(false)}
+          selectedGrade={selectedGrade}
+          selectedSection={selectedSection}
+          academicYear="២០២៥-២០២៦"
+          schoolProfile={schoolProfile}
+          homeroomTeacher={currentTeacher}
+          students={students}
+        />
+      )}
+
+      {/* STUDENT HEALTH BOOKLET (៣ ទំព័រ) MODAL */}
+      {showHealthBookletModal && (
+        <StudentHealthBookletModal
+          isOpen={showHealthBookletModal}
+          onClose={() => setShowHealthBookletModal(false)}
+          student={classStudents[0] || students[0]}
+          schoolProfile={schoolProfile}
+          academicYear="២០២៥-២០២៦"
+          allStudents={classStudents.length > 0 ? classStudents : students}
         />
       )}
     </div>
