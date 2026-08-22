@@ -384,9 +384,246 @@ html.dark .border-indigo-200 {
 }
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* -------------------------------------------------------------
+   Natural Realistic Duck Swimming, Head Bobbing & Water Waves
+   ------------------------------------------------------------- */
+@keyframes duckNaturalSwim {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  20% {
+    transform: translateY(-3.5px) rotate(-2.5deg) scaleX(1.02); /* Head pushes forward on power kick */
+  }
+  45% {
+    transform: translateY(1.5px) rotate(1.8deg) scaleX(0.99); /* Body glides through water */
+  }
+  70% {
+    transform: translateY(-2px) rotate(-1.2deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+@keyframes duckHeadBob {
+  0%, 100% {
+    transform: translateX(0px) translateY(0px) rotate(0deg);
+  }
+  30% {
+    transform: translateX(2px) translateY(-1.5px) rotate(-2deg);
+  }
+  60% {
+    transform: translateX(-1px) translateY(1px) rotate(1.5deg);
+  }
+}
+
+@keyframes duckTailWaggle {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(5deg);
+  }
+  75% {
+    transform: rotate(-5deg);
+  }
+}
+
+@keyframes duckFootPaddle {
+  0% {
+    transform: rotate(0deg) scale(0.9);
+    opacity: 0.4;
+  }
+  40% {
+    transform: rotate(-25deg) scale(1.1) translateX(-3px);
+    opacity: 0.9;
+  }
+  70% {
+    transform: rotate(15deg) scale(0.8) translateX(2px);
+    opacity: 0.5;
+  }
+  100% {
+    transform: rotate(0deg) scale(0.9);
+    opacity: 0.4;
+  }
+}
+
+@keyframes duckIdleFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(-1.2deg);
+  }
+}
+
+@keyframes waterRipplePulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+@keyframes waterWakeV {
+  0% {
+    transform: scaleX(0.6) scaleY(0.7);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scaleX(1.6) scaleY(1.3) translateX(-12px);
+    opacity: 0;
+  }
+}
+
+@keyframes waterBowWave {
+  0%, 100% {
+    transform: scaleX(0.9) translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scaleX(1.15) translateY(-1px);
+    opacity: 0.9;
+  }
+}
+
+@keyframes winnerDuckJoy {
+  0%, 100% {
+    transform: translateY(0px) scale(1) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-8px) scale(1.08) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.04) rotate(2deg);
+  }
+  75% {
+    transform: translateY(-10px) scale(1.1) rotate(-2deg);
+  }
+}
+
+@keyframes winnerSwimForward {
+  0% {
+    transform: translateX(0px) translateY(0px);
+  }
+  25% {
+    transform: translateX(18px) translateY(-5px) scale(1.05);
+  }
+  50% {
+    transform: translateX(36px) translateY(0px) scale(1.02);
+  }
+  75% {
+    transform: translateX(54px) translateY(-6px) scale(1.06);
+  }
+  100% {
+    transform: translateX(72px) translateY(0px);
+  }
+}
+
+@keyframes winnerVictoryCruise {
+  0% {
+    left: calc(84% + 4px);
+    transform: translateY(0px);
+  }
+  25% {
+    left: calc(87% + 6px);
+    transform: translateY(-6px) scale(1.05);
+  }
+  50% {
+    left: calc(91% + 8px);
+    transform: translateY(-1px) scale(1.02);
+  }
+  75% {
+    left: calc(88% + 6px);
+    transform: translateY(-7px) scale(1.06);
+  }
+  100% {
+    left: calc(84% + 4px);
+    transform: translateY(0px);
+  }
+}
+
+@keyframes quackBubblePulse {
+  0%, 100% {
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    transform: scale(1.1) translateY(-4px);
+  }
+}
+
+@keyframes musicNoteFloat {
+  0% {
+    transform: translateY(0px) scale(0.8) rotate(0deg);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-25px) scale(1.2) rotate(15deg);
+    opacity: 0;
+  }
+}
+
+.animate-duck-swim {
+  animation: duckNaturalSwim 0.85s ease-in-out infinite;
+}
+
+.animate-duck-head {
+  animation: duckHeadBob 0.85s ease-in-out infinite;
+}
+
+.animate-duck-tail {
+  animation: duckTailWaggle 0.6s ease-in-out infinite;
+}
+
+.animate-duck-foot {
+  animation: duckFootPaddle 0.85s ease-in-out infinite;
+}
+
+.animate-duck-float {
+  animation: duckIdleFloat 2.2s ease-in-out infinite;
+}
+
+.animate-water-ripple {
+  animation: waterRipplePulse 1.1s cubic-bezier(0.1, 0.4, 0.6, 1) infinite;
+}
+
+.animate-water-wake {
+  animation: waterWakeV 0.85s ease-out infinite;
+}
+
+.animate-water-bow {
+  animation: waterBowWave 0.85s ease-in-out infinite;
+}
+
+.animate-winner-duck {
+  animation: winnerDuckJoy 0.65s ease-in-out infinite;
+}
+
+.animate-winner-cruise {
+  animation: winnerVictoryCruise 3.6s ease-in-out infinite;
+}
+
+.animate-quack-pulse {
+  animation: quackBubblePulse 0.8s ease-in-out infinite;
+}
+
+.animate-music-note {
+  animation: musicNoteFloat 1.8s ease-out infinite;
+}
+
 

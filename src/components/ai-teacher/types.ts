@@ -194,7 +194,54 @@ export type GameTemplateType =
   | 'true_false'
   | 'fill_blank'
   | 'classroom_competition'
-  | 'adventure';
+  | 'adventure'
+  | 'picker_wheel'
+  | 'picker_duck_race'
+  | 'picker_car_race'
+  | 'picker_moto_race'
+  | 'picker_horse_race'
+  | 'picker_airplane_race'
+  | 'picker_fish_race'
+  | 'picker_rocket_race'
+  | 'picker_mystery_box'
+  | 'picker_lottery_ball'
+  | 'picker_custom_ai';
+
+export type PickerGameMode = 
+  | 'wheel'
+  | 'duck_race'
+  | 'car_race'
+  | 'moto_race'
+  | 'airplane_race'
+  | 'fish_race'
+  | 'rocket_race'
+  | 'mystery_box'
+  | 'lottery_ball'
+  | 'custom_ai';
+
+export interface PickerCandidate {
+  id: string;
+  name: string;
+  avatar?: string;
+  color?: string;
+  eliminated?: boolean;
+  score?: number;
+  grade?: number;
+  classGroup?: string;
+}
+
+export interface AICustomGameTheme {
+  id: string;
+  themeNameKh: string;
+  themeNameEn: string;
+  description: string;
+  characterEmoji: string;
+  runnerEmojis: string[];
+  trackType: 'water' | 'road' | 'dirt' | 'grass' | 'sky' | 'space' | 'coral';
+  bgGradient: string;
+  soundType: 'splash' | 'engine' | 'gallop' | 'whoosh' | 'tick';
+  sampleQuestions: string[];
+}
 
 export interface GameQuestionCard {
   id: string;

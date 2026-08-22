@@ -59,12 +59,12 @@ export const AITeacherDashboard: React.FC<Props> = ({ onSelectTab, onOpenCreatio
     },
     {
       id: 'educational_game' as AITeacherSubTab,
-      title: 'ល្បែងសិក្សាឌីជីថល ១០ ទម្រង់',
-      subtitle: 'Interactive Classroom Games',
-      desc: 'ល្បែងប្រកួតប្រជែងជើងឯកក្នុងថ្នាក់ ផ្គូផ្គង ប័ណ្ណពាក្យ ត្រឡប់កាតចងចាំ និងរបៀប Host Mode ឱ្យសិស្សចូលលេងដោយផ្ទាល់។',
-      icon: '🎮',
+      title: 'ល្បែងសិក្សា & ចាប់ឈ្មោះប្រណាំង',
+      subtitle: 'Picker & Interactive Games',
+      desc: 'ល្បែងចាប់ឈ្មោះសិស្ស (បង្វិលកង, ប្រណាំងទាហែលទឹក, ឡានស្ព័រ, ម៉ូតូ, យន្តហោះ, ត្រីសមុទ្រ, AI Custom) ព្រមទាំងល្បែងសំណួរប្រកួតប្រជែងក្នុងថ្នាក់។',
+      icon: '🎯',
       gradient: 'from-emerald-600 to-teal-700',
-      badge: 'បង្កើនការចូលរួម'
+      badge: 'ពេញនិយម និងសប្បាយ'
     }
   ];
 

@@ -13,10 +13,14 @@ import {
   Award, 
   ChevronRight, 
   RotateCcw,
-  Volume2
+  Volume2,
+  VolumeX,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { AIEducationalGame, StudentPlayer } from './types';
 import { useSchool } from '../../context/SchoolContext';
+import { soundManager } from '../../utils/gameSoundEffects';
 
 interface Props {
   isOpen: boolean;
@@ -33,6 +37,11 @@ export const StudentGameModeModal: React.FC<Props> = ({ isOpen, onClose, game })
   const [joinedPlayers, setJoinedPlayers] = useState<StudentPlayer[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [roundTimer, setRoundTimer] = useState<number>(game.timeLimitSeconds);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
 
   // Initialize lobby with simulated joined students from the class
   useEffect(() => {
@@ -66,14 +75,25 @@ export const StudentGameModeModal: React.FC<Props> = ({ isOpen, onClose, game })
     let timer: any;
     if (sessionStatus === 'countdown') {
       if (countdownNum > 0) {
+        soundManager.playCountdownBeep(false);
         timer = setTimeout(() => setCountdownNum(prev => prev - 1), 1000);
       } else {
+        soundManager.playCountdownBeep(true);
+        soundManager.playRaceWhistle();
+        soundManager.startBGM('quiz', 128);
         setSessionStatus('in_progress');
         setRoundTimer(game.timeLimitSeconds);
       }
     }
     return () => clearTimeout(timer);
   }, [sessionStatus, countdownNum, game.timeLimitSeconds]);
+
+  // Handle cleanup on unmount
+  useEffect(() => {
+    return () => {
+      soundManager.stopBGM();
+    };
+  }, []);
 
   // Handle Question Round Timer & simulate real-time student answers
   useEffect(() => {
@@ -101,6 +121,8 @@ export const StudentGameModeModal: React.FC<Props> = ({ isOpen, onClose, game })
       if (currentQuestionIndex < game.cardsOrQuestions.length - 1) {
         // short delay
       } else {
+        soundManager.stopBGM();
+        soundManager.playVictoryFanfare();
         setSessionStatus('leaderboard');
       }
     }
@@ -133,15 +155,19 @@ export const StudentGameModeModal: React.FC<Props> = ({ isOpen, onClose, game })
   const sortedPlayers = [...joinedPlayers].sort((a, b) => b.score - a.score);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 text-white rounded-3xl w-full max-w-4xl border border-white/10 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm animate-fadeIn ${
+      isFullscreen ? 'p-0' : 'p-4'
+    }`}>
+      <div className={`bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 text-white border border-white/10 shadow-2xl flex flex-col overflow-hidden transition-all duration-200 ${
+        isFullscreen ? 'w-full h-full rounded-none max-w-none max-h-none' : 'rounded-3xl w-full max-w-4xl max-h-[90vh]'
+      }`}>
         
         {/* Top Header */}
-        <div className="p-5 border-b border-white/10 flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🎮</span>
             <div>
-              <h3 className="text-base md:text-lg font-bold font-moul">
+              <h3 className="text-base md:text-lg font-bold font-moul text-amber-300">
                 {game.title}
               </h3>
               <p className="text-xs text-white/60">
@@ -149,12 +175,28 @@ export const StudentGameModeModal: React.FC<Props> = ({ isOpen, onClose, game })
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-xl transition-all"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleFullscreen}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95 transition-all ${
+                isFullscreen 
+                  ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300' 
+                  : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+              }`}
+              title={isFullscreen ? 'ចេញពីពេញអេក្រង់ (Exit Fullscreen - Esc)' : 'ចុចដើម្បីបង្ហាញពេញអេក្រង់ (Click to Fullscreen)'}
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4 text-slate-950" /> : <Maximize2 className="w-4 h-4 text-amber-300" />}
+              <span className="text-[11px] font-bold hidden sm:inline">
+                {isFullscreen ? 'បង្រួម' : 'ពេញអេក្រង់'}
+              </span>
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-xl transition-all cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Modal Body */}

@@ -84,6 +84,34 @@ async function callAIGenerator(prompt: string, systemInstruction?: string): Prom
   }
 }
 
+// Generate general AI text or chat response
+export async function generateAIChatResponse(prompt: string, systemInstruction?: string): Promise<string> {
+  try {
+    const response = await fetch('/api/ai/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt,
+        systemInstruction: systemInstruction || 'អ្នកជាអ្នកជំនាញផ្នែកអប់រំ និងការបង្រៀននៅកម្ពុជា។ សូមឆ្លើយតបជាភាសាខ្មែរឱ្យបានក្បោះក្បាយ និងត្រឹមត្រូវ។',
+        jsonMode: false,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Network error');
+    }
+
+    const json = await response.json();
+    if (json.success && json.text) {
+      return json.text;
+    }
+    return json.text || '';
+  } catch (err: any) {
+    console.warn('AI API call failed, using smart fallback response:', err);
+    return '';
+  }
+}
+
 /* ==========================================================================
    1. LESSON PLAN GENERATOR
    ========================================================================== */
