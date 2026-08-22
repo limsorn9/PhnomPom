@@ -389,7 +389,7 @@ export const AwardBadgeModal: React.FC<AwardBadgeModalProps> = ({
             <div className="p-3 bg-amber-50/80 border border-amber-300 rounded-xl space-y-2">
               <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
                 <Sparkles className="w-4 h-4 text-amber-600 animate-pulse" />
-                <span>ការផ្ដល់អនុសាសន៍ឆ្លាតវៃដោយផ្អែកលើវឌ្ឍនភាពសិក្សា (Smart Suggestions)៖</span>
+                <span>ការផ្ដល់អនុសាសន៍ និងការណែនាំឆ្លាតវៃដោយផ្អែកលើវឌ្ឍនភាពសិក្សា៖</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {suggestions.map(sug => (

@@ -30,8 +30,10 @@ import {
   Phone,
   Printer,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  History
 } from 'lucide-react';
+import { RecentActivityDashboard } from './RecentActivityDashboard';
 
 export const SchoolAdmin: React.FC = () => {
   const {
@@ -50,11 +52,12 @@ export const SchoolAdmin: React.FC = () => {
     teachers,
     schoolProfile,
     showToast,
+    activityLogs,
     selectedAcademicYear
   } = useSchool();
 
   // Active Tab within School Admin
-  const [adminTab, setAdminTab] = useState<'correspondence' | 'staff_records' | 'committees'>('correspondence');
+  const [adminTab, setAdminTab] = useState<'correspondence' | 'staff_records' | 'committees' | 'audit_logs'>('correspondence');
 
   // Search & Filter States
   const [corSearch, setCorSearch] = useState('');
@@ -427,6 +430,17 @@ export const SchoolAdmin: React.FC = () => {
           >
             <Users className="w-4 h-4" />
             <span>គណៈកម្មការសាលារៀន ({schoolCommittees.length})</span>
+          </button>
+          <button
+            onClick={() => setAdminTab('audit_logs')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${
+              adminTab === 'audit_logs'
+                ? 'bg-blue-800 text-white shadow-sm shadow-blue-200'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <History className="w-4 h-4" />
+            <span>កំណត់ត្រាសកម្មភាព & សវនកម្ម ({activityLogs.length})</span>
           </button>
         </div>
       </div>
@@ -804,6 +818,13 @@ export const SchoolAdmin: React.FC = () => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* TAB 4: AUDIT & ACTIVITY LOGS */}
+      {adminTab === 'audit_logs' && (
+        <div className="space-y-4">
+          <RecentActivityDashboard />
         </div>
       )}
 

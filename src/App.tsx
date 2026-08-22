@@ -21,6 +21,7 @@ import { OfficialDocumentCenter } from './components/OfficialDocumentCenter';
 import { StudentTransferManagement } from './components/StudentTransferManagement';
 import { HouseholdCensus } from './components/HouseholdCensus';
 import { LibraryManagement } from './components/LibraryManagement';
+import { RecentActivityDashboard } from './components/RecentActivityDashboard';
 import { BulkDataImportExportModal } from './components/BulkDataImportExportModal';
 import { GoogleDriveSyncModal } from './components/GoogleDriveSyncModal';
 import { QuickSearchSpotlightModal } from './components/QuickSearchSpotlightModal';
@@ -143,6 +144,7 @@ const MainLayout: React.FC = () => {
         <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 lg:p-6 pb-20 lg:pb-8 space-y-6">
           {/* Render based on RBAC & Active Tab */}
           {activeTab === 'dashboard' && canAccessTab('dashboard') && <Dashboard />}
+          {activeTab === 'activity_logs' && canAccessTab('activity_logs') && <RecentActivityDashboard />}
           {activeTab === 'homeroom_dashboard' && canAccessTab('homeroom_dashboard') && <HomeroomTeacherDashboard />}
           {activeTab === 'school_admin' && canAccessTab('school_admin') && <SchoolAdmin />}
           {activeTab === 'school_management' && canAccessTab('school_management') && <SchoolManagement />}

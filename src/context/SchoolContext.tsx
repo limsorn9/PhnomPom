@@ -38,10 +38,16 @@ import {
   InterventionProgressLog,
   DailyClassLog,
   BadgeDefinition,
-  StudentBadgeAssignment
+  StudentBadgeAssignment,
+  ActivityLogItem
 } from '../types';
 import { getTranslation, AppLanguage } from '../utils/translations';
 import { googleSignIn } from '../services/googleAuth';
+import {
+  getStoredActivities,
+  saveActivitiesToStorage,
+  generateSeedActivities
+} from '../utils/activityTracker';
 import {
   initialSchoolProfile,
   initialTeachers,
@@ -330,6 +336,11 @@ interface SchoolContextType {
   getStudentBadges: (studentId: string) => StudentBadgeAssignment[];
   getStudentTotalPoints: (studentId: string) => number;
   autoSuggestBadgesForStudent: (studentId: string) => { badgeId: string; badge: BadgeDefinition; reason: string; metricValue: string }[];
+
+  // Activity & Audit Trail Logs (កំណត់ត្រាសកម្មភាព និងការកែប្រែទិន្នន័យ)
+  activityLogs: ActivityLogItem[];
+  addActivityLog: (activity: Omit<ActivityLogItem, 'id' | 'timestamp'>) => void;
+  clearActivityLogs: () => void;
 }
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
@@ -707,6 +718,38 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     localStorage.setItem(`${LOCAL_STORAGE_KEY}_at_risk_students`, JSON.stringify(atRiskStudents));
   }, [atRiskStudents]);
+
+  // Activity & Data Change Audit Logs State (កំណត់ត្រាសកម្មភាព និងការកែប្រែទិន្នន័យ)
+  const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>(() => {
+    const stored = getStoredActivities();
+    if (stored && stored.length > 0) return stored;
+    return generateSeedActivities(
+      initialStudents,
+      initialTeachers,
+      initialBudgetTransactions,
+      initialTransfers,
+      initialScores
+    );
+  });
+
+  useEffect(() => {
+    saveActivitiesToStorage(activityLogs);
+  }, [activityLogs]);
+
+  const addActivityLog = (activity: Omit<ActivityLogItem, 'id' | 'timestamp'>) => {
+    const newItem: ActivityLogItem = {
+      ...activity,
+      id: `act-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: new Date().toISOString()
+    };
+    setActivityLogs(prev => [newItem, ...prev].slice(0, 300));
+  };
+
+  const clearActivityLogs = () => {
+    setActivityLogs([]);
+    saveActivitiesToStorage([]);
+    setToastMessage({ text: 'បានសម្អាតកំណត់ត្រាសកម្មភាពចាស់ៗរួចរាល់', type: 'info' });
+  };
 
   const addAtRiskStudent = (student: Omit<AtRiskStudent, 'id' | 'enrolledDate' | 'progressLogs' | 'updatedAt'>) => {
     const newStudent: AtRiskStudent = {
@@ -1973,7 +2016,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (role === 'director') return true;
 
     if (role === 'secretary') {
-      return ['dashboard', 'homeroom_dashboard', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'accounts', 'library', 'workspace'].includes(tab);
+      return ['dashboard', 'homeroom_dashboard', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'accounts', 'library', 'workspace'].includes(tab);
     }
 
     if (role === 'librarian') {
@@ -1981,7 +2024,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     if (role === 'teacher') {
-      return ['homeroom_dashboard', 'dashboard', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'classrooms', 'scores', 'attendance_health', 'calendar', 'reports_qr', 'accounts', 'library', 'workspace'].includes(tab);
+      return ['homeroom_dashboard', 'dashboard', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'classrooms', 'scores', 'attendance_health', 'calendar', 'reports_qr', 'accounts', 'library', 'workspace'].includes(tab);
     }
 
     if (role === 'student') {
@@ -2001,16 +2044,79 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
     setStudents(prev => [newStudent, ...prev]);
     showToast(`បានបញ្ចូលសិស្ស «${newStudent.nameKhmer}» អត្តលេខ ${code} ជោគជ័យ!`);
+
+    // Audit log
+    addActivityLog({
+      domain: 'student',
+      actionType: 'create',
+      title: `បានចុះឈ្មោះសិស្សថ្មី៖ ${newStudent.nameKhmer}`,
+      description: `ថ្នាក់ទី ${newStudent.grade}${newStudent.section} • អត្តលេខ ${newStudent.code} • អាណាព្យាបាល ${newStudent.guardianName || 'មិនបញ្ជាក់'} (${newStudent.guardianPhone || 'គ្មាន'})`,
+      entityId: newStudent.id,
+      entityCode: newStudent.code,
+      entityName: newStudent.nameKhmer,
+      actorName: currentUser?.nameKhmer || 'លោកគ្រូ ចាន់ វុទ្ធី',
+      actorRole: currentUser?.role === 'director' ? 'នាយកសាលា' : 'គ្រូបន្ទុកថ្នាក់',
+      targetTab: 'students',
+      tags: [`ថ្នាក់ទី ${newStudent.grade}${newStudent.section}`, newStudent.code],
+      changes: [
+        { fieldName: 'code', fieldLabelKhmer: 'អត្តលេខសិស្ស', newValue: newStudent.code },
+        { fieldName: 'nameKhmer', fieldLabelKhmer: 'គោត្តនាម-នាម', newValue: newStudent.nameKhmer },
+        { fieldName: 'grade', fieldLabelKhmer: 'កម្រិតថ្នាក់', newValue: `ថ្នាក់ទី ${newStudent.grade}${newStudent.section}` }
+      ]
+    });
   };
 
   const updateStudent = (id: string, updated: Partial<Student>) => {
+    const existing = students.find(s => s.id === id);
     setStudents(prev => prev.map(s => (s.id === id ? { ...s, ...updated } : s)));
     showToast('បានកែប្រែព័ត៌មានសិស្សជោគជ័យ!');
+
+    // Audit log
+    if (existing) {
+      const changeList = Object.keys(updated).map(key => ({
+        fieldName: key,
+        fieldLabelKhmer: key === 'nameKhmer' ? 'គោត្តនាម-នាម' : key === 'guardianPhone' ? 'លេខទូរស័ព្ទ' : key === 'grade' ? 'កម្រិតថ្នាក់' : key,
+        oldValue: (existing as any)[key],
+        newValue: (updated as any)[key]
+      }));
+
+      addActivityLog({
+        domain: 'student',
+        actionType: 'update',
+        title: `បានកែសម្រួលព័ត៌មានសិស្ស៖ ${updated.nameKhmer || existing.nameKhmer}`,
+        description: `ថ្នាក់ទី ${updated.grade || existing.grade}${updated.section || existing.section} • អត្តលេខ ${existing.code}`,
+        entityId: id,
+        entityCode: existing.code,
+        entityName: updated.nameKhmer || existing.nameKhmer,
+        actorName: currentUser?.nameKhmer || 'លោកគ្រូ ចាន់ វុទ្ធី',
+        actorRole: currentUser?.role === 'director' ? 'នាយកសាលា' : 'គ្រូបន្ទុកថ្នាក់',
+        targetTab: 'students',
+        tags: [`ថ្នាក់ទី ${updated.grade || existing.grade}${updated.section || existing.section}`, existing.code],
+        changes: changeList
+      });
+    }
   };
 
   const deleteStudent = (id: string) => {
+    const existing = students.find(s => s.id === id);
     setStudents(prev => prev.filter(s => s.id !== id));
     showToast('បានលុបទិន្នន័យសិស្សចេញពីប្រព័ន្ធ!', 'info');
+
+    if (existing) {
+      addActivityLog({
+        domain: 'student',
+        actionType: 'delete',
+        title: `បានលុបទិន្នន័យសិស្ស៖ ${existing.nameKhmer}`,
+        description: `អត្តលេខ ${existing.code} • ថ្នាក់ទី ${existing.grade}${existing.section}`,
+        entityId: id,
+        entityCode: existing.code,
+        entityName: existing.nameKhmer,
+        actorName: currentUser?.nameKhmer || 'លោក លីម សន (នាយកសាលា)',
+        actorRole: 'នាយកសាលា',
+        targetTab: 'students',
+        tags: ['លុបទិន្នន័យ', existing.code]
+      });
+    }
   };
 
   const getStudentById = (id: string) => {
@@ -2035,6 +2141,20 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     showToast(`បានបង្កើតលិខិត${newTransfer.transferType === 'out' ? 'ផ្ទេរសិស្សចេញ' : 'បន្ថែមសិស្សចូល'}លេខ «${newTransfer.letterNumber}» ជោគជ័យ!`);
+
+    addActivityLog({
+      domain: 'student',
+      actionType: 'transfer',
+      title: newTransfer.transferType === 'out' ? `បានបង្កើតលិខិតផ្ទេរសិស្សចេញ៖ ${newTransfer.studentNameKhmer}` : `បានទទួលសិស្សផ្ទេរចូល៖ ${newTransfer.studentNameKhmer}`,
+      description: `លិខិតលេខ ${newTransfer.letterNumber} • ថ្នាក់ទី ${newTransfer.grade}${newTransfer.section} • ទៅកាន់ ${newTransfer.toSchool}`,
+      entityId: newTransfer.id,
+      entityCode: newTransfer.letterNumber,
+      entityName: newTransfer.studentNameKhmer,
+      actorName: currentUser?.nameKhmer || 'លោក លីម សន (នាយកសាលា)',
+      actorRole: 'នាយកសាលា',
+      targetTab: 'transfers',
+      tags: [newTransfer.transferType === 'out' ? 'ផ្ទេរចេញ' : 'ផ្ទេរចូល', newTransfer.letterNumber]
+    });
   };
 
   const updateTransfer = (id: string, updated: Partial<StudentTransferRecord>) => {
@@ -2072,16 +2192,63 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
     setTeachers(prev => [newTeacher, ...prev]);
     showToast(`បានបញ្ចូលលោកគ្រូ/អ្នកគ្រូ «${newTeacher.nameKhmer}» ជោគជ័យ!`);
+
+    addActivityLog({
+      domain: 'teacher',
+      actionType: 'create',
+      title: `បានចុះឈ្មោះគ្រូបង្រៀន/បុគ្គលិកថ្មី៖ ${newTeacher.nameKhmer}`,
+      description: `${newTeacher.role} • អត្តលេខ ${newTeacher.staffCode} • ក្របខ័ណ្ឌ «${newTeacher.framework || 'គ្រូបង្រៀន'}»`,
+      entityId: newTeacher.id,
+      entityCode: newTeacher.staffCode,
+      entityName: newTeacher.nameKhmer,
+      actorName: currentUser?.nameKhmer || 'លោក លីម សន (នាយកសាលា)',
+      actorRole: 'នាយកសាលា',
+      targetTab: 'teachers',
+      tags: [newTeacher.role, newTeacher.staffCode]
+    });
   };
 
   const updateTeacher = (id: string, updated: Partial<Teacher>) => {
+    const existing = teachers.find(t => t.id === id);
     setTeachers(prev => prev.map(t => (t.id === id ? { ...t, ...updated } : t)));
     showToast('បានធ្វើបច្ចុប្បន្នភាពព័ត៌មានគ្រូបង្រៀនជោគជ័យ!');
+
+    if (existing) {
+      addActivityLog({
+        domain: 'teacher',
+        actionType: 'update',
+        title: `បានកែសម្រួលព័ត៌មានគ្រូបង្រៀន៖ ${updated.nameKhmer || existing.nameKhmer}`,
+        description: `${updated.role || existing.role} • អត្តលេខ ${existing.staffCode}`,
+        entityId: id,
+        entityCode: existing.staffCode,
+        entityName: updated.nameKhmer || existing.nameKhmer,
+        actorName: currentUser?.nameKhmer || 'លោក លីម សន (នាយកសាលា)',
+        actorRole: 'នាយកសាលា',
+        targetTab: 'teachers',
+        tags: [updated.role || existing.role, existing.staffCode]
+      });
+    }
   };
 
   const deleteTeacher = (id: string) => {
+    const existing = teachers.find(t => t.id === id);
     setTeachers(prev => prev.filter(t => t.id !== id));
     showToast('បានលុបទិន្នន័យគ្រូបង្រៀនរួចរាល់', 'info');
+
+    if (existing) {
+      addActivityLog({
+        domain: 'teacher',
+        actionType: 'delete',
+        title: `បានលុបទិន្នន័យគ្រូបង្រៀន៖ ${existing.nameKhmer}`,
+        description: `អត្តលេខ ${existing.staffCode} • ${existing.role}`,
+        entityId: id,
+        entityCode: existing.staffCode,
+        entityName: existing.nameKhmer,
+        actorName: currentUser?.nameKhmer || 'លោក លីម សន (នាយកសាលា)',
+        actorRole: 'នាយកសាលា',
+        targetTab: 'teachers'
+      });
+    }
   };
 
   const addClassroom = (classroomData: Omit<Classroom, 'id'>) => {
@@ -2182,6 +2349,20 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setScores(updatedScores);
     showToast(`បានកត់ត្រាពិន្ទុរបស់សិស្ស «${student.nameKhmer}» រួចរាល់!`);
+
+    addActivityLog({
+      domain: 'academic',
+      actionType: 'score',
+      title: `បានកត់ត្រាពិន្ទុខែ ${scoreData.monthOrSemester}៖ ${student.nameKhmer}`,
+      description: `ថ្នាក់ទី ${student.grade}${student.section} • មធ្យមភាគ ${averageScore}/10 • និទ្ទេស ${gradeLetter}`,
+      entityId: record.id,
+      entityCode: student.code,
+      entityName: student.nameKhmer,
+      actorName: currentUser?.nameKhmer || 'អ្នកគ្រូ ស៊ឹម ស្រីមុំ',
+      actorRole: 'គ្រូបន្ទុកថ្នាក់',
+      targetTab: 'scores',
+      tags: [`ខែ ${scoreData.monthOrSemester}`, `និទ្ទេស ${gradeLetter}`]
+    });
   };
 
   const calculateClassRankings = (grade: number, section: string, monthOrSemester: string) => {
@@ -2268,11 +2449,51 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
     setBudgetTransactions(prev => [newTx, ...prev]);
     showToast(`បានបញ្ចូលប្រតិបត្តិការថវិកា «${newTx.title}» ជោគជ័យ!`);
+
+    addActivityLog({
+      domain: 'finance',
+      actionType: newTx.type === 'income' ? 'income' : 'expense',
+      title: newTx.type === 'income' ? `បានកត់ត្រាចំណូលថវិកា៖ ${newTx.title}` : `បានកត់ត្រាចំណាយថវិកា៖ ${newTx.title}`,
+      description: `${newTx.source} • ${newTx.category} • ចំនួន ${(newTx.amountRiel).toLocaleString()} ៛ ($${newTx.amountUsd})`,
+      entityId: newTx.id,
+      entityCode: newTx.referenceCode,
+      entityName: newTx.title,
+      actorName: currentUser?.nameKhmer || 'លោក លីម សន (នាយកសាលា)',
+      actorRole: currentUser?.role === 'director' ? 'នាយកសាលា' : 'គណនេយ្យករ',
+      targetTab: 'finance',
+      financialAmountRiel: newTx.amountRiel,
+      financialAmountUsd: newTx.amountUsd,
+      financialCategory: newTx.category,
+      tags: [newTx.type === 'income' ? 'ចំណូល' : 'ចំណាយ', newTx.source],
+      changes: [
+        { fieldName: 'amountRiel', fieldLabelKhmer: 'ទឹកប្រាក់រៀល', newValue: `${(newTx.amountRiel).toLocaleString()} ៛` },
+        { fieldName: 'category', fieldLabelKhmer: 'ប្រភេទចំណូល/ចំណាយ', newValue: newTx.category },
+        { fieldName: 'referenceCode', fieldLabelKhmer: 'លេខបង្កាន់ដៃ', newValue: newTx.referenceCode }
+      ]
+    });
   };
 
   const deleteBudgetTransaction = (id: string) => {
+    const existing = budgetTransactions.find(t => t.id === id);
     setBudgetTransactions(prev => prev.filter(t => t.id !== id));
     showToast('បានលុបប្រតិបត្តិការថវិការួចរាល់', 'info');
+
+    if (existing) {
+      addActivityLog({
+        domain: 'finance',
+        actionType: 'delete',
+        title: `បានលុបប្រតិបត្តិការថវិកា៖ ${existing.title}`,
+        description: `បង្កាន់ដៃលេខ ${existing.referenceCode} • ចំនួន ${(existing.amountRiel).toLocaleString()} ៛`,
+        entityId: id,
+        entityCode: existing.referenceCode,
+        entityName: existing.title,
+        actorName: currentUser?.nameKhmer || 'លោក លីម សន (នាយកសាលា)',
+        actorRole: 'នាយកសាលា',
+        targetTab: 'finance',
+        financialAmountRiel: existing.amountRiel,
+        tags: ['លុបប្រតិបត្តិការ', existing.referenceCode]
+      });
+    }
   };
 
   const getTotalIncome = () => {
@@ -2615,7 +2836,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         deleteBadgeDefinition,
         getStudentBadges,
         getStudentTotalPoints,
-        autoSuggestBadgesForStudent
+        autoSuggestBadgesForStudent,
+        activityLogs,
+        addActivityLog,
+        clearActivityLogs
       }}
     >
       {children}

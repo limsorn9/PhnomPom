@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSchool } from '../context/SchoolContext';
+import { RecentActivityDashboard } from './RecentActivityDashboard';
 import {
   Users,
   GraduationCap,
@@ -477,6 +478,9 @@ export const Dashboard: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Recent Activity Tracking & Data Changes Audit Feed */}
+      <RecentActivityDashboard />
 
       {/* Nutrition, Health & Quick Administrative Tools */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

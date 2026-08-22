@@ -32,7 +32,8 @@ import {
   BookMarked,
   FileText,
   Building2,
-  Printer
+  Printer,
+  History
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 
@@ -71,6 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     currentUser,
     canAccessTab,
     appUsers,
+    activityLogs,
     language
   } = useSchool();
 
@@ -87,6 +89,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       labelKh: 'ផ្ទាំងគ្រប់គ្រងទូទៅ',
       labelEn: 'Dashboard',
       icon: LayoutDashboard,
+    },
+    {
+      id: 'activity_logs',
+      labelKh: 'កំណត់ត្រាសកម្មភាព & សវនកម្ម',
+      labelEn: 'Audit Trail & Activity Logs',
+      icon: History,
+      badge: activityLogs.length > 0 ? `${activityLogs.length}` : 'ថ្មី',
+      badgeColor: 'bg-indigo-100 text-indigo-700 font-bold',
     },
     {
       id: 'homeroom_dashboard',

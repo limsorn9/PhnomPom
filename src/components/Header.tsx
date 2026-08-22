@@ -39,7 +39,8 @@ import {
   Home,
   Library as LibraryIcon,
   Cloud,
-  FileSpreadsheet as FileSpreadsheetIcon
+  FileSpreadsheet as FileSpreadsheetIcon,
+  History
 } from 'lucide-react';
 import { NotificationsModal } from './NotificationsModal';
 
@@ -91,6 +92,11 @@ export const Header: React.FC<HeaderProps> = ({
       title: language === 'en' ? 'Dashboard Overview' : 'ផ្ទាំងគ្រប់គ្រងទូទៅ',
       subtitle: language === 'en' ? 'School statistics and overview' : 'ទិន្នន័យស្ថិតិ និងសមិទ្ធផលសាលារៀន',
       icon: LayoutDashboard
+    },
+    activity_logs: {
+      title: language === 'en' ? 'Audit Trail & Activity Logs' : 'កំណត់ត្រាសកម្មភាព & សវនកម្មប្រព័ន្ធ',
+      subtitle: language === 'en' ? 'Real-time audit log of all creations, updates, and deletes' : 'តាមដានការកែប្រែទិន្នន័យសិស្ស គ្រូ ថវិកា និងរដ្ឋបាលក្នុងប្រព័ន្ធ',
+      icon: History
     },
     homeroom_dashboard: {
       title: language === 'en' ? 'Homeroom Teacher Hub' : 'ផ្ទាំងការងារគ្រូបន្ទុកថ្នាក់',

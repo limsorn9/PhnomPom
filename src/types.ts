@@ -440,6 +440,7 @@ export interface SystemNotification {
 export type ActiveTab = 
   | 'dashboard'
   | 'homeroom_dashboard'
+  | 'activity_logs'
   | 'school_admin'
   | 'school_management'
   | 'official_documents'
@@ -1028,5 +1029,38 @@ export interface StudentBadgeAssignment {
   };
   certificateNumber?: string;
   createdAt: string;
+}
+
+// Activity & Data Change Audit Log Types
+export type ActivityDomain = 'student' | 'teacher' | 'finance' | 'academic' | 'admin';
+export type ActivityActionType = 'create' | 'update' | 'delete' | 'transfer' | 'income' | 'expense' | 'score' | 'attendance' | 'document' | 'approval';
+
+export interface ActivityChangeField {
+  fieldName: string;
+  fieldLabelKhmer: string;
+  oldValue?: string | number | boolean | null;
+  newValue?: string | number | boolean | null;
+}
+
+export interface ActivityLogItem {
+  id: string;
+  domain: ActivityDomain;
+  actionType: ActivityActionType;
+  title: string;
+  description: string;
+  entityId: string;
+  entityCode?: string;
+  entityName: string;
+  actorName: string;
+  actorRole: string;
+  actorAvatar?: string;
+  timestamp: string; // ISO 8601 string
+  financialAmountRiel?: number;
+  financialAmountUsd?: number;
+  financialCategory?: string;
+  changes?: ActivityChangeField[];
+  targetTab?: ActiveTab;
+  tags?: string[];
+  details?: Record<string, any>;
 }
 
