@@ -15,6 +15,9 @@ import { AcademicCalendar } from './components/AcademicCalendar';
 import { AccountsManagement } from './components/AccountsManagement';
 import { StudentPortal } from './components/StudentPortal';
 import { HomeroomTeacherDashboard } from './components/HomeroomTeacherDashboard';
+import { SchoolAdmin } from './components/SchoolAdmin';
+import { SchoolManagement } from './components/SchoolManagement';
+import { OfficialDocumentCenter } from './components/OfficialDocumentCenter';
 import { StudentTransferManagement } from './components/StudentTransferManagement';
 import { HouseholdCensus } from './components/HouseholdCensus';
 import { LibraryManagement } from './components/LibraryManagement';
@@ -134,6 +137,9 @@ const MainLayout: React.FC = () => {
           {/* Render based on RBAC & Active Tab */}
           {activeTab === 'dashboard' && canAccessTab('dashboard') && <Dashboard />}
           {activeTab === 'homeroom_dashboard' && canAccessTab('homeroom_dashboard') && <HomeroomTeacherDashboard />}
+          {activeTab === 'school_admin' && canAccessTab('school_admin') && <SchoolAdmin />}
+          {activeTab === 'school_management' && canAccessTab('school_management') && <SchoolManagement />}
+          {activeTab === 'official_documents' && canAccessTab('official_documents') && <OfficialDocumentCenter />}
           {activeTab === 'student_portal' && canAccessTab('student_portal') && <StudentPortal />}
           {activeTab === 'students' && canAccessTab('students') && <StudentManagement />}
           {activeTab === 'transfers' && canAccessTab('transfers') && <StudentTransferManagement />}

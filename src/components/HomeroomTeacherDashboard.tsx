@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { Student } from '../types';
 import { HomeroomHeader } from './homeroom/HomeroomHeader';
@@ -7,6 +7,9 @@ import { AttendanceTab } from './homeroom/AttendanceTab';
 import { GradesTab } from './homeroom/GradesTab';
 import { LessonPlansTab } from './homeroom/LessonPlansTab';
 import { ParentMeetingsTab } from './homeroom/ParentMeetingsTab';
+import { HomeroomNotificationsTab } from './homeroom/HomeroomNotificationsTab';
+import { AtRiskStudentsTab } from './homeroom/AtRiskStudentsTab';
+import { DailyClassLogsTab } from './homeroom/DailyClassLogsTab';
 import {
   Users,
   CheckCircle2,
@@ -20,7 +23,15 @@ import {
   Phone,
   MapPin,
   HeartPulse,
-  UserCheck
+  UserCheck,
+  Bell,
+  BellRing,
+  AlertTriangle,
+  MessageCircle,
+  ShieldAlert,
+  ArrowRight,
+  Target,
+  BookMarked
 } from 'lucide-react';
 
 export const HomeroomTeacherDashboard: React.FC = () => {
@@ -43,8 +54,23 @@ export const HomeroomTeacherDashboard: React.FC = () => {
     addParentMeeting,
     updateParentMeeting,
     deleteParentMeeting,
+    parentRequests,
+    addParentRequest,
+    updateParentRequest,
+    resolveParentRequest,
+    deleteParentRequest,
     classCouncils,
     updateClassCouncil,
+    atRiskStudents,
+    addAtRiskStudent,
+    updateAtRiskStudent,
+    addInterventionLog,
+    deleteAtRiskStudent,
+    dailyClassLogs,
+    addDailyClassLog,
+    updateDailyClassLog,
+    deleteDailyClassLog,
+    toggleArchiveDailyClassLog,
     currentUser
   } = useSchool();
 
@@ -64,7 +90,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
   });
 
   // Current Active Sub-Tab
-  const [activeSubTab, setActiveSubTab] = useState<'my_class' | 'attendance' | 'grades' | 'lesson_plans' | 'parent_meetings'>('my_class');
+  const [activeSubTab, setActiveSubTab] = useState<'my_class' | 'attendance' | 'grades' | 'at_risk' | 'class_logs' | 'lesson_plans' | 'parent_meetings' | 'notifications'>('my_class');
 
   // Selected Student for Detail Modal
   const [selectedStudentDetail, setSelectedStudentDetail] = useState<Student | null>(null);
@@ -100,17 +126,49 @@ export const HomeroomTeacherDashboard: React.FC = () => {
   const classMeetings = parentMeetings.filter(
     m => m.grade === selectedGrade && m.section === selectedSection
   );
+  const classAtRiskCount = atRiskStudents.filter(
+    s => s.grade === selectedGrade && s.section === selectedSection
+  ).length;
+  const classDailyLogsCount = dailyClassLogs.filter(
+    l => l.grade === selectedGrade && l.section === selectedSection && !l.isArchived
+  ).length;
   const currentCouncil = classCouncils.find(
     c => c.grade === selectedGrade && c.section === selectedSection
   );
+
+  // Parent Requests for this class
+  const classParentRequests = useMemo(() => {
+    return parentRequests.filter(r => r.grade === selectedGrade && r.section === selectedSection);
+  }, [parentRequests, selectedGrade, selectedSection]);
+
+  const pendingRequests = useMemo(() => {
+    return classParentRequests.filter(r => r.status === 'pending');
+  }, [classParentRequests]);
+
+  const urgentRequests = useMemo(() => {
+    return classParentRequests.filter(
+      r => (r.urgency === 'urgent' || r.urgency === 'immediate') && r.status === 'pending'
+    );
+  }, [classParentRequests]);
+
+  const upcomingMeetings = useMemo(() => {
+    return classMeetings.filter(m => m.status === 'upcoming');
+  }, [classMeetings]);
+
+  const totalNotificationsCount = pendingRequests.length + upcomingMeetings.length;
 
   // Current homeroom teacher
   const currentTeacher = teachers.find(
     t => t.assignedGrade === selectedGrade && t.assignedSection === selectedSection
   );
 
+  // Helper: auto-record permission attendance when a leave request is approved
+  const handleRecordAttendancePermission = (studentId: string, date: string) => {
+    recordAttendance(studentId, 'permission', selectedGrade, selectedSection, date, 'សុំច្បាប់ដោយមាតាបិតា');
+  };
+
   return (
-    <div className="space-y-5 animate-fadeIn">
+    <div className="space-y-5 animate-fadeIn font-battambang">
       {/* Header Banner with Statistics & Class Selector */}
       <HomeroomHeader
         selectedGrade={selectedGrade}
@@ -127,11 +185,46 @@ export const HomeroomTeacherDashboard: React.FC = () => {
         classAvgScore={classAvgScore}
         totalLessonPlans={classPlans.length}
         totalParentMeetings={classMeetings.length}
+        pendingNotificationsCount={totalNotificationsCount}
+        urgentNotificationsCount={urgentRequests.length}
+        onOpenNotifications={() => setActiveSubTab('notifications')}
         onPrintClassSummary={() => setShowClassSummaryPrint(true)}
         isTeacherRole={currentUser?.role === 'teacher'}
       />
 
-      {/* 5-Tab Navigation Bar */}
+      {/* URGENT NOTIFICATION TICKER / CALLOUT (Visible across all tabs if urgent items exist) */}
+      {urgentRequests.length > 0 && activeSubTab !== 'notifications' && (
+        <div className="bg-gradient-to-r from-rose-500 via-rose-600 to-amber-600 rounded-2xl p-4 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+              <ShieldAlert className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-rose-700">
+                  ដំណឹងបន្ទាន់!
+                </span>
+                <span className="text-xs font-bold font-mono">
+                  ថ្នាក់ទី {selectedGrade}«{selectedSection}»
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm font-bold mt-0.5">
+                មានសំណើបន្ទាន់ចំនួន {urgentRequests.length} ករណីពីមាតាបិតា ({urgentRequests[0].studentName} - {urgentRequests[0].title})
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setActiveSubTab('notifications')}
+            className="px-4 py-2 rounded-xl bg-white text-rose-700 hover:bg-rose-50 text-xs font-bold shadow-sm flex items-center gap-1.5 shrink-0 transition-all cursor-pointer"
+          >
+            <span>ពិនិត្យ & ឆ្លើយតបភ្លាមៗ</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* 6-Tab Navigation Bar */}
       <div className="bg-white rounded-2xl p-1.5 border border-slate-200 shadow-xs flex items-center gap-1.5 overflow-x-auto">
         <button
           onClick={() => setActiveSubTab('my_class')}
@@ -174,6 +267,46 @@ export const HomeroomTeacherDashboard: React.FC = () => {
           <span>ពិន្ទុ & ចំណាត់ថ្នាក់ (Grades)</span>
         </button>
 
+        {/* AT-RISK STUDENTS TAB BUTTON */}
+        <button
+          onClick={() => setActiveSubTab('at_risk')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeSubTab === 'at_risk'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-indigo-50'
+          }`}
+        >
+          <Target className="w-4 h-4" />
+          <span>សិស្សខ្សោយ/រៀនយឺត (At-Risk)</span>
+          {classAtRiskCount > 0 && (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] ${
+              activeSubTab === 'at_risk' ? 'bg-indigo-700 text-white' : 'bg-rose-100 text-rose-800 font-bold'
+            }`}>
+              {classAtRiskCount}
+            </span>
+          )}
+        </button>
+
+        {/* DAILY CLASS LOG TAB BUTTON */}
+        <button
+          onClick={() => setActiveSubTab('class_logs')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeSubTab === 'class_logs'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-blue-50'
+          }`}
+        >
+          <BookMarked className="w-4 h-4" />
+          <span>កំណត់ហេតុប្រចាំថ្ងៃ (Daily Log)</span>
+          {classDailyLogsCount > 0 && (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] ${
+              activeSubTab === 'class_logs' ? 'bg-blue-700 text-white' : 'bg-blue-100 text-blue-800 font-bold'
+            }`}>
+              {classDailyLogsCount}
+            </span>
+          )}
+        </button>
+
         <button
           onClick={() => setActiveSubTab('lesson_plans')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
@@ -206,6 +339,30 @@ export const HomeroomTeacherDashboard: React.FC = () => {
           }`}>
             {classMeetings.length}
           </span>
+        </button>
+
+        {/* NEW: NOTIFICATIONS & PARENT REQUESTS TAB */}
+        <button
+          onClick={() => setActiveSubTab('notifications')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeSubTab === 'notifications'
+              ? 'bg-amber-500 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50'
+          }`}
+        >
+          <BellRing className="w-4 h-4" />
+          <span>ដំណឹង & សំណើមាតាបិតា (Notifications)</span>
+          {totalNotificationsCount > 0 && (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              urgentRequests.length > 0
+                ? 'bg-rose-600 text-white animate-pulse'
+                : activeSubTab === 'notifications'
+                ? 'bg-amber-700 text-white'
+                : 'bg-amber-100 text-amber-900'
+            }`}>
+              {totalNotificationsCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -245,6 +402,37 @@ export const HomeroomTeacherDashboard: React.FC = () => {
         />
       )}
 
+      {/* AT-RISK STUDENTS TAB */}
+      {activeSubTab === 'at_risk' && (
+        <AtRiskStudentsTab
+          selectedGrade={selectedGrade}
+          selectedSection={selectedSection}
+          students={students}
+          currentTeacher={currentTeacher}
+          atRiskStudents={atRiskStudents}
+          onAddAtRiskStudent={addAtRiskStudent}
+          onUpdateAtRiskStudent={updateAtRiskStudent}
+          onAddInterventionLog={addInterventionLog}
+          onDeleteAtRiskStudent={deleteAtRiskStudent}
+          attendanceRecords={attendanceRecords}
+          scores={scores}
+        />
+      )}
+
+      {/* DAILY CLASS LOG TAB */}
+      {activeSubTab === 'class_logs' && (
+        <DailyClassLogsTab
+          selectedGrade={selectedGrade}
+          selectedSection={selectedSection}
+          currentTeacher={currentTeacher}
+          dailyClassLogs={dailyClassLogs}
+          onAddDailyClassLog={addDailyClassLog}
+          onUpdateDailyClassLog={updateDailyClassLog}
+          onDeleteDailyClassLog={deleteDailyClassLog}
+          onToggleArchiveDailyClassLog={toggleArchiveDailyClassLog}
+        />
+      )}
+
       {activeSubTab === 'lesson_plans' && (
         <LessonPlansTab
           lessonPlans={lessonPlans}
@@ -264,6 +452,26 @@ export const HomeroomTeacherDashboard: React.FC = () => {
           onAddMeeting={addParentMeeting}
           onUpdateMeeting={updateParentMeeting}
           onDeleteMeeting={deleteParentMeeting}
+        />
+      )}
+
+      {/* NEW: NOTIFICATIONS TAB CONTENT */}
+      {activeSubTab === 'notifications' && (
+        <HomeroomNotificationsTab
+          selectedGrade={selectedGrade}
+          selectedSection={selectedSection}
+          students={students}
+          currentTeacher={currentTeacher}
+          parentRequests={parentRequests}
+          onAddParentRequest={addParentRequest}
+          onUpdateParentRequest={updateParentRequest}
+          onResolveParentRequest={resolveParentRequest}
+          onDeleteParentRequest={deleteParentRequest}
+          parentMeetings={parentMeetings}
+          onGoToMeetingsTab={() => setActiveSubTab('parent_meetings')}
+          attendanceRecords={attendanceRecords}
+          scores={scores}
+          onRecordAttendancePermission={handleRecordAttendancePermission}
         />
       )}
 

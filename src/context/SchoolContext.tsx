@@ -24,8 +24,21 @@ import {
   StudentMonthlyFeedback,
   LessonPlan,
   ParentMeeting,
+  ParentRequest,
   ClassCouncil,
-  ClassCouncilOfficer
+  ClassCouncilOfficer,
+  OfficialCorrespondence,
+  StaffAdministrativeRecord,
+  SchoolCommittee,
+  SchoolStrategicPlanItem,
+  ModelSchoolStandardGroup,
+  ModelSchoolStandardCriterion,
+  SchoolAssetItem,
+  AtRiskStudent,
+  InterventionProgressLog,
+  DailyClassLog,
+  BadgeDefinition,
+  StudentBadgeAssignment
 } from '../types';
 import { getTranslation, AppLanguage } from '../utils/translations';
 import { googleSignIn } from '../services/googleAuth';
@@ -50,7 +63,18 @@ import {
   initialReadingLogs,
   initialLessonPlans,
   initialParentMeetings,
-  initialClassCouncils
+  initialParentRequests,
+  initialClassCouncils,
+  initialCorrespondences,
+  initialStaffAdministrativeRecords,
+  initialSchoolCommittees,
+  initialSchoolStrategicPlans,
+  initialModelSchoolStandards,
+  initialSchoolAssets,
+  initialAtRiskStudents,
+  initialDailyClassLogs,
+  initialBadgeDefinitions,
+  initialStudentBadgeAssignments
 } from '../data/initialData';
 
 interface SchoolContextType {
@@ -241,8 +265,71 @@ interface SchoolContextType {
   updateParentMeeting: (id: string, updated: Partial<ParentMeeting>) => void;
   deleteParentMeeting: (id: string) => void;
 
+  parentRequests: ParentRequest[];
+  addParentRequest: (req: Omit<ParentRequest, 'id' | 'createdAt'>) => void;
+  updateParentRequest: (id: string, updated: Partial<ParentRequest>) => void;
+  resolveParentRequest: (id: string, reply: string, status?: 'approved' | 'resolved' | 'rejected') => void;
+  deleteParentRequest: (id: string) => void;
+
   classCouncils: ClassCouncil[];
   updateClassCouncil: (grade: number, section: string, council: Partial<ClassCouncil>) => void;
+
+  // At-Risk & Remedial Students Management (គ្រប់គ្រងសិស្សខ្សោយ និងសិស្សរៀនយឺត)
+  atRiskStudents: AtRiskStudent[];
+  addAtRiskStudent: (student: Omit<AtRiskStudent, 'id' | 'enrolledDate' | 'progressLogs' | 'updatedAt'>) => void;
+  updateAtRiskStudent: (id: string, updated: Partial<AtRiskStudent>) => void;
+  addInterventionLog: (atRiskId: string, log: Omit<InterventionProgressLog, 'id' | 'date'>) => void;
+  deleteAtRiskStudent: (id: string) => void;
+
+  // Daily Class Logs & Archival (សៀវភៅតាមដានព្រឹត្តិការណ៍ និងកំណត់ហេតុថ្នាក់រៀនប្រចាំថ្ងៃ)
+  dailyClassLogs: DailyClassLog[];
+  addDailyClassLog: (log: Omit<DailyClassLog, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateDailyClassLog: (id: string, updated: Partial<DailyClassLog>) => void;
+  deleteDailyClassLog: (id: string) => void;
+  toggleArchiveDailyClassLog: (id: string) => void;
+
+  // School Administration & Correspondence (រដ្ឋបាលសាលា)
+  correspondences: OfficialCorrespondence[];
+  addCorrespondence: (cor: Omit<OfficialCorrespondence, 'id'>) => void;
+  updateCorrespondence: (id: string, updated: Partial<OfficialCorrespondence>) => void;
+  deleteCorrespondence: (id: string) => void;
+
+  staffAdminRecords: StaffAdministrativeRecord[];
+  addStaffAdminRecord: (rec: Omit<StaffAdministrativeRecord, 'id' | 'createdAt'>) => void;
+  updateStaffAdminRecord: (id: string, updated: Partial<StaffAdministrativeRecord>) => void;
+  deleteStaffAdminRecord: (id: string) => void;
+
+  schoolCommittees: SchoolCommittee[];
+  addSchoolCommittee: (comm: Omit<SchoolCommittee, 'id'>) => void;
+  updateSchoolCommittee: (id: string, updated: Partial<SchoolCommittee>) => void;
+  deleteSchoolCommittee: (id: string) => void;
+
+  // School Management & Strategic Plan (ការគ្រប់គ្រងសាលា)
+  schoolStrategicPlans: SchoolStrategicPlanItem[];
+  addSchoolStrategicPlan: (plan: Omit<SchoolStrategicPlanItem, 'id'>) => void;
+  updateSchoolStrategicPlan: (id: string, updated: Partial<SchoolStrategicPlanItem>) => void;
+  deleteSchoolStrategicPlan: (id: string) => void;
+
+  modelSchoolStandards: ModelSchoolStandardGroup[];
+  updateModelSchoolCriterion: (standardNumber: number, criterionId: string, updated: Partial<ModelSchoolStandardCriterion>) => void;
+
+  schoolAssets: SchoolAssetItem[];
+  addSchoolAsset: (asset: Omit<SchoolAssetItem, 'id'>) => void;
+  updateSchoolAsset: (id: string, updated: Partial<SchoolAssetItem>) => void;
+  deleteSchoolAsset: (id: string) => void;
+
+  // Student Digital Badges & Achievement Markers (ផ្លាកសញ្ញា និងមេដាយឌីជីថល)
+  studentBadgeDefinitions: BadgeDefinition[];
+  studentBadgeAssignments: StudentBadgeAssignment[];
+  assignBadgeToStudent: (assignment: Omit<StudentBadgeAssignment, 'id' | 'createdAt' | 'badge'>) => { success: boolean; message: string };
+  bulkAssignBadge: (studentIds: string[], badgeId: string, details: { awardedDate: string; reasonOrEvidence: string; awardedBy: string; academicYear: string; term?: string }) => { success: boolean; count: number };
+  removeBadgeAssignment: (assignmentId: string) => void;
+  createBadgeDefinition: (badge: Omit<BadgeDefinition, 'id'>) => void;
+  updateBadgeDefinition: (id: string, updated: Partial<BadgeDefinition>) => void;
+  deleteBadgeDefinition: (id: string) => void;
+  getStudentBadges: (studentId: string) => StudentBadgeAssignment[];
+  getStudentTotalPoints: (studentId: string) => number;
+  autoSuggestBadgesForStudent: (studentId: string) => { badgeId: string; badge: BadgeDefinition; reason: string; metricValue: string }[];
 }
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
@@ -530,6 +617,60 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setToastMessage({ text: 'បានលុបកិច្ចប្រជុំមាតាបិតារួចរាល់', type: 'info' });
   };
 
+  // Parent Requests & Urgent Inquiries State (សំណើពីមាតាបិតា)
+  const [parentRequests, setParentRequests] = useState<ParentRequest[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_parent_requests`);
+    return saved ? JSON.parse(saved) : initialParentRequests;
+  });
+
+  const addParentRequest = (req: Omit<ParentRequest, 'id' | 'createdAt'>) => {
+    const newReq: ParentRequest = {
+      ...req,
+      id: 'pr-' + Date.now(),
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+    setParentRequests(prev => [newReq, ...prev]);
+    addNotification({
+      title: `សំណើពីមាតាបិតា (${newReq.studentName})`,
+      message: `${newReq.parentName} បានផ្ញើសំណើ៖ ${newReq.title}`,
+      type: newReq.urgency === 'immediate' || newReq.urgency === 'urgent' ? 'alert' : 'info',
+      targetRole: 'teacher',
+      targetTeacherGrade: newReq.grade,
+      targetTeacherSection: newReq.section
+    });
+    setToastMessage({ text: 'បានកត់ត្រាសំណើពីមាតាបិតាជោគជ័យ!', type: 'success' });
+  };
+
+  const updateParentRequest = (id: string, updated: Partial<ParentRequest>) => {
+    setParentRequests(prev => prev.map(r => (r.id === id ? { ...r, ...updated } : r)));
+    setToastMessage({ text: 'បានកែសម្រួលសំណើមាតាបិតាជោគជ័យ!', type: 'success' });
+  };
+
+  const resolveParentRequest = (
+    id: string,
+    reply: string,
+    status: 'approved' | 'resolved' | 'rejected' = 'resolved'
+  ) => {
+    setParentRequests(prev =>
+      prev.map(r =>
+        r.id === id
+          ? {
+              ...r,
+              teacherReply: reply,
+              resolvedAt: new Date().toISOString().split('T')[0],
+              status
+            }
+          : r
+      )
+    );
+    setToastMessage({ text: 'បានឆ្លើយតប និងដោះស្រាយសំណើមាតាបិតារួចរាល់!', type: 'success' });
+  };
+
+  const deleteParentRequest = (id: string) => {
+    setParentRequests(prev => prev.filter(r => r.id !== id));
+    setToastMessage({ text: 'បានលុបសំណើមាតាបិតារួចរាល់', type: 'info' });
+  };
+
   // Class Councils State
   const [classCouncils, setClassCouncils] = useState<ClassCouncil[]>(() => {
     const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_class_councils`);
@@ -557,7 +698,496 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setToastMessage({ text: 'បានកែប្រែគណៈកម្មការសិស្សថ្នាក់ជោគជ័យ!', type: 'success' });
   };
 
+  // At-Risk & Slow Learners Management State (គ្រប់គ្រងសិស្សខ្សោយ និងសិស្សរៀនយឺត)
+  const [atRiskStudents, setAtRiskStudents] = useState<AtRiskStudent[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_at_risk_students`);
+    return saved ? JSON.parse(saved) : initialAtRiskStudents;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_at_risk_students`, JSON.stringify(atRiskStudents));
+  }, [atRiskStudents]);
+
+  const addAtRiskStudent = (student: Omit<AtRiskStudent, 'id' | 'enrolledDate' | 'progressLogs' | 'updatedAt'>) => {
+    const newStudent: AtRiskStudent = {
+      ...student,
+      id: 'risk-' + Date.now(),
+      enrolledDate: new Date().toISOString().split('T')[0],
+      progressLogs: [
+        {
+          id: 'log-' + Date.now(),
+          date: new Date().toISOString().split('T')[0],
+          evaluatedBy: 'គ្រូបន្ទុកថ្នាក់',
+          assessmentNote: `បានបញ្ចូលឈ្មោះសិស្សទៅក្នុងកម្មវិធីបំប៉នពិសេស។ ពិន្ទុដើមគ្រា៖ ${student.baselineScore}/10`,
+          testScore: student.baselineScore,
+          status: 'critical'
+        }
+      ],
+      updatedAt: new Date().toISOString().split('T')[0]
+    };
+    setAtRiskStudents(prev => [newStudent, ...prev]);
+    setToastMessage({ text: `បានបញ្ចូលសិស្ស «${student.studentName}» ទៅក្នុងបញ្ជីតាមដានសិស្សខ្សោយជោគជ័យ!`, type: 'success' });
+  };
+
+  const updateAtRiskStudent = (id: string, updated: Partial<AtRiskStudent>) => {
+    setAtRiskStudents(prev =>
+      prev.map(s => (s.id === id ? { ...s, ...updated, updatedAt: new Date().toISOString().split('T')[0] } : s))
+    );
+    setToastMessage({ text: 'បានកែសម្រួលព័ត៌មានតាមដានសិស្សខ្សោយជោគជ័យ!', type: 'success' });
+  };
+
+  const addInterventionLog = (atRiskId: string, log: Omit<InterventionProgressLog, 'id' | 'date'>) => {
+    const newLog: InterventionProgressLog = {
+      ...log,
+      id: 'log-' + Date.now(),
+      date: new Date().toISOString().split('T')[0]
+    };
+    setAtRiskStudents(prev =>
+      prev.map(s => {
+        if (s.id === atRiskId) {
+          const currentScore = log.testScore !== undefined ? log.testScore : s.currentScore;
+          return {
+            ...s,
+            currentScore,
+            overallStatus: log.status,
+            progressLogs: [...s.progressLogs, newLog],
+            updatedAt: new Date().toISOString().split('T')[0]
+          };
+        }
+        return s;
+      })
+    );
+    setToastMessage({ text: 'បានកត់ត្រាវឌ្ឍនភាពសិក្សា និងការវាយតម្លៃថ្មីជោគជ័យ!', type: 'success' });
+  };
+
+  const deleteAtRiskStudent = (id: string) => {
+    setAtRiskStudents(prev => prev.filter(s => s.id !== id));
+    setToastMessage({ text: 'បានលុបសិស្សចេញពីបញ្ជីតាមដានសិស្សខ្សោយរួចរាល់', type: 'info' });
+  };
+
+  // Daily Class Logs State (សៀវភៅតាមដានព្រឹត្តិការណ៍ និងកំណត់ហេតុថ្នាក់រៀនប្រចាំថ្ងៃ)
+  const [dailyClassLogs, setDailyClassLogs] = useState<DailyClassLog[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_daily_class_logs`);
+    return saved ? JSON.parse(saved) : initialDailyClassLogs;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_daily_class_logs`, JSON.stringify(dailyClassLogs));
+  }, [dailyClassLogs]);
+
+  const addDailyClassLog = (log: Omit<DailyClassLog, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const now = new Date().toISOString().split('T')[0];
+    const newLog: DailyClassLog = {
+      ...log,
+      id: `log-cls-${Date.now()}`,
+      createdAt: now,
+      updatedAt: now
+    };
+    setDailyClassLogs(prev => [newLog, ...prev]);
+    setToastMessage({ text: `បានកត់ត្រាកំណត់ហេតុប្រចាំថ្ងៃ «${log.title}» ជោគជ័យ!`, type: 'success' });
+  };
+
+  const updateDailyClassLog = (id: string, updated: Partial<DailyClassLog>) => {
+    const now = new Date().toISOString().split('T')[0];
+    setDailyClassLogs(prev =>
+      prev.map(l => (l.id === id ? { ...l, ...updated, updatedAt: now } : l))
+    );
+    setToastMessage({ text: 'បានកែប្រែទិន្នន័យកំណត់ហេតុថ្នាក់រៀនជោគជ័យ!', type: 'success' });
+  };
+
+  const deleteDailyClassLog = (id: string) => {
+    setDailyClassLogs(prev => prev.filter(l => l.id !== id));
+    setToastMessage({ text: 'បានលុបកំណត់ហេតុថ្នាក់រៀនរួចរាល់', type: 'info' });
+  };
+
+  const toggleArchiveDailyClassLog = (id: string) => {
+    setDailyClassLogs(prev =>
+      prev.map(l => (l.id === id ? { ...l, isArchived: !l.isArchived, updatedAt: new Date().toISOString().split('T')[0] } : l))
+    );
+    setToastMessage({ text: 'បានធ្វើបច្ចុប្បន្នភាពបណ្ណសារកំណត់ហេតុ', type: 'info' });
+  };
+
+  // Student Digital Badges & Achievement Markers State (ផ្លាកសញ្ញា និងមេដាយឌីជីថល)
+  const [studentBadgeDefinitions, setStudentBadgeDefinitions] = useState<BadgeDefinition[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_badge_definitions`);
+    return saved ? JSON.parse(saved) : initialBadgeDefinitions;
+  });
+
+  const [studentBadgeAssignments, setStudentBadgeAssignments] = useState<StudentBadgeAssignment[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_badge_assignments`);
+    return saved ? JSON.parse(saved) : initialStudentBadgeAssignments;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_badge_definitions`, JSON.stringify(studentBadgeDefinitions));
+  }, [studentBadgeDefinitions]);
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_badge_assignments`, JSON.stringify(studentBadgeAssignments));
+  }, [studentBadgeAssignments]);
+
+  const assignBadgeToStudent = (assignment: Omit<StudentBadgeAssignment, 'id' | 'createdAt' | 'badge'>) => {
+    const badgeDef = studentBadgeDefinitions.find(b => b.id === assignment.badgeId);
+    if (!badgeDef) {
+      return { success: false, message: 'រកមិនឃើញទម្រង់ផ្លាកសញ្ញាដែលបានជ្រើសរើសឡើយ' };
+    }
+
+    const now = new Date().toISOString().split('T')[0];
+    const certNumber = `CERT-${now.split('-')[0]}-${String(studentBadgeAssignments.length + 1).padStart(3, '0')}`;
+
+    const newAssignment: StudentBadgeAssignment = {
+      ...assignment,
+      id: `asgn-bdg-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      badge: badgeDef,
+      certificateNumber: certNumber,
+      createdAt: now
+    };
+
+    setStudentBadgeAssignments(prev => [newAssignment, ...prev]);
+    addNotification({
+      title: `ការប្រគល់ផ្លាកសញ្ញាកិត្តិយស (${assignment.studentName})`,
+      message: `សិស្ស ${assignment.studentName} ទទួលបានផ្លាកសញ្ញា «${badgeDef.titleKhmer}» (${badgeDef.points} ពិន្ទុ)!`,
+      type: 'info',
+      targetRole: 'all'
+    });
+
+    setToastMessage({ text: `បានប្រគល់មេដាយ/ផ្លាកសញ្ញា «${badgeDef.titleKhmer}» ជូនសិស្ស «${assignment.studentName}» ជោគជ័យ!`, type: 'success' });
+    return { success: true, message: 'បានប្រគល់ផ្លាកសញ្ញាជោគជ័យ' };
+  };
+
+  const bulkAssignBadge = (
+    studentIds: string[],
+    badgeId: string,
+    details: { awardedDate: string; reasonOrEvidence: string; awardedBy: string; academicYear: string; term?: string }
+  ) => {
+    const badgeDef = studentBadgeDefinitions.find(b => b.id === badgeId);
+    if (!badgeDef) return { success: false, count: 0 };
+
+    const now = new Date().toISOString().split('T')[0];
+    let count = 0;
+    const newAssignments: StudentBadgeAssignment[] = [];
+
+    studentIds.forEach((sId, index) => {
+      const student = students.find(s => s.id === sId);
+      if (!student) return;
+
+      const certNumber = `CERT-${now.split('-')[0]}-${String(studentBadgeAssignments.length + count + 1).padStart(3, '0')}`;
+      newAssignments.push({
+        id: `asgn-bdg-${Date.now()}-${index}`,
+        studentId: student.id,
+        studentName: student.nameKhmer,
+        studentGender: student.gender,
+        studentCode: student.code,
+        grade: student.grade,
+        section: student.section,
+        badgeId,
+        badge: badgeDef,
+        awardedDate: details.awardedDate || now,
+        academicYear: details.academicYear || selectedAcademicYear,
+        term: details.term || 'ឆមាសទី១',
+        awardedBy: details.awardedBy || (currentUser?.name || 'លោកគ្រូ-អ្នកគ្រូ'),
+        reasonOrEvidence: details.reasonOrEvidence,
+        certificateNumber: certNumber,
+        createdAt: now
+      });
+      count++;
+    });
+
+    if (newAssignments.length > 0) {
+      setStudentBadgeAssignments(prev => [...newAssignments, ...prev]);
+      setToastMessage({ text: `បានប្រគល់ផ្លាកសញ្ញា «${badgeDef.titleKhmer}» ជូនសិស្សសរុប ${count} នាក់ជោគជ័យ!`, type: 'success' });
+    }
+
+    return { success: true, count };
+  };
+
+  const removeBadgeAssignment = (assignmentId: string) => {
+    setStudentBadgeAssignments(prev => prev.filter(a => a.id !== assignmentId));
+    setToastMessage({ text: 'បានលុបផ្លាកសញ្ញាកិត្តិយសចេញរួចរាល់', type: 'info' });
+  };
+
+  const createBadgeDefinition = (badge: Omit<BadgeDefinition, 'id'>) => {
+    const newBadge: BadgeDefinition = {
+      ...badge,
+      id: `bdg-custom-${Date.now()}`,
+      code: badge.code || `BDG-CUS-${Math.floor(100 + Math.random() * 900)}`
+    };
+    setStudentBadgeDefinitions(prev => [...prev, newBadge]);
+    setToastMessage({ text: `បានបង្កើតផ្លាកសញ្ញាថ្មី «${badge.titleKhmer}» ជោគជ័យ!`, type: 'success' });
+  };
+
+  const updateBadgeDefinition = (id: string, updated: Partial<BadgeDefinition>) => {
+    setStudentBadgeDefinitions(prev =>
+      prev.map(b => (b.id === id ? { ...b, ...updated } : b))
+    );
+    setStudentBadgeAssignments(prev =>
+      prev.map(a => (a.badgeId === id ? { ...a, badge: { ...a.badge, ...updated } } : a))
+    );
+    setToastMessage({ text: 'បានកែប្រែទម្រង់ផ្លាកសញ្ញាជោគជ័យ!', type: 'success' });
+  };
+
+  const deleteBadgeDefinition = (id: string) => {
+    setStudentBadgeDefinitions(prev => prev.filter(b => b.id !== id));
+    setToastMessage({ text: 'បានលុបផ្លាកសញ្ញារួចរាល់', type: 'info' });
+  };
+
+  const getStudentBadges = (studentId: string): StudentBadgeAssignment[] => {
+    return studentBadgeAssignments.filter(a => a.studentId === studentId);
+  };
+
+  const getStudentTotalPoints = (studentId: string): number => {
+    const badges = studentBadgeAssignments.filter(a => a.studentId === studentId);
+    return badges.reduce((acc, curr) => acc + (curr.badge?.points || 0), 0);
+  };
+
+  const autoSuggestBadgesForStudent = (studentId: string) => {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return [];
+
+    const suggestions: { badgeId: string; badge: BadgeDefinition; reason: string; metricValue: string }[] = [];
+    const earnedBadgeIds = new Set(studentBadgeAssignments.filter(a => a.studentId === studentId).map(a => a.badgeId));
+
+    // 1. Attendance Check
+    const perfectAttBadge = studentBadgeDefinitions.find(b => b.id === 'bdg-att-01');
+    if (perfectAttBadge && !earnedBadgeIds.has(perfectAttBadge.id)) {
+      if (student.attendance && student.attendance.absentWithoutPermission === 0 && student.attendance.absentWithPermission === 0) {
+        suggestions.push({
+          badgeId: perfectAttBadge.id,
+          badge: perfectAttBadge,
+          reason: 'សិស្សមានកំណត់ត្រាវត្តមានពេញលេញ ១០០% ដោយគ្មានអវត្តមាន',
+          metricValue: 'វត្តមាន ១០០%'
+        });
+      }
+    }
+
+    // 2. Academic Check
+    const starStudentBadge = studentBadgeDefinitions.find(b => b.id === 'bdg-acad-01');
+    const mathBadge = studentBadgeDefinitions.find(b => b.id === 'bdg-acad-02');
+    
+    const studentScores = scores.filter(sc => sc.studentId === studentId);
+    if (studentScores.length > 0) {
+      const avgScore = studentScores.reduce((acc, curr) => acc + (curr.monthlyScores ? curr.monthlyScores.reduce((mAcc, m) => mAcc + m.averageScore, 0) / (curr.monthlyScores.length || 1) : 0), 0) / studentScores.length;
+      
+      if (avgScore >= 8.5 && starStudentBadge && !earnedBadgeIds.has(starStudentBadge.id)) {
+        suggestions.push({
+          badgeId: starStudentBadge.id,
+          badge: starStudentBadge,
+          reason: `មធ្យមភាគពិន្ទុខ្ពស់ ${avgScore.toFixed(1)}/10 ជាប់ចំណាត់ថ្នាក់ល្អប្រសើរ`,
+          metricValue: `ពិន្ទុ ${avgScore.toFixed(1)}`
+        });
+      }
+
+      const mathScores = studentScores.flatMap(sc => (sc.monthlyScores || []).map(m => m.scores ? (m.scores['គណិតវិទ្យា'] || m.scores['គណិត'] || 0) : 0)).filter(Boolean);
+      const avgMath = mathScores.length > 0 ? mathScores.reduce((a, b) => a + b, 0) / mathScores.length : 0;
+      if (avgMath >= 9.0 && mathBadge && !earnedBadgeIds.has(mathBadge.id)) {
+        suggestions.push({
+          badgeId: mathBadge.id,
+          badge: mathBadge,
+          reason: `ពូកែគណិតវិទ្យាខ្លាំង ពិន្ទុមធ្យមភាគ ${avgMath.toFixed(1)}/10`,
+          metricValue: `គណិត ${avgMath.toFixed(1)}`
+        });
+      }
+    }
+
+    // 3. Library Reading Check
+    const readingBadge = studentBadgeDefinitions.find(b => b.id === 'bdg-read-01');
+    const studentReadingLogs = readingLogs.filter(r => r.studentId === studentId || r.studentName === student.nameKhmer);
+    if (readingBadge && !earnedBadgeIds.has(readingBadge.id) && studentReadingLogs.length >= 3) {
+      suggestions.push({
+        badgeId: readingBadge.id,
+        badge: readingBadge,
+        reason: `បានអាន និងខ្ចីសៀវភៅបណ្ណាល័យសរុប ${studentReadingLogs.length} ក្បាល`,
+        metricValue: `${studentReadingLogs.length} ក្បាល`
+      });
+    }
+
+    // 4. At-Risk Improvement Check
+    const progressBadge = studentBadgeDefinitions.find(b => b.id === 'bdg-prog-01');
+    const atRiskData = atRiskStudents.find(a => a.studentId === studentId);
+    if (progressBadge && !earnedBadgeIds.has(progressBadge.id) && atRiskData) {
+      const diff = atRiskData.currentScore - atRiskData.baselineScore;
+      if (diff >= 1.5) {
+        suggestions.push({
+          badgeId: progressBadge.id,
+          badge: progressBadge,
+          reason: `មានការរីកចម្រើនគួរឱ្យកត់សម្គាល់ ពិន្ទុកើនពី ${atRiskData.baselineScore} ដល់ ${atRiskData.currentScore} (+${diff.toFixed(1)})`,
+          metricValue: `+${diff.toFixed(1)} ពិន្ទុ`
+        });
+      }
+    }
+
+    return suggestions;
+  };
+
+  // School Administration State (សៀវភៅលិខិតចូល-ចេញ)
+  const [correspondences, setCorrespondences] = useState<OfficialCorrespondence[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_correspondences`);
+    return saved ? JSON.parse(saved) : initialCorrespondences;
+  });
+
+  const addCorrespondence = (cor: Omit<OfficialCorrespondence, 'id'>) => {
+    const newCor: OfficialCorrespondence = {
+      ...cor,
+      id: `cor-${Date.now()}`
+    };
+    setCorrespondences(prev => [newCor, ...prev]);
+    setToastMessage({ text: `បានបញ្ចូលលិខិតលេខ «${newCor.logNumber}» ជោគជ័យ!`, type: 'success' });
+  };
+
+  const updateCorrespondence = (id: string, updated: Partial<OfficialCorrespondence>) => {
+    setCorrespondences(prev => prev.map(c => (c.id === id ? { ...c, ...updated } : c)));
+    setToastMessage({ text: 'បានធ្វើបច្ចុប្បន្នភាពព័ត៌មានលិខិតរដ្ឋបាលជោគជ័យ!', type: 'success' });
+  };
+
+  const deleteCorrespondence = (id: string) => {
+    setCorrespondences(prev => prev.filter(c => c.id !== id));
+    setToastMessage({ text: 'បានលុបលិខិតរដ្ឋបាលរួចរាល់', type: 'info' });
+  };
+
+  // Staff Administrative Records (បេសកកម្ម & ច្បាប់ឈប់សម្រាក)
+  const [staffAdminRecords, setStaffAdminRecords] = useState<StaffAdministrativeRecord[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_staff_admin_records`);
+    return saved ? JSON.parse(saved) : initialStaffAdministrativeRecords;
+  });
+
+  const addStaffAdminRecord = (rec: Omit<StaffAdministrativeRecord, 'id' | 'createdAt'>) => {
+    const newRec: StaffAdministrativeRecord = {
+      ...rec,
+      id: `sar-${Date.now()}`,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+    setStaffAdminRecords(prev => [newRec, ...prev]);
+    setToastMessage({ text: `បានបញ្ចូលសំណុំរដ្ឋបាល «${newRec.title}» ជោគជ័យ!`, type: 'success' });
+  };
+
+  const updateStaffAdminRecord = (id: string, updated: Partial<StaffAdministrativeRecord>) => {
+    setStaffAdminRecords(prev => prev.map(r => (r.id === id ? { ...r, ...updated } : r)));
+    setToastMessage({ text: 'បានកែប្រែសំណុំរដ្ឋបាលបុគ្គលិកជោគជ័យ!', type: 'success' });
+  };
+
+  const deleteStaffAdminRecord = (id: string) => {
+    setStaffAdminRecords(prev => prev.filter(r => r.id !== id));
+    setToastMessage({ text: 'បានលុបសំណុំរដ្ឋបាលរួចរាល់', type: 'info' });
+  };
+
+  // School Committees (គណៈកម្មការសាលា)
+  const [schoolCommittees, setSchoolCommittees] = useState<SchoolCommittee[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_school_committees`);
+    return saved ? JSON.parse(saved) : initialSchoolCommittees;
+  });
+
+  const addSchoolCommittee = (comm: Omit<SchoolCommittee, 'id'>) => {
+    const newComm: SchoolCommittee = {
+      ...comm,
+      id: `comm-${Date.now()}`
+    };
+    setSchoolCommittees(prev => [...prev, newComm]);
+    setToastMessage({ text: `បានបង្កើត «${newComm.committeeName}» ជោគជ័យ!`, type: 'success' });
+  };
+
+  const updateSchoolCommittee = (id: string, updated: Partial<SchoolCommittee>) => {
+    setSchoolCommittees(prev => prev.map(c => (c.id === id ? { ...c, ...updated } : c)));
+    setToastMessage({ text: 'បានកែប្រែព័ត៌មានគណៈកម្មការជោគជ័យ!', type: 'success' });
+  };
+
+  const deleteSchoolCommittee = (id: string) => {
+    setSchoolCommittees(prev => prev.filter(c => c.id !== id));
+    setToastMessage({ text: 'បានលុបគណៈកម្មការរួចរាល់', type: 'info' });
+  };
+
+  // School Strategic Plans (ផែនការយុទ្ធសាស្ត្រអភិវឌ្ឍន៍សាលា)
+  const [schoolStrategicPlans, setSchoolStrategicPlans] = useState<SchoolStrategicPlanItem[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_school_strategic_plans`);
+    return saved ? JSON.parse(saved) : initialSchoolStrategicPlans;
+  });
+
+  const addSchoolStrategicPlan = (plan: Omit<SchoolStrategicPlanItem, 'id'>) => {
+    const newPlan: SchoolStrategicPlanItem = {
+      ...plan,
+      id: `ssp-${Date.now()}`
+    };
+    setSchoolStrategicPlans(prev => [...prev, newPlan]);
+    setToastMessage({ text: `បានបញ្ចូលផែនការយុទ្ធសាស្ត្រ «${newPlan.objective}» ជោគជ័យ!`, type: 'success' });
+  };
+
+  const updateSchoolStrategicPlan = (id: string, updated: Partial<SchoolStrategicPlanItem>) => {
+    setSchoolStrategicPlans(prev => prev.map(p => (p.id === id ? { ...p, ...updated } : p)));
+    setToastMessage({ text: 'បានកែប្រែផែនការយុទ្ធសាស្ត្រជោគជ័យ!', type: 'success' });
+  };
+
+  const deleteSchoolStrategicPlan = (id: string) => {
+    setSchoolStrategicPlans(prev => prev.filter(p => p.id !== id));
+    setToastMessage({ text: 'បានលុបផែនការយុទ្ធសាស្ត្ររួចរាល់', type: 'info' });
+  };
+
+  // Model School Standards (ស្ដង់ដាសាលារៀនគំរូ ៥ ស្តង់ដា MoEYS)
+  const [modelSchoolStandards, setModelSchoolStandards] = useState<ModelSchoolStandardGroup[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_model_school_standards`);
+    return saved ? JSON.parse(saved) : initialModelSchoolStandards;
+  });
+
+  const updateModelSchoolCriterion = (standardNumber: number, criterionId: string, updated: Partial<ModelSchoolStandardCriterion>) => {
+    setModelSchoolStandards(prev =>
+      prev.map(grp => {
+        if (grp.standardNumber !== standardNumber) return grp;
+        return {
+          ...grp,
+          criteria: grp.criteria.map(c => (c.id === criterionId ? { ...c, ...updated } : c))
+        };
+      })
+    );
+    setToastMessage({ text: 'បានធ្វើបច្ចុប្បន្នភាពការវាយតម្លៃស្ដង់ដាសាលាគំរូជោគជ័យ!', type: 'success' });
+  };
+
+  // School Assets & Inventory (សារពើភ័ណ្ឌ & ទ្រព្យសម្បត្តិសាលា)
+  const [schoolAssets, setSchoolAssets] = useState<SchoolAssetItem[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_school_assets`);
+    return saved ? JSON.parse(saved) : initialSchoolAssets;
+  });
+
+  const addSchoolAsset = (asset: Omit<SchoolAssetItem, 'id'>) => {
+    const newAsset: SchoolAssetItem = {
+      ...asset,
+      id: `ast-${Date.now()}`
+    };
+    setSchoolAssets(prev => [newAsset, ...prev]);
+    setToastMessage({ text: `បានបញ្ចូលសារពើភ័ណ្ឌ «${newAsset.assetNameKhmer}» ជោគជ័យ!`, type: 'success' });
+  };
+
+  const updateSchoolAsset = (id: string, updated: Partial<SchoolAssetItem>) => {
+    setSchoolAssets(prev => prev.map(a => (a.id === id ? { ...a, ...updated } : a)));
+    setToastMessage({ text: 'បានកែប្រែទិន្នន័យសារពើភ័ណ្ឌជោគជ័យ!', type: 'success' });
+  };
+
+  const deleteSchoolAsset = (id: string) => {
+    setSchoolAssets(prev => prev.filter(a => a.id !== id));
+    setToastMessage({ text: 'បានលុបទិន្នន័យសារពើភ័ណ្ឌរួចរាល់', type: 'info' });
+  };
+
   // LocalStorage sync for new collections
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_correspondences`, JSON.stringify(correspondences));
+  }, [correspondences]);
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_staff_admin_records`, JSON.stringify(staffAdminRecords));
+  }, [staffAdminRecords]);
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_school_committees`, JSON.stringify(schoolCommittees));
+  }, [schoolCommittees]);
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_school_strategic_plans`, JSON.stringify(schoolStrategicPlans));
+  }, [schoolStrategicPlans]);
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_model_school_standards`, JSON.stringify(modelSchoolStandards));
+  }, [modelSchoolStandards]);
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_school_assets`, JSON.stringify(schoolAssets));
+  }, [schoolAssets]);
   useEffect(() => {
     localStorage.setItem(`${LOCAL_STORAGE_KEY}_lesson_plans`, JSON.stringify(lessonPlans));
   }, [lessonPlans]);
@@ -565,6 +1195,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     localStorage.setItem(`${LOCAL_STORAGE_KEY}_parent_meetings`, JSON.stringify(parentMeetings));
   }, [parentMeetings]);
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_parent_requests`, JSON.stringify(parentRequests));
+  }, [parentRequests]);
 
   useEffect(() => {
     localStorage.setItem(`${LOCAL_STORAGE_KEY}_class_councils`, JSON.stringify(classCouncils));
@@ -1339,15 +1973,15 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (role === 'director') return true;
 
     if (role === 'secretary') {
-      return ['dashboard', 'homeroom_dashboard', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'accounts', 'library', 'workspace'].includes(tab);
+      return ['dashboard', 'homeroom_dashboard', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'accounts', 'library', 'workspace'].includes(tab);
     }
 
     if (role === 'librarian') {
-      return ['library', 'dashboard', 'calendar'].includes(tab);
+      return ['library', 'dashboard', 'calendar', 'official_documents'].includes(tab);
     }
 
     if (role === 'teacher') {
-      return ['homeroom_dashboard', 'dashboard', 'students', 'transfers', 'household_census', 'classrooms', 'scores', 'attendance_health', 'calendar', 'reports_qr', 'accounts', 'library', 'workspace'].includes(tab);
+      return ['homeroom_dashboard', 'dashboard', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'classrooms', 'scores', 'attendance_health', 'calendar', 'reports_qr', 'accounts', 'library', 'workspace'].includes(tab);
     }
 
     if (role === 'student') {
@@ -1784,6 +2418,18 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setHouseholds(initialHouseholdRecords);
     setLibraryBooks(initialLibraryBooks);
     setReadingLogs(initialReadingLogs);
+    setLessonPlans(initialLessonPlans);
+    setParentMeetings(initialParentMeetings);
+    setParentRequests(initialParentRequests);
+    setClassCouncils(initialClassCouncils);
+    setAtRiskStudents(initialAtRiskStudents);
+    setDailyClassLogs(initialDailyClassLogs);
+    setCorrespondences(initialCorrespondences);
+    setStaffAdminRecords(initialStaffAdministrativeRecords);
+    setSchoolCommittees(initialSchoolCommittees);
+    setSchoolStrategicPlans(initialSchoolStrategicPlans);
+    setModelSchoolStandards(initialModelSchoolStandards);
+    setSchoolAssets(initialSchoolAssets);
     setPrintSettings({
       showRoundStamp: true,
       showDirectorSignature: true,
@@ -1920,8 +2566,56 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         addParentMeeting,
         updateParentMeeting,
         deleteParentMeeting,
+        parentRequests,
+        addParentRequest,
+        updateParentRequest,
+        resolveParentRequest,
+        deleteParentRequest,
         classCouncils,
-        updateClassCouncil
+        updateClassCouncil,
+        atRiskStudents,
+        addAtRiskStudent,
+        updateAtRiskStudent,
+        addInterventionLog,
+        deleteAtRiskStudent,
+        dailyClassLogs,
+        addDailyClassLog,
+        updateDailyClassLog,
+        deleteDailyClassLog,
+        toggleArchiveDailyClassLog,
+        correspondences,
+        addCorrespondence,
+        updateCorrespondence,
+        deleteCorrespondence,
+        staffAdminRecords,
+        addStaffAdminRecord,
+        updateStaffAdminRecord,
+        deleteStaffAdminRecord,
+        schoolCommittees,
+        addSchoolCommittee,
+        updateSchoolCommittee,
+        deleteSchoolCommittee,
+        schoolStrategicPlans,
+        addSchoolStrategicPlan,
+        updateSchoolStrategicPlan,
+        deleteSchoolStrategicPlan,
+        modelSchoolStandards,
+        updateModelSchoolCriterion,
+        schoolAssets,
+        addSchoolAsset,
+        updateSchoolAsset,
+        deleteSchoolAsset,
+        studentBadgeDefinitions,
+        studentBadgeAssignments,
+        assignBadgeToStudent,
+        bulkAssignBadge,
+        removeBadgeAssignment,
+        createBadgeDefinition,
+        updateBadgeDefinition,
+        deleteBadgeDefinition,
+        getStudentBadges,
+        getStudentTotalPoints,
+        autoSuggestBadgesForStudent
       }}
     >
       {children}

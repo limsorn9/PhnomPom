@@ -30,6 +30,9 @@ interface HomeroomHeaderProps {
   classAvgScore: number;
   totalLessonPlans: number;
   totalParentMeetings: number;
+  pendingNotificationsCount?: number;
+  urgentNotificationsCount?: number;
+  onOpenNotifications?: () => void;
   onPrintClassSummary: () => void;
   isTeacherRole: boolean;
 }
@@ -49,6 +52,9 @@ export const HomeroomHeader: React.FC<HomeroomHeaderProps> = ({
   classAvgScore,
   totalLessonPlans,
   totalParentMeetings,
+  pendingNotificationsCount = 0,
+  urgentNotificationsCount = 0,
+  onOpenNotifications,
   onPrintClassSummary,
   isTeacherRole
 }) => {
@@ -57,8 +63,8 @@ export const HomeroomHeader: React.FC<HomeroomHeaderProps> = ({
     : 100;
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
-      {/* Top row: Title, Teacher in charge info, Class selector */}
+    <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4 font-battambang">
+      {/* Top row: Title, Teacher in charge info, Class selector & Notification Bell */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-start sm:items-center gap-3.5">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-600 via-blue-600 to-sky-500 text-white flex items-center justify-center shadow-md flex-shrink-0">
@@ -85,8 +91,40 @@ export const HomeroomHeader: React.FC<HomeroomHeaderProps> = ({
           </div>
         </div>
 
-        {/* Class Selection & Print */}
+        {/* Class Selection & Action Buttons */}
         <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Notification Quick Bell */}
+          {onOpenNotifications && (
+            <button
+              onClick={onOpenNotifications}
+              className={`relative p-2 rounded-xl border transition-all cursor-pointer flex items-center gap-2 ${
+                urgentNotificationsCount > 0
+                  ? 'bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100 shadow-xs'
+                  : pendingNotificationsCount > 0
+                  ? 'bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100 shadow-xs'
+                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+              }`}
+              title="ការជូនដំណឹង និងសំណើមាតាបិតា"
+            >
+              <div className="relative">
+                <Calendar className="hidden" /> {/* just fallback */}
+                <span className="text-base leading-none">🔔</span>
+                {pendingNotificationsCount > 0 && (
+                  <span className="absolute -top-2 -right-2 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-rose-600 text-white animate-pulse shadow-xs">
+                    {pendingNotificationsCount}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs font-bold hidden sm:inline">
+                {urgentNotificationsCount > 0
+                  ? `${urgentNotificationsCount} បន្ទាន់!`
+                  : pendingNotificationsCount > 0
+                  ? `${pendingNotificationsCount} ដំណឹង`
+                  : 'ដំណឹងថ្នាក់'}
+              </span>
+            </button>
+          )}
+
           <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
             <span className="text-xs font-medium text-slate-500 pl-2">ជ្រើសរើសថ្នាក់៖</span>
             {/* Grade select */}

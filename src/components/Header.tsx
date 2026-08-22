@@ -95,6 +95,21 @@ export const Header: React.FC<HeaderProps> = ({
       subtitle: language === 'en' ? 'Unified homeroom class, attendance, grades, lesson plans & parent meetings' : 'ប្រព័ន្ធគ្រប់គ្រងថ្នាក់រៀន វត្តមាន ពិន្ទុ កិច្ចតែងការ និងប្រជុំមាតាបិតា',
       icon: Award
     },
+    school_admin: {
+      title: language === 'en' ? 'School Administration' : 'រដ្ឋបាល & លិខិតស្នាមសាលា',
+      subtitle: language === 'en' ? 'Inward/Outward logbook, mission orders & committees' : 'សៀវភៅលិខិតចូល-ចេញ លិខិតបញ្ជាបេសកកម្ម និងគណៈកម្មការសាលា',
+      icon: FileSpreadsheet
+    },
+    school_management: {
+      title: language === 'en' ? 'School Management & MoEYS Standards' : 'ការគ្រប់គ្រង & ស្តង់ដាសាលារៀន',
+      subtitle: language === 'en' ? '5 MoEYS Model School Standards, Strategic Plan & Inventory' : 'ស្ដង់ដាសាលារៀនគំរូ ៥ ស្តង់ដា ផែនការយុទ្ធសាស្ត្រ និងសារពើភ័ណ្ឌ',
+      icon: School
+    },
+    official_documents: {
+      title: language === 'en' ? 'Official Documents & Print Center' : 'ទម្រង់ឯកសាររដ្ឋបាល & បោះពុម្ព',
+      subtitle: language === 'en' ? 'Official MoEYS administrative document templates & certificates' : 'ទម្រង់លិខិតផ្លូវការ លិខិតបញ្ជាក់ការសិក្សា និងបោះពុម្ពត្រាមូល',
+      icon: FileSpreadsheet
+    },
     students: {
       title: language === 'en' ? 'Student Management' : 'គ្រប់គ្រងសិស្សានុសិស្ស',
       subtitle: language === 'en' ? 'Student records, history & health data' : 'បញ្ជីឈ្មោះ ប្រវត្តិរូប និងសុខភាពសិស្ស',

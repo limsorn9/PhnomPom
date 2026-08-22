@@ -29,7 +29,10 @@ import {
   ArrowRightLeft,
   Home,
   Library as LibraryIcon,
-  BookMarked
+  BookMarked,
+  FileText,
+  Building2,
+  Printer
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 
@@ -64,6 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     transfers,
     households,
     libraryBooks,
+    correspondences,
     currentUser,
     canAccessTab,
     appUsers,
@@ -91,6 +95,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Award,
       badge: 'Hub',
       badgeColor: 'bg-indigo-100 text-indigo-700 font-bold',
+    },
+    {
+      id: 'school_admin',
+      labelKh: 'រដ្ឋបាលសាលា (លិខិត/បុគ្គលិក)',
+      labelEn: 'School Administration',
+      icon: FileText,
+      badge: correspondences.length,
+      badgeColor: 'bg-blue-100 text-blue-700 font-semibold',
+    },
+    {
+      id: 'school_management',
+      labelKh: 'ការគ្រប់គ្រង & ស្តង់ដាសាលា',
+      labelEn: 'School Management & Standards',
+      icon: Building2,
+      badge: 'MoEYS',
+      badgeColor: 'bg-amber-100 text-amber-800 font-semibold',
+    },
+    {
+      id: 'official_documents',
+      labelKh: 'ទម្រង់ឯកសារ & បោះពុម្ព',
+      labelEn: 'Document Center & Print',
+      icon: Printer,
+      badge: 'Print',
+      badgeColor: 'bg-emerald-100 text-emerald-800 font-bold',
     },
     {
       id: 'student_portal',

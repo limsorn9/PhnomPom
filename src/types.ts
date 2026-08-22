@@ -440,6 +440,9 @@ export interface SystemNotification {
 export type ActiveTab = 
   | 'dashboard'
   | 'homeroom_dashboard'
+  | 'school_admin'
+  | 'school_management'
+  | 'official_documents'
   | 'students'
   | 'transfers'
   | 'household_census'
@@ -514,6 +517,89 @@ export interface ParentMeeting {
   parentRepresentatives?: ParentRepresentative[];
   status: 'upcoming' | 'completed' | 'draft';
   createdAt: string;
+}
+
+export type ParentRequestType =
+  | 'leave_request'        // សំណើសុំច្បាប់ឈប់សម្រាក
+  | 'consultation'         // សំណើសុំជួបពិគ្រោះផ្ទាល់
+  | 'academic_support'     // សំណើសុំជំនួយបំប៉នការសិក្សា
+  | 'profile_update'       // សំណើកែសម្រួលព័ត៌មានទំនាក់ទំនង
+  | 'health_alert'         // ដំណឹងបញ្ហាសុខភាព/អាឡែកហ្ស៊ី
+  | 'general_inquiry';     // សំណួរ និងមតិយោបល់ទូទៅ
+
+export type ParentRequestUrgency = 'normal' | 'urgent' | 'immediate';
+
+export interface ParentRequest {
+  id: string;
+  studentId: string;
+  studentName: string;
+  grade: number;
+  section: string;
+  parentName: string;
+  parentPhone: string;
+  parentRelationship: string; // ឪពុក, ម្តាយ, អាណាព្យាបាល
+  requestType: ParentRequestType;
+  title: string;
+  details: string;
+  urgency: ParentRequestUrgency;
+  targetDate?: string; // ថ្ងៃសុំច្បាប់ ឬថ្ងៃណាត់ជួប
+  durationDays?: number; // ចំនួនថ្ងៃឈប់សម្រាក (ប្រសិនបើសុំច្បាប់)
+  status: 'pending' | 'acknowledged' | 'approved' | 'rejected' | 'resolved';
+  teacherReply?: string;
+  resolvedAt?: string;
+  createdAt: string;
+}
+
+export type AtRiskCategory =
+  | 'academic_slow'       // រៀនយឺត/ខ្សោយមុខវិជ្ជា
+  | 'reading_difficulty'  // ពិបាកអាន/សរសេរតាមអាន (អក្ខរកម្ម)
+  | 'math_difficulty'     // ពិបាកគិតលេខ/គណិតវិទ្យា
+  | 'attendance_risk'     // ហានិភ័យបោះបង់/អវត្តមានញឹកញាប់
+  | 'behavioral_social'   // ឥរិយាបថ/ខ្វះការផ្ចង់អារម្មណ៍
+  | 'family_hardship';    // ជីវភាពគ្រួសារជួបការលំបាក
+
+export type InterventionStrategy =
+  | 'peer_tutoring'        // ក្មេងជួយក្មេង (Peer Tutor / Study Buddy)
+  | 'after_class_remedial' // បង្រៀនបំប៉នបន្ថែមក្រៅម៉ោង
+  | 'special_seat'         // អង្គុយតុមុខក្បែរគ្រូ
+  | 'parent_home_tracking' // សៀវភៅតាមដានកិច្ចការផ្ទះជាមួយមាតាបិតា
+  | 'custom_worksheet'     // ផ្តល់សន្លឹកកិច្ចការសម្រួលកម្រិត
+  | 'counseling_support';  // ការប្រឹក្សាលើកទឹកចិត្ត
+
+export type AtRiskProgressStatus = 'critical' | 'improving' | 'achieved' | 'on_track';
+
+export interface InterventionProgressLog {
+  id: string;
+  date: string;
+  evaluatedBy: string;
+  assessmentNote: string;
+  testScore?: number; // e.g. 6.5/10
+  readingSpeedWPM?: number; // ពាក្យក្នុង១នាទី
+  mathAccuracyPercent?: number; // %
+  status: AtRiskProgressStatus;
+}
+
+export interface AtRiskStudent {
+  id: string;
+  studentId: string;
+  studentName: string;
+  gender: Gender;
+  grade: number;
+  section: string;
+  academicYear: string;
+  enrolledDate: string;
+  categories: AtRiskCategory[];
+  subjectsNeedingHelp: string[]; // e.g. ['ភាសាខ្មែរ', 'គណិតវិទ្យា']
+  baselineScore: number; // ពិន្ទុដើមគ្រា (e.g. 3.5)
+  currentScore: number;  // ពិន្ទុបច្ចុប្បន្ន (e.g. 5.8)
+  targetScore: number;   // គោលដៅពិន្ទុ (e.g. 7.0)
+  assignedBuddyId?: string;
+  assignedBuddyName?: string;
+  interventionStrategies: InterventionStrategy[];
+  teacherNotes: string;
+  progressLogs: InterventionProgressLog[];
+  overallStatus: AtRiskProgressStatus;
+  updatedAt: string;
 }
 
 export interface ClassCouncilOfficer {
@@ -692,5 +778,223 @@ export interface GoogleUserInfo {
   email: string | null;
   photoURL: string | null;
   uid: string;
+}
+
+// ----------------------------------------------------
+// SCHOOL ADMINISTRATION & CORRESPONDENCE (រដ្ឋបាលសាលា)
+// ----------------------------------------------------
+export type CorrespondenceType = 'inward' | 'outward'; // លិខិតចូល / លិខិតចេញ
+export type CorrespondenceUrgency = 'normal' | 'urgent' | 'most_urgent'; // ធម្មតា / ប្រញាប់ / ប្រញាប់ណាស់
+export type CorrespondenceClassification = 
+  | 'ministerial_directive' // សារាចរ / សេចក្តីណែនាំក្រសួង
+  | 'administrative_decision' // សេចក្តីសម្រេច / បង្គាប់ការ
+  | 'official_letter' // លិខិតផ្លូវការ / លិខិតអញ្ជើញ
+  | 'report_document' // របាយការណ៍បូកសរុប
+  | 'mission_order' // លិខិតបញ្ជាបេសកកម្ម
+  | 'transfer_document' // លិខិតផ្ទេរសិស្ស/បុគ្គលិក
+  | 'general_memo'; // លិខិតផ្ទៃក្នុង / កំណត់បង្ហាញ
+
+export interface OfficialCorrespondence {
+  id: string;
+  type: CorrespondenceType;
+  logNumber: string; // លេខកត់ត្រាក្នុងសៀវភៅ (ឧ. ០៤៥ រប/សបក)
+  referenceNumber?: string; // លេខលិខិតយោង
+  docDate: string; // កាលបរិច្ឆេទលើលិខិត (YYYY-MM-DD)
+  receivedOrSentDate: string; // ថ្ងៃខែចូល ឬ ចេញ
+  subject: string; // កម្មវត្ថុ / ខ្លឹមសារសង្ខេប
+  senderOrRecipient: string; // ស្ថាប័នផ្ញើមក ឬ ស្ថាប័នទទួល (ឧ. មន្ទីរអប់រំយុវជននិងកីឡាខេត្ត, ការិយាល័យអប់រំស្រុក)
+  urgency: CorrespondenceUrgency;
+  classification: CorrespondenceClassification;
+  responsibleStaffName?: string; // មន្ត្រីទទួលបន្ទុកអនុវត្ត
+  attachedFileUrl?: string;
+  notes?: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'archived';
+  academicYear: string;
+}
+
+export type StaffActionType = 'leave_request' | 'mission_order' | 'commendation' | 'appraisal';
+
+export interface StaffAdministrativeRecord {
+  id: string;
+  type: StaffActionType;
+  staffId: string;
+  staffName: string;
+  staffRole: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  durationDays: number;
+  reasonOrMission: string;
+  destinationOrLocation?: string;
+  status: 'approved' | 'pending' | 'rejected';
+  approvedBy?: string;
+  approvedDate?: string;
+  documentRefNumber?: string;
+  remarks?: string;
+  createdAt: string;
+}
+
+export interface SchoolCommitteeMember {
+  id: string;
+  name: string;
+  roleInCommittee: string; // ប្រធាន, អនុប្រធាន, សមាជិកអចិន្ត្រៃយ៍, លេខា...
+  organizationOrPosition: string; // នាយកសាលា, មេឃុំ, មេភូមិ, តំណាងមាតាបិតា, គ្រូបង្រៀន
+  phone: string;
+  notes?: string;
+}
+
+export interface SchoolCommittee {
+  id: string;
+  committeeName: string; // ឧ. គណៈកម្មការគ្រប់គ្រងសាលារៀន (គ.ក.ស.), គណៈកម្មការអភិវឌ្ឍន៍សាលារៀន
+  decisionNumber: string; // លេខសេចក្តីសម្រេចបង្កើត
+  establishedDate: string;
+  mandateYears: string;
+  members: SchoolCommitteeMember[];
+  mainResponsibilities: string[];
+}
+
+// ----------------------------------------------------
+// SCHOOL MANAGEMENT & MODEL SCHOOL STANDARDS (ការគ្រប់គ្រងសាលា)
+// ----------------------------------------------------
+export interface SchoolStrategicPlanItem {
+  id: string;
+  programArea: 'គុណភាពអប់រំ' | 'ហេដ្ឋារចនាសម្ព័ន្ធ&បរិស្ថាន' | 'ការចូលរួមសហគមន៍' | 'អភិបាលកិច្ច&រដ្ឋបាល' | 'បណ្ណាល័យ&បច្ចេកវិទ្យា';
+  objective: string; // គោលបំណងយុទ្ធសាស្ត្រ
+  keyActivity: string; // សកម្មភាពគន្លឹះ
+  kpiTarget: string; // សូចនាករវាស់វែង (KPI)
+  targetYear: string; // ឆ្នាំគោលដៅ ឧ. ២០២៤-២០២៥
+  estimatedBudgetRiel: number;
+  budgetSource: BudgetSource;
+  responsibleLead: string; // អ្នកទទួលបន្ទុកចម្បង
+  progressPercent: number; // 0 - 100%
+  status: 'not_started' | 'in_progress' | 'completed' | 'on_hold';
+  notes?: string;
+}
+
+export interface ModelSchoolStandardCriterion {
+  id: string;
+  criterionNumber: string; // ឧ. ១.១, ១.២, ២.១
+  nameKhmer: string;
+  description: string;
+  maxScore: number; // 1-5
+  currentScore: number; // 1-5
+  status: 'excellent' | 'good' | 'average' | 'needs_improvement';
+  evidenceDocument?: string; // ឯកសារភស្តុតាង
+  actionToImprove?: string; // សកម្មភាពកែលម្អ
+}
+
+export interface ModelSchoolStandardGroup {
+  standardNumber: number; // 1 to 5
+  standardTitleKhmer: string;
+  description: string;
+  criteria: ModelSchoolStandardCriterion[];
+}
+
+export interface SchoolAssetItem {
+  id: string;
+  assetCode: string; // ឧ. AST-BLD-01, AST-DSK-024
+  assetNameKhmer: string; // តុ-កៅអីសិស្ស, អគារសិក្សា ២ជាន់, បន្ទះសូឡា, កុំព្យូទ័រ
+  category: 'អគារ&ហេដ្ឋារចនាសម្ព័ន្ធ' | 'តុ-កៅអី&គ្រឿងសង្ហារិម' | 'បរិក្ខារបច្ចេកវិទ្យា/IT' | 'សម្ភារៈពិសោធន៍&ឧបទេស' | 'បរិក្ខារកីឡា' | 'បរិក្ខារទឹកស្អាត&អនាម័យ';
+  quantity: number;
+  unit: string; // ខ្នង, បន្ទប់, គ្រឿង, ឈុត, កំប្លេ
+  locationRoom: string; // បន្ទប់រៀនទី១, បណ្ណាល័យ, ការិយាល័យ
+  condition: 'good' | 'fair' | 'damaged' | 'unusable'; // ល្អ / មធ្យម / ខូចខាត / ប្រើលែងកើត
+  sourceOfFunding: string; // ថវិការដ្ឋ / អំណោយសហគមន៍ / អង្គការដៃគូ
+  acquiredYear: string;
+  estimatedValueRiel: number;
+  notes?: string;
+}
+
+export type ClassLogCategory =
+  | 'general'
+  | 'academic'
+  | 'discipline'
+  | 'hygiene_cleaning'
+  | 'event_celebration'
+  | 'health_incident'
+  | 'parent_contact'
+  | 'inspection_visit';
+
+export type ClassAtmosphereMood = 'excellent' | 'calm_focused' | 'energetic' | 'needs_attention';
+
+export interface DailyClassLog {
+  id: string;
+  grade: number;
+  section: string;
+  academicYear: string;
+  date: string; // YYYY-MM-DD
+  shift: 'morning' | 'afternoon' | 'full_day';
+  title: string;
+  category: ClassLogCategory;
+  atmosphere: ClassAtmosphereMood;
+  notes: string;
+  highlights?: string[];
+  absentCount?: number;
+  recordedBy: string; // Teacher name
+  isArchived?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ----------------------------------------------------
+// STUDENT DIGITAL BADGES & ACHIEVEMENT MARKERS (ផ្លាកសញ្ញា និងមេដាយឌីជីថល)
+// ----------------------------------------------------
+export type StudentBadgeCategory =
+  | 'academic'                // ឆ្នើមការសិក្សា (Academic Excellence)
+  | 'attendance'              // វត្តមានទៀងទាត់ (Perfect Attendance)
+  | 'behavior_discipline'     // វិន័យ និងសីលធម៌ (Discipline & Morality)
+  | 'leadership_cooperation'  // ភាពជាអ្នកដឹកនាំ និងសាមគ្គីភាព (Leadership & Teamwork)
+  | 'sports_arts'             // កីឡា និងសិល្បៈ (Sports & Arts)
+  | 'environmental_hygiene'   // បរិស្ថាន និងអនាម័យ (Eco & Hygiene Champion)
+  | 'reading_literacy'        // អំណាន និងអក្ខរកម្ម (Reading & Literacy Star)
+  | 'improvement_progress';   // វឌ្ឍនភាពលេចធ្លោ (Notable Progress & Improvement)
+
+export type BadgeTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
+
+export interface BadgeDefinition {
+  id: string;
+  code: string;
+  titleKhmer: string;
+  titleEnglish: string;
+  description: string;
+  category: StudentBadgeCategory;
+  tier: BadgeTier;
+  points: number;
+  iconName: string;
+  criteria: string;
+  colorScheme: {
+    bgLight: string;
+    bgBadge: string;
+    textColor: string;
+    borderColor: string;
+    ringColor: string;
+    gradient: string;
+  };
+  isSystemDefault?: boolean;
+}
+
+export interface StudentBadgeAssignment {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentGender: Gender;
+  studentCode: string;
+  grade: number;
+  section: string;
+  badgeId: string;
+  badge: BadgeDefinition;
+  awardedDate: string;
+  academicYear: string;
+  term?: 'ឆមាសទី១' | 'ឆមាសទី២' | 'ប្រចាំខែ' | 'ពេញមួយឆ្នាំ' | string;
+  awardedBy: string;
+  reasonOrEvidence: string;
+  progressMetricSnapshot?: {
+    scoreAvg?: number;
+    attendanceRate?: number;
+    readingBooksCount?: number;
+    improvedPoints?: number;
+  };
+  certificateNumber?: string;
+  createdAt: string;
 }
 

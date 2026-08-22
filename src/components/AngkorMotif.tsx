@@ -223,3 +223,30 @@ export const AngkorPageWatermark: React.FC<{ opacity?: number }> = ({ opacity = 
     </div>
   );
 };
+
+/**
+ * Traditional Cambodian Khmer Decorative Corner Borders for Certificates
+ */
+export const AngkorBorderOrnament: React.FC<{ className?: string }> = ({ className = '' }) => {
+  return (
+    <div className={`absolute inset-0 pointer-events-none ${className}`}>
+      {/* Top Left Corner */}
+      <div className="absolute top-2 left-2 w-8 h-8 text-amber-600/70 border-t-2 border-l-2 border-amber-600/70 flex items-center justify-center">
+        <span className="text-xs -translate-x-0.5 -translate-y-0.5">❖</span>
+      </div>
+      {/* Top Right Corner */}
+      <div className="absolute top-2 right-2 w-8 h-8 text-amber-600/70 border-t-2 border-r-2 border-amber-600/70 flex items-center justify-center">
+        <span className="text-xs translate-x-0.5 -translate-y-0.5">❖</span>
+      </div>
+      {/* Bottom Left Corner */}
+      <div className="absolute bottom-2 left-2 w-8 h-8 text-amber-600/70 border-b-2 border-l-2 border-amber-600/70 flex items-center justify-center">
+        <span className="text-xs -translate-x-0.5 translate-y-0.5">❖</span>
+      </div>
+      {/* Bottom Right Corner */}
+      <div className="absolute bottom-2 right-2 w-8 h-8 text-amber-600/70 border-b-2 border-r-2 border-amber-600/70 flex items-center justify-center">
+        <span className="text-xs translate-x-0.5 translate-y-0.5">❖</span>
+      </div>
+    </div>
+  );
+};
+

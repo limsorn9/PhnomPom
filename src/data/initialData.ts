@@ -14,7 +14,18 @@ import {
   SystemNotification,
   LessonPlan,
   ParentMeeting,
-  ClassCouncil
+  ParentRequest,
+  ClassCouncil,
+  OfficialCorrespondence,
+  StaffAdministrativeRecord,
+  SchoolCommittee,
+  SchoolStrategicPlanItem,
+  ModelSchoolStandardGroup,
+  SchoolAssetItem,
+  AtRiskStudent,
+  DailyClassLog,
+  BadgeDefinition,
+  StudentBadgeAssignment
 } from '../types';
 
 export const initialSchoolProfile: SchoolProfile = {
@@ -1894,6 +1905,143 @@ export const initialParentMeetings: ParentMeeting[] = [
     ],
     status: 'completed',
     createdAt: '2025-03-15'
+  },
+  {
+    id: 'pm-3',
+    grade: 6,
+    section: 'ក',
+    academicYear: '២០២៤ - ២០២៥',
+    meetingTitle: 'កិច្ចប្រជុំមាតាបិតាត្រៀមការប្រឡងបញ្ចប់ភូមិសិក្សា និងបំប៉នសិស្សពូកែ',
+    meetingType: 'end_year',
+    meetingDate: '2026-08-25',
+    meetingTime: '08:00 - 10:00 ព្រឹក',
+    location: 'បន្ទប់រៀនថ្នាក់ទី៦ក',
+    agenda: [
+      '១. បទបង្ហាញអំពីកាលវិភាគប្រឡង និងវិញ្ញាសាត្រៀមឌីប្លូមបឋម',
+      '២. របៀបរៀបចំម៉ោងស្វ័យសិក្សា និងការលើកទឹកចិត្តកូនៗនៅផ្ទះ',
+      '៣. ពិភាក្សាអំពីអាហារូបករណ៍ និងការបន្តការសិក្សានៅអនុវិទ្យាល័យ'
+    ],
+    objectives: 'ត្រៀមលក្ខណៈ និងសហការជាមួយមាតាបិតា ដើម្បីឱ្យសិស្សថ្នាក់ទី៦ ទទួលបានលទ្ធផលប្រឡងល្អ ១០០%។',
+    totalParentsInvited: 32,
+    totalParentsAttended: 0,
+    minutes: 'មិនទាន់ដល់ថ្ងៃប្រជុំ',
+    resolutions: [],
+    status: 'upcoming',
+    createdAt: '2026-08-20'
+  },
+  {
+    id: 'pm-4',
+    grade: 6,
+    section: 'ក',
+    academicYear: '២០២៤ - ២០២៥',
+    meetingTitle: 'កិច្ចប្រជុំបន្ទាន់គណៈកម្មការទ្រទ្រង់ថ្នាក់រៀន (គ.គ.ថ.) ស្តីពីសួនកុមារមេត្រី',
+    meetingType: 'emergency',
+    meetingDate: '2026-08-28',
+    meetingTime: '02:00 - 04:00 រសៀល',
+    location: 'សាលប្រជុំតូច សាលាបឋមសិក្សាភ្នំពុំ',
+    agenda: [
+      '១. ពិភាក្សាការរៀបចំសម្ភារៈតុបតែងបន្ទប់រៀន និងសួនជីវចម្រុះថ្នាក់',
+      '២. កៀរគរការចូលរួមជួយសម្អាតបរិស្ថានថ្នាក់ពីមាតាបិតាស្ម័គ្រចិត្ត'
+    ],
+    objectives: 'ពង្រឹងស្ដង់ដាបរិស្ថានថ្នាក់រៀនកុមារមេត្រី និងការចូលរួមរបស់សហគមន៍។',
+    totalParentsInvited: 12,
+    totalParentsAttended: 0,
+    minutes: 'មិនទាន់ដល់ថ្ងៃប្រជុំ',
+    resolutions: [],
+    status: 'upcoming',
+    createdAt: '2026-08-21'
+  }
+];
+
+export const initialParentRequests: ParentRequest[] = [
+  {
+    id: 'pr-1',
+    studentId: 's-1',
+    studentName: 'សុខ វិបុល',
+    grade: 6,
+    section: 'ក',
+    parentName: 'លោក សុខ សារ៉េត (ឪពុក)',
+    parentPhone: '012 334 455',
+    parentRelationship: 'ឪពុក',
+    requestType: 'leave_request',
+    title: 'សុំច្បាប់ឈប់សម្រាក ២ ថ្ងៃដោយសារជំងឺគ្រុនក្តៅ',
+    details: 'កូនប្រុស វិបុល មានអាការៈក្តៅខ្លួនខ្លាំង និងក្អក គ្រូពេទ្យនៅមណ្ឌលសុខភាពបានចេញវេជ្ជបញ្ជាឱ្យសម្រាកព្យាបាលនៅផ្ទះចំនួន ២ថ្ងៃ (ថ្ងៃទី២៣ និង ២៤ សីហា)។ ខ្ញុំបាទនឹងជួយបង្រៀនមេរៀន និងកិច្ចការផ្ទះកូនបន្ថែមពេលធូរស្បើយ។',
+    urgency: 'immediate',
+    targetDate: '2026-08-23',
+    durationDays: 2,
+    status: 'pending',
+    createdAt: '2026-08-22'
+  },
+  {
+    id: 'pr-2',
+    studentId: 's-3',
+    studentName: 'មាស សុវណ្ណ',
+    grade: 6,
+    section: 'ក',
+    parentName: 'អ្នកស្រី គង់ សុភាព (ម្តាយ)',
+    parentPhone: '097 889 911',
+    parentRelationship: 'ម្តាយ',
+    requestType: 'consultation',
+    title: 'សុំណាត់ជួបផ្ទាល់ពិគ្រោះយោបល់លើមុខវិជ្ជាគណិតវិទ្យា',
+    details: 'នាងខ្ញុំសង្កេតឃើញកូន សុវណ្ណ ពិបាកយល់លើមេរៀនប្រភាគ និងធរណីមាត្រ នាងខ្ញុំចង់សុំជួបលោកគ្រូបន្ទុកថ្នាក់នៅម៉ោងចេញលេងថ្ងៃចន្ទ ដើម្បីសុំការណែនាំពីវិធីសាស្ត្របង្រៀនកូននៅផ្ទះ។',
+    urgency: 'urgent',
+    targetDate: '2026-08-24',
+    status: 'pending',
+    createdAt: '2026-08-21'
+  },
+  {
+    id: 'pr-3',
+    studentId: 's-2',
+    studentName: 'ចាន់ រស្មី',
+    grade: 6,
+    section: 'ក',
+    parentName: 'លោក ចាន់ សុភា (ឪពុក)',
+    parentPhone: '011 223 344',
+    parentRelationship: 'ឪពុក',
+    requestType: 'health_alert',
+    title: 'ដំណឹងបន្ទាន់៖ សិស្សមានអាឡែកហ្ស៊ីនឹងធូលី និងលម្អងផ្កា',
+    details: 'ជម្រាបលោកគ្រូ រស្មី មានប្រតិកម្មអាឡែកហ្ស៊ីផ្លូវដង្ហើម ពេលបោសសម្អាតថ្នាក់ សូមលោកគ្រូជួយចាត់ចែងឱ្យកូនពាក់ម៉ាស ឬបំពេញកិច្ចការរៀបចំតុជំនួសវិញ។ សូមអរគុណលោកគ្រូ។',
+    urgency: 'urgent',
+    status: 'acknowledged',
+    teacherReply: 'លោកគ្រូបានកត់ត្រា និងប្តូរវេនការងារសម្អាតឱ្យ រស្មី ទទួលបន្ទុកជូតក្តារខៀន និងរៀបចំសៀវភៅជំនួសវិញហើយ។',
+    resolvedAt: '2026-08-21',
+    createdAt: '2026-08-20'
+  },
+  {
+    id: 'pr-4',
+    studentId: 's-4',
+    studentName: 'កែវ សុជាតា',
+    grade: 6,
+    section: 'ក',
+    parentName: 'អ្នកស្រី ហែម ម៉ាលី (ម្តាយ)',
+    parentPhone: '088 776 655',
+    parentRelationship: 'ម្តាយ',
+    requestType: 'profile_update',
+    title: 'ស្នើសុំកែប្រែលេខទូរស័ព្ទអាណាព្យាបាលថ្មី',
+    details: 'នាងខ្ញុំបានប្តូរមកប្រើលេខទូរស័ព្ទ 088 776 655 និងភ្ជាប់ Telegram លើលេខនេះ។ សូមលោកគ្រូជួយកែសម្រួលក្នុងបញ្ជីទាក់ទងថ្នាក់។',
+    urgency: 'normal',
+    status: 'approved',
+    teacherReply: 'បានធ្វើបច្ចុប្បន្នភាពលេខទូរស័ព្ទក្នុងប្រព័ន្ធរួចរាល់។',
+    resolvedAt: '2026-08-19',
+    createdAt: '2026-08-18'
+  },
+  {
+    id: 'pr-5',
+    studentId: 's-5',
+    studentName: 'ស៊ន វណ្ណដា',
+    grade: 1,
+    section: 'ក',
+    parentName: 'លោក ស៊ន សុខ (ឪពុក)',
+    parentPhone: '092 112 233',
+    parentRelationship: 'ឪពុក',
+    requestType: 'leave_request',
+    title: 'សុំច្បាប់ឈប់ ១ ថ្ងៃ ទៅចូលរួមពិធីបុណ្យគ្រួសារ',
+    details: 'សុំច្បាប់កូន វណ្ណដា ឈប់សម្រាកថ្ងៃចន្ទ ១ថ្ងៃ ដើម្បីទៅស្រុកកំណើតជាមួយឪពុកម្តាយ។',
+    urgency: 'normal',
+    targetDate: '2026-08-25',
+    durationDays: 1,
+    status: 'pending',
+    createdAt: '2026-08-22'
   }
 ];
 
@@ -1949,6 +2097,1065 @@ export const initialClassCouncils: ClassCouncil[] = [
     ]
   }
 ];
+
+// ----------------------------------------------------
+// INITIAL SCHOOL ADMINISTRATION & CORRESPONDENCE
+// ----------------------------------------------------
+export const initialCorrespondences: OfficialCorrespondence[] = [
+  {
+    id: 'cor-1',
+    type: 'inward',
+    logNumber: '០២៤/២៤ លខ.អយក',
+    referenceNumber: 'លិខិតលេខ ៥៨៩ អយក.បឋ',
+    docDate: '2024-10-10',
+    receivedOrSentDate: '2024-10-12',
+    subject: 'សេចក្តីណែនាំស្តីពីការពង្រឹងការអនុវត្តស្ដង់ដាសាលារៀនគំរូ សម្រាប់ឆ្នាំសិក្សា ២០២៤-២០២៥',
+    senderOrRecipient: 'មន្ទីរអប់រំ យុវជន និងកីឡា ខេត្តបាត់ដំបង',
+    urgency: 'urgent',
+    classification: 'ministerial_directive',
+    responsibleStaffName: 'លោក លីម សន (នាយក)',
+    status: 'in_progress',
+    academicYear: '២០២៤ - ២០២៥',
+    notes: 'បានចាត់ចែងផ្សព្វផ្សាយដល់លោកគ្រូ-អ្នកគ្រូក្នុងកិច្ចប្រជុំប្រចាំខែ'
+  },
+  {
+    id: 'cor-2',
+    type: 'inward',
+    logNumber: '០២៨/២៤ លខ.អយក',
+    referenceNumber: 'លិខិតលេខ ០១២ ការិ.អយក',
+    docDate: '2024-10-25',
+    receivedOrSentDate: '2024-10-27',
+    subject: 'ការត្រួតពិនិត្យ និងវាយតម្លៃការអាន-សរសើរភាសាខ្មែរ និងគណិតវិទ្យាថ្នាក់ដំបូង (EGRA/EGMA)',
+    senderOrRecipient: 'ការិយាល័យអប់រំ យុវជន និងកីឡា ស្រុកភ្នំព្រឹក',
+    urgency: 'normal',
+    classification: 'official_letter',
+    responsibleStaffName: 'អ្នកគ្រូ កែវ មុន្នី (គ្រូទី១)',
+    status: 'completed',
+    academicYear: '២០២៤ - ២០២៥',
+    notes: 'បានរៀបចំសំណុំលទ្ធផលតេស្តសិស្សថ្នាក់ទី១ និងទី២ រួចរាល់'
+  },
+  {
+    id: 'cor-3',
+    type: 'outward',
+    logNumber: '០១៥/២៤ រប.សបក',
+    referenceNumber: 'របាយការណ៍លេខ ០១៥ សបក',
+    docDate: '2024-11-05',
+    receivedOrSentDate: '2024-11-06',
+    subject: 'របាយការណ៍ស្ថិតិដើមឆ្នាំសិក្សា ២០២៤-២០២៥ និងតម្រូវការសៀវភៅពុម្ពគោល',
+    senderOrRecipient: 'ការិយាល័យអប់រំ យុវជន និងកីឡា ស្រុកភ្នំព្រឹក',
+    urgency: 'normal',
+    classification: 'report_document',
+    responsibleStaffName: 'លោក ឈិន សុផល (នាយករង)',
+    status: 'completed',
+    academicYear: '២០២៤ - ២០២៥',
+    notes: 'បានផ្ញើតាមប្រព័ន្ធ EMIS និងច្បាប់ចម្លងក្រដាស'
+  },
+  {
+    id: 'cor-4',
+    type: 'outward',
+    logNumber: '០១៨/២៤ លប.សបក',
+    referenceNumber: 'លិខិតលេខ ០១៨ សបក',
+    docDate: '2024-11-20',
+    receivedOrSentDate: '2024-11-20',
+    subject: 'លិខិតបញ្ជាបេសកកម្មចូលរួមវគ្គបណ្តុះបណ្តាលវិធីសាស្ត្របង្រៀនវិទ្យាសាស្ត្រ និងបច្ចេកវិទ្យា',
+    senderOrRecipient: 'សាលាគរុកោសល្យ និងវិក្រឹតការខេត្តបាត់ដំបង',
+    urgency: 'urgent',
+    classification: 'mission_order',
+    responsibleStaffName: 'លោក ស៊ុន ដារ៉ា (គ្រូទី៦)',
+    status: 'completed',
+    academicYear: '២០២៤ - ២០២៥',
+    notes: 'រយៈពេល ៣ថ្ងៃ (២២-២៤ វិច្ឆិកា ២០២៤)'
+  },
+  {
+    id: 'cor-5',
+    type: 'inward',
+    logNumber: '០៣៥/២៤ លខ.អយក',
+    referenceNumber: 'សេចក្តីជូនដំណឹងលេខ ៨៨២',
+    docDate: '2024-12-01',
+    receivedOrSentDate: '2024-12-03',
+    subject: 'ការរៀបចំយុទ្ធនាការកុមារមេត្រី អនាម័យ និងទឹកស្អាតក្នុងគ្រឹះស្ថានបឋមសិក្សា',
+    senderOrRecipient: 'អង្គការដៃគូអភិវឌ្ឍន៍ និងមន្ទីរអប់រំខេត្ត',
+    urgency: 'normal',
+    classification: 'ministerial_directive',
+    responsibleStaffName: 'អ្នកគ្រូ ហេង ធីតា (គ្រូទី៤)',
+    status: 'in_progress',
+    academicYear: '២០២៤ - ២០២៥'
+  }
+];
+
+export const initialStaffAdministrativeRecords: StaffAdministrativeRecord[] = [
+  {
+    id: 'sar-1',
+    type: 'mission_order',
+    staffId: 't-1',
+    staffName: 'លោក ស៊ុន ដារ៉ា',
+    staffRole: 'គ្រូបង្រៀនថ្នាក់ទី៦',
+    title: 'ចូលរួមវគ្គបណ្តុះបណ្តាលវិធីសាស្ត្របង្រៀន STEM កម្រិតបឋមសិក្សា',
+    startDate: '2024-11-22',
+    endDate: '2024-11-24',
+    durationDays: 3,
+    reasonOrMission: 'បេសកកម្មចូលរួមវគ្គបណ្តុះបណ្តាលគរុកោសល្យថ្នាក់ខេត្ត តាមការកោះអញ្ជើញរបស់មន្ទីរអប់រំ',
+    destinationOrLocation: 'សាលាគរុកោសល្យខេត្តបាត់ដំបង',
+    status: 'approved',
+    approvedBy: 'លោក លីម សន (នាយកសាលា)',
+    approvedDate: '2024-11-20',
+    documentRefNumber: 'បក-២០២៤-០១៨',
+    createdAt: '2024-11-19'
+  },
+  {
+    id: 'sar-2',
+    type: 'leave_request',
+    staffId: 't-2',
+    staffName: 'អ្នកគ្រូ កែវ មុន្នី',
+    staffRole: 'គ្រូបង្រៀនថ្នាក់ទី១',
+    title: 'សុំច្បាប់ឈប់សម្រាកព្យាបាលជំងឺគ្រុនផ្តាសាយ',
+    startDate: '2024-12-05',
+    endDate: '2024-12-07',
+    durationDays: 3,
+    reasonOrMission: 'មានជំងឺគ្រុនក្តៅ និងឈឺបំពង់ក មានវេជ្ជបញ្ជាពីមណ្ឌលសុខភាពភ្នំព្រឹក',
+    status: 'approved',
+    approvedBy: 'លោក លីម សន (នាយកសាលា)',
+    approvedDate: '2024-12-04',
+    documentRefNumber: 'ច្ប-២០២៤-០០៩',
+    createdAt: '2024-12-04'
+  },
+  {
+    id: 'sar-3',
+    type: 'commendation',
+    staffId: 't-3',
+    staffName: 'លោក ឈិន សុផល',
+    staffRole: 'នាយករង & គ្រូបង្រៀន',
+    title: 'ប័ណ្ណសរសើរការបំពេញការងារឆ្នើមក្នុងការដឹកនាំអនាម័យបរិស្ថានសាលារៀន',
+    startDate: '2024-09-01',
+    endDate: '2024-10-31',
+    durationDays: 60,
+    reasonOrMission: 'សម្រេចបានលទ្ធផលសាលារៀនស្អាត គ្មានសំរាមប្លាស្ទិក និងលើកកម្ពស់សួនជីវចម្រុះគំរូ',
+    status: 'approved',
+    approvedBy: 'ប្រធានការិយាល័យអប់រំស្រុកភ្នំព្រឹក',
+    approvedDate: '2024-11-01',
+    documentRefNumber: 'បស-២០២៤-០៤',
+    createdAt: '2024-11-01'
+  }
+];
+
+export const initialSchoolCommittees: SchoolCommittee[] = [
+  {
+    id: 'sc-comm-1',
+    committeeName: 'គណៈកម្មការគ្រប់គ្រងសាលារៀន (គ.ក.ស. / School Management Committee)',
+    decisionNumber: 'សេចក្តីសម្រេចលេខ ០៤/២៤ សបក',
+    establishedDate: '2024-10-05',
+    mandateYears: '២០២៤ - ២០២៦ (អាណត្តិ ២ឆ្នាំ)',
+    members: [
+      { id: 'cm-1', name: 'លោក លីម សន', roleInCommittee: 'ប្រធានគណៈកម្មការ', organizationOrPosition: 'នាយកសាលាបឋមសិក្សាភ្នំពុំ', phone: '087 99 19 77' },
+      { id: 'cm-2', name: 'លោក ហេង វណ្ណា', roleInCommittee: 'អនុប្រធានគណៈកម្មការ', organizationOrPosition: 'មេឃុំបារាំងធ្លាក់', phone: '012 889 900' },
+      { id: 'cm-3', name: 'លោក ឈិន សុផល', roleInCommittee: 'លេខាធិការអចិន្ត្រៃយ៍', organizationOrPosition: 'នាយករងសាលា', phone: '017 445 566' },
+      { id: 'cm-4', name: 'លោក ស៊ុន ដារ៉ា', roleInCommittee: 'សមាជិក (តំណាងគ្រូ)', organizationOrPosition: 'តំណាងលោកគ្រូ-អ្នកគ្រូ', phone: '012 334 455' },
+      { id: 'cm-5', name: 'លោក សំ សុវណ្ណ', roleInCommittee: 'សមាជិក (តំណាងមាតាបិតា)', organizationOrPosition: 'ប្រធានសមាគមមាតាបិតា', phone: '098 776 655' },
+      { id: 'cm-6', name: 'លោក មាស សំបូរ', roleInCommittee: 'សមាជិក (តំណាងសហគមន៍)', organizationOrPosition: 'មេភូមិអូរគល់សំយ៉ុង', phone: '077 112 233' }
+    ],
+    mainResponsibilities: [
+      'អនុម័តផែនការយុទ្ធសាស្ត្រអភិវឌ្ឍន៍សាលារៀន (SDSP) និងផែនការប្រតិបត្តិការប្រចាំឆ្នាំ (AOP)',
+      'ត្រួតពិនិត្យ និងតាមដានការប្រើប្រាស់ថវិកាដំណើរការសាលារៀន (PB & SIG)',
+      'កៀរគរធនធាន និងការចូលរួមពីសហគមន៍ដើម្បីជួសជុលកែលម្អហេដ្ឋារចនាសម្ព័ន្ធ',
+      'ធានាឱ្យសិស្សានុសិស្សទាំងអស់ក្នុងវ័យសិក្សាបានចូលរៀន និងកាត់បន្ថយអត្រាបោះបង់'
+    ]
+  },
+  {
+    id: 'sc-comm-2',
+    committeeName: 'គណៈកម្មការអភិវឌ្ឍន៍សាលារៀន & សមាគមទ្រទ្រង់ការអប់រំ (គ.អ.ស.)',
+    decisionNumber: 'សេចក្តីសម្រេចលេខ ០៧/២៤ សបក',
+    establishedDate: '2024-10-18',
+    mandateYears: '២០២៤ - ២០២៥',
+    members: [
+      { id: 'cm-7', name: 'លោក សំ សុវណ្ណ', roleInCommittee: 'ប្រធានសមាគម', organizationOrPosition: 'តំណាងមាតាបិតាសិស្ស', phone: '098 776 655' },
+      { id: 'cm-8', name: 'អ្នកស្រី នូ សុខា', roleInCommittee: 'ហេរញ្ញិកសមាគម', organizationOrPosition: 'អាណាព្យាបាលសិស្ស', phone: '097 554 433' },
+      { id: 'cm-9', name: 'អ្នកគ្រូ ហេង ធីតា', roleInCommittee: 'សមាជិកកត់ត្រា', organizationOrPosition: 'គ្រូបង្រៀន', phone: '010 667 788' }
+    ],
+    mainResponsibilities: [
+      'រៀបចំពិធីបុណ្យផ្កាប្រាក់មហាសាមគ្គីកសាងរបងសាលា និងសួនកុមារ',
+      'ជួយឧបត្ថម្ភអាហារូបករណ៍ដល់សិស្សក្រីក្រ និងកុមារកំព្រា',
+      'សហការជាមួយសាលាក្នុងការថែរក្សាសន្តិសុខ សណ្តាប់ធ្នាប់ និងអនាម័យបរិស្ថាន'
+    ]
+  }
+];
+
+// ----------------------------------------------------
+// INITIAL SCHOOL STRATEGIC PLANS (ផែនការយុទ្ធសាស្ត្រអភិវឌ្ឍន៍សាលា)
+// ----------------------------------------------------
+export const initialSchoolStrategicPlans: SchoolStrategicPlanItem[] = [
+  {
+    id: 'ssp-1',
+    programArea: 'គុណភាពអប់រំ',
+    objective: 'លើកកម្ពស់អត្រាសិស្សចេះអាន សរសេរ និងគណិតវិទ្យាថ្នាក់ដំបូងឱ្យបាន ៩៥% ឡើងទៅ',
+    keyActivity: 'បណ្តុះបណ្តាលគ្រូលើវិធីសាស្ត្រ EGRA/EGMA និងបង្កើតក្លឹបស្វ័យសិក្សាបន្ថែមម៉ោងសម្រាប់សិស្សរៀនយឺត',
+    kpiTarget: 'អត្រាជាប់មធ្យមភាគ ៩៥% និងគ្មានសិស្សមិនចេះអក្សរនៅថ្នាក់ទី៣',
+    targetYear: '២០២៤ - ២០២៥',
+    estimatedBudgetRiel: 4800000,
+    budgetSource: 'មូលនិធិកែលម្អសាលា (SIG)',
+    responsibleLead: 'អ្នកគ្រូ កែវ មុន្នី & លោក ស៊ុន ដារ៉ា',
+    progressPercent: 75,
+    status: 'in_progress',
+    notes: 'បានរៀបចំតេស្តប្រចាំខែ និងកំពុងបំប៉នសិស្ស ៨ នាក់'
+  },
+  {
+    id: 'ssp-2',
+    programArea: 'ហេដ្ឋារចនាសម្ព័ន្ធ&បរិស្ថាន',
+    objective: 'កសាងប្រព័ន្ធចម្រោះទឹកស្អាត និងបង្គន់អនាម័យមេត្រីបរិស្ថានបៃតង',
+    keyActivity: 'ដំឡើងធុងចម្រោះទឹកស្អាតកម្រិត UV និងកែលម្អសួនជីវចម្រុះបរិស្ថានបៃតង',
+    kpiTarget: '១០០% នៃសិស្សមានទឹកស្អាតបរិភោគ និងបង្គន់អនាម័យស្រី-ប្រុសដាច់ដោយឡែក',
+    targetYear: '២០២៤ - ២០២៥',
+    estimatedBudgetRiel: 8500000,
+    budgetSource: 'ដៃគូអភិវឌ្ឍន៍/NGO',
+    responsibleLead: 'លោក ឈិន សុផល (នាយករង)',
+    progressPercent: 85,
+    status: 'in_progress',
+    notes: 'ដំឡើងធុងទឹកស្អាតរួចរាល់ កំពុងរៀបចំប្រព័ន្ធបង្ហូរទឹកកខ្វក់'
+  },
+  {
+    id: 'ssp-3',
+    programArea: 'បណ្ណាល័យ&បច្ចេកវិទ្យា',
+    objective: 'ប្រែក្លាយបណ្ណាល័យសាលាជាបណ្ណាល័យឌីជីថលកុមារមេត្រី និងកុំព្យូទ័រស្រាវជ្រាវ',
+    keyActivity: 'បំពាក់កុំព្យូទ័រស្រាវជ្រាវ ៤ គ្រឿង ថេប្លេតអានសៀវភៅ និងសៀវភៅថ្មី ២៥០ ក្បាល',
+    kpiTarget: 'សិស្សានុសិស្ស ៩០% ចូលអានសៀវភៅយ៉ាងតិច ៣ ដងក្នុងមួយសប្តាហ៍',
+    targetYear: '២០២៤ - ២០២៥',
+    estimatedBudgetRiel: 6200000,
+    budgetSource: 'សហគមន៍/សមាគមមាតាបិតា',
+    responsibleLead: 'បណ្ណារក្សសាលា & លោក ឡុង រដ្ឋា',
+    progressPercent: 60,
+    status: 'in_progress',
+    notes: 'បានបញ្ចូលសៀវភៅថ្មី ១២០ ក្បាល និងតម្លើងបណ្តាញ Wifi ស្រាវជ្រាវ'
+  },
+  {
+    id: 'ssp-4',
+    programArea: 'ការចូលរួមសហគមន៍',
+    objective: 'ពង្រឹងការចូលរួមរបស់មាតាបិតាក្នុងការតាមដានការរៀនសូត្ររបស់កូនតាម App/Telegram',
+    keyActivity: 'រៀបចំកិច្ចប្រជុំមាតាបិតា ៣ ដងក្នុងមួយឆ្នាំ និងផ្ញើរបាយការណ៍ពិន្ទុប្រចាំខែតាមប្រព័ន្ធឌីជីថល',
+    kpiTarget: 'មាតាបិតា ៨៥% ចូលរួមប្រជុំ និងដឹងពីលទ្ធផលសិក្សារបស់កូនទៀងទាត់',
+    targetYear: '២០២៤ - ២០២៥',
+    estimatedBudgetRiel: 1500000,
+    budgetSource: 'ថវិការដ្ឋ (PB)',
+    responsibleLead: 'គណៈកម្មការ គ.ក.ស. & គ្រូបន្ទុកថ្នាក់ទាំងអស់',
+    progressPercent: 90,
+    status: 'in_progress',
+    notes: 'បានរៀបចំកិច្ចប្រជុំដើមឆ្នាំ និងឆមាសទី១ ជោគជ័យ'
+  },
+  {
+    id: 'ssp-5',
+    programArea: 'អភិបាលកិច្ច&រដ្ឋបាល',
+    objective: 'គ្រប់គ្រងទិន្នន័យសាលាទាំងមូលតាមប្រព័ន្ធឌីជីថលកម្រិតស្តង់ដាគំរូ MoEYS',
+    keyActivity: 'ប្រើប្រាស់ប្រព័ន្ធ School Management System ភ្នំពុំ រួមបញ្ចូលស្ថិតិ សៀវភៅលិខិត ពិន្ទុ និងវត្តមាន',
+    kpiTarget: 'កាត់បន្ថយការប្រើប្រាស់ក្រដាស ៦០% និងបញ្ជូនទិន្នន័យទៅក្រសួងទាន់ពេលវេលា ១០០%',
+    targetYear: '២០២៤ - ២០២៥',
+    estimatedBudgetRiel: 2000000,
+    budgetSource: 'ថវិការដ្ឋ (PB)',
+    responsibleLead: 'លោក លីម សន (នាយកសាលា)',
+    progressPercent: 95,
+    status: 'completed',
+    notes: 'ប្រព័ន្ធគ្រប់គ្រងសាលាដំណើរការរលូន និងមានការបម្រុងទុកទិន្នន័យ Google Cloud'
+  }
+];
+
+// ----------------------------------------------------
+// INITIAL MODEL SCHOOL STANDARDS AUDIT (ស្ដង់ដាសាលារៀនគំរូ ៥ ស្តង់ដា MoEYS)
+// ----------------------------------------------------
+export const initialModelSchoolStandards: ModelSchoolStandardGroup[] = [
+  {
+    standardNumber: 1,
+    standardTitleKhmer: 'ស្តង់ដាទី១៖ លទ្ធផលសិក្សារបស់សិស្ស (Student Learning Outcomes)',
+    description: 'ការវាយតម្លៃលើលទ្ធផលនៃការរៀនសូត្រ ចំណេះដឹង បំណិន និងឥរិយាបថសីលធម៌របស់សិស្សានុសិស្ស',
+    criteria: [
+      { id: 'crit-1-1', criterionNumber: '១.១', nameKhmer: 'អត្រាឡើងថ្នាក់ និងអត្រាបញ្ចប់ការសិក្សា', description: 'សិស្សឡើងថ្នាក់ខ្ពស់ជាង ៩០% និងអត្រាបោះបង់តិចជាង ៣%', maxScore: 5, currentScore: 4.8, status: 'excellent', evidenceDocument: 'តារាងស្ថិតិប្រឡងឆមាស និងរបាយការណ៍បូកសរុបប្រចាំឆ្នាំ' },
+      { id: 'crit-1-2', criterionNumber: '១.២', nameKhmer: 'សមត្ថភាពអាន-សរសេរ និងគណិតវិទ្យាថ្នាក់ដំបូង', description: 'លទ្ធផលតេស្ត EGRA/EGMA ស្របតាមស្តង់ដាកំណត់របស់ MoEYS', maxScore: 5, currentScore: 4.5, status: 'excellent', evidenceDocument: 'សំណុំទិន្នន័យពិន្ទុតេស្តប្រចាំខែ និងសៀវភៅតាមដាន' },
+      { id: 'crit-1-3', criterionNumber: '១.៣', nameKhmer: 'ការអប់រំសីលធម៌ គុណធម៌ និងវិន័យសិស្ស', description: 'សិស្សមានសុជីវធម៌ គោរពទង់ជាតិ ស្រឡាញ់មិត្តភក្តិ និងចេះជួយគ្នា', maxScore: 5, currentScore: 4.6, status: 'excellent', evidenceDocument: 'បទបញ្ជាផ្ទៃក្នុងសាលា និងកំណត់ហេតុវិន័យសិស្ស' }
+    ]
+  },
+  {
+    standardNumber: 2,
+    standardTitleKhmer: 'ស្តង់ដាទី២៖ ដំណើរការបង្រៀន និងរៀន (Teaching and Learning Process)',
+    description: 'ការអនុវត្តវិធីសាស្ត្របង្រៀនបែបសកម្ម ការប្រើប្រាស់កិច្ចតែងការ និងសម្ភារៈឧបទេសបង្រៀន',
+    criteria: [
+      { id: 'crit-2-1', criterionNumber: '២.១', nameKhmer: 'ការរៀបចំកិច្ចតែងការបង្រៀន ៥ ជំហាន', description: 'គ្រូមានកិច្ចតែងការទៀងទាត់ និងត្រឹមត្រូវតាមកម្រិតថ្នាក់', maxScore: 5, currentScore: 4.7, status: 'excellent', evidenceDocument: 'សៀវភៅកិច្ចតែងការបង្រៀនប្រចាំសប្តាហ៍របស់គ្រូ' },
+      { id: 'crit-2-2', criterionNumber: '២.២', nameKhmer: 'ការប្រើប្រាស់សម្ភារៈឧបទេស និងបច្ចេកវិទ្យា', description: 'មានសម្ភារៈរូបវន្ត និងបច្ចេកវិទ្យាឌីជីថលជំនួយដល់ការយល់ដឹង', maxScore: 5, currentScore: 4.2, status: 'good', evidenceDocument: 'បញ្ជីសារពើភ័ណ្ឌសម្ភារៈឧបទេស និងរូបថតសកម្មភាពក្នុងថ្នាក់' },
+      { id: 'crit-2-3', criterionNumber: '២.៣', nameKhmer: 'ការជួយគាំទ្រសិស្សរៀនយឺត និងសិស្សមានតម្រូវការពិសេស', description: 'មានកម្មវិធីបំប៉នបន្ថែម និងការយកចិត្តទុកដាក់លើសិស្សពិការ', maxScore: 5, currentScore: 4.3, status: 'good', evidenceDocument: 'តារាងតាមដានសិស្សរៀនយឺត និងម៉ោងបង្រៀនបំប៉ន' }
+    ]
+  },
+  {
+    standardNumber: 3,
+    standardTitleKhmer: 'ស្តង់ដាទី៣៖ ការចូលរួមរបស់សហគមន៍ (Community & Parent Engagement)',
+    description: 'កិច្ចសហការជិតស្និទ្ធរវាងសាលារៀន អាជ្ញាធរដែនដី មាតាបិតាសិស្ស និងអង្គការដៃគូ',
+    criteria: [
+      { id: 'crit-3-1', criterionNumber: '៣.១', nameKhmer: 'ដំណើរការគណៈកម្មការគ្រប់គ្រងសាលារៀន (គ.ក.ស.)', description: 'មានកិច្ចប្រជុំទៀងទាត់ និងមានសេចក្តីសម្រេចគាំទ្រជាក់ស្តែង', maxScore: 5, currentScore: 4.9, status: 'excellent', evidenceDocument: 'កំណត់ហេតុកិច្ចប្រជុំ គ.ក.ស. និងសេចក្តីសម្រេចបង្កើត' },
+      { id: 'crit-3-2', criterionNumber: '៣.២', nameKhmer: 'ការចូលរួមរបស់មាតាបិតាសិស្ស', description: 'មាតាបិតាចូលរួមប្រជុំ គាំទ្រសម្ភារៈ និងតាមដានកូននៅផ្ទះ', maxScore: 5, currentScore: 4.4, status: 'good', evidenceDocument: 'បញ្ជីវត្តមានមាតាបិតា និងកំណត់ហេតុកិច្ចប្រជុំ' },
+      { id: 'crit-3-3', criterionNumber: '៣.៣', nameKhmer: 'ការកៀរគរធនធានសង្គមដើម្បីអភិវឌ្ឍន៍សាលា', description: 'ទទួលបានការឧបត្ថម្ភពីសប្បុរសជន និងអាជ្ញាធរឃុំ-ស្រុក', maxScore: 5, currentScore: 4.6, status: 'excellent', evidenceDocument: 'សៀវភៅកត់ត្រាចំណូល-ចំណាយសហគមន៍' }
+    ]
+  },
+  {
+    standardNumber: 4,
+    standardTitleKhmer: 'ស្តង់ដាទី៤៖ ប្រតិបត្តិការ និងអភិបាលកិច្ចសាលារៀន (School Operations & Management)',
+    description: 'បរិស្ថានសាលារៀនស្អាត បៃតង សុវត្ថិភាព ហេដ្ឋារចនាសម្ព័ន្ធ និងការគ្រប់គ្រងធនធានមនុស្ស',
+    criteria: [
+      { id: 'crit-4-1', criterionNumber: '៤.១', nameKhmer: 'បរិស្ថានសាលារៀនបៃតង ស្អាត និងគ្មានសំរាម', description: 'មានសួនផ្កា ដើមឈើម្លប់ ធុងសំរាមបែងចែក និងគ្មានថង់ប្លាស្ទិក', maxScore: 5, currentScore: 4.8, status: 'excellent', evidenceDocument: 'រូបថតបរិវេណសាលា និងសកម្មភាពពលកម្មអនាម័យ' },
+      { id: 'crit-4-2', criterionNumber: '៤.២', nameKhmer: 'ប្រព័ន្ធទឹកស្អាត និងបង្គន់អនាម័យ', description: 'មានទឹកស្អាតពិសារគ្រប់គ្រាន់ និងបង្គន់អនាម័យមានអនាម័យល្អ', maxScore: 5, currentScore: 4.7, status: 'excellent', evidenceDocument: 'លទ្ធផលតេស្តគុណភាពទឹក និងកាលវិភាគសម្អាតបង្គន់' },
+      { id: 'crit-4-3', criterionNumber: '៤.៣', nameKhmer: 'ការគ្រប់គ្រងរដ្ឋបាល និងប្រព័ន្ធព័ត៌មានវិទ្យា', description: 'មានសៀវភៅលិខិតចូល-ចេញ បញ្ជីស្ថិតិ និងការប្រើប្រាស់ Software', maxScore: 5, currentScore: 4.9, status: 'excellent', evidenceDocument: 'ប្រព័ន្ធគ្រប់គ្រងសាលាភ្នំពុំ និងសៀវភៅរដ្ឋបាល' }
+    ]
+  },
+  {
+    standardNumber: 5,
+    standardTitleKhmer: 'ស្តង់ដាទី៥៖ គណនេយ្យភាព និងតម្លាភាពសាលារៀន (Accountability & Transparency)',
+    description: 'ការបើកចំហព័ត៌មានថវិកា ការវាយតម្លៃលទ្ធផលការងារ និងការឆ្លើយតបចំពោះសហគមន៍',
+    criteria: [
+      { id: 'crit-5-1', criterionNumber: '៥.១', nameKhmer: 'តម្លាភាពនៃការប្រើប្រាស់ថវិកាដំណើរការសាលា (PB/SIG)', description: 'មានបិទផ្សាយតារាងចំណូល-ចំណាយជាសាធារណៈលើក្តារព័ត៌មាន', maxScore: 5, currentScore: 5.0, status: 'excellent', evidenceDocument: 'ក្តារព័ត៌មានថវិកាសាលា និងរបាយការណ៍ហិរញ្ញវត្ថុ' },
+      { id: 'crit-5-2', criterionNumber: '៥.២', nameKhmer: 'ការឆ្លើយតបនឹងមតិយោបល់របស់មាតាបិតា និងសិស្ស', description: 'មានប្រអប់សំបុត្រ ឬប្រព័ន្ធផ្តល់មតិយោបល់ត្រឡប់ទៀងទាត់', maxScore: 5, currentScore: 4.5, status: 'excellent', evidenceDocument: 'កំណត់ត្រាឆ្លើយតបមតិយោបល់មាតាបិតា' }
+    ]
+  }
+];
+
+// ----------------------------------------------------
+// INITIAL SCHOOL ASSETS & INVENTORY (សារពើភ័ណ្ឌ & ទ្រព្យសម្បត្តិសាលា)
+// ----------------------------------------------------
+export const initialSchoolAssets: SchoolAssetItem[] = [
+  {
+    id: 'ast-1',
+    assetCode: 'AST-BLD-01',
+    assetNameKhmer: 'អគារសិក្សា ព្រះរាជទាន (១ខ្នង ៥បន្ទប់)',
+    category: 'អគារ&ហេដ្ឋារចនាសម្ព័ន្ធ',
+    quantity: 1,
+    unit: 'ខ្នង',
+    locationRoom: 'បរិវេណកណ្តាលសាលា',
+    condition: 'good',
+    sourceOfFunding: 'អំណោយសម្តេចតេជោ / ក្រសួងអប់រំ',
+    acquiredYear: '២០១៥',
+    estimatedValueRiel: 120000000,
+    notes: 'រៀបចំបន្ទប់រៀនថ្នាក់ទី១ ដល់ ទី៥ និងការិយាល័យ'
+  },
+  {
+    id: 'ast-2',
+    assetCode: 'AST-BLD-02',
+    assetNameKhmer: 'អគារបណ្ណាល័យកុមារមេត្រី & បន្ទប់កុំព្យូទ័រ',
+    category: 'អគារ&ហេដ្ឋារចនាសម្ព័ន្ធ',
+    quantity: 1,
+    unit: 'ខ្នង',
+    locationRoom: 'ប៉ែកខាងកើតសាលា',
+    condition: 'good',
+    sourceOfFunding: 'សហគមន៍ & អង្គការដៃគូ',
+    acquiredYear: '២០២០',
+    estimatedValueRiel: 45000000,
+    notes: 'មានបំពាក់កង្ហារ អំពូលភ្លើង និងធ្នើសៀវភៅទំនើប'
+  },
+  {
+    id: 'ast-3',
+    assetCode: 'AST-DSK-01',
+    assetNameKhmer: 'តុ-កៅអីសិស្សឈើប្រណិត (២កៅអី/តុ)',
+    category: 'តុ-កៅអី&គ្រឿងសង្ហារិម',
+    quantity: 120,
+    unit: 'ឈុត',
+    locationRoom: 'គ្រប់បន្ទប់រៀន (ទី១ ដល់ ទី៦)',
+    condition: 'good',
+    sourceOfFunding: 'ថវិការដ្ឋ (PB)',
+    acquiredYear: '២០២២',
+    estimatedValueRiel: 18000000,
+    notes: 'បានជួសជុល និងលាបថ្នាំថ្មីដើមឆ្នាំសិក្សា'
+  },
+  {
+    id: 'ast-4',
+    assetCode: 'AST-DSK-02',
+    assetNameKhmer: 'តុ-កៅអីគ្រូបង្រៀន',
+    category: 'តុ-កៅអី&គ្រឿងសង្ហារិម',
+    quantity: 8,
+    unit: 'ឈុត',
+    locationRoom: 'បន្ទប់រៀន និងការិយាល័យ',
+    condition: 'good',
+    sourceOfFunding: 'ថវិការដ្ឋ (PB)',
+    acquiredYear: '២០២១',
+    estimatedValueRiel: 2400000,
+    notes: 'មានសោ និងថតឯកសារសុវត្ថិភាព'
+  },
+  {
+    id: 'ast-5',
+    assetCode: 'AST-SOL-01',
+    assetNameKhmer: 'ប្រព័ន្ធបន្ទះសូឡាថាមពលព្រះអាទិត្យ 3KW + អាគុយផ្ទុក',
+    category: 'អគារ&ហេដ្ឋារចនាសម្ព័ន្ធ',
+    quantity: 1,
+    unit: 'កំប្លេ',
+    locationRoom: 'ដំបូលអគារសិក្សា & បន្ទប់បច្ចេកវិទ្យា',
+    condition: 'good',
+    sourceOfFunding: 'អំណោយដៃគូអភិវឌ្ឍន៍',
+    acquiredYear: '២០២៣',
+    estimatedValueRiel: 14000000,
+    notes: 'ផ្គត់ផ្គង់អគ្គិសនីដល់បន្ទប់កុំព្យូទ័រ និងបូមទឹកស្អាត'
+  },
+  {
+    id: 'ast-6',
+    assetCode: 'AST-IT-01',
+    assetNameKhmer: 'កុំព្យូទ័រលើតុ Desktop Core i5 សម្រាប់រៀន និងស្រាវជ្រាវ',
+    category: 'បរិក្ខារបច្ចេកវិទ្យា/IT',
+    quantity: 6,
+    unit: 'គ្រឿង',
+    locationRoom: 'បន្ទប់បណ្ណាល័យឌីជីថល',
+    condition: 'good',
+    sourceOfFunding: 'សប្បុរសជនសហគមន៍',
+    acquiredYear: '២០២៣',
+    estimatedValueRiel: 9600000,
+    notes: 'ភ្ជាប់ប្រព័ន្ធអ៊ីនធឺណិត និងកម្មវិធីសិក្សាភាសាខ្មែរ'
+  },
+  {
+    id: 'ast-7',
+    assetCode: 'AST-WTR-01',
+    assetNameKhmer: 'ប្រព័ន្ធចម្រោះទឹកស្អាត UV និងកន្លែងលាងដៃសិស្ស ៨ក្បាលរ៉ូប៊ីណេ',
+    category: 'បរិក្ខារទឹកស្អាត&អនាម័យ',
+    quantity: 1,
+    unit: 'កំប្លេ',
+    locationRoom: 'មុខអគារសិក្សាទី១',
+    condition: 'good',
+    sourceOfFunding: 'មូលនិធិ SIG / អង្គការ UNICEF',
+    acquiredYear: '២០២៣',
+    estimatedValueRiel: 7500000,
+    notes: 'មានតេស្តគុណភាពទឹកស្អាតឆ្លងកាត់ស្តង់ដា'
+  }
+];
+
+export const initialAtRiskStudents: AtRiskStudent[] = [
+  {
+    id: 'risk-1',
+    studentId: 's-5',
+    studentName: 'ទេព វ៉ាន់ដា',
+    gender: 'M',
+    grade: 6,
+    section: 'ក',
+    academicYear: '២០២៤ - ២០២៥',
+    enrolledDate: '2024-10-15',
+    categories: ['reading_difficulty', 'academic_slow'],
+    subjectsNeedingHelp: ['ភាសាខ្មែរ', 'គណិតវិទ្យា'],
+    baselineScore: 3.8,
+    currentScore: 5.6,
+    targetScore: 7.0,
+    assignedBuddyId: 's-1',
+    assignedBuddyName: 'ចាន់ ពិសិដ្ឋ',
+    interventionStrategies: ['peer_tutoring', 'after_class_remedial', 'special_seat'],
+    teacherNotes: 'សិស្សជួបការលំបាកក្នុងការអានពាក្យគន្លឹះ និងការសរសេរតាមអាន ប៉ុន្តែមានឆន្ទៈរៀនសូត្រខ្ពស់ពេលមានមិត្តភក្តិជួយពន្យល់។',
+    progressLogs: [
+      {
+        id: 'log-1-1',
+        date: '2024-10-25',
+        evaluatedBy: 'លោក ចាន់ វុទ្ធី',
+        assessmentNote: 'ចាប់ផ្តើមរៀនបំប៉នព្យញ្ជនៈ និងស្រៈផ្សំ។ អានពាក្យបានយឺតៗ',
+        testScore: 4.0,
+        readingSpeedWPM: 25,
+        mathAccuracyPercent: 45,
+        status: 'critical'
+      },
+      {
+        id: 'log-1-2',
+        date: '2024-11-15',
+        evaluatedBy: 'លោក ចាន់ វុទ្ធី',
+        assessmentNote: 'មានការរីកចម្រើនលើការប្រកបពាក្យ ២ ព្យាង្គ និងការបូកដកលេខ ២ ខ្ទង់',
+        testScore: 5.0,
+        readingSpeedWPM: 38,
+        mathAccuracyPercent: 60,
+        status: 'improving'
+      },
+      {
+        id: 'log-1-3',
+        date: '2024-12-05',
+        evaluatedBy: 'លោក ចាន់ វុទ្ធី',
+        assessmentNote: 'អានអត្ថបទខ្លីបានស្ទាត់ជាងមុន និងចេះដោះស្រាយចំណោទសាមញ្ញ',
+        testScore: 5.6,
+        readingSpeedWPM: 48,
+        mathAccuracyPercent: 70,
+        status: 'improving'
+      }
+    ],
+    overallStatus: 'improving',
+    updatedAt: '2024-12-05'
+  },
+  {
+    id: 'risk-2',
+    studentId: 's-7',
+    studentName: 'ម៉ៅ សុភ័ក្ត្រ',
+    gender: 'M',
+    grade: 6,
+    section: 'ក',
+    academicYear: '២០២៤ - ២០២៥',
+    enrolledDate: '2024-10-20',
+    categories: ['attendance_risk', 'family_hardship'],
+    subjectsNeedingHelp: ['គណិតវិទ្យា', 'វិទ្យាសាស្ត្រ'],
+    baselineScore: 3.2,
+    currentScore: 4.5,
+    targetScore: 6.5,
+    assignedBuddyId: 's-2',
+    assignedBuddyName: 'ស៊ន ម៉ាលីកា',
+    interventionStrategies: ['parent_home_tracking', 'custom_worksheet', 'counseling_support'],
+    teacherNotes: 'សិស្សឈប់សម្រាកញឹកញាប់ដោយសារជួយការងារឪពុកម្តាយនៅចម្ការ។ គ្រូបានទាក់ទងមាតាបិតា និងផ្តល់សន្លឹកកិច្ចការធ្វើនៅផ្ទះ។',
+    progressLogs: [
+      {
+        id: 'log-2-1',
+        date: '2024-11-02',
+        evaluatedBy: 'លោក ចាន់ វុទ្ធី',
+        assessmentNote: 'បានជួបមាតាបិតាផ្ទាល់ និងបង្កើតកាលវិភាគរៀនសូត្រនៅផ្ទះ',
+        testScore: 3.5,
+        readingSpeedWPM: 30,
+        mathAccuracyPercent: 40,
+        status: 'critical'
+      },
+      {
+        id: 'log-2-2',
+        date: '2024-11-28',
+        evaluatedBy: 'លោក ចាន់ វុទ្ធី',
+        assessmentNote: 'វត្តមានបានទៀងទាត់ឡើងវិញ បានបំពេញសន្លឹកកិច្ចការស្ទើរគ្រប់ចំនួន',
+        testScore: 4.5,
+        readingSpeedWPM: 42,
+        mathAccuracyPercent: 55,
+        status: 'improving'
+      }
+    ],
+    overallStatus: 'improving',
+    updatedAt: '2024-11-28'
+  },
+  {
+    id: 'risk-3',
+    studentId: 's-11',
+    studentName: 'អ៊ុំ រតនៈ',
+    gender: 'M',
+    grade: 6,
+    section: 'ក',
+    academicYear: '២០២៤ - ២០២៥',
+    enrolledDate: '2024-11-01',
+    categories: ['math_difficulty'],
+    subjectsNeedingHelp: ['គណិតវិទ្យា'],
+    baselineScore: 4.0,
+    currentScore: 6.8,
+    targetScore: 7.0,
+    assignedBuddyId: 's-3',
+    assignedBuddyName: 'គង់ វិបុល',
+    interventionStrategies: ['peer_tutoring', 'custom_worksheet'],
+    teacherNotes: 'ខ្សោយការគិតលេខប្រភាគ និងធរណីមាត្រ។ ក្រោយការជួយពីមិត្តភក្តិ គាត់យល់ក្បួនគិតបានលឿន។',
+    progressLogs: [
+      {
+        id: 'log-3-1',
+        date: '2024-11-10',
+        evaluatedBy: 'លោក ចាន់ វុទ្ធី',
+        assessmentNote: 'ហាត់គិតលេខប្រភាគកម្រិតមូលដ្ឋាន',
+        testScore: 5.2,
+        mathAccuracyPercent: 60,
+        status: 'improving'
+      },
+      {
+        id: 'log-3-2',
+        date: '2024-12-02',
+        evaluatedBy: 'លោក ចាន់ វុទ្ធី',
+        assessmentNote: 'អាចគិតផលបូក និងផលគុណប្រភាគបានយ៉ាងត្រឹមត្រូវ ជិតសម្រេចគោលដៅ',
+        testScore: 6.8,
+        mathAccuracyPercent: 85,
+        status: 'on_track'
+      }
+    ],
+    overallStatus: 'on_track',
+    updatedAt: '2024-12-02'
+  }
+];
+
+export const initialDailyClassLogs: DailyClassLog[] = [
+  {
+    id: 'log-cls-1',
+    grade: 6,
+    section: 'ក',
+    academicYear: '២០២៤ - ២០២៥',
+    date: '2024-12-16',
+    shift: 'morning',
+    title: 'ការរៀបចំតុបតែងបន្ទប់រៀន និងការធ្វើតេស្តរហ័សគណិតវិទ្យា',
+    category: 'academic',
+    atmosphere: 'excellent',
+    notes: 'សិស្សានុសិស្សទាំងអស់បានចូលរៀនទាន់ពេលវេលា។ ក្នុងម៉ោងទី១ បានធ្វើតេស្តសាកល្បងលំហាត់ប្រភាគ និងធរណីមាត្រ ឃើញថាសិស្សយល់បាន ៨៥%។ ម៉ោងទី២ បានបែងចែកក្រុមសិស្សជួយគ្នា (Peer Buddy) យ៉ាងសកម្ម។',
+    highlights: ['តេស្តរហ័សគណិតវិទ្យា ៨៥% ជាប់', 'ការរៀបចំកន្លែងអានសៀវភៅជ្រុងបន្ទប់'],
+    absentCount: 0,
+    recordedBy: 'លោក ចាន់ វុទ្ធី',
+    isArchived: false,
+    createdAt: '2024-12-16',
+    updatedAt: '2024-12-16'
+  },
+  {
+    id: 'log-cls-2',
+    grade: 6,
+    section: 'ក',
+    academicYear: '២០២៤ - ២០២៥',
+    date: '2024-12-13',
+    shift: 'full_day',
+    title: 'ពលកម្មសម្អាតបរិស្ថានថ្នាក់រៀន និងដាំផ្កាមុខថ្នាក់',
+    category: 'hygiene_cleaning',
+    atmosphere: 'energetic',
+    notes: 'បន្ទាប់ពីម៉ោងសិក្សា សិស្សានុសិស្សទាំងអស់ រួមជាមួយគណៈកម្មការសិស្សថ្នាក់ បានចូលរួមបោសសម្អាត បាញ់ទឹកលាងកម្រាល និងរៀបចំដាំកូនផ្កានៅមុខបន្ទប់រៀន ដើម្បីត្រៀមការវាយតម្លៃសាលារៀនគំរូ។',
+    highlights: ['ដាំផ្កាបាន ៨ ផើង', 'បែងចែកធុងសំរាម ៣ ប្រភេទក្នុងថ្នាក់'],
+    absentCount: 1,
+    recordedBy: 'លោក ចាន់ វុទ្ធី',
+    isArchived: false,
+    createdAt: '2024-12-13',
+    updatedAt: '2024-12-13'
+  },
+  {
+    id: 'log-cls-3',
+    grade: 6,
+    section: 'ក',
+    academicYear: '២០២៤ - ២០២៥',
+    date: '2024-12-09',
+    shift: 'morning',
+    title: 'ការគោរពទង់ជាតិដើមសប្តាហ៍ និងការណែនាំវិន័យសណ្តាប់ធ្នាប់',
+    category: 'discipline',
+    atmosphere: 'calm_focused',
+    notes: 'សិស្សបានចូលរួមគោរពទង់ជាតិយ៉ាងស្ងប់ស្ងៀម និងមានរបៀបរៀបរយល្អ។ គ្រូបន្ទុកថ្នាក់បានរំលឹកពីការស្លៀកពាក់ឯកសណ្ឋានឱ្យបានត្រឹមត្រូវ និងការហាមឃាត់ការប្រើប្រាស់ទូរស័ព្ទក្នុងម៉ោងសិក្សា។',
+    highlights: ['វត្តមានពេញលេញ ១០០%', 'សរសើរក្រុមទី២ ដែលបានរៀបចំជួរបន្ទាត់ល្អ'],
+    absentCount: 0,
+    recordedBy: 'លោក ចាន់ វុទ្ធី',
+    isArchived: false,
+    createdAt: '2024-12-09',
+    updatedAt: '2024-12-09'
+  },
+  {
+    id: 'log-cls-4',
+    grade: 6,
+    section: 'ក',
+    academicYear: '២០២៤ - ២០២៥',
+    date: '2024-11-28',
+    shift: 'afternoon',
+    title: 'ការចុះពិនិត្យសុខភាពបឋម និងចែកថ្នាំទម្លាក់ព្រូន',
+    category: 'health_incident',
+    atmosphere: 'calm_focused',
+    notes: 'ក្រុមគ្រូពេទ្យមណ្ឌលសុខភាពឃុំបារាំងធ្លាក់ បានចុះមកពិនិត្យសុខភាពភ្នែក ធ្មេញ និងបានផ្តល់ថ្នាំទម្លាក់ព្រូនដល់សិស្សទាំងអស់ក្នុងថ្នាក់។ មានសិស្សម្នាក់មានអាការៈវិលមុខស្រាល ត្រូវបានសម្រាកនៅបន្ទប់សុខភាព ១៥ នាទី និងបានធូរស្រាលឡើងវិញ។',
+    highlights: ['សិស្សទាំងអស់ទទួលបានថ្នាំទម្លាក់ព្រូន', 'ពិនិត្យសុខភាពធ្មេញ'],
+    absentCount: 1,
+    recordedBy: 'លោក ចាន់ វុទ្ធី',
+    isArchived: false,
+    createdAt: '2024-11-28',
+    updatedAt: '2024-11-28'
+  },
+  {
+    id: 'log-cls-5',
+    grade: 5,
+    section: 'ក',
+    academicYear: '២០២៤ - ២០២៥',
+    date: '2024-12-15',
+    shift: 'morning',
+    title: 'ការអនុវត្តការពិសោធន៍វិទ្យាសាស្ត្រ៖ ការដុះពន្លកនៃគ្រាប់រុក្ខជាតិ',
+    category: 'academic',
+    atmosphere: 'energetic',
+    notes: 'សិស្សបានធ្វើការពិសោធន៍ជាក្រុមលើការបណ្តុះគ្រាប់សណ្តែកបាយ ដោយកត់ត្រាការលូតលាស់ជារៀងរាល់ថ្ងៃ។ សិស្សមានការចាប់អារម្មណ៍ខ្លាំង និងសួរសំណួរច្រើន។',
+    highlights: ['ពិសោធន៍វិទ្យាសាស្ត្រជាក់ស្តែង', 'កិច្ចការស្រាវជ្រាវជាក្រុម'],
+    absentCount: 0,
+    recordedBy: 'អ្នកគ្រូ កែវ ផល្លា',
+    isArchived: false,
+    createdAt: '2024-12-15',
+    updatedAt: '2024-12-15'
+  }
+];
+
+// ----------------------------------------------------
+// INITIAL DIGITAL BADGE DEFINITIONS (បញ្ជីផ្លាកសញ្ញា និងមេដាយកិត្តិយស)
+// ----------------------------------------------------
+export const initialBadgeDefinitions: BadgeDefinition[] = [
+  {
+    id: 'bdg-acad-01',
+    code: 'BDG-ACAD-01',
+    titleKhmer: 'សិស្សឆ្នើមប្រចាំខែ',
+    titleEnglish: 'Star Student of the Month',
+    description: 'ផ្តល់ជូនសិស្សដែលមានលទ្ធផលសិក្សាខ្ពស់ និងគំរូល្អពេញមួយខែសិក្សា',
+    category: 'academic',
+    tier: 'gold',
+    points: 50,
+    iconName: 'Trophy',
+    criteria: 'ទទួលបានចំណាត់ថ្នាក់លេខ១ ឬពិន្ទុមធ្យមភាគចាប់ពី ៨.៥ ឡើងទៅក្នុងខែ',
+    colorScheme: {
+      bgLight: 'bg-amber-50',
+      bgBadge: 'bg-amber-500',
+      textColor: 'text-amber-700',
+      borderColor: 'border-amber-300',
+      ringColor: 'ring-amber-400',
+      gradient: 'from-amber-400 via-amber-500 to-yellow-600'
+    },
+    isSystemDefault: true
+  },
+  {
+    id: 'bdg-acad-02',
+    code: 'BDG-ACAD-02',
+    titleKhmer: 'ជើងឯកគណិតវិទ្យា',
+    titleEnglish: 'Math Wizard',
+    description: 'មានភាពប៉ិនប្រសប់ក្នុងការគិតលេខលឿន និងដោះស្រាយលំហាត់គណិតវិទ្យាស្មុគស្មាញ',
+    category: 'academic',
+    tier: 'platinum',
+    points: 60,
+    iconName: 'Sparkles',
+    criteria: 'ទទួលបានពិន្ទុគណិតវិទ្យា ៩.៥ - ១០ ឬឈ្នះការប្រកួតគិតលេខរហ័ស',
+    colorScheme: {
+      bgLight: 'bg-indigo-50',
+      bgBadge: 'bg-indigo-600',
+      textColor: 'text-indigo-700',
+      borderColor: 'border-indigo-300',
+      ringColor: 'ring-indigo-400',
+      gradient: 'from-blue-500 via-indigo-500 to-purple-600'
+    },
+    isSystemDefault: true
+  },
+  {
+    id: 'bdg-acad-03',
+    code: 'BDG-ACAD-03',
+    titleKhmer: 'សិស្សអក្សរផ្ចង់ល្អឯក',
+    titleEnglish: 'Calligraphy Master',
+    description: 'សរសេរអក្សរខ្មែរបានស្អាត ត្រឹមត្រូវតាមក្បួនខ្នាត និងគ្មានកំហុសអក្ខរាវិរុទ្ធ',
+    category: 'academic',
+    tier: 'silver',
+    points: 35,
+    iconName: 'Award',
+    criteria: 'សរសេរសៀវភៅស្អាតគ្មានស្នាមលុប និងជាប់ជយលាភីអក្សរផ្ចង់ប្រចាំថ្នាក់',
+    colorScheme: {
+      bgLight: 'bg-blue-50',
+      bgBadge: 'bg-blue-600',
+      textColor: 'text-blue-700',
+      borderColor: 'border-blue-300',
+      ringColor: 'ring-blue-400',
+      gradient: 'from-slate-400 via-blue-500 to-cyan-600'
+    },
+    isSystemDefault: true
+  },
+  {
+    id: 'bdg-att-01',
+    code: 'BDG-ATT-01',
+    titleKhmer: 'វត្តមានពេញលេញ ១០០%',
+    titleEnglish: '100% Attendance Hero',
+    description: 'មិនដែលអវត្តមាន និងមិនដែលមកយឺតក្នុងអំឡុងពេលមួយខែ ឬមួយឆមាស',
+    category: 'attendance',
+    tier: 'gold',
+    points: 50,
+    iconName: 'ShieldCheck',
+    criteria: 'មានអត្រាវត្តមាន ១០០% គ្មានច្បាប់ និងគ្មានអវត្តមានឥតច្បាប់',
+    colorScheme: {
+      bgLight: 'bg-emerald-50',
+      bgBadge: 'bg-emerald-600',
+      textColor: 'text-emerald-700',
+      borderColor: 'border-emerald-300',
+      ringColor: 'ring-emerald-400',
+      gradient: 'from-emerald-400 via-teal-500 to-green-600'
+    },
+    isSystemDefault: true
+  },
+  {
+    id: 'bdg-att-02',
+    code: 'BDG-ATT-02',
+    titleKhmer: 'ទៀងទាត់ពេលវេលា',
+    titleEnglish: 'Punctuality Champion',
+    description: 'មកដល់សាលាមុនម៉ោង និងត្រៀមសម្ភារៈសិក្សាបានរួចរាល់ជានិច្ច',
+    category: 'attendance',
+    tier: 'silver',
+    points: 25,
+    iconName: 'Zap',
+    criteria: 'មកដល់ថ្នាក់រៀនមុនម៉ោងកណ្តឹងបន្លឺយ៉ាងហោច ១៥នាទីជាប់ៗគ្នា',
+    colorScheme: {
+      bgLight: 'bg-teal-50',
+      bgBadge: 'bg-teal-600',
+      textColor: 'text-teal-700',
+      borderColor: 'border-teal-300',
+      ringColor: 'ring-teal-400',
+      gradient: 'from-teal-400 to-cyan-600'
+    },
+    isSystemDefault: true
+  },
+  {
+    id: 'bdg-read-01',
+    code: 'BDG-READ-01',
+    titleKhmer: 'អ្នកអានឆ្នើមបណ្ណាល័យ',
+    titleEnglish: 'Star Bookworm',
+    description: 'សិស្សដែលចូលចិត្តអានសៀវភៅ និងបានខ្ចីសៀវភៅអានច្រើនជាងគេ',
+    category: 'reading_literacy',
+    tier: 'platinum',
+    points: 60,
+    iconName: 'BookOpen',
+    criteria: 'អានសៀវភៅយ៉ាងតិច ១០ ក្បាល និងកត់ត្រាក្នុងសៀវភៅតាមដានអំណាន',
+    colorScheme: {
+      bgLight: 'bg-purple-50',
+      bgBadge: 'bg-purple-600',
+      textColor: 'text-purple-700',
+      borderColor: 'border-purple-300',
+      ringColor: 'ring-purple-400',
+      gradient: 'from-purple-500 via-fuchsia-500 to-indigo-600'
+    },
+    isSystemDefault: true
+  },
+  {
+    id: 'bdg-disc-01',
+    code: 'BDG-DISC-01',
+    titleKhmer: 'គំរូសីលធម៌ និងវិន័យ',
+    titleEnglish: 'Model Citizen & Virtue',
+    description: 'មានសុជីវធម៌ល្អ សុភាពរាបសា គោរពលោកគ្រូអ្នកគ្រូ និងចេះសំពះគំនាប់',
+    category: 'behavior_discipline',
+    tier: 'gold',
+    points: 45,
+    iconName: 'Heart',
+    criteria: 'គ្មានកំណត់ហេតុអវិជ្ជមាន និងត្រូវបានសរសើរដោយគ្រូគ្រប់មុខវិជ្ជា',
+    colorScheme: {
+      bgLight: 'bg-rose-50',
+      bgBadge: 'bg-rose-600',
+      textColor: 'text-rose-700',
+      borderColor: 'border-rose-300',
+      ringColor: 'ring-rose-400',
+      gradient: 'from-rose-400 via-pink-500 to-red-600'
+    },
+    isSystemDefault: true
+  },
+  {
+    id: 'bdg-lead-01',
+    code: 'BDG-LEAD-01',
+    titleKhmer: 'ក្មេងជួយក្មេង (Peer Helper)',
+    titleEnglish: 'Outstanding Peer Helper',
+    description: 'ស្ម័គ្រចិត្តជួយបង្រៀនមិត្តភក្តិដែលរៀនយឺត និងចែករំលែកសម្ភារៈសិក្សា',
+    category: 'leadership_cooperation',
+    tier: 'gold',
+    points: 45,
+    iconName: 'Users',
+    criteria: 'ជាដៃគូជំនួយការសិក្សា (Study Buddy) និងជួយមិត្តឱ្យមានវឌ្ឍនភាព',
+    colorScheme: {
+      bgLight: 'bg-cyan-50',
+      bgBadge: 'bg-cyan-600',
+      textColor: 'text-cyan-700',
+      borderColor: 'border-cyan-300',
+      ringColor: 'ring-cyan-400',
+      gradient: 'from-cyan-400 via-blue-500 to-sky-600'
+    },
+    isSystemDefault: true
+  },
+  {
+    id: 'bdg-env-01',
+    code: 'BDG-ENV-01',
+    titleKhmer: 'វីរបុរសបៃតងសាលារៀន',
+    titleEnglish: 'Green Eco Hero',
+    description: 'ចូលរួមយ៉ាងសកម្មក្នុងការថែសួនបៃតង ដាំដើមឈើ និងបែងចែកសំរាម',
+    category: 'environmental_hygiene',
+    tier: 'gold',
+    points: 40,
+    iconName: 'TreePine',
+    criteria: 'ដឹកនាំក្រុមសម្អាត និងថែទាំរុក្ខជាតិក្នុងសាលាបានស្រស់បំព្រង',
+    colorScheme: {
+      bgLight: 'bg-lime-50',
+      bgBadge: 'bg-lime-600',
+      textColor: 'text-lime-700',
+      borderColor: 'border-lime-300',
+      ringColor: 'ring-lime-400',
+      gradient: 'from-lime-400 via-emerald-500 to-green-600'
+    },
+    isSystemDefault: true
+  },
+  {
+    id: 'bdg-prog-01',
+    code: 'BDG-PROG-01',
+    titleKhmer: 'វឌ្ឍនភាពលេចធ្លោ (Breakthrough)',
+    titleEnglish: 'Breakthrough Star',
+    description: 'មានការរីកចម្រើនពិន្ទុ និងការអានយ៉ាងខ្លាំងបើប្រៀបធៀបនឹងដើមគ្រា',
+    category: 'improvement_progress',
+    tier: 'diamond',
+    points: 80,
+    iconName: 'Flame',
+    criteria: 'ពិន្ទុកើនឡើងចាប់ពី ២.០ ពិន្ទុ ឬឆ្លងផុតកម្រិតហានិភ័យដោយជោគជ័យ',
+    colorScheme: {
+      bgLight: 'bg-amber-50',
+      bgBadge: 'bg-amber-600',
+      textColor: 'text-amber-800',
+      borderColor: 'border-amber-400',
+      ringColor: 'ring-amber-500',
+      gradient: 'from-orange-500 via-amber-500 to-yellow-400'
+    },
+    isSystemDefault: true
+  },
+  {
+    id: 'bdg-sport-01',
+    code: 'BDG-SPORT-01',
+    titleKhmer: 'ឆ្នើមកីឡា និងសុខភាព',
+    titleEnglish: 'Sports & Athletics Champion',
+    description: 'មានទេពកោសល្យខ្ពស់ផ្នែកកីឡា រត់ប្រណាំង បាល់ទាត់ ឬល្បែងប្រជាប្រិយ',
+    category: 'sports_arts',
+    tier: 'silver',
+    points: 35,
+    iconName: 'Medal',
+    criteria: 'តំណាងថ្នាក់ក្នុងការប្រកួតកីឡាសាលា និងមានស្មារតីកីឡាល្អ',
+    colorScheme: {
+      bgLight: 'bg-orange-50',
+      bgBadge: 'bg-orange-500',
+      textColor: 'text-orange-700',
+      borderColor: 'border-orange-300',
+      ringColor: 'ring-orange-400',
+      gradient: 'from-orange-400 via-amber-500 to-rose-500'
+    },
+    isSystemDefault: true
+  },
+  {
+    id: 'bdg-art-01',
+    code: 'BDG-ART-01',
+    titleKhmer: 'សិល្បករគំនូរវ័យក្មេង',
+    titleEnglish: 'Creative Artist',
+    description: 'មានគំនិតច្នៃប្រឌិត និងស្នាដៃគំនូរឆ្នើមតាំងបង្ហាញក្នុងបន្ទប់រៀន',
+    category: 'sports_arts',
+    tier: 'bronze',
+    points: 25,
+    iconName: 'Target',
+    criteria: 'មានស្នាដៃគំនូរ ឬសិប្បកម្មកែច្នៃឆ្នើមប្រចាំខែ',
+    colorScheme: {
+      bgLight: 'bg-pink-50',
+      bgBadge: 'bg-pink-500',
+      textColor: 'text-pink-700',
+      borderColor: 'border-pink-300',
+      ringColor: 'ring-pink-400',
+      gradient: 'from-pink-400 to-rose-500'
+    },
+    isSystemDefault: true
+  }
+];
+
+// ----------------------------------------------------
+// INITIAL STUDENT BADGE ASSIGNMENTS (សមិទ្ធផលដែលបានប្រគល់ជូនសិស្ស)
+// ----------------------------------------------------
+export const initialStudentBadgeAssignments: StudentBadgeAssignment[] = [
+  {
+    id: 'badge-asgn-1',
+    studentId: 's-1',
+    studentName: 'ឈន ចាន់ដារ៉ា',
+    studentGender: 'M',
+    studentCode: 'STU-2024-001',
+    grade: 6,
+    section: 'ក',
+    badgeId: 'bdg-acad-01',
+    badge: initialBadgeDefinitions[0],
+    awardedDate: '2024-11-30',
+    academicYear: '២០២៤ - ២០២៥',
+    term: 'ឆមាសទី១',
+    awardedBy: 'លោក ចាន់ វុទ្ធី',
+    reasonOrEvidence: 'ទទួលបានចំណាត់ថ្នាក់លេខ១ ប្រចាំខែវិច្ឆិកា ដោយមានមធ្យមភាគពិន្ទុ ៩.២',
+    progressMetricSnapshot: {
+      scoreAvg: 9.2,
+      attendanceRate: 100
+    },
+    certificateNumber: 'CERT-2024-001',
+    createdAt: '2024-11-30'
+  },
+  {
+    id: 'badge-asgn-2',
+    studentId: 's-1',
+    studentName: 'ឈន ចាន់ដារ៉ា',
+    studentGender: 'M',
+    studentCode: 'STU-2024-001',
+    grade: 6,
+    section: 'ក',
+    badgeId: 'bdg-acad-02',
+    badge: initialBadgeDefinitions[1],
+    awardedDate: '2024-12-05',
+    academicYear: '២០២៤ - ២០២៥',
+    term: 'ឆមាសទី១',
+    awardedBy: 'លោក ចាន់ វុទ្ធី',
+    reasonOrEvidence: 'ដោះស្រាយលំហាត់គណិតវិទ្យាស្មុគស្មាញ និងទទួលបានពិន្ទុ ១០/១០ ក្នុងតេស្តប្រចាំខែ',
+    progressMetricSnapshot: {
+      scoreAvg: 10
+    },
+    certificateNumber: 'CERT-2024-002',
+    createdAt: '2024-12-05'
+  },
+  {
+    id: 'badge-asgn-3',
+    studentId: 's-2',
+    studentName: 'សុខ រ៉ាវី',
+    studentGender: 'F',
+    studentCode: 'STU-2024-002',
+    grade: 6,
+    section: 'ក',
+    badgeId: 'bdg-att-01',
+    badge: initialBadgeDefinitions[3],
+    awardedDate: '2024-11-30',
+    academicYear: '២០២៤ - ២០២៥',
+    term: 'ឆមាសទី១',
+    awardedBy: 'លោក ចាន់ វុទ្ធី',
+    reasonOrEvidence: 'មានវត្តមាន ១០០% ពេញលេញរយៈពេល ៣ខែជាប់ៗគ្នា គ្មានការយឺតយ៉ាវ',
+    progressMetricSnapshot: {
+      attendanceRate: 100
+    },
+    certificateNumber: 'CERT-2024-003',
+    createdAt: '2024-11-30'
+  },
+  {
+    id: 'badge-asgn-4',
+    studentId: 's-2',
+    studentName: 'សុខ រ៉ាវី',
+    studentGender: 'F',
+    studentCode: 'STU-2024-002',
+    grade: 6,
+    section: 'ក',
+    badgeId: 'bdg-read-01',
+    badge: initialBadgeDefinitions[5],
+    awardedDate: '2024-12-10',
+    academicYear: '២០២៤ - ២០២៥',
+    term: 'ឆមាសទី១',
+    awardedBy: 'អ្នកគ្រូ កែវ ផល្លា',
+    reasonOrEvidence: 'បានខ្ចី និងអានសៀវភៅពីបណ្ណាល័យសរុប ១៤ ក្បាល និងបានសរសេរសង្ខេបសាច់រឿងយ៉ាងក្បោះក្បាយ',
+    progressMetricSnapshot: {
+      readingBooksCount: 14
+    },
+    certificateNumber: 'CERT-2024-004',
+    createdAt: '2024-12-10'
+  },
+  {
+    id: 'badge-asgn-5',
+    studentId: 's-3',
+    studentName: 'កែវ មករា',
+    studentGender: 'M',
+    studentCode: 'STU-2024-003',
+    grade: 6,
+    section: 'ក',
+    badgeId: 'bdg-prog-01',
+    badge: initialBadgeDefinitions[9],
+    awardedDate: '2024-12-12',
+    academicYear: '២០២៤ - ២០២៥',
+    term: 'ឆមាសទី១',
+    awardedBy: 'លោក ចាន់ វុទ្ធី',
+    reasonOrEvidence: 'មានការរីកចម្រើនខ្លាំងលើការអាន និងគណិតវិទ្យា ដោយពិន្ទុកើនពី ៣.៥ ដល់ ៦.៥ (+៣.០ ពិន្ទុ)',
+    progressMetricSnapshot: {
+      improvedPoints: 3.0,
+      scoreAvg: 6.5
+    },
+    certificateNumber: 'CERT-2024-005',
+    createdAt: '2024-12-12'
+  },
+  {
+    id: 'badge-asgn-6',
+    studentId: 's-4',
+    studentName: 'ហេង ស្រីពៅ',
+    studentGender: 'F',
+    studentCode: 'STU-2024-004',
+    grade: 5,
+    section: 'ក',
+    badgeId: 'bdg-env-01',
+    badge: initialBadgeDefinitions[8],
+    awardedDate: '2024-12-08',
+    academicYear: '២០២៤ - ២០២៥',
+    term: 'ឆមាសទី១',
+    awardedBy: 'អ្នកគ្រូ កែវ ផល្លា',
+    reasonOrEvidence: 'ដឹកនាំសកម្មភាពបៃតងសាលារៀន ថែទាំសួនបន្លែ និងកាត់បន្ថយការប្រើប្រាស់ថង់ប្លាស្ទិក',
+    certificateNumber: 'CERT-2024-006',
+    createdAt: '2024-12-08'
+  },
+  {
+    id: 'badge-asgn-7',
+    studentId: 's-5',
+    studentName: 'វ៉ាន់ សុវណ្ណ',
+    studentGender: 'M',
+    studentCode: 'STU-2024-005',
+    grade: 5,
+    section: 'ក',
+    badgeId: 'bdg-lead-01',
+    badge: initialBadgeDefinitions[7],
+    awardedDate: '2024-12-01',
+    academicYear: '២០២៤ - ២០២៥',
+    term: 'ឆមាសទី១',
+    awardedBy: 'អ្នកគ្រូ កែវ ផល្លា',
+    reasonOrEvidence: 'ជាជំនួយការសិក្សាគំរូ (Peer Tutor) ជួយបង្រៀនមិត្តភក្តិ ៣នាក់ឱ្យចេះអានបានយ៉ាងស្ទាត់',
+    certificateNumber: 'CERT-2024-007',
+    createdAt: '2024-12-01'
+  }
+];
+
+
+
 
 
 
