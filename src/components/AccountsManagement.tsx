@@ -5,7 +5,15 @@ import { SecurityAndSessionManager } from './SecurityAndSessionManager';
 import { SecurityLogsTab } from './SecurityLogsTab';
 import { SecurityPatternsDashboard } from './SecurityPatternsDashboard';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
-import { PasswordStrengthIndicator, evaluatePassword } from './PasswordStrengthIndicator';
+import {
+  PasswordStrengthIndicator,
+  evaluatePassword,
+  checkPasswordHistoryReuse,
+  getSavedPasswordPolicy
+} from './PasswordStrengthIndicator';
+import { SecurityHealthBadge } from './SecurityHealthBadge';
+import { PasswordPolicyTab } from './PasswordPolicyTab';
+import { SuspiciousAlertsBanner } from './SuspiciousAlertsBanner';
 import {
   Users,
   UserPlus,
@@ -40,7 +48,8 @@ import {
   Sparkles,
   BarChart3,
   RefreshCw,
-  AlertOctagon
+  AlertOctagon,
+  Sliders
 } from 'lucide-react';
 
 export const AccountsManagement: React.FC = () => {
@@ -59,7 +68,9 @@ export const AccountsManagement: React.FC = () => {
     rejectProfileEditRequest
   } = useSchool();
 
-  const [activeTab, setActiveTab] = useState<'accounts' | 'security_sessions' | 'security_logs' | 'edit_requests'>('accounts');
+  const [activeTab, setActiveTab] = useState<
+    'accounts' | 'security_sessions' | 'security_logs' | 'password_policy' | 'edit_requests'
+  >('accounts');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -80,15 +91,33 @@ export const AccountsManagement: React.FC = () => {
   // 90-day Password Rotation Calculation
   const calculateDaysSincePasswordChange = (user: AppUser | null): number => {
     if (!user) return 0;
+    const policy = getSavedPasswordPolicy();
+    const maxDays = policy.expirationDays > 0 ? policy.expirationDays : 90;
     const dateStr = user.passwordUpdatedAt || user.createdAt;
-    if (!dateStr) return 96;
+    if (!dateStr) return maxDays + 6;
     const diffMs = Date.now() - new Date(dateStr).getTime();
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    return user.passwordUpdatedAt ? Math.max(days, 0) : 96; // 96 days default to encourage periodic rotation
+    return user.passwordUpdatedAt ? Math.max(days, 0) : maxDays + 6;
   };
 
   const daysSincePasswordUpdate = calculateDaysSincePasswordChange(currentUser);
-  const isPasswordRotationNeeded = daysSincePasswordUpdate >= 90 && !dismiss90DayNotice;
+  const currentPolicy = getSavedPasswordPolicy();
+  const maxPolicyDays = currentPolicy.expirationDays > 0 ? currentPolicy.expirationDays : 90;
+  const isPasswordRotationNeeded =
+    currentPolicy.expirationDays > 0 &&
+    daysSincePasswordUpdate >= maxPolicyDays &&
+    !dismiss90DayNotice;
+
+  // Review logs handler for boosting Security Health score
+  const handleReviewSecurityLogs = () => {
+    if (currentUser) {
+      updateUser(currentUser.id, {
+        lastSecurityReviewDate: new Date().toISOString()
+      });
+      showToast('បានត្រួតពិនិត្យកំណត់ត្រាសន្តិសុខ! ពិន្ទុ Security Health របស់អ្នកកើនឡើង +30%', 'success');
+    }
+    setActiveTab('security_logs');
+  };
 
   // Bulk force password rotation for all staff accounts
   const handleBulkForceStaffPasswordUpdate = () => {
@@ -128,14 +157,33 @@ export const AccountsManagement: React.FC = () => {
       return;
     }
 
-    const strength = evaluatePassword(mandatoryNewPassword);
+    const policy = getSavedPasswordPolicy();
+    const strength = evaluatePassword(mandatoryNewPassword, policy);
     if (!strength.isValid) {
-      showToast('ពាក្យសម្ងាត់ថ្មីមិនទាន់បំពេញតាមលក្ខខណ្ឌសុវត្ថិភាពទាំង ៤ ខាងក្រោមនៅឡើយទេ!', 'error');
+      showToast('ពាក្យសម្ងាត់ថ្មីមិនទាន់បំពេញតាមលក្ខខណ្ឌគោលការណ៍សុវត្ថិភាពនៅឡើយទេ!', 'error');
       return;
     }
 
+    // Check Password History Reuse (Last 3 passwords)
+    const historyCheck = checkPasswordHistoryReuse(
+      mandatoryNewPassword,
+      currentUser,
+      policy.preventRecentPasswordsCount
+    );
+    if (!historyCheck.isAllowed) {
+      showToast(historyCheck.message, 'error');
+      return;
+    }
+
+    const currentHist = currentUser.passwordHistory || [];
+    const oldPassword = currentUser.password;
+    const updatedHist = [oldPassword, ...currentHist]
+      .filter((p, i, a): p is string => Boolean(p) && a.indexOf(p) === i)
+      .slice(0, policy.preventRecentPasswordsCount || 3);
+
     updateUser(currentUser.id, {
       password: mandatoryNewPassword,
+      passwordHistory: updatedHist,
       passwordUpdatedAt: new Date().toISOString(),
       forcePasswordChange: false
     });
@@ -333,6 +381,15 @@ export const AccountsManagement: React.FC = () => {
               <span>Security Logs</span>
             </button>
             <button
+              onClick={() => setActiveTab('password_policy')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'password_policy' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>គោលការណ៍ (Policy)</span>
+            </button>
+            <button
               onClick={() => setActiveTab('edit_requests')}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
                 activeTab === 'edit_requests' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
@@ -389,6 +446,29 @@ export const AccountsManagement: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Real-time Suspicious Login Activity Automated Alert Banner */}
+      <SuspiciousAlertsBanner
+        appUsers={appUsers}
+        currentUser={currentUser}
+        onSuspendUser={userId => updateUser(userId, { status: 'suspended' })}
+        onForcePasswordRotation={userId => updateUser(userId, { forcePasswordChange: true })}
+        onViewLogs={() => setActiveTab('security_logs')}
+        onShowToast={showToast}
+      />
+
+      {/* User Profile & Security Health Score Dashboard Card */}
+      <SecurityHealthBadge
+        user={currentUser}
+        variant="card"
+        onOpenMfa={() => setActiveTab('security_sessions')}
+        onChangePassword={() => {
+          if (currentUser) {
+            setSelectedUserForEdit(currentUser);
+          }
+        }}
+        onReviewSecurityLogs={handleReviewSecurityLogs}
+      />
 
       {/* 90-Day Password Rotation Warning Alert */}
       {isPasswordRotationNeeded && (
@@ -604,16 +684,20 @@ export const AccountsManagement: React.FC = () => {
                       </td>
 
                       <td className="px-4 py-3">
-                        <div className="space-y-1">
-                          {user.status === 'active' ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[11px] font-bold border border-emerald-200">
-                              <CheckCircle2 className="w-3 h-3" /> សកម្ម
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-red-700 bg-red-50 px-2 py-0.5 rounded-full text-[11px] font-bold border border-red-200">
-                              <AlertTriangle className="w-3 h-3" /> ផ្អាក
-                            </span>
-                          )}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {user.status === 'active' ? (
+                              <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[11px] font-bold border border-emerald-200">
+                                <CheckCircle2 className="w-3 h-3" /> សកម្ម
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-red-700 bg-red-50 px-2 py-0.5 rounded-full text-[11px] font-bold border border-red-200">
+                                <AlertTriangle className="w-3 h-3" /> ផ្អាក
+                              </span>
+                            )}
+
+                            <SecurityHealthBadge user={user} variant="compact" />
+                          </div>
 
                           {user.forcePasswordChange && (
                             <span className="block text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-md">
@@ -719,6 +803,14 @@ export const AccountsManagement: React.FC = () => {
       {activeTab === 'security_logs' && (
         <SecurityLogsTab
           currentUser={currentUser}
+          onShowToast={showToast}
+        />
+      )}
+
+      {activeTab === 'password_policy' && (
+        <PasswordPolicyTab
+          currentUser={currentUser}
+          onUpdateAllStaffForceRotation={() => setShowBulkForceConfirmModal(true)}
           onShowToast={showToast}
         />
       )}
@@ -1031,11 +1123,23 @@ export const AccountsManagement: React.FC = () => {
               onSubmit={e => {
                 e.preventDefault();
                 
-                // If a new password is typed, check password strength requirements
+                const policy = getSavedPasswordPolicy();
+
+                // If a new password is typed, check password strength & history requirements
                 if (editPasswordInput.trim()) {
-                  const strength = evaluatePassword(editPasswordInput);
+                  const strength = evaluatePassword(editPasswordInput, policy);
                   if (!strength.isValid) {
-                    showToast('ពាក្យសម្ងាត់ថ្មីមិនទាន់បំពេញតាមលក្ខខណ្ឌសុវត្ថិភាពទាំង ៤ ខាងក្រោមនៅឡើយទេ!', 'error');
+                    showToast('ពាក្យសម្ងាត់ថ្មីមិនទាន់បំពេញតាមលក្ខខណ្ឌគោលការណ៍សុវត្ថិភាពនៅឡើយទេ!', 'error');
+                    return;
+                  }
+
+                  const historyCheck = checkPasswordHistoryReuse(
+                    editPasswordInput,
+                    selectedUserForEdit,
+                    policy.preventRecentPasswordsCount
+                  );
+                  if (!historyCheck.isAllowed) {
+                    showToast(historyCheck.message, 'error');
                     return;
                   }
                 }
@@ -1048,8 +1152,16 @@ export const AccountsManagement: React.FC = () => {
                 };
 
                 if (editPasswordInput.trim()) {
+                  const currentHist = selectedUserForEdit.passwordHistory || [];
+                  const oldPassword = selectedUserForEdit.password;
+                  const updatedHist = [oldPassword, ...currentHist]
+                    .filter((p, i, a): p is string => Boolean(p) && a.indexOf(p) === i)
+                    .slice(0, policy.preventRecentPasswordsCount || 3);
+
                   updatedData.password = editPasswordInput;
+                  updatedData.passwordHistory = updatedHist;
                   updatedData.passwordUpdatedAt = new Date().toISOString();
+                  updatedData.forcePasswordChange = false;
                 }
 
                 updateUser(selectedUserForEdit.id, updatedData);

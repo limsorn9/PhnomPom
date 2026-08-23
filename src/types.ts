@@ -491,10 +491,38 @@ export interface AppUser {
   createdAt: string;
   status: 'active' | 'suspended';
   passwordUpdatedAt?: string; // ISO Date of last password update
+  passwordHistory?: string[]; // History of last 3+ previous passwords to prevent reuse
+  lastSecurityReviewDate?: string; // ISO Date when user last reviewed their security logs / active sessions
   forcePasswordChange?: boolean; // When true, forces mandatory password change on login/session
   mfaConfig?: UserMfaConfig;
   activeSessions?: UserSessionInfo[];
   securityLogs?: SecurityLoginLog[];
+}
+
+export interface PasswordPolicyConfig {
+  expirationDays: number; // e.g. 30, 60, 90, 180, or 0 (never)
+  preventRecentPasswordsCount: number; // e.g. 3
+  minLength: number; // e.g. 8
+  requireUppercase: boolean;
+  requireLowercase: boolean;
+  requireNumbers: boolean;
+  requireSpecialChars: boolean;
+  maxFailedAttemptsBeforeLock: number;
+}
+
+export interface SuspiciousActivityAlert {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userNameKhmer: string;
+  userRole: UserRole;
+  reason: string;
+  detectedAt: string;
+  severity: 'high' | 'critical' | 'medium';
+  ipAddresses: string[];
+  locations: string[];
+  failedAttemptsCount: number;
+  dismissed?: boolean;
 }
 
 export interface SecurityPolicySettings {
