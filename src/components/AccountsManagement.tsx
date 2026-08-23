@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSchool } from '../context/SchoolContext';
-import { AppUser, UserRole, ProfileEditRequest } from '../types';
+import { AppUser, UserRole, ProfileEditRequest, SecurityLoginLog } from '../types';
 import { SecurityAndSessionManager } from './SecurityAndSessionManager';
 import { SecurityLogsTab } from './SecurityLogsTab';
 import { SecurityPatternsDashboard } from './SecurityPatternsDashboard';
@@ -118,6 +118,73 @@ export const AccountsManagement: React.FC = () => {
     }
     setActiveTab('security_logs');
   };
+
+  // Aggregated security logs for the security patterns dashboard
+  const allSecurityLogs: SecurityLoginLog[] = React.useMemo(() => {
+    const collected: SecurityLoginLog[] = [];
+    (appUsers || []).forEach(u => {
+      if (u && u.securityLogs && Array.isArray(u.securityLogs)) {
+        collected.push(...u.securityLogs);
+      }
+    });
+    if (collected.length > 0) return collected;
+    if (currentUser?.securityLogs && currentUser.securityLogs.length > 0) return currentUser.securityLogs;
+
+    return [
+      {
+        id: 'log-1',
+        userId: currentUser?.id || 'usr-01',
+        userEmail: currentUser?.email || 'admin@moeys.gov.kh',
+        timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+        status: 'success',
+        ipAddress: '103.216.50.21',
+        device: 'Windows 11 PC (Office)',
+        browser: 'Microsoft Edge 122',
+        os: 'Windows 11 Pro',
+        location: 'Phnom Penh, Cambodia',
+        method: 'password'
+      },
+      {
+        id: 'log-2',
+        userId: 'usr-04',
+        userEmail: 'vuthy.chan@moeys.edu.kh',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
+        status: 'success',
+        ipAddress: '203.144.90.12',
+        device: 'Apple iPhone 15 Pro',
+        browser: 'Safari Mobile 17.2',
+        os: 'iOS 17.4',
+        location: 'Siem Reap, Cambodia',
+        method: 'mfa_totp'
+      },
+      {
+        id: 'log-3',
+        userId: 'usr-01',
+        userEmail: 'admin@moeys.gov.kh',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
+        status: 'failed',
+        ipAddress: '185.220.101.5 (Proxy/Tor)',
+        device: 'Linux / Chrome Headless',
+        browser: 'Chrome 119',
+        os: 'Linux x86_64',
+        location: 'Frankfurt, Germany',
+        method: 'password'
+      },
+      {
+        id: 'log-4',
+        userId: 'usr-02',
+        userEmail: 'sreymom.sim@moeys.gov.kh',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+        status: 'success',
+        ipAddress: '118.69.180.44',
+        device: 'Samsung Galaxy Tab S9',
+        browser: 'Chrome Mobile 121',
+        os: 'Android 14',
+        location: 'Phnom Penh, Cambodia',
+        method: 'password'
+      }
+    ];
+  }, [appUsers, currentUser]);
 
   // Bulk force password rotation for all staff accounts
   const handleBulkForceStaffPasswordUpdate = () => {
@@ -554,6 +621,8 @@ export const AccountsManagement: React.FC = () => {
 
             {showPatternsPanel && (
               <SecurityPatternsDashboard
+                logs={allSecurityLogs}
+                users={appUsers}
                 onFilterByStatus={() => {
                   setActiveTab('security_logs');
                 }}

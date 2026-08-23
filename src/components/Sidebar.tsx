@@ -84,7 +84,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [savedFavoriteIds, setSavedFavoriteIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('school_favorite_learning_resources');
-      return saved ? JSON.parse(saved) : ['plp', 'sala', 'g1-khmer', 'g1-math'];
+      const parsed = saved ? JSON.parse(saved) : null;
+      return Array.isArray(parsed) ? parsed : ['plp', 'sala', 'g1-khmer', 'g1-math'];
     } catch {
       return ['plp', 'sala', 'g1-khmer', 'g1-math'];
     }
@@ -94,9 +95,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     try {
       const custom = localStorage.getItem('school_custom_learning_resources');
       const parsedCustom = custom ? JSON.parse(custom) : [];
-      return [...ALL_LEARNING_RESOURCES, ...parsedCustom];
+      return [...(ALL_LEARNING_RESOURCES || []), ...(Array.isArray(parsedCustom) ? parsedCustom : [])];
     } catch {
-      return ALL_LEARNING_RESOURCES;
+      return ALL_LEARNING_RESOURCES || [];
     }
   });
 
@@ -104,11 +105,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const handleSyncFavorites = () => {
       try {
         const saved = localStorage.getItem('school_favorite_learning_resources');
-        setSavedFavoriteIds(saved ? JSON.parse(saved) : []);
+        const parsed = saved ? JSON.parse(saved) : [];
+        setSavedFavoriteIds(Array.isArray(parsed) ? parsed : []);
 
         const custom = localStorage.getItem('school_custom_learning_resources');
         const parsedCustom = custom ? JSON.parse(custom) : [];
-        setAllResourcesList([...ALL_LEARNING_RESOURCES, ...parsedCustom]);
+        setAllResourcesList([...(ALL_LEARNING_RESOURCES || []), ...(Array.isArray(parsedCustom) ? parsedCustom : [])]);
       } catch {
         // ignore
       }
@@ -122,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     };
   }, []);
 
-  const savedFavoriteItems = allResourcesList.filter(item => savedFavoriteIds.includes(item.id));
+  const savedFavoriteItems = (allResourcesList || []).filter(item => item && (savedFavoriteIds || []).includes(item.id));
 
   const allNavItems: {
     id: ActiveTab;

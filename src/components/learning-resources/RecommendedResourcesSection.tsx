@@ -33,10 +33,10 @@ interface RecommendedResourcesSectionProps {
 }
 
 export const RecommendedResourcesSection: React.FC<RecommendedResourcesSectionProps> = ({
-  allResources,
-  favoriteIds,
-  ratingsMap,
-  teacherNotesMap,
+  allResources = [],
+  favoriteIds = [],
+  ratingsMap = {},
+  teacherNotesMap = {},
   onToggleFavorite,
   onOpenResource,
   onOpenNotesModal,
@@ -44,14 +44,18 @@ export const RecommendedResourcesSection: React.FC<RecommendedResourcesSectionPr
 }) => {
   // Recommendation Algorithm based on user's favorited items
   const recommendationData = useMemo(() => {
+    const resourcesList = Array.isArray(allResources) ? allResources : [];
+    const favIdsList = Array.isArray(favoriteIds) ? favoriteIds : [];
+    const safeRatings = ratingsMap || {};
+
     // 1. Calculate tag frequencies from favorited items
-    const favoritedItems = allResources.filter(r => favoriteIds.includes(r.id));
+    const favoritedItems = resourcesList.filter(r => r && favIdsList.includes(r.id));
     const tagFrequencies: Record<string, number> = {};
     const gradeFrequencies: Record<number, number> = {};
     const subjectFrequencies: Record<string, number> = {};
 
     favoritedItems.forEach(item => {
-      item.tags.forEach(tag => {
+      (item.tags || []).forEach(tag => {
         tagFrequencies[tag] = (tagFrequencies[tag] || 0) + 1;
       });
       if (item.grade) {
@@ -71,12 +75,12 @@ export const RecommendedResourcesSection: React.FC<RecommendedResourcesSectionPr
     const topGrade = topGradeEntry ? parseInt(topGradeEntry[0], 10) : undefined;
 
     // 2. Score resources
-    const scoredResources = allResources.map(resource => {
+    const scoredResources = resourcesList.map(resource => {
       let score = 0;
       let matchedReasons: string[] = [];
 
       // Tag overlap score (weight 3x per match with top tags)
-      resource.tags.forEach(tag => {
+      (resource.tags || []).forEach(tag => {
         const freq = tagFrequencies[tag] || 0;
         if (freq > 0) {
           score += freq * 3;
@@ -100,7 +104,7 @@ export const RecommendedResourcesSection: React.FC<RecommendedResourcesSectionPr
       }
 
       // High rating score
-      const rating = ratingsMap[resource.id];
+      const rating = safeRatings[resource.id];
       if (rating && rating.totalVotes > 0) {
         const avg = rating.sumScore / rating.totalVotes;
         if (avg >= 4.7) {
@@ -109,7 +113,7 @@ export const RecommendedResourcesSection: React.FC<RecommendedResourcesSectionPr
       }
 
       // If user already favorited it, reduce rank slightly so new undiscovered items surface, but keep high if strong match
-      const isFavorited = favoriteIds.includes(resource.id);
+      const isFavorited = favIdsList.includes(resource.id);
       if (!isFavorited) {
         score += 8; // bonus for discovery of new relevant items
       }

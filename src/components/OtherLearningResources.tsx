@@ -92,7 +92,8 @@ export const OtherLearningResources: React.FC = () => {
   const [customResources, setCustomResources] = useState<LearningResourceItem[]>(() => {
     try {
       const saved = localStorage.getItem('school_custom_learning_resources');
-      return saved ? JSON.parse(saved) : [];
+      const parsed = saved ? JSON.parse(saved) : null;
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
@@ -118,7 +119,8 @@ export const OtherLearningResources: React.FC = () => {
   const [teacherNotesMap, setTeacherNotesMap] = useState<Record<string, TeacherPrivateNote>>(() => {
     try {
       const saved = localStorage.getItem('school_learning_teacher_notes');
-      return saved ? JSON.parse(saved) : INITIAL_TEACHER_NOTES;
+      const parsed = saved ? JSON.parse(saved) : null;
+      return parsed && typeof parsed === 'object' ? parsed : INITIAL_TEACHER_NOTES;
     } catch {
       return INITIAL_TEACHER_NOTES;
     }
@@ -128,7 +130,8 @@ export const OtherLearningResources: React.FC = () => {
   const [playlistProgressMap, setPlaylistProgressMap] = useState<Record<string, ResourceProgressTracker>>(() => {
     try {
       const saved = localStorage.getItem('school_learning_playlist_progress');
-      return saved ? JSON.parse(saved) : INITIAL_PLAYLIST_PROGRESS;
+      const parsed = saved ? JSON.parse(saved) : null;
+      return parsed && typeof parsed === 'object' ? parsed : INITIAL_PLAYLIST_PROGRESS;
     } catch {
       return INITIAL_PLAYLIST_PROGRESS;
     }
@@ -138,7 +141,8 @@ export const OtherLearningResources: React.FC = () => {
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('school_favorite_learning_resources');
-      return saved ? JSON.parse(saved) : ['plp', 'sala', 'g1-khmer', 'g1-math'];
+      const parsed = saved ? JSON.parse(saved) : null;
+      return Array.isArray(parsed) ? parsed : ['plp', 'sala', 'g1-khmer', 'g1-math'];
     } catch {
       return ['plp', 'sala', 'g1-khmer', 'g1-math'];
     }
@@ -146,16 +150,19 @@ export const OtherLearningResources: React.FC = () => {
 
   // Combine Default and Custom Imported Resources
   const allCombinedResources = useMemo(() => {
-    const defaultIds = new Set(ALL_LEARNING_RESOURCES.map(r => r.id));
-    const uniqueCustom = customResources.filter(r => !defaultIds.has(r.id));
-    return [...ALL_LEARNING_RESOURCES, ...uniqueCustom];
+    const defaultList = Array.isArray(ALL_LEARNING_RESOURCES) ? ALL_LEARNING_RESOURCES : [];
+    const customList = Array.isArray(customResources) ? customResources : [];
+    const defaultIds = new Set(defaultList.map(r => r.id));
+    const uniqueCustom = customList.filter(r => r && !defaultIds.has(r.id));
+    return [...defaultList, ...uniqueCustom];
   }, [customResources]);
 
   // Recently Viewed state (tracks up to 5 last accessed resources)
   const [recentlyViewed, setRecentlyViewed] = useState<RecentlyViewedItem[]>(() => {
     try {
       const saved = localStorage.getItem('school_recent_learning_resources');
-      return saved ? JSON.parse(saved) : [
+      const parsed = saved ? JSON.parse(saved) : null;
+      return Array.isArray(parsed) ? parsed : [
         { resourceId: 'plp', accessedAt: 'ថ្មីៗនេះ' },
         { resourceId: 'sala', accessedAt: 'ថ្មីៗនេះ' }
       ];
@@ -171,7 +178,8 @@ export const OtherLearningResources: React.FC = () => {
   const [ratingsMap, setRatingsMap] = useState<Record<string, ResourceRatingData>>(() => {
     try {
       const saved = localStorage.getItem('school_learning_resource_ratings');
-      return saved ? JSON.parse(saved) : INITIAL_RESOURCE_RATINGS;
+      const parsed = saved ? JSON.parse(saved) : null;
+      return parsed && typeof parsed === 'object' ? parsed : INITIAL_RESOURCE_RATINGS;
     } catch {
       return INITIAL_RESOURCE_RATINGS;
     }
@@ -184,7 +192,8 @@ export const OtherLearningResources: React.FC = () => {
   const [commentsList, setCommentsList] = useState<ResourceComment[]>(() => {
     try {
       const saved = localStorage.getItem('school_learning_resource_comments');
-      return saved ? JSON.parse(saved) : INITIAL_RESOURCE_COMMENTS;
+      const parsed = saved ? JSON.parse(saved) : null;
+      return Array.isArray(parsed) ? parsed : INITIAL_RESOURCE_COMMENTS;
     } catch {
       return INITIAL_RESOURCE_COMMENTS;
     }
@@ -539,7 +548,14 @@ export const OtherLearningResources: React.FC = () => {
 
   // Filtered resources list
   const filteredResources = useMemo(() => {
-    return allCombinedResources.filter(item => {
+    const safeResources = Array.isArray(allCombinedResources) ? allCombinedResources : [];
+    const safeFavoriteIds = Array.isArray(favoriteIds) ? favoriteIds : [];
+    const safeComments = Array.isArray(commentsList) ? commentsList : [];
+    const safeTeacherNotes = teacherNotesMap || {};
+
+    return safeResources.filter(item => {
+      if (!item) return false;
+
       // Type filter (Platforms vs Videos)
       if (selectedType === 'platform' && item.type !== 'platform') return false;
       if (selectedType === 'video' && item.type !== 'video') return false;
@@ -560,7 +576,7 @@ export const OtherLearningResources: React.FC = () => {
       }
 
       // Only Favorites
-      if (onlyFavorites && !favoriteIds.includes(item.id)) {
+      if (onlyFavorites && !safeFavoriteIds.includes(item.id)) {
         return false;
       }
 
@@ -572,29 +588,29 @@ export const OtherLearningResources: React.FC = () => {
 
       // Only With Tips
       if (onlyWithTips) {
-        const count = commentsList.filter(c => c.resourceId === item.id).length;
+        const count = safeComments.filter(c => c && c.resourceId === item.id).length;
         if (count === 0) return false;
       }
 
       // Only With Teacher Notes
       if (onlyWithNotes) {
-        if (!teacherNotesMap[item.id]) return false;
+        if (!safeTeacherNotes[item.id]) return false;
       }
 
       // Search Query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
-        const matchesTitle = item.titleKhmer.toLowerCase().includes(q) || item.titleEnglish.toLowerCase().includes(q);
-        const matchesDesc = item.descriptionKhmer.toLowerCase().includes(q);
-        const matchesSubject = item.subjectNameKhmer.toLowerCase().includes(q);
+        const matchesTitle = (item.titleKhmer || '').toLowerCase().includes(q) || (item.titleEnglish || '').toLowerCase().includes(q);
+        const matchesDesc = (item.descriptionKhmer || '').toLowerCase().includes(q);
+        const matchesSubject = (item.subjectNameKhmer || '').toLowerCase().includes(q);
         const matchesGrade = item.grade ? `ថ្នាក់ទី${item.grade}`.includes(q) || `grade ${item.grade}`.includes(q) || `${item.grade}` === q : false;
-        const matchesTags = item.tags.some(t => t.toLowerCase().includes(q));
+        const matchesTags = (item.tags || []).some(t => t && t.toLowerCase().includes(q));
         
         // Also search within comments/tips
-        const matchesTips = commentsList.some(c => c.resourceId === item.id && (c.content.toLowerCase().includes(q) || c.authorName.toLowerCase().includes(q)));
+        const matchesTips = safeComments.some(c => c && c.resourceId === item.id && ((c.content || '').toLowerCase().includes(q) || (c.authorName || '').toLowerCase().includes(q)));
         // Also search within private teacher notes
-        const note = teacherNotesMap[item.id];
-        const matchesNotes = note ? (note.noteContent.toLowerCase().includes(q) || (note.teachingStrategies && note.teachingStrategies.some(s => s.toLowerCase().includes(q)))) : false;
+        const note = safeTeacherNotes[item.id];
+        const matchesNotes = note ? ((note.noteContent || '').toLowerCase().includes(q) || (Array.isArray(note.teachingStrategies) && note.teachingStrategies.some(s => s && s.toLowerCase().includes(q)))) : false;
 
         return matchesTitle || matchesDesc || matchesSubject || matchesGrade || matchesTags || matchesTips || matchesNotes;
       }
@@ -605,14 +621,19 @@ export const OtherLearningResources: React.FC = () => {
 
   // Pinned favorite items list
   const savedFavoriteItems = useMemo(() => {
-    return allCombinedResources.filter(r => favoriteIds.includes(r.id));
+    const safeResources = Array.isArray(allCombinedResources) ? allCombinedResources : [];
+    const safeFavoriteIds = Array.isArray(favoriteIds) ? favoriteIds : [];
+    return safeResources.filter(r => r && safeFavoriteIds.includes(r.id));
   }, [allCombinedResources, favoriteIds]);
 
   // Resolved Recently Viewed Items
   const resolvedRecentItems = useMemo(() => {
-    return recentlyViewed
+    const safeResources = Array.isArray(allCombinedResources) ? allCombinedResources : [];
+    const safeRecentlyViewed = Array.isArray(recentlyViewed) ? recentlyViewed : [];
+    return safeRecentlyViewed
       .map(rv => {
-        const item = allCombinedResources.find(r => r.id === rv.resourceId);
+        if (!rv) return null;
+        const item = safeResources.find(r => r && r.id === rv.resourceId);
         return item ? { ...item, accessedAt: rv.accessedAt } : null;
       })
       .filter((item): item is (LearningResourceItem & { accessedAt: string }) => item !== null);
@@ -620,12 +641,14 @@ export const OtherLearningResources: React.FC = () => {
 
   // Selected item for comment drawer
   const activeCommentResource = useMemo(() => {
-    return allCombinedResources.find(r => r.id === activeCommentDrawerId);
+    const safeResources = Array.isArray(allCombinedResources) ? allCombinedResources : [];
+    return safeResources.find(r => r && r.id === activeCommentDrawerId);
   }, [allCombinedResources, activeCommentDrawerId]);
 
   const activeComments = useMemo(() => {
     if (!activeCommentDrawerId) return [];
-    return commentsList.filter(c => c.resourceId === activeCommentDrawerId);
+    const safeComments = Array.isArray(commentsList) ? commentsList : [];
+    return safeComments.filter(c => c && c.resourceId === activeCommentDrawerId);
   }, [activeCommentDrawerId, commentsList]);
 
   // Handle Export Filtered List to PDF

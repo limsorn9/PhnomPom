@@ -2290,7 +2290,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  const unreadNotifCount = notifications.filter(n => {
+  const unreadNotifCount = (notifications || []).filter(n => {
     if (n.read) return false;
     if (!currentUser) return false;
     if (n.targetRole === 'all') return true;

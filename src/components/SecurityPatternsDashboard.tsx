@@ -24,14 +24,14 @@ import {
 } from 'lucide-react';
 
 interface SecurityPatternsDashboardProps {
-  logs: SecurityLoginLog[];
+  logs?: SecurityLoginLog[];
   users?: AppUser[];
   onFilterByStatus?: (status: 'all' | 'success' | 'failed') => void;
   onFilterByMethod?: (method: string) => void;
 }
 
 export const SecurityPatternsDashboard: React.FC<SecurityPatternsDashboardProps> = ({
-  logs,
+  logs = [],
   users = [],
   onFilterByStatus,
   onFilterByMethod
@@ -40,8 +40,10 @@ export const SecurityPatternsDashboard: React.FC<SecurityPatternsDashboardProps>
 
   // Filter logs according to active time range
   const filteredLogs = useMemo(() => {
+    const safeLogs = Array.isArray(logs) ? logs : [];
     const now = Date.now();
-    return logs.filter(log => {
+    return safeLogs.filter(log => {
+      if (!log || !log.timestamp) return false;
       const logTime = new Date(log.timestamp).getTime();
       if (activeTimeRange === '7d') {
         return now - logTime <= 7 * 24 * 60 * 60 * 1000;
