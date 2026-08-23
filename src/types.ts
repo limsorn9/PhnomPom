@@ -538,16 +538,22 @@ export interface SystemNotification {
   title: string;
   message: string;
   timestamp: string;
-  type: 'password_reset' | 'info' | 'alert' | 'system';
+  type: 'password_reset' | 'info' | 'alert' | 'system' | 'score_deadline' | 'school_event' | 'fcm_push';
   targetRole?: UserRole | 'all';
   targetUserId?: string;
   targetTeacherGrade?: number;
   targetTeacherSection?: string;
   read: boolean;
+  priority?: 'normal' | 'high' | 'urgent';
+  deadlineDate?: string;
+  actionTab?: ActiveTab;
   meta?: {
     studentId?: string;
     studentName?: string;
     actionTime?: string;
+    monthOrSemester?: string;
+    eventDate?: string;
+    fcmMessageId?: string;
   };
 }
 

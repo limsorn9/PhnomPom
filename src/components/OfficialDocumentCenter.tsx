@@ -606,48 +606,93 @@ export const OfficialDocumentCenter: React.FC = () => {
           </div>
 
           {/* Search Input */}
-          <div className="relative min-w-[240px]">
+          <div className="relative min-w-[260px]">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="ស្វែងរកទម្រង់ឯកសារ..."
-              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              placeholder="ស្វែងរកទម្រង់លិខិត ឬពាក្យគន្លឹះ..."
+              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-1"
+              >
+                ✕
+              </button>
+            )}
           </div>
+        </div>
+
+        {/* Quick Keyword Search Tags */}
+        <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px]">
+          <span className="text-slate-400 font-medium">ពាក្យគន្លឹះរហ័ស៖</span>
+          {['លិខិតបញ្ជាក់', 'កិច្ចព្រមព្រៀង', 'ពិន្ទុ', 'សុខភាព', 'គ.ក.ថ.', 'សារពើភ័ណ្ឌ', 'លិខិតផ្ទេរ'].map(tag => (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => setSearchQuery(searchQuery === tag ? '' : tag)}
+              className={`px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
+                searchQuery === tag
+                  ? 'bg-blue-100 text-blue-800 border-blue-300 font-bold'
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              #{tag}
+            </button>
+          ))}
         </div>
 
         {/* Template Catalog Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 mt-4 pt-3 border-t border-slate-100 max-h-56 overflow-y-auto p-1 scrollbar-thin">
-          {filteredTemplates.map(template => {
-            const isSelected = selectedDoc === template.id;
-            const IconComp = template.icon;
-            return (
+          {filteredTemplates.length === 0 ? (
+            <div className="col-span-full py-8 text-center text-slate-500 text-xs space-y-2">
+              <AlertCircle className="w-8 h-8 mx-auto text-slate-400" />
+              <p>រកមិនឃើញទម្រង់ឯកសារដែលត្រូវនឹងពាក្យ «{searchQuery}» ឡើយ។</p>
               <button
-                key={template.id}
-                onClick={() => setSelectedDoc(template.id)}
-                className={`p-3 rounded-xl text-left border transition-all flex items-start gap-2.5 cursor-pointer ${
-                  isSelected
-                    ? 'bg-blue-50 border-blue-600 shadow-sm ring-1 ring-blue-500/30'
-                    : 'bg-slate-50/70 border-slate-200 hover:bg-white hover:border-slate-300'
-                }`}
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('all');
+                }}
+                className="px-3 py-1.5 bg-blue-50 text-blue-700 font-bold rounded-lg border border-blue-200 hover:bg-blue-100 transition-all cursor-pointer"
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${template.accentColor}`}>
-                  <IconComp className="w-4 h-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1">
-                    <p className={`text-xs font-bold truncate ${isSelected ? 'text-blue-950 font-moul' : 'text-slate-800'}`}>
-                      {template.titleKhmer}
-                    </p>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 shrink-0" />}
-                  </div>
-                  <p className="text-[10px] text-slate-500 truncate mt-0.5 font-times">{template.titleLatin}</p>
-                </div>
+                បង្ហាញទម្រង់ទាំងអស់ឡើងវិញ
               </button>
-            );
-          })}
+            </div>
+          ) : (
+            filteredTemplates.map(template => {
+              const isSelected = selectedDoc === template.id;
+              const IconComp = template.icon;
+              return (
+                <button
+                  key={template.id}
+                  onClick={() => setSelectedDoc(template.id)}
+                  className={`p-3 rounded-xl text-left border transition-all flex items-start gap-2.5 cursor-pointer ${
+                    isSelected
+                      ? 'bg-blue-50 border-blue-600 shadow-sm ring-1 ring-blue-500/30'
+                      : 'bg-slate-50/70 border-slate-200 hover:bg-white hover:border-slate-300'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${template.accentColor}`}>
+                    <IconComp className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className={`text-xs font-bold truncate ${isSelected ? 'text-blue-950 font-moul' : 'text-slate-800'}`}>
+                        {template.titleKhmer}
+                      </p>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 shrink-0" />}
+                    </div>
+                    <p className="text-[10px] text-slate-500 truncate mt-0.5 font-times">{template.titleLatin}</p>
+                  </div>
+                </button>
+              );
+            })
+          )}
         </div>
       </div>
 

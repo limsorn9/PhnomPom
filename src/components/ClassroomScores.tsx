@@ -32,7 +32,8 @@ import {
   MessageSquare,
   Send,
   Check,
-  Trash2
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -208,6 +209,35 @@ export const ClassroomScores: React.FC = () => {
     e.preventDefault();
     if (!activeStudentForScoreEdit) return;
 
+    // Validate standard subjects
+    const standardSubjects: { key: keyof typeof singleScoreForm; nameKhmer: string; max: number }[] = [
+      { key: 'khmerReading', nameKhmer: 'ភាសាខ្មែរ (អំណាន)', max: 10 },
+      { key: 'khmerWriting', nameKhmer: 'ភាសាខ្មែរ (សំណេរ)', max: 10 },
+      { key: 'mathematics', nameKhmer: 'គណិតវិទ្យា', max: 10 },
+      { key: 'scienceSocial', nameKhmer: 'វិទ្យាសាស្ត្រ និងសង្គម', max: 10 },
+      { key: 'moralCivics', nameKhmer: 'សីលធម៌ និងពលរដ្ឋ', max: 10 },
+      { key: 'artsPhysical', nameKhmer: 'សិល្បៈ និងកាយវិការ', max: 10 }
+    ];
+
+    for (const sub of standardSubjects) {
+      const val = Number(singleScoreForm[sub.key] ?? 0);
+      if (isNaN(val) || val < 0 || val > sub.max) {
+        showToast(`⚠️ ពិន្ទុមុខវិជ្ជា «${sub.nameKhmer}» មិនត្រឹមត្រូវ! ត្រូវនៅចន្លោះពី ០ ដល់ ${sub.max} (បានបញ្ចូល: ${val})`, 'error');
+        return;
+      }
+    }
+
+    // Validate dynamic subjects
+    for (const sub of examSubjects) {
+      if (singleScoreForm[sub.code] !== undefined) {
+        const val = Number(singleScoreForm[sub.code]);
+        if (isNaN(val) || val < 0 || val > sub.maxScore) {
+          showToast(`⚠️ ពិន្ទុមុខវិជ្ជា «${sub.nameKhmer}» មិនត្រឹមត្រូវ! ត្រូវនៅចន្លោះពី ០ ដល់ ${sub.maxScore} (បានបញ្ចូល: ${val})`, 'error');
+          return;
+        }
+      }
+    }
+
     // clean and prepare scores object
     const numericScores: MonthlySubjectScores = {
       khmerReading: Number(singleScoreForm.khmerReading || 0),
@@ -233,6 +263,7 @@ export const ClassroomScores: React.FC = () => {
       remarks: singleScoreForm.remarks
     });
 
+    showToast(`បានរក្សាទុកពិន្ទុរបស់សិស្ស «${activeStudentForScoreEdit.nameKhmer}» ជោគជ័យ!`);
     setActiveStudentForScoreEdit(null);
   };
 
@@ -287,6 +318,18 @@ export const ClassroomScores: React.FC = () => {
   }, [selectedSubjectCode, selectedGrade, selectedSection, selectedMonth, selectedAcademicYear, scores]);
 
   const handleSaveBatchSubjectScores = () => {
+    const activeSub = examSubjects.find(s => s.code === selectedSubjectCode);
+    const maxLimit = activeSub?.maxScore || 10;
+
+    // Validate all scores in batch
+    for (const stu of classStudents) {
+      const studentScoreVal = Number(batchSubjectScores[stu.id] ?? 8.0);
+      if (isNaN(studentScoreVal) || studentScoreVal < 0 || studentScoreVal > maxLimit) {
+        showToast(`⚠️ ពិន្ទុរបស់សិស្ស «${stu.nameKhmer}» (${studentScoreVal}) មិនត្រឹមត្រូវ! ត្រូវនៅចន្លោះពី ០ ដល់ ${maxLimit}`, 'error');
+        return;
+      }
+    }
+
     let savedCount = 0;
     classStudents.forEach(stu => {
       const existing = getStudentScore(stu.id);
@@ -319,7 +362,6 @@ export const ClassroomScores: React.FC = () => {
       savedCount++;
     });
 
-    const activeSub = examSubjects.find(s => s.code === selectedSubjectCode);
     showToast(`បានរក្សាទុកពិន្ទុមុខវិជ្ជា «${activeSub?.nameKhmer || selectedSubjectCode}» សម្រាប់សិស្ស ${savedCount} នាក់ជោគជ័យ!`);
   };
 
@@ -1368,11 +1410,53 @@ export const ClassroomScores: React.FC = () => {
               </button>
             </div>
 
+            {/* Live Validation Warning Banner */}
+            {(() => {
+              const invalidFields: string[] = [];
+              const stdList = [
+                { key: 'khmerReading', name: 'ភាសាខ្មែរ (អំណាន)', max: 10 },
+                { key: 'khmerWriting', name: 'ភាសាខ្មែរ (សំណេរ)', max: 10 },
+                { key: 'mathematics', name: 'គណិតវិទ្យា', max: 10 },
+                { key: 'scienceSocial', name: 'វិទ្យាសាស្ត្រ និងសង្គម', max: 10 },
+                { key: 'moralCivics', name: 'សីលធម៌ និងពលរដ្ឋ', max: 10 },
+                { key: 'artsPhysical', name: 'សិល្បៈ និងកាយវិការ', max: 10 }
+              ];
+              stdList.forEach(item => {
+                const val = Number(singleScoreForm[item.key as keyof typeof singleScoreForm] ?? 0);
+                if (val < 0 || val > item.max) {
+                  invalidFields.push(`${item.name} (${val} > ${item.max})`);
+                }
+              });
+              examSubjects.filter(sub => !['khmerReading', 'khmerWriting', 'mathematics', 'scienceSocial', 'moralCivics', 'artsPhysical'].includes(sub.code)).forEach(sub => {
+                if (singleScoreForm[sub.code] !== undefined) {
+                  const val = Number(singleScoreForm[sub.code]);
+                  if (val < 0 || val > sub.maxScore) {
+                    invalidFields.push(`${sub.nameKhmer} (${val} > ${sub.maxScore})`);
+                  }
+                }
+              });
+
+              if (invalidFields.length > 0) {
+                return (
+                  <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5 text-xs text-red-800 animate-in fade-in duration-150">
+                    <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="font-bold">សារព្រមានផ្ទៀងផ្ទាត់ពិន្ទុ (Validation Alert):</strong>
+                      <p className="mt-0.5 text-[11px] leading-relaxed">
+                        ពិន្ទុមិនអាចលើសពីកម្រិតកំណត់ ឬតូចជាង ០ បានឡើយ។ សូមពិនិត្យ៖ <span className="font-bold underline">{invalidFields.join(', ')}</span>
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             <form onSubmit={handleSaveSingleScore} className="p-6 space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">
-                    ភាសាខ្មែរ (អំណាន) /10
+                    ភាសាខ្មែរ (អំណាន) <span className="text-slate-400 font-normal">/10</span>
                   </label>
                   <input
                     type="number"
@@ -1380,17 +1464,24 @@ export const ClassroomScores: React.FC = () => {
                     min="0"
                     max="10"
                     required
-                    value={singleScoreForm.khmerReading || 0}
+                    value={singleScoreForm.khmerReading ?? 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, khmerReading: Number(e.target.value) })
                     }
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm"
+                    className={`w-full px-3 py-2 bg-slate-50 border rounded-xl font-mono text-sm transition-colors ${
+                      Number(singleScoreForm.khmerReading ?? 0) > 10 || Number(singleScoreForm.khmerReading ?? 0) < 0
+                        ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
+                        : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
+                    }`}
                   />
+                  {Number(singleScoreForm.khmerReading ?? 0) > 10 && (
+                    <p className="text-[10px] text-red-600 font-semibold mt-1">⚠️ មិនអាចលើសពី ១០</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">
-                    ភាសាខ្មែរ (សំណេរ) /10
+                    ភាសាខ្មែរ (សំណេរ) <span className="text-slate-400 font-normal">/10</span>
                   </label>
                   <input
                     type="number"
@@ -1398,17 +1489,24 @@ export const ClassroomScores: React.FC = () => {
                     min="0"
                     max="10"
                     required
-                    value={singleScoreForm.khmerWriting || 0}
+                    value={singleScoreForm.khmerWriting ?? 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, khmerWriting: Number(e.target.value) })
                     }
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm"
+                    className={`w-full px-3 py-2 bg-slate-50 border rounded-xl font-mono text-sm transition-colors ${
+                      Number(singleScoreForm.khmerWriting ?? 0) > 10 || Number(singleScoreForm.khmerWriting ?? 0) < 0
+                        ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
+                        : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
+                    }`}
                   />
+                  {Number(singleScoreForm.khmerWriting ?? 0) > 10 && (
+                    <p className="text-[10px] text-red-600 font-semibold mt-1">⚠️ មិនអាចលើសពី ១០</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">
-                    គណិតវិទ្យា /10
+                    គណិតវិទ្យា <span className="text-slate-400 font-normal">/10</span>
                   </label>
                   <input
                     type="number"
@@ -1416,17 +1514,24 @@ export const ClassroomScores: React.FC = () => {
                     min="0"
                     max="10"
                     required
-                    value={singleScoreForm.mathematics || 0}
+                    value={singleScoreForm.mathematics ?? 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, mathematics: Number(e.target.value) })
                     }
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm"
+                    className={`w-full px-3 py-2 bg-slate-50 border rounded-xl font-mono text-sm transition-colors ${
+                      Number(singleScoreForm.mathematics ?? 0) > 10 || Number(singleScoreForm.mathematics ?? 0) < 0
+                        ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
+                        : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
+                    }`}
                   />
+                  {Number(singleScoreForm.mathematics ?? 0) > 10 && (
+                    <p className="text-[10px] text-red-600 font-semibold mt-1">⚠️ មិនអាចលើសពី ១០</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">
-                    វិទ្យាសាស្ត្រ និងសង្គម /10
+                    វិទ្យាសាស្ត្រ និងសង្គម <span className="text-slate-400 font-normal">/10</span>
                   </label>
                   <input
                     type="number"
@@ -1434,17 +1539,24 @@ export const ClassroomScores: React.FC = () => {
                     min="0"
                     max="10"
                     required
-                    value={singleScoreForm.scienceSocial || 0}
+                    value={singleScoreForm.scienceSocial ?? 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, scienceSocial: Number(e.target.value) })
                     }
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm"
+                    className={`w-full px-3 py-2 bg-slate-50 border rounded-xl font-mono text-sm transition-colors ${
+                      Number(singleScoreForm.scienceSocial ?? 0) > 10 || Number(singleScoreForm.scienceSocial ?? 0) < 0
+                        ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
+                        : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
+                    }`}
                   />
+                  {Number(singleScoreForm.scienceSocial ?? 0) > 10 && (
+                    <p className="text-[10px] text-red-600 font-semibold mt-1">⚠️ មិនអាចលើសពី ១០</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">
-                    សីលធម៌ និងពលរដ្ឋ /10
+                    សីលធម៌ និងពលរដ្ឋ <span className="text-slate-400 font-normal">/10</span>
                   </label>
                   <input
                     type="number"
@@ -1452,17 +1564,24 @@ export const ClassroomScores: React.FC = () => {
                     min="0"
                     max="10"
                     required
-                    value={singleScoreForm.moralCivics || 0}
+                    value={singleScoreForm.moralCivics ?? 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, moralCivics: Number(e.target.value) })
                     }
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm"
+                    className={`w-full px-3 py-2 bg-slate-50 border rounded-xl font-mono text-sm transition-colors ${
+                      Number(singleScoreForm.moralCivics ?? 0) > 10 || Number(singleScoreForm.moralCivics ?? 0) < 0
+                        ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
+                        : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
+                    }`}
                   />
+                  {Number(singleScoreForm.moralCivics ?? 0) > 10 && (
+                    <p className="text-[10px] text-red-600 font-semibold mt-1">⚠️ មិនអាចលើសពី ១០</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">
-                    សិល្បៈ និងកាយវិការ /10
+                    សិល្បៈ និងកាយវិការ <span className="text-slate-400 font-normal">/10</span>
                   </label>
                   <input
                     type="number"
@@ -1470,33 +1589,51 @@ export const ClassroomScores: React.FC = () => {
                     min="0"
                     max="10"
                     required
-                    value={singleScoreForm.artsPhysical || 0}
+                    value={singleScoreForm.artsPhysical ?? 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, artsPhysical: Number(e.target.value) })
                     }
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm"
+                    className={`w-full px-3 py-2 bg-slate-50 border rounded-xl font-mono text-sm transition-colors ${
+                      Number(singleScoreForm.artsPhysical ?? 0) > 10 || Number(singleScoreForm.artsPhysical ?? 0) < 0
+                        ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
+                        : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
+                    }`}
                   />
+                  {Number(singleScoreForm.artsPhysical ?? 0) > 10 && (
+                    <p className="text-[10px] text-red-600 font-semibold mt-1">⚠️ មិនអាចលើសពី ១០</p>
+                  )}
                 </div>
 
                 {/* Render any additional dynamic subjects */}
-                {examSubjects.filter(sub => !['khmerReading', 'khmerWriting', 'mathematics', 'scienceSocial', 'moralCivics', 'artsPhysical'].includes(sub.code)).map(sub => (
-                  <div key={sub.id}>
-                    <label className="block text-slate-700 font-bold mb-1">
-                      {sub.nameKhmer} /{sub.maxScore}
-                    </label>
-                    <input
-                      type="number"
-                      step="0.25"
-                      min="0"
-                      max={sub.maxScore}
-                      value={singleScoreForm[sub.code] ?? 8.0}
-                      onChange={(e) =>
-                        setSingleScoreForm({ ...singleScoreForm, [sub.code]: Number(e.target.value) })
-                      }
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm"
-                    />
-                  </div>
-                ))}
+                {examSubjects.filter(sub => !['khmerReading', 'khmerWriting', 'mathematics', 'scienceSocial', 'moralCivics', 'artsPhysical'].includes(sub.code)).map(sub => {
+                  const val = Number(singleScoreForm[sub.code] ?? 8.0);
+                  const isInvalid = val > sub.maxScore || val < 0;
+                  return (
+                    <div key={sub.id}>
+                      <label className="block text-slate-700 font-bold mb-1">
+                        {sub.nameKhmer} <span className="text-slate-400 font-normal">/{sub.maxScore}</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.25"
+                        min="0"
+                        max={sub.maxScore}
+                        value={singleScoreForm[sub.code] ?? 8.0}
+                        onChange={(e) =>
+                          setSingleScoreForm({ ...singleScoreForm, [sub.code]: Number(e.target.value) })
+                        }
+                        className={`w-full px-3 py-2 bg-slate-50 border rounded-xl font-mono text-sm transition-colors ${
+                          isInvalid
+                            ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
+                            : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
+                        }`}
+                      />
+                      {isInvalid && (
+                        <p className="text-[10px] text-red-600 font-semibold mt-1">⚠️ មិនអាចលើសពី {sub.maxScore}</p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               <div>

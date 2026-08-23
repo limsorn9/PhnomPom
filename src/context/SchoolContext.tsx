@@ -64,6 +64,13 @@ import {
   syncPendingReportsToFirestore
 } from '../services/offlineSyncService';
 import {
+  showBrowserPushNotification,
+  generateScoreDeadlineReminder,
+  generateSchoolActivityReminder,
+  buildNotification,
+  SendNotificationPayload
+} from '../services/fcmNotificationService';
+import {
   initialSchoolProfile,
   initialTeachers,
   initialClassrooms,
@@ -365,6 +372,22 @@ interface SchoolContextType {
   addActivityLog: (activity: Omit<ActivityLogItem, 'id' | 'timestamp'>) => void;
   updateActivityLogs: (logs: ActivityLogItem[]) => void;
   clearActivityLogs: () => void;
+
+  // FCM & Push Notifications
+  dispatchNotification: (payload: {
+    title: string;
+    message: string;
+    type: 'score_deadline' | 'school_event' | 'alert' | 'info' | 'system' | 'fcm_push';
+    targetRole?: UserRole | 'all';
+    targetTeacherGrade?: number;
+    targetTeacherSection?: string;
+    priority?: 'normal' | 'high' | 'urgent';
+    deadlineDate?: string;
+    actionTab?: ActiveTab;
+    meta?: Record<string, any>;
+  }) => void;
+  dispatchScoreDeadlineAlert: (monthOrSemester: string, deadlineDate: string, targetGrade?: number, targetSection?: string) => void;
+  dispatchSchoolEventAlert: (eventTitle: string, eventDate: string, location?: string, targetRole?: UserRole | 'all') => void;
 
   // Cloud Firestore Sync State & Controls (ការផ្ទុក និងធ្វើសមកាលកម្មលើពពក)
   isCloudSyncing: boolean;
@@ -2275,7 +2298,38 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       timestamp: new Date().toLocaleString('km-KH'),
       read: false
     };
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      showBrowserPushNotification(newNotif.title, newNotif.message);
+    }
     setNotifications(prev => [newNotif, ...prev]);
+  };
+
+  const dispatchNotification = (payload: SendNotificationPayload) => {
+    const notif = buildNotification(payload);
+    setNotifications(prev => [notif, ...prev]);
+    setToastMessage({ text: `បានផ្ញើសារដំណឹង «${payload.title}» ជោគជ័យ!`, type: 'info' });
+  };
+
+  const dispatchScoreDeadlineAlert = (
+    monthOrSemester: string,
+    deadlineDate: string,
+    targetGrade?: number,
+    targetSection?: string
+  ) => {
+    const notif = generateScoreDeadlineReminder(monthOrSemester, deadlineDate, targetGrade, targetSection);
+    setNotifications(prev => [notif, ...prev]);
+    setToastMessage({ text: `បានផ្ញើសាររំលឹកកាលបរិច្ឆេទបញ្ចូលពិន្ទុ (${monthOrSemester}) ជោគជ័យ!`, type: 'success' });
+  };
+
+  const dispatchSchoolEventAlert = (
+    eventTitle: string,
+    eventDate: string,
+    location?: string,
+    targetRole?: UserRole | 'all'
+  ) => {
+    const notif = generateSchoolActivityReminder(eventTitle, eventDate, location, targetRole);
+    setNotifications(prev => [notif, ...prev]);
+    setToastMessage({ text: `បានផ្សព្វផ្សាយដំណឹងកម្មវិធីសាលា «${eventTitle}» ជោគជ័យ!`, type: 'info' });
   };
 
   const markNotificationRead = (id: string) => {
@@ -3371,6 +3425,9 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         addActivityLog,
         updateActivityLogs,
         clearActivityLogs,
+        dispatchNotification,
+        dispatchScoreDeadlineAlert,
+        dispatchSchoolEventAlert,
         isCloudSyncing,
         lastCloudSyncTime,
         syncAllToCloud,

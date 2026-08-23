@@ -1,6 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { Student, StudentScoreRecord, DailyAttendanceRecord, Gender } from '../types';
+import { printElement, downloadElementAsPdf } from '../utils/printUtils';
 import {
   LineChart,
   Line,
@@ -50,7 +51,12 @@ import {
   ShieldCheck,
   Lock,
   ArrowLeft,
-  School
+  School,
+  Download,
+  FileText,
+  Layers,
+  Table,
+  Check
 } from 'lucide-react';
 
 const MONTH_ORDER = [
@@ -428,9 +434,91 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
     };
   }, [filteredStudents, scores, attendanceRecords]);
 
+  // Dashboard Canvas Ref & Export States
+  const dashboardCanvasRef = useRef<HTMLDivElement>(null);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
   // Handlers
   const handlePrint = () => {
-    window.print();
+    if (dashboardCanvasRef.current) {
+      printElement(dashboardCanvasRef.current, {
+        landscape: true,
+        pageTitle: `របាយការណ៍វិភាគសមិទ្ធផលសិក្សា_${schoolProfile.nameKhmer || 'សាលារៀន'}`
+      });
+    } else {
+      window.print();
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!dashboardCanvasRef.current) return;
+    setIsExportingPdf(true);
+    try {
+      const studentSuffix = activeStudent ? `_${activeStudent.nameKhmer}` : '';
+      const filename = `របាយការណ៍វិភាគសមិទ្ធផល_${schoolProfile.nameKhmer || 'សាលារៀន'}${studentSuffix}.pdf`;
+      await downloadElementAsPdf(dashboardCanvasRef.current, filename, {
+        landscape: true
+      });
+      showToast('បានទាញយករបាយការណ៍ PDF ជោគជ័យ!', 'success');
+    } catch (err) {
+      console.error('Failed to export PDF:', err);
+      showToast('បរាជ័យក្នុងការទាញយក PDF', 'error');
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  const handleExportExcel = () => {
+    const rows: string[][] = [
+      ['ល.រ', 'អត្តលេខ', 'គោត្តនាម-នាម', 'ភេទ', 'កម្រិតថ្នាក់', 'បន្ទប់', 'ខែ/ឆមាស', 'អំណាន', 'សរសេរ', 'គណិតវិទ្យា', 'វិទ្យាសាស្ត្រ', 'សិក្សាសង្គម', 'សីលធម៌-ពលរដ្ឋ', 'សិល្បៈ/កីឡា', 'ពិន្ទុសរុប', 'មធ្យមភាគ', 'ចំណាត់ថ្នាក់', 'និទ្ទេស', 'លទ្ធផល', 'វត្តមាន %']
+    ];
+
+    filteredStudents.forEach((st, idx) => {
+      const studScores = scores.filter(s => s.studentId === st.id);
+      const latestScore = selectedMonth === 'all'
+        ? (studScores[studScores.length - 1] || null)
+        : (studScores.find(s => s.monthOrSemester === selectedMonth) || null);
+
+      const studAtt = attendanceRecords.filter(a => a.studentId === st.id);
+      const totalAtt = studAtt.length || 1;
+      const presentCount = studAtt.filter(a => a.status === 'present').length;
+      const attRate = ((presentCount / totalAtt) * 100).toFixed(0);
+
+      rows.push([
+        String(idx + 1),
+        st.code,
+        `"${st.nameKhmer}"`,
+        st.gender === 'F' || st.gender === 'female' ? 'ស្រី' : 'ប្រុស',
+        String(st.grade),
+        st.section,
+        latestScore?.monthOrSemester || selectedMonth,
+        String(latestScore?.scores?.khmerReading ?? latestScore?.scores?.reading ?? '—'),
+        String(latestScore?.scores?.khmerWriting ?? latestScore?.scores?.writing ?? '—'),
+        String(latestScore?.scores?.math ?? '—'),
+        String(latestScore?.scores?.science ?? '—'),
+        String(latestScore?.scores?.socialStudies ?? '—'),
+        String(latestScore?.scores?.moralCivics ?? '—'),
+        String(latestScore?.scores?.artsPE ?? '—'),
+        String(latestScore?.totalScore ?? '—'),
+        String(latestScore?.averageScore ?? '—'),
+        String(latestScore?.rank ?? '—'),
+        latestScore?.gradeLetter || '—',
+        latestScore?.resultStatus || (latestScore && latestScore.averageScore >= 5 ? 'ជាប់' : '—'),
+        `${attRate}%`
+      ]);
+    });
+
+    const csvContent = '\uFEFF' + rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `តារាងវិភាគសមិទ្ធផលសិក្សា_${schoolProfile.nameKhmer || 'សាលារៀន'}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('បានទាញយកឯកសារ Excel (CSV) ជោគជ័យ!', 'success');
   };
 
   // 1. Hard Security Gate: If overall access is denied
@@ -506,7 +594,7 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
   }
 
   return (
-    <div className="space-y-6">
+    <div ref={dashboardCanvasRef} className="space-y-6">
       {/* Top Banner & Mode Selector */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm no-print">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
@@ -564,19 +652,38 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
             {onBackToRoster && (
               <button
                 onClick={onBackToRoster}
-                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer"
+                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <Users className="w-4 h-4" />
-                <span>ត្រឡប់ទៅបញ្ជីសិស្ស</span>
+                <span>បញ្ជីសិស្ស</span>
               </button>
             )}
 
             <button
+              onClick={handleExportPdf}
+              disabled={isExportingPdf}
+              className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
+              title="ទាញយកជារបាយការណ៍ PDF"
+            >
+              <Download className="w-4 h-4" />
+              <span>{isExportingPdf ? 'កំពុងបង្កើត...' : 'ទាញយក PDF'}</span>
+            </button>
+
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center gap-1.5 px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
+              title="ទាញយកជាតារាង Excel/CSV"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>ទាញយក Excel</span>
+            </button>
+
+            <button
               onClick={handlePrint}
-              className="px-5 py-2.5 bg-blue-800 hover:bg-blue-900 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-200 transition-all flex items-center gap-2 cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-800 hover:bg-blue-900 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-200 transition-all cursor-pointer"
             >
               <Printer className="w-4 h-4" />
-              <span>បោះពុម្ពរបាយការណ៍វិភាគ</span>
+              <span>បោះពុម្ព (Print)</span>
             </button>
           </div>
         </div>
@@ -1023,6 +1130,138 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
           </div>
         </div>
       </div>
+
+      {/* Actionable Remedial & Diagnostic Recommendations */}
+      {analysisView === 'class_overview' && (
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div>
+              <h3 className="font-bold text-base font-moul text-blue-950 flex items-center gap-2">
+                <Table className="w-5 h-5 text-blue-700" />
+                <span>តារាងប្រៀបធៀបគុណភាពសិក្សាសិស្សទូទាំងថ្នាក់ (Class Academic Comparison Table)</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                ចុចលើប៊ូតុង «ពិនិត្យទិដ្ឋភាពសិស្ស» ដើម្បីប្តូរទៅកាន់ផ្ទាំងវិភាគស៊ីជម្រៅរបស់សិស្សម្នាក់ៗភ្លាមៗ
+              </p>
+            </div>
+
+            <div className="relative min-w-[220px]">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={searchStudentText}
+                onChange={e => setSearchStudentText(e.target.value)}
+                placeholder="ស្វែងរកតាមឈ្មោះ ឬអត្តលេខ..."
+                className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="w-full text-xs text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                  <th className="py-3 px-3 text-center w-12">ល.រ</th>
+                  <th className="py-3 px-3">អត្តលេខ</th>
+                  <th className="py-3 px-3">គោត្តនាម-នាម</th>
+                  <th className="py-3 px-3 text-center">ភេទ</th>
+                  <th className="py-3 px-3 text-center">ថ្នាក់</th>
+                  <th className="py-3 px-3 text-center">មធ្យមភាគ</th>
+                  <th className="py-3 px-3 text-center">ចំណាត់ថ្នាក់</th>
+                  <th className="py-3 px-3 text-center">និទ្ទេស</th>
+                  <th className="py-3 px-3 text-center">វត្តមាន</th>
+                  <th className="py-3 px-3 text-center">សកម្មភាព</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredStudents
+                  .filter(st =>
+                    searchStudentText.trim() === '' ||
+                    st.nameKhmer.toLowerCase().includes(searchStudentText.toLowerCase()) ||
+                    st.code.toLowerCase().includes(searchStudentText.toLowerCase())
+                  )
+                  .map((st, idx) => {
+                    const studScores = scores.filter(s => s.studentId === st.id);
+                    const latestScore = selectedMonth === 'all'
+                      ? (studScores[studScores.length - 1] || null)
+                      : (studScores.find(s => s.monthOrSemester === selectedMonth) || null);
+
+                    const studAtt = attendanceRecords.filter(a => a.studentId === st.id);
+                    const totalAtt = studAtt.length || 1;
+                    const presentCount = studAtt.filter(a => a.status === 'present').length;
+                    const attRate = ((presentCount / totalAtt) * 100).toFixed(0);
+
+                    const avg = latestScore?.averageScore ?? 0;
+                    const gradeLetter = latestScore?.gradeLetter || (avg >= 8.5 ? 'A' : avg >= 7 ? 'B' : avg >= 6 ? 'C' : avg >= 5 ? 'D' : 'E');
+
+                    return (
+                      <tr key={st.id} className="hover:bg-blue-50/50 transition-colors">
+                        <td className="py-2.5 px-3 text-center text-slate-500 font-medium">{idx + 1}</td>
+                        <td className="py-2.5 px-3 font-mono font-bold text-slate-700">{st.code}</td>
+                        <td className="py-2.5 px-3">
+                          <div className="font-bold text-slate-900">{st.nameKhmer}</div>
+                          <div className="text-[10px] text-slate-400 font-times uppercase">{st.nameLatin}</div>
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className={`px-2 py-0.5 rounded-md font-semibold text-[11px] ${
+                            st.gender === 'F' || st.gender === 'female'
+                              ? 'bg-pink-50 text-pink-700 border border-pink-100'
+                              : 'bg-blue-50 text-blue-700 border border-blue-100'
+                          }`}>
+                            {st.gender === 'F' || st.gender === 'female' ? 'ស្រី' : 'ប្រុស'}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-bold text-slate-700">
+                          {st.grade}{st.section}
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className={`font-bold ${
+                            avg >= 8.5 ? 'text-emerald-700' : avg >= 5.0 ? 'text-blue-700' : 'text-rose-600'
+                          }`}>
+                            {latestScore ? avg.toFixed(2) : '—'}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-bold text-slate-800">
+                          {latestScore?.rank ? `លេខ ${latestScore.rank}` : '—'}
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          {latestScore ? (
+                            <span
+                              className="px-2 py-0.5 rounded-md font-bold text-[11px] text-white"
+                              style={{ backgroundColor: GRADE_COLORS[gradeLetter] || '#94a3b8' }}
+                            >
+                              {gradeLetter}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className={`font-bold ${Number(attRate) >= 90 ? 'text-emerald-700' : 'text-amber-700'}`}>
+                            {attRate}%
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedStudentId(st.id);
+                              setAnalysisView('individual_deepdive');
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] border border-indigo-200 transition-all flex items-center gap-1 mx-auto cursor-pointer"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>ពិនិត្យទិដ្ឋភាពសិស្ស</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Actionable Remedial & Diagnostic Recommendations */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
