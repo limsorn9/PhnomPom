@@ -6,7 +6,7 @@ import { defineConfig } from 'vite';
 export default defineConfig(({ command }) => {
   return {
     plugins: [react(), tailwindcss()],
-    base: '/PhnomPom/', // កំណត់ path សម្រាប់ GitHub Pages
+    base: '/',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
