@@ -45,6 +45,7 @@ import {
 } from 'lucide-react';
 import { NotificationsModal } from './NotificationsModal';
 import { OfflineSyncStatusBadge } from './OfflineSyncStatusBadge';
+import { InactivityTimeoutCountdown } from './InactivityTimeoutCountdown';
 
 interface HeaderProps {
   onToggleMobileSidebar: () => void;
@@ -341,6 +342,9 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Side: Quick Search, Role Switcher, Notifications & Auth Profile */}
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          {/* Visual Inactivity Timeout Warning & Countdown Timer */}
+          <InactivityTimeoutCountdown />
+
           {/* Global Search Input & Quick Spotlight Search Trigger */}
           <div className="relative hidden md:block w-44 lg:w-56">
             <button

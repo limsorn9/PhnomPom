@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { AppUser, UserRole, ProfileEditRequest } from '../types';
+import { SecurityAndSessionManager } from './SecurityAndSessionManager';
+import { SecurityLogsTab } from './SecurityLogsTab';
+import { SecurityPatternsDashboard } from './SecurityPatternsDashboard';
+import { ForgotPasswordModal } from './ForgotPasswordModal';
+import { PasswordStrengthIndicator, evaluatePassword } from './PasswordStrengthIndicator';
 import {
   Users,
   UserPlus,
@@ -26,7 +31,16 @@ import {
   Check,
   X,
   Clock,
-  ArrowRight
+  ArrowRight,
+  ShieldCheck,
+  Laptop,
+  Smartphone,
+  Send,
+  RotateCcw,
+  Sparkles,
+  BarChart3,
+  RefreshCw,
+  AlertOctagon
 } from 'lucide-react';
 
 export const AccountsManagement: React.FC = () => {
@@ -45,11 +59,91 @@ export const AccountsManagement: React.FC = () => {
     rejectProfileEditRequest
   } = useSchool();
 
-  const [activeTab, setActiveTab] = useState<'accounts' | 'edit_requests'>('accounts');
+  const [activeTab, setActiveTab] = useState<'accounts' | 'security_sessions' | 'security_logs' | 'edit_requests'>('accounts');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<AppUser | null>(null);
+  const [forgotPasswordUser, setForgotPasswordUser] = useState<AppUser | null>(null);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [dismiss90DayNotice, setDismiss90DayNotice] = useState(false);
+  const [showBulkForceConfirmModal, setShowBulkForceConfirmModal] = useState(false);
+  const [showPatternsPanel, setShowPatternsPanel] = useState(true);
+
+  // Mandatory Force Password Update for Current User
+  const [mandatoryNewPassword, setMandatoryNewPassword] = useState('');
+  const [mandatoryConfirmPassword, setMandatoryConfirmPassword] = useState('');
+
+  // Edit user state
+  const [editPasswordInput, setEditPasswordInput] = useState('');
+
+  // 90-day Password Rotation Calculation
+  const calculateDaysSincePasswordChange = (user: AppUser | null): number => {
+    if (!user) return 0;
+    const dateStr = user.passwordUpdatedAt || user.createdAt;
+    if (!dateStr) return 96;
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    return user.passwordUpdatedAt ? Math.max(days, 0) : 96; // 96 days default to encourage periodic rotation
+  };
+
+  const daysSincePasswordUpdate = calculateDaysSincePasswordChange(currentUser);
+  const isPasswordRotationNeeded = daysSincePasswordUpdate >= 90 && !dismiss90DayNotice;
+
+  // Bulk force password rotation for all staff accounts
+  const handleBulkForceStaffPasswordUpdate = () => {
+    let affectedCount = 0;
+    appUsers.forEach(u => {
+      if (u.role !== 'student') {
+        updateUser(u.id, { forcePasswordChange: true });
+        affectedCount++;
+      }
+    });
+    showToast(
+      `បានកំណត់ឱ្យគណនីបុគ្គលិក និងលោកគ្រូ-អ្នកគ្រូចំនួន ${affectedCount} នាក់ ត្រូវតែផ្លាស់ប្តូរពាក្យសម្ងាត់ជាកំហិត (Mandatory Password Rotation) ពេលចូលប្រើបន្ទាប់!`,
+      'success'
+    );
+    setShowBulkForceConfirmModal(false);
+  };
+
+  // Toggle individual force password change
+  const handleToggleForcePasswordChange = (user: AppUser) => {
+    const nextVal = !user.forcePasswordChange;
+    updateUser(user.id, { forcePasswordChange: nextVal });
+    showToast(
+      nextVal
+        ? `បានកំណត់តម្រូវឱ្យ «${user.nameKhmer}» ផ្លាស់ប្តូរពាក្យសម្ងាត់ជាកំហិតពេលចូលប្រើបន្ទាប់!`
+        : `បានដកចេញការបង្ខំឱ្យប្តូរពាក្យសម្ងាត់សម្រាប់ «${user.nameKhmer}»!`,
+      'info'
+    );
+  };
+
+  // Handle mandatory password rotation submission for currently logged in user
+  const handleMandatoryPasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+
+    if (mandatoryNewPassword !== mandatoryConfirmPassword) {
+      showToast('ពាក្យសម្ងាត់ទាំងពីរមិនដូចគ្នាទេ! សូមផ្ទៀងផ្ទាត់ឡើងវិញ', 'error');
+      return;
+    }
+
+    const strength = evaluatePassword(mandatoryNewPassword);
+    if (!strength.isValid) {
+      showToast('ពាក្យសម្ងាត់ថ្មីមិនទាន់បំពេញតាមលក្ខខណ្ឌសុវត្ថិភាពទាំង ៤ ខាងក្រោមនៅឡើយទេ!', 'error');
+      return;
+    }
+
+    updateUser(currentUser.id, {
+      password: mandatoryNewPassword,
+      passwordUpdatedAt: new Date().toISOString(),
+      forcePasswordChange: false
+    });
+
+    showToast('បានធ្វើបច្ចុប្បន្នភាពពាក្យសម្ងាត់សុវត្ថិភាពថ្មីដោយជោគជ័យ! អ្នកអាចបន្តការងារបានដោយសុវត្ថិភាព', 'success');
+    setMandatoryNewPassword('');
+    setMandatoryConfirmPassword('');
+  };
 
   // New Account Form State
   const [newUsername, setNewUsername] = useState('');
@@ -125,6 +219,12 @@ export const AccountsManagement: React.FC = () => {
       return;
     }
 
+    const strength = evaluatePassword(newPassword);
+    if (!strength.isValid) {
+      showToast('សូមកំណត់ពាក្យសម្ងាត់ឱ្យបានរឹងមាំតាមលក្ខខណ្ឌសុវត្ថិភាព (យ៉ាងតិច ៨ តួ, អក្សរធំ-តូច, លេខ, និងនិមិត្តសញ្ញា)!', 'error');
+      return;
+    }
+
     const payload: Omit<AppUser, 'id' | 'createdAt'> = {
       username: newUsername || newEmail.split('@')[0],
       email: newEmail,
@@ -137,7 +237,8 @@ export const AccountsManagement: React.FC = () => {
       studentCode: newRole === 'student' ? newStudentCode : undefined,
       assignedGrade: newRole === 'teacher' || newRole === 'student' ? newAssignedGrade : undefined,
       assignedSection: newRole === 'teacher' || newRole === 'student' ? newAssignedSection : undefined,
-      status: 'active'
+      status: 'active',
+      passwordUpdatedAt: new Date().toISOString()
     };
 
     const res = addUser(payload);
@@ -150,7 +251,7 @@ export const AccountsManagement: React.FC = () => {
   const resetForm = () => {
     setNewUsername('');
     setNewEmail('');
-    setNewPassword('password123');
+    setNewPassword('');
     setNewNameKhmer('');
     setNewNameLatin('');
     setNewPhone('');
@@ -204,7 +305,7 @@ export const AccountsManagement: React.FC = () => {
 
         {/* Action Button & Tab Switcher */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl">
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl flex-wrap">
             <button
               onClick={() => setActiveTab('accounts')}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
@@ -212,6 +313,24 @@ export const AccountsManagement: React.FC = () => {
               }`}
             >
               បញ្ជីគណនី ({appUsers.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('security_sessions')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'security_sessions' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>សម័យកាល & MFA (2FA)</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('security_logs')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'security_logs' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>Security Logs</span>
             </button>
             <button
               onClick={() => setActiveTab('edit_requests')}
@@ -228,6 +347,30 @@ export const AccountsManagement: React.FC = () => {
               )}
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setForgotPasswordUser(currentUser);
+              setShowForgotPasswordModal(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
+          >
+            <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Forgot Password?</span>
+          </button>
+
+          {isDirector && (
+            <button
+              type="button"
+              onClick={() => setShowBulkForceConfirmModal(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
+              title="កំណត់ឱ្យគណនីបុគ្គលិកទាំងអស់ត្រូវតែផ្លាស់ប្តូរពាក្យសម្ងាត់ពេលចូលប្រើបន្ទាប់"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
+              <span>បង្ខំបុគ្គលិកប្តូរពាក្យសម្ងាត់ (Force Rotation)</span>
+            </button>
+          )}
 
           {(isDirector || isTeacher) && (
             <button
@@ -247,15 +390,88 @@ export const AccountsManagement: React.FC = () => {
         </div>
       </div>
 
-      {activeTab === 'accounts' ? (
+      {/* 90-Day Password Rotation Warning Alert */}
+      {isPasswordRotationNeeded && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-amber-500/10 border-2 border-amber-400/80 rounded-2xl p-4 text-xs text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-md animate-fade-in">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm animate-pulse">
+              <KeyRound className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-moul text-xs sm:text-sm text-amber-950 font-bold">
+                  ការដាស់តឿនសុវត្ថិភាព៖ ដល់ពេលផ្លាស់ប្តូរពាក្យសម្ងាត់ហើយ (Password Rotation Required)
+                </span>
+                <span className="px-2 py-0.5 bg-rose-100 text-rose-800 rounded-full font-mono font-bold text-[10px] border border-rose-200">
+                  {daysSincePasswordUpdate} ថ្ងៃមិនទាន់ផ្លាស់ប្តូរ
+                </span>
+              </div>
+              <p className="text-slate-700 text-[11.5px] mt-1 leading-relaxed">
+                ពាក្យសម្ងាត់គណនីរបស់អ្នកមិនទាន់ត្រូវបានផ្លាស់ប្តូរក្នុងរយៈពេលជាង <strong>៩០ ថ្ងៃ</strong> មកហើយ។ យោងតាមគោលការណ៍សុវត្ថិភាពសាលា សូមផ្លាស់ប្តូរពាក្យសម្ងាត់ជាទៀងទាត់ (Credential Rotation) ដើម្បីធានាសុវត្ថិភាព និងការពារការជ្រៀតចូល។
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                if (currentUser) {
+                  setSelectedUserForEdit(currentUser);
+                  setEditPasswordInput('');
+                }
+              }}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>ផ្លាស់ប្តូរពាក្យសម្ងាត់ឥឡូវនេះ</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDismiss90DayNotice(true)}
+              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-amber-100/50 rounded-xl transition-all cursor-pointer"
+              title="បិទការជូនដំណឹង"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'accounts' && (
         <>
+          {/* Security Patterns Dashboard Collapsible Widget */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setShowPatternsPanel(!showPatternsPanel)}
+                className="text-xs font-bold text-slate-700 hover:text-indigo-700 flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+              >
+                <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
+                <span>{showPatternsPanel ? 'លាក់ផ្ទាំងវិភាគសុវត្ថិភាព (Hide Security Analytics)' : 'បង្ហាញផ្ទាំងវិភាគសុវត្ថិភាព (Show Security Patterns & Login Analytics)'}</span>
+              </button>
+            </div>
+
+            {showPatternsPanel && (
+              <SecurityPatternsDashboard
+                onFilterByStatus={() => {
+                  setActiveTab('security_logs');
+                }}
+                onFilterByMethod={() => {
+                  setActiveTab('security_logs');
+                }}
+              />
+            )}
+          </div>
+
           {/* Role Hierarchy Notification Rule Banner */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 rounded-2xl p-4 text-xs text-blue-900 flex items-start gap-3 shadow-sm">
             <ShieldAlert className="w-5 h-5 text-blue-700 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="font-bold text-slate-900">គោលការណ៍បង្កើតគណនីតាមឋានានុក្រម MoEYS៖</p>
               <ul className="list-disc list-inside space-y-0.5 text-slate-700 text-[11.5px]">
-                <li><strong>នាយកសាលា (Director)៖</strong> មានសិទ្ធិបង្កើត និងគ្រប់គ្រងគណនីគ្រប់តួនាទី និងចូលមើល Master Access បាន។</li>
+                <li><strong>នាយកសាលា (Director)៖</strong> មានសិទ្ធិបង្កើត និងគ្រប់គ្រងគណនីគ្រប់តួនាទី បង្ខំឱ្យប្តូរពាក្យសម្ងាត់ (Force Rotation) និងចូលមើល Master Access បាន។</li>
                 <li><strong>គ្រូបន្ទុកថ្នាក់ (Homeroom Teacher)៖</strong> មានសិទ្ធិបង្កើត និងគ្រប់គ្រងគណនីសម្រាប់តែ <strong>សិស្សក្នុងបន្ទុកថ្នាក់របស់ខ្លួន</strong> ប៉ុណ្ណោះ។</li>
                 <li><strong>ការស្តារពាក្យសម្ងាត់៖</strong> Auto-verification តាមលេខកូដសាលា រីឯសិស្ស auto-reset ជូនគ្រូបន្ទុកថ្នាក់។</li>
               </ul>
@@ -343,7 +559,7 @@ export const AccountsManagement: React.FC = () => {
                     <th className="px-4 py-3">អ៊ីមែល / ឈ្មោះចូល</th>
                     <th className="px-4 py-3">អត្តលេខ / ថ្នាក់</th>
                     <th className="px-4 py-3">លេខទូរស័ព្ទ</th>
-                    <th className="px-4 py-3">ស្ថានភាព</th>
+                    <th className="px-4 py-3">ស្ថានភាព & សន្តិសុខ</th>
                     <th className="px-4 py-3 text-center">សកម្មភាព</th>
                   </tr>
                 </thead>
@@ -388,15 +604,23 @@ export const AccountsManagement: React.FC = () => {
                       </td>
 
                       <td className="px-4 py-3">
-                        {user.status === 'active' ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[11px] font-bold border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3" /> សកម្ម
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-red-700 bg-red-50 px-2 py-0.5 rounded-full text-[11px] font-bold border border-red-200">
-                            <AlertTriangle className="w-3 h-3" /> ផ្អាក
-                          </span>
-                        )}
+                        <div className="space-y-1">
+                          {user.status === 'active' ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[11px] font-bold border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3" /> សកម្ម
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-red-700 bg-red-50 px-2 py-0.5 rounded-full text-[11px] font-bold border border-red-200">
+                              <AlertTriangle className="w-3 h-3" /> ផ្អាក
+                            </span>
+                          )}
+
+                          {user.forcePasswordChange && (
+                            <span className="block text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-md">
+                              🔄 ត្រូវប្តូរពាក្យសម្ងាត់
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td className="px-4 py-3 text-center">
@@ -411,10 +635,30 @@ export const AccountsManagement: React.FC = () => {
                                 }
                               }}
                               title="ចូលប្រើជាគណនីនេះ (Director Master Login)"
-                              className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-[11px] font-bold border border-amber-200 flex items-center gap-1 transition-colors"
+                              className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-[11px] font-bold border border-amber-200 flex items-center gap-1 transition-colors cursor-pointer"
                             >
                               <LogIn className="w-3.5 h-3.5 text-amber-600" />
                               <span>ចូលប្រើ</span>
+                            </button>
+                          )}
+
+                          {/* Director Force Password Toggle Button */}
+                          {isDirector && (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleForcePasswordChange(user)}
+                              title={
+                                user.forcePasswordChange
+                                  ? 'ដកចេញការតម្រូវឱ្យផ្លាស់ប្តូរពាក្យសម្ងាត់'
+                                  : 'កំណត់ឱ្យគណនីនេះផ្លាស់ប្តូរពាក្យសម្ងាត់ជាកំហិត (Force Password Rotation)'
+                              }
+                              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                                user.forcePasswordChange
+                                  ? 'text-rose-600 bg-rose-50 hover:bg-rose-100'
+                                  : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                              }`}
+                            >
+                              <RotateCcw className="w-4 h-4" />
                             </button>
                           )}
 
@@ -422,9 +666,21 @@ export const AccountsManagement: React.FC = () => {
                             type="button"
                             onClick={() => setSelectedUserForEdit(user)}
                             title="កែប្រែ / ប្តូរពាក្យសម្ងាត់"
-                            className="p-1.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-1.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                           >
                             <Edit2 className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setForgotPasswordUser(user);
+                              setShowForgotPasswordModal(true);
+                            }}
+                            title="ផ្ញើ Password Reset Email តាម Firebase Auth"
+                            className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Send className="w-4 h-4" />
                           </button>
 
                           {isDirector && user.id !== currentUser?.id && (
@@ -436,7 +692,7 @@ export const AccountsManagement: React.FC = () => {
                                 }
                               }}
                               title="លុបគណនី"
-                              className="p-1.5 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                              className="p-1.5 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -450,7 +706,24 @@ export const AccountsManagement: React.FC = () => {
             </div>
           </div>
         </>
-      ) : (
+      )}
+
+      {activeTab === 'security_sessions' && (
+        <SecurityAndSessionManager
+          currentUser={currentUser}
+          onUpdateUser={updateUser}
+          onShowToast={showToast}
+        />
+      )}
+
+      {activeTab === 'security_logs' && (
+        <SecurityLogsTab
+          currentUser={currentUser}
+          onShowToast={showToast}
+        />
+      )}
+
+      {activeTab === 'edit_requests' && (
         /* Edit Requests Approval Center */
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
@@ -628,12 +901,19 @@ export const AccountsManagement: React.FC = () => {
                     type="password"
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="បញ្ចូលពាក្យសម្ងាត់ (ឧ. Admin@2025#)"
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none font-mono"
                     required
                   />
                 </div>
               </div>
+
+              {/* Password Strength Validator for New Account */}
+              {newPassword && (
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <PasswordStrengthIndicator password={newPassword} />
+                </div>
+              )}
 
               {newRole === 'student' ? (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -724,7 +1004,7 @@ export const AccountsManagement: React.FC = () => {
       {/* Modal: Edit User / Change Password */}
       {selectedUserForEdit && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
@@ -732,13 +1012,16 @@ export const AccountsManagement: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-moul text-sm text-slate-800">កែប្រែគណនី & ពាក្យសម្ងាត់</h3>
-                  <p className="text-[11px] text-slate-500">{selectedUserForEdit.nameKhmer}</p>
+                  <p className="text-[11px] text-slate-500">{selectedUserForEdit.nameKhmer} ({selectedUserForEdit.email})</p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setSelectedUserForEdit(null)}
-                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center"
+                onClick={() => {
+                  setSelectedUserForEdit(null);
+                  setEditPasswordInput('');
+                }}
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer"
               >
                 ✕
               </button>
@@ -747,16 +1030,39 @@ export const AccountsManagement: React.FC = () => {
             <form
               onSubmit={e => {
                 e.preventDefault();
-                updateUser(selectedUserForEdit.id, {
+                
+                // If a new password is typed, check password strength requirements
+                if (editPasswordInput.trim()) {
+                  const strength = evaluatePassword(editPasswordInput);
+                  if (!strength.isValid) {
+                    showToast('ពាក្យសម្ងាត់ថ្មីមិនទាន់បំពេញតាមលក្ខខណ្ឌសុវត្ថិភាពទាំង ៤ ខាងក្រោមនៅឡើយទេ!', 'error');
+                    return;
+                  }
+                }
+
+                const updatedData: Partial<AppUser> = {
                   nameKhmer: selectedUserForEdit.nameKhmer,
                   email: selectedUserForEdit.email,
                   phone: selectedUserForEdit.phone,
-                  password: selectedUserForEdit.password,
                   status: selectedUserForEdit.status
-                });
+                };
+
+                if (editPasswordInput.trim()) {
+                  updatedData.password = editPasswordInput;
+                  updatedData.passwordUpdatedAt = new Date().toISOString();
+                }
+
+                updateUser(selectedUserForEdit.id, updatedData);
+                showToast(
+                  editPasswordInput.trim()
+                    ? 'បានធ្វើបច្ចុប្បន្នភាពគណនី និងផ្លាស់ប្តូរពាក្យសម្ងាត់ថ្មីដោយជោគជ័យ!'
+                    : 'បានធ្វើបច្ចុប្បន្នភាពព័ត៌មានគណនីដោយជោគជ័យ!',
+                  'success'
+                );
                 setSelectedUserForEdit(null);
+                setEditPasswordInput('');
               }}
-              className="space-y-3"
+              className="space-y-3.5"
             >
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">ឈ្មោះខ្មែរ</label>
@@ -766,22 +1072,62 @@ export const AccountsManagement: React.FC = () => {
                   onChange={e =>
                     setSelectedUserForEdit({ ...selectedUserForEdit, nameKhmer: e.target.value })
                   }
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  required
                 />
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">អ៊ីមែល (Email)</label>
+                  <input
+                    type="email"
+                    value={selectedUserForEdit.email}
+                    onChange={e =>
+                      setSelectedUserForEdit({ ...selectedUserForEdit, email: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">លេខទូរស័ព្ទ</label>
+                  <input
+                    type="text"
+                    value={selectedUserForEdit.phone || ''}
+                    onChange={e =>
+                      setSelectedUserForEdit({ ...selectedUserForEdit, phone: e.target.value })
+                    }
+                    placeholder="012 345 678"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">ពាក្យសម្ងាត់ថ្មី (Password)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">
+                    ពាក្យសម្ងាត់ថ្មី (New Password)
+                  </label>
+                  <span className="text-[10.5px] text-slate-400">
+                    (ទុកទំនេរ ប្រសិនបើមិនចង់ផ្លាស់ប្តូរ)
+                  </span>
+                </div>
                 <input
                   type="password"
-                  value={selectedUserForEdit.password || ''}
-                  onChange={e =>
-                    setSelectedUserForEdit({ ...selectedUserForEdit, password: e.target.value })
-                  }
-                  placeholder="បញ្ចូលពាក្យសម្ងាត់ថ្មី"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono"
+                  value={editPasswordInput}
+                  onChange={e => setEditPasswordInput(e.target.value)}
+                  placeholder="បញ្ចូលពាក្យសម្ងាត់ថ្មី (ឧ. School@2025#)"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-600 focus:outline-none"
                 />
               </div>
+
+              {/* Real-time Password Strength Indicator */}
+              {editPasswordInput.length > 0 && (
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                  <PasswordStrengthIndicator password={editPasswordInput} />
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">ស្ថានភាពគណនី</label>
@@ -800,21 +1146,177 @@ export const AccountsManagement: React.FC = () => {
                 </select>
               </div>
 
+              {selectedUserForEdit.passwordUpdatedAt && (
+                <div className="p-2.5 bg-blue-50 border border-blue-200/60 rounded-xl text-[11px] text-blue-900 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span>
+                    កាលបរិច្ឆេទផ្លាស់ប្តូរពាក្យសម្ងាត់ចុងក្រោយ៖{' '}
+                    <strong>
+                      {new Date(selectedUserForEdit.passwordUpdatedAt).toLocaleDateString('km-KH')}
+                    </strong>
+                  </span>
+                </div>
+              )}
+
               <div className="pt-3 border-t border-slate-200 flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setSelectedUserForEdit(null)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  onClick={() => {
+                    setSelectedUserForEdit(null);
+                    setEditPasswordInput('');
+                  }}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
                 >
                   បោះបង់
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-bold text-white bg-blue-700 hover:bg-blue-800 rounded-xl shadow-sm"
+                  disabled={editPasswordInput.length > 0 && !evaluatePassword(editPasswordInput).isValid}
+                  className={`px-4 py-2 text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 ${
+                    editPasswordInput.length > 0 && !evaluatePassword(editPasswordInput).isValid
+                      ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                      : 'bg-blue-700 hover:bg-blue-800 text-white cursor-pointer'
+                  }`}
                 >
-                  រក្សាទុកការកែប្រែ
+                  <Check className="w-4 h-4" />
+                  <span>រក្សាទុកការកែប្រែ</span>
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Forgot Password Firebase Email Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPasswordModal}
+        onClose={() => {
+          setShowForgotPasswordModal(false);
+          setForgotPasswordUser(null);
+        }}
+        targetUser={forgotPasswordUser}
+        currentUserEmail={currentUser?.email}
+        onShowToast={showToast}
+      />
+
+      {/* Confirmation Modal: Director Bulk Force Password Rotation */}
+      {showBulkForceConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center mb-4">
+              <AlertOctagon className="w-6 h-6" />
+            </div>
+
+            <h3 className="font-moul text-base text-slate-900">
+              បង្ខំឱ្យបុគ្គលិកទាំងអស់ប្តូរពាក្យសម្ងាត់?
+            </h3>
+            <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+              សកម្មភាពនេះនឹងកំណត់ទង់ <code className="px-1.5 py-0.5 bg-slate-100 rounded text-rose-700 font-mono">forcePasswordChange: true</code> ទៅកាន់គណនីលោកគ្រូ-អ្នកគ្រូ លេខា និងបណ្ណារក្សទាំងអស់។
+            </p>
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs mt-3 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <span>
+                នៅពេលបុគ្គលិកចូលប្រើប្រព័ន្ធលើកក្រោយ ប្រព័ន្ធនឹងបង្ហាញផ្ទាំងផ្លាស់ប្តូរពាក្យសម្ងាត់ជាកំហិត (Mandatory Security Rotation) ភ្លាមៗ។
+              </span>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowBulkForceConfirmModal(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+              >
+                បោះបង់
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkForceStaffPasswordUpdate}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>បញ្ជាក់ និងអនុវត្ត</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mandatory Password Change Modal for Current User if Flagged */}
+      {currentUser?.forcePasswordChange && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border-2 border-rose-500/50 space-y-4">
+            <div className="flex items-start gap-3.5 pb-3 border-b border-slate-200">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 animate-pulse">
+                <Lock className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-moul text-sm sm:text-base text-rose-950">
+                    តម្រូវឱ្យផ្លាស់ប្តូរពាក្យសម្ងាត់ជាកំហិត
+                  </h3>
+                  <span className="px-2 py-0.5 bg-rose-100 text-rose-800 rounded-full font-bold text-[10px]">
+                    Required
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-1">
+                  នាយកសាលាបានកំណត់ឱ្យគណនីរបស់អ្នកត្រូវតែផ្លាស់ប្តូរពាក្យសម្ងាត់ថ្មី (Mandatory Security Rotation) មុនពេលអាចបន្តប្រើប្រាស់មុខងារនានាក្នុងប្រព័ន្ធបាន។
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleMandatoryPasswordSubmit} className="space-y-4 pt-1">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  ពាក្យសម្ងាត់ថ្មី (New Password) *
+                </label>
+                <input
+                  type="password"
+                  value={mandatoryNewPassword}
+                  onChange={e => setMandatoryNewPassword(e.target.value)}
+                  placeholder="បញ្ចូលពាក្យសម្ងាត់ថ្មី..."
+                  required
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Real-time Strength Indicator */}
+              {mandatoryNewPassword && (
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <PasswordStrengthIndicator password={mandatoryNewPassword} />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  ផ្ទៀងផ្ទាត់ពាក្យសម្ងាត់ថ្មី (Confirm New Password) *
+                </label>
+                <input
+                  type="password"
+                  value={mandatoryConfirmPassword}
+                  onChange={e => setMandatoryConfirmPassword(e.target.value)}
+                  placeholder="វាយបញ្ចូលពាក្យសម្ងាត់ថ្មីម្តងទៀត..."
+                  required
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                />
+              </div>
+
+              {mandatoryNewPassword && mandatoryConfirmPassword && mandatoryNewPassword !== mandatoryConfirmPassword && (
+                <p className="text-xs text-rose-600 font-bold flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>ពាក្យសម្ងាត់ទាំងពីរមិនដូចគ្នាទេ!</span>
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={
+                  !evaluatePassword(mandatoryNewPassword).isValid ||
+                  mandatoryNewPassword !== mandatoryConfirmPassword
+                }
+                className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>ផ្លាស់ប្តូរពាក្យសម្ងាត់ និងចូលប្រើប្រព័ន្ធ</span>
+              </button>
             </form>
           </div>
         </div>

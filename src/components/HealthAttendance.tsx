@@ -32,6 +32,8 @@ import {
 } from 'lucide-react';
 import { AttendanceTrendChart } from './AttendanceTrendChart';
 import { StudentHealthMetricTrendsChart } from './StudentHealthMetricTrendsChart';
+import { SchoolHealthEpidemiologyD3Panel } from './SchoolHealthEpidemiologyD3Panel';
+import { VaccinationRenewalAlertModal } from './VaccinationRenewalAlertModal';
 import { StudentHealthBookletModal } from './StudentHealthBookletModal';
 import { StudentHealthReportPdfModal } from './StudentHealthReportPdfModal';
 import { ClassStudentStatisticsPriModal } from './ClassStudentStatisticsPriModal';
@@ -66,10 +68,31 @@ export const HealthAttendance: React.FC = () => {
   const [showPriModal, setShowPriModal] = useState<boolean>(false);
   const [showBulkHealthModal, setShowBulkHealthModal] = useState<boolean>(false);
   const [quickCareStudent, setQuickCareStudent] = useState<Student | null>(null);
+  const [showVaccinationAlertModal, setShowVaccinationAlertModal] = useState<boolean>(false);
 
   // Health Alert Filter & Search
   const [healthAlertFilter, setHealthAlertFilter] = useState<'all' | 'unvaccinated' | 'missed_nurse' | 'bmi_risk'>('all');
   const [healthSearchQuery, setHealthSearchQuery] = useState<string>('');
+
+  // Batch Update Vaccination Compliance
+  const handleBatchUpdateVaccinated = (studentIds: string[]) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    studentIds.forEach(id => {
+      const student = students.find(s => s.id === id);
+      if (student) {
+        const currentNotes = student.health?.notes || '';
+        const newNote = `• [${todayStr}] បានធ្វើបច្ចុប្បន្នភាពវ៉ាក់សាំងកាតព្វកិច្ច MoEYS និងថ្នាំទម្លាក់ព្រូនរួចរាល់`;
+        updateStudent(id, {
+          health: {
+            ...student.health,
+            vaccinated: true,
+            notes: currentNotes ? `${newNote}\n${currentNotes}` : newNote,
+            lastCheckedDate: todayStr
+          }
+        });
+      }
+    });
+  };
 
   // BMI status badge calculator
   const getBmiBadgeInfo = (bmi: number) => {
@@ -419,8 +442,43 @@ export const HealthAttendance: React.FC = () => {
     ? (healthCheckValues.reduce((acc, curr) => acc + (Number(curr.temperature) || 36.6), 0) / healthCheckValues.length).toFixed(1)
     : '36.6';
 
+  // Automated vaccination audit counters
+  const studentsNeedingVaccineUpdate = students.filter(s => !s.health?.vaccinated || s.grade === 6 || (s.grade <= 3 && (!s.health?.lastCheckedDate || !s.health?.notes?.includes('ព្រូន'))));
+
   return (
     <div className="space-y-6">
+      {/* Automated Vaccination Notification Briefing Banner for School Nurse */}
+      {studentsNeedingVaccineUpdate.length > 0 && (
+        <div className="bg-gradient-to-r from-blue-700 via-indigo-800 to-indigo-950 p-4 rounded-3xl text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-white/15 rounded-2xl backdrop-blur-sm shrink-0">
+              <ShieldCheck className="w-6 h-6 text-blue-200" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold font-moul text-sm">ប្រព័ន្ធជូនដំណឹងសុខាភិបាលសាលា (Nurse Health Briefing)</span>
+                <span className="px-2 py-0.5 bg-rose-500 text-white rounded-full font-bold text-[10px]">
+                  {studentsNeedingVaccineUpdate.length} សិស្សត្រូវបច្ចុប្បន្នភាព
+                </span>
+              </div>
+              <p className="text-xs text-blue-100 mt-0.5">
+                មានសិស្សានុសិស្សមួយចំនួនត្រូវការការផ្ទៀងផ្ទាត់វ៉ាក់សាំងកាតព្វកិច្ចកុមារភាព វ៉ាក់សាំងរំលឹក Td ថ្នាក់ទី ៦ ឬថ្នាំទម្លាក់ព្រូនប្រចាំឆមាស។
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+            <button
+              onClick={() => setShowVaccinationAlertModal(true)}
+              className="px-4 py-2 bg-white text-indigo-900 hover:bg-blue-50 font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-indigo-600" />
+              <span>ពិនិត្យបញ្ជី & ផ្ញើដំណឹងរំលឹក</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header & Sub-Tab Switcher */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1165,6 +1223,13 @@ export const HealthAttendance: React.FC = () => {
       ) : activeSubTab === 'trends' ? (
         /* Dedicated Monthly Attendance & Health Growth Trends Visualization Section */
         <div className="space-y-6 animate-fade-in">
+          {/* D3.js School-Wide Health & Epidemiology Trends Overview Panel */}
+          <SchoolHealthEpidemiologyD3Panel
+            students={students}
+            selectedGrade={selectedGrade}
+            onFilterGrade={(g) => setSelectedGrade(g)}
+          />
+
           {/* Semester Student Health Metric Trends Line Chart (Recharts) */}
           <StudentHealthMetricTrendsChart
             currentGrade={selectedGrade}
@@ -1214,9 +1279,18 @@ export const HealthAttendance: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <span className="text-xs font-bold text-amber-900 bg-amber-100 px-3 py-1 rounded-full w-fit">
-                    ករណីត្រូវការយកចិត្តទុកដាក់សរុប: {unvaccList.length + missedNurseList.length + bmiRiskList.length} ករណី
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      onClick={() => setShowVaccinationAlertModal(true)}
+                      className="text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-800 px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>គ្រប់គ្រងវ៉ាក់សាំង MoEYS</span>
+                    </button>
+                    <span className="text-xs font-bold text-amber-900 bg-amber-100 px-3 py-1.5 rounded-xl w-fit">
+                      ករណីយកចិត្តទុកដាក់: {unvaccList.length + missedNurseList.length + bmiRiskList.length}
+                    </span>
+                  </div>
                 </div>
 
                 {/* 3 Interactive Alert KPI Cards */}
@@ -1718,6 +1792,17 @@ export const HealthAttendance: React.FC = () => {
           schoolProfile={schoolProfile}
           homeroomTeacher={teachers.find(t => t.assignedGrade === selectedGrade && t.assignedSection === selectedSection)}
           students={students}
+        />
+      )}
+
+      {/* VACCINATION RENEWAL & SUMMARY ALERT MODAL */}
+      {showVaccinationAlertModal && (
+        <VaccinationRenewalAlertModal
+          isOpen={showVaccinationAlertModal}
+          onClose={() => setShowVaccinationAlertModal(false)}
+          students={students}
+          onBatchUpdateVaccinated={handleBatchUpdateVaccinated}
+          onShowToast={showToast}
         />
       )}
     </div>

@@ -436,6 +436,42 @@ export type UserRole =
   | 'teacher'     // គ្រូបង្រៀន / គ្រូបន្ទុកថ្នាក់
   | 'student';    // សិស្ស
 
+export interface UserSessionInfo {
+  id: string;
+  deviceId: string;
+  deviceName: string;
+  browser: string;
+  os: string;
+  ipAddress?: string;
+  location?: string;
+  lastActive: string;
+  createdAt: string;
+  isCurrent: boolean;
+}
+
+export interface SecurityLoginLog {
+  id: string;
+  userId: string;
+  userEmail: string;
+  timestamp: string;
+  status: 'success' | 'failed';
+  ipAddress: string;
+  device: string;
+  browser: string;
+  os: string;
+  location?: string;
+  method?: 'password' | 'google' | 'mfa_totp' | 'mfa_sms';
+}
+
+export interface UserMfaConfig {
+  enabled: boolean;
+  type: 'sms' | 'totp' | 'email';
+  phoneNumber?: string;
+  backupCodesCount?: number;
+  enrolledAt?: string;
+  lastVerifiedAt?: string;
+}
+
 export interface AppUser {
   id: string;
   username: string;
@@ -454,6 +490,19 @@ export interface AppUser {
   createdBy?: string;
   createdAt: string;
   status: 'active' | 'suspended';
+  passwordUpdatedAt?: string; // ISO Date of last password update
+  forcePasswordChange?: boolean; // When true, forces mandatory password change on login/session
+  mfaConfig?: UserMfaConfig;
+  activeSessions?: UserSessionInfo[];
+  securityLogs?: SecurityLoginLog[];
+}
+
+export interface SecurityPolicySettings {
+  sessionTimeoutEnabled: boolean;
+  sessionTimeoutMinutes: number; // e.g. 15, 30, 60, 120, 240
+  enforcePasswordRotation: boolean;
+  passwordRotationDays: number; // e.g. 90 days
+  enforceStrongPassword: boolean;
 }
 
 export interface SystemNotification {

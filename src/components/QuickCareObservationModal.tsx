@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Student } from '../types';
 import {
   Stethoscope,
@@ -11,7 +11,11 @@ import {
   Pill,
   HeartPulse,
   Sparkles,
-  FileText
+  FileText,
+  Mic,
+  MicOff,
+  Volume2,
+  Globe
 } from 'lucide-react';
 
 interface QuickCareObservationModalProps {
@@ -36,6 +40,13 @@ export const QuickCareObservationModal: React.FC<QuickCareObservationModalProps>
   const [temperature, setTemperature] = useState<string>('36.8');
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
 
+  // Voice-to-Text (Speech Recognition) State
+  const [isListening, setIsListening] = useState<boolean>(false);
+  const [speechLanguage, setSpeechLanguage] = useState<'km-KH' | 'en-US'>('km-KH');
+  const [speechSupported, setSpeechSupported] = useState<boolean>(true);
+  const [speechError, setSpeechError] = useState<string | null>(null);
+  const recognitionRef = useRef<any>(null);
+
   const quickObservationTags = [
     { id: 'fever', label: 'ក្តៅខ្លួន / គ្រុនក្តៅ', icon: '🌡️', color: 'bg-rose-50 border-rose-200 text-rose-700' },
     { id: 'headache', label: 'ឈឺក្បាល / វិលមុខ', icon: '🤕', color: 'bg-amber-50 border-amber-200 text-amber-700' },
@@ -49,6 +60,99 @@ export const QuickCareObservationModal: React.FC<QuickCareObservationModalProps>
     { id: 'sent_home', label: 'អនុញ្ញាតឱ្យត្រឡប់ទៅផ្ទះ', icon: '🏠', color: 'bg-slate-100 border-slate-300 text-slate-700' }
   ];
 
+  // Quick phrase suggestions for busy clinic hours
+  const quickPhrases = [
+    'សិស្សមានអាការៈក្តៅខ្លួន បានឱ្យសម្រាក និងវាស់កម្តៅឡើងវិញ',
+    'ឈឺពោះក្រោយម៉ោងសម្រាក បានផ្តល់ទឹកក្តៅអ៊ុនៗ',
+    'ដួលរលាត់ជង្គង់ពេលលេងកីឡា បានលាងរបួស និងបិទបង់រួចរាល់',
+    'ឈឺក្បាលវិលមុខ បានទូរស័ព្ទជូនដំណឹងអាណាព្យាបាលមកទទួល',
+    'ឈឺធ្មេញពុក ណែនាំឱ្យជួបទន្តពេទ្យជំនាញ'
+  ];
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setSpeechSupported(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = speechLanguage;
+
+      recognition.onresult = (event: any) => {
+        let currentTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcriptPiece = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            setCareNote(prev => {
+              const prefix = prev.trim() ? `${prev.trim()} ` : '';
+              return `${prefix}${transcriptPiece.trim()}`;
+            });
+          } else {
+            currentTranscript += transcriptPiece;
+          }
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('Speech Recognition error:', event.error);
+        if (event.error === 'not-allowed') {
+          setSpeechError('សូមអនុញ្ញាតសិទ្ធិប្រើប្រាស់មីក្រូហ្វូន (Microphone permission required)');
+        } else if (event.error === 'no-speech') {
+          // Keep listening or ignore
+        } else {
+          setSpeechError(`បញ្ហាសំឡេង៖ ${event.error}`);
+        }
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    } catch (err) {
+      console.error('Failed to init speech recognition:', err);
+      setSpeechSupported(false);
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, [speechLanguage]);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      setSpeechError('កម្មវិធីរុករកនេះមិនទាន់គាំទ្រមុខងារសំឡេង Web Speech API ឡើយ។');
+      return;
+    }
+
+    setSpeechError(null);
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.lang = speechLanguage;
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (err) {
+        console.error('Error starting recognition:', err);
+        setIsListening(false);
+      }
+    }
+  };
+
   const toggleTag = (tagLabel: string) => {
     if (selectedTags.includes(tagLabel)) {
       setSelectedTags(selectedTags.filter(t => t !== tagLabel));
@@ -57,8 +161,23 @@ export const QuickCareObservationModal: React.FC<QuickCareObservationModalProps>
     }
   };
 
+  const handleAppendPhrase = (phrase: string) => {
+    setCareNote(prev => {
+      const prefix = prev.trim() ? `${prev.trim()}. ` : '';
+      return `${prefix}${phrase}`;
+    });
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isListening && recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // ignore
+      }
+    }
+
     const todayStr = new Date().toISOString().split('T')[0];
     const timeStr = new Date().toLocaleTimeString('km-KH', { hour: '2-digit', minute: '2-digit' });
 
@@ -79,10 +198,10 @@ export const QuickCareObservationModal: React.FC<QuickCareObservationModalProps>
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col max-h-[92vh]">
         {/* Modal Header */}
-        <div className="p-5 bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-800 text-white flex items-center justify-between">
+        <div className="p-5 bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-800 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-white/10 rounded-2xl backdrop-blur-md">
               <Stethoscope className="w-6 h-6 text-white" />
@@ -92,7 +211,7 @@ export const QuickCareObservationModal: React.FC<QuickCareObservationModalProps>
                 កត់សម្គាល់សុខភាពរហ័ស (Care Observation)
               </h3>
               <p className="text-xs text-blue-100 mt-0.5">
-                កត់ត្រាការពិនិត្យ អាការៈ និងការថែទាំសុខភាពបន្ទាន់
+                កត់ត្រាការពិនិត្យ អាការៈ និងការថែទាំសុខភាពបន្ទាន់ ជាមួយ Voice-to-Text
               </p>
             </div>
           </div>
@@ -105,7 +224,7 @@ export const QuickCareObservationModal: React.FC<QuickCareObservationModalProps>
         </div>
 
         {/* Student Mini Profile Summary */}
-        <div className="px-5 py-3 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between text-xs">
+        <div className="px-5 py-3 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between text-xs shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center">
               {student.gender === 'F' ? 'ស' : 'ប'}
@@ -193,19 +312,95 @@ export const QuickCareObservationModal: React.FC<QuickCareObservationModalProps>
             </div>
           </div>
 
-          {/* Detailed Note Textarea */}
+          {/* Detailed Note Textarea with Voice-to-Text Integration */}
           <div>
-            <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-indigo-600" />
-              <span>ការកត់សម្គាល់លម្អិត & ដំណោះស្រាយថែទាំ (Detailed Care Notes):</span>
-            </label>
-            <textarea
-              rows={3}
-              value={careNote}
-              onChange={(e) => setCareNote(e.target.value)}
-              placeholder="ឧ. សិស្សមានអាការៈក្តៅខ្លួនបន្តិចបន្ទាប់ពីរត់លេង បានឱ្យសម្រាកញ៉ាំទឹកក្តៅអ៊ុនៗ និងទូរស័ព្ទប្រាប់ម្តាយ..."
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 leading-relaxed resize-none"
-            />
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="font-bold text-slate-800 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                <span>ការកត់សម្គាល់លម្អិត & ដំណោះស្រាយថែទាំ (Detailed Care Notes):</span>
+              </label>
+
+              {/* Voice-to-Text Button Controls */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setSpeechLanguage(speechLanguage === 'km-KH' ? 'en-US' : 'km-KH')}
+                  className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-[10px] font-mono font-bold flex items-center gap-1 cursor-pointer"
+                  title="ប្តូរភាសាសំឡេង (ភាសាខ្មែរ / អង់គ្លេស)"
+                >
+                  <Globe className="w-3 h-3 text-slate-500" />
+                  <span>{speechLanguage === 'km-KH' ? 'ខ្មែរ (km)' : 'EN (en)'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
+                    isListening
+                      ? 'bg-rose-600 text-white animate-pulse ring-2 ring-rose-300'
+                      : 'bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100'
+                  }`}
+                  title="ចុចដើម្បីនិយាយ និងបំលែងសំឡេងជាអត្ថបទ (Voice Dictation)"
+                >
+                  {isListening ? (
+                    <>
+                      <Mic className="w-3.5 h-3.5 animate-bounce" />
+                      <span>កំពុងស្តាប់... (ចុចបិទ)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>និយាយសំឡេង (Voice)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Error Message if Mic not allowed */}
+            {speechError && (
+              <div className="mb-2 p-2 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-[11px] flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{speechError}</span>
+              </div>
+            )}
+
+            <div className="relative">
+              <textarea
+                rows={3}
+                value={careNote}
+                onChange={(e) => setCareNote(e.target.value)}
+                placeholder="ឧ. សិស្សមានអាការៈក្តៅខ្លួនបន្តិចបន្ទាប់ពីរត់លេង បានឱ្យសម្រាកញ៉ាំទឹកក្តៅអ៊ុនៗ និងទូរស័ព្ទប្រាប់ម្តាយ... (អាចចុចប៊ូតុង 'និយាយសំឡេង' ខាងលើដើម្បីសូត្រអត្ថបទ)"
+                className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-indigo-500 leading-relaxed resize-none ${
+                  isListening ? 'border-rose-400 bg-rose-50/30 ring-1 ring-rose-400' : 'border-slate-200'
+                }`}
+              />
+              {isListening && (
+                <div className="absolute right-3 bottom-3 flex items-center gap-1 bg-rose-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                  <span>កំពុងកត់ត្រាសំឡេង...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Phrase Chips for Rapid Logging */}
+            <div className="mt-2 space-y-1">
+              <span className="text-[10px] font-bold text-slate-500 block">
+                ឃ្លារហ័សសម្រាប់គិលានុបដ្ឋាក (Quick Clinical Templates):
+              </span>
+              <div className="flex flex-wrap gap-1">
+                {quickPhrases.map((phrase, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleAppendPhrase(phrase)}
+                    className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 rounded-lg text-[10px] text-left transition-colors cursor-pointer"
+                  >
+                    + {phrase.slice(0, 30)}...
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Follow-up Checkbox */}

@@ -1,7 +1,7 @@
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
-export const MASTER_ADMIN_EMAIL = 'limsorn9@gmail.com';
+export const MASTER_ADMIN_EMAILS = ['limsorn3@gmail.com', 'limsorn9@gmail.com'];
 
 const CLOUD_SCHOOL_DOC_ID = 'school_database_main';
 
@@ -10,7 +10,7 @@ const CLOUD_SCHOOL_DOC_ID = 'school_database_main';
  */
 export const isMasterDatabaseAdmin = (): boolean => {
   const currentEmail = auth.currentUser?.email;
-  return !!currentEmail && currentEmail.toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase();
+  return !!currentEmail && MASTER_ADMIN_EMAILS.some(adminEmail => adminEmail.toLowerCase() === currentEmail.toLowerCase());
 };
 
 
@@ -115,8 +115,10 @@ export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, 
     // Log friendly warning if network/resource backoff occurs
     if (error?.code === 'resource-exhausted') {
       console.warn('Firestore write throttled, queued for next sync window.');
+    } else if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
+      console.warn('Firestore cloud sync notice (requires authorized authentication):', error?.message || error);
     } else {
-      console.error('Firestore save failed:', error);
+      console.warn('Firestore sync notice:', error?.message || error);
     }
     return false;
   }
