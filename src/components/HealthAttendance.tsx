@@ -27,11 +27,16 @@ import {
   Smile,
   AlertTriangle,
   Stethoscope,
-  Check
+  Check,
+  X
 } from 'lucide-react';
 import { AttendanceTrendChart } from './AttendanceTrendChart';
+import { StudentHealthMetricTrendsChart } from './StudentHealthMetricTrendsChart';
 import { StudentHealthBookletModal } from './StudentHealthBookletModal';
+import { StudentHealthReportPdfModal } from './StudentHealthReportPdfModal';
 import { ClassStudentStatisticsPriModal } from './ClassStudentStatisticsPriModal';
+import { BulkDataImportExportModal } from './BulkDataImportExportModal';
+import { QuickCareObservationModal } from './QuickCareObservationModal';
 
 export const HealthAttendance: React.FC = () => {
   const {
@@ -57,7 +62,70 @@ export const HealthAttendance: React.FC = () => {
 
   // Official Modals State
   const [healthBookletStudent, setHealthBookletStudent] = useState<Student | null>(null);
+  const [healthReportStudent, setHealthReportStudent] = useState<Student | null>(null);
   const [showPriModal, setShowPriModal] = useState<boolean>(false);
+  const [showBulkHealthModal, setShowBulkHealthModal] = useState<boolean>(false);
+  const [quickCareStudent, setQuickCareStudent] = useState<Student | null>(null);
+
+  // Health Alert Filter & Search
+  const [healthAlertFilter, setHealthAlertFilter] = useState<'all' | 'unvaccinated' | 'missed_nurse' | 'bmi_risk'>('all');
+  const [healthSearchQuery, setHealthSearchQuery] = useState<string>('');
+
+  // BMI status badge calculator
+  const getBmiBadgeInfo = (bmi: number) => {
+    if (!bmi || isNaN(bmi)) {
+      return {
+        label: 'មិនទាន់វាស់',
+        bgColor: 'bg-slate-100 text-slate-700 border-slate-200',
+        dotColor: 'bg-slate-400'
+      };
+    }
+    if (bmi < 14.5) {
+      return {
+        label: 'ស្គម (Underweight)',
+        bgColor: 'bg-amber-50 text-amber-800 border-amber-300 ring-1 ring-amber-500/20',
+        dotColor: 'bg-amber-500'
+      };
+    }
+    if (bmi <= 20.0) {
+      return {
+        label: 'សុខភាពល្អ (Healthy)',
+        bgColor: 'bg-emerald-50 text-emerald-800 border-emerald-300 ring-1 ring-emerald-500/20',
+        dotColor: 'bg-emerald-500'
+      };
+    }
+    if (bmi <= 23.0) {
+      return {
+        label: 'លើសទម្ងន់ (Overweight)',
+        bgColor: 'bg-orange-50 text-orange-800 border-orange-300 ring-1 ring-orange-500/20',
+        dotColor: 'bg-orange-500'
+      };
+    }
+    return {
+      label: 'ធាត់ខ្លាំង (Obese)',
+      bgColor: 'bg-rose-50 text-rose-800 border-rose-300 ring-1 ring-rose-500/20',
+      dotColor: 'bg-rose-500'
+    };
+  };
+
+  // Handle Quick Care Note saving
+  const handleSaveQuickCareObservation = (studentId: string, updatedNotes: string, observationTag?: string) => {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+
+    updateStudent(studentId, {
+      health: {
+        ...student.health,
+        notes: updatedNotes,
+        lastCheckedDate: selectedDate
+      }
+    });
+
+    showToast(
+      `បានរក្សាទុកកំណត់ត្រាថែទាំសុខភាពរហ័សសម្រាប់ "${student.nameKhmer}" ${observationTag ? `[${observationTag}]` : ''} ដោយជោគជ័យ!`,
+      'success'
+    );
+  };
 
   // Filter students for active class
   const classStudents = students.filter(
@@ -423,7 +491,7 @@ export const HealthAttendance: React.FC = () => {
 
       {activeSubTab === 'attendance' ? (
         /* Attendance Tracking Section */
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-in">
           {/* Controls and Selectors */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div>
@@ -1095,8 +1163,16 @@ export const HealthAttendance: React.FC = () => {
           </div>
         </div>
       ) : activeSubTab === 'trends' ? (
-        /* Dedicated Monthly Attendance Trends Visualization Section */
-        <div className="space-y-6">
+        /* Dedicated Monthly Attendance & Health Growth Trends Visualization Section */
+        <div className="space-y-6 animate-fade-in">
+          {/* Semester Student Health Metric Trends Line Chart (Recharts) */}
+          <StudentHealthMetricTrendsChart
+            currentGrade={selectedGrade}
+            currentSection={selectedSection}
+            onSelectStudent={(student) => setHealthReportStudent(student)}
+          />
+
+          {/* Monthly Attendance Trends Chart */}
           <AttendanceTrendChart
             currentGrade={selectedGrade}
             currentSection={selectedSection}
@@ -1108,31 +1184,211 @@ export const HealthAttendance: React.FC = () => {
         </div>
       ) : (
         /* Health & Nutrition (BMI) Monitoring Section */
-        <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div className="space-y-6 animate-fade-in">
+          {/* Top Interactive Metric Trajectory Line Chart */}
+          <StudentHealthMetricTrendsChart
+            currentGrade={selectedGrade}
+            currentSection={selectedSection}
+            onSelectStudent={(student) => setHealthReportStudent(student)}
+          />
+
+          {/* Visual Alert System: Mandatory Vaccination & Overdue Nurse Visits Alert Cards */}
+          {(() => {
+            const unvaccList = students.filter(s => !s.health?.vaccinated);
+            const missedNurseList = students.filter(s => !s.health?.lastCheckedDate || s.health?.notes?.includes('ខកខាន') || (s.health?.bmi && (s.health.bmi < 14 || s.health.bmi > 22)));
+            const bmiRiskList = students.filter(s => s.health?.bmi < 14.5 || s.health?.bmi > 20.0);
+
+            return (
+              <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-indigo-500/10 p-5 rounded-2xl border border-amber-200/80 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-amber-500 text-white rounded-xl shadow-xs">
+                      <AlertTriangle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 font-kantumruy">
+                        ប្រព័ន្ធផ្តល់ដំណឹងសុខភាព & ការយកចិត្តទុកដាក់បន្ទាន់ (Clinical Alert System)
+                      </h4>
+                      <p className="text-xs text-slate-600">
+                        តាមដានសិស្សដែលខ្វះទិន្នន័យវ៉ាក់សាំងកាតព្វកិច្ច ខកខានជួបពេទ្យ ឬមានហានិភ័យអាហារូបត្ថម្ភ
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold text-amber-900 bg-amber-100 px-3 py-1 rounded-full w-fit">
+                    ករណីត្រូវការយកចិត្តទុកដាក់សរុប: {unvaccList.length + missedNurseList.length + bmiRiskList.length} ករណី
+                  </span>
+                </div>
+
+                {/* 3 Interactive Alert KPI Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Alert 1: Missing Mandatory Vaccines */}
+                  <button
+                    type="button"
+                    onClick={() => setHealthAlertFilter(healthAlertFilter === 'unvaccinated' ? 'all' : 'unvaccinated')}
+                    className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      healthAlertFilter === 'unvaccinated'
+                        ? 'bg-rose-600 text-white border-rose-700 shadow-md ring-2 ring-rose-400'
+                        : 'bg-white hover:bg-rose-50/80 border-rose-200 shadow-xs'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-bold ${healthAlertFilter === 'unvaccinated' ? 'text-white' : 'text-rose-700'}`}>
+                        💉 ខ្វះទិន្នន័យវ៉ាក់សាំងកាតព្វកិច្ច
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
+                          healthAlertFilter === 'unvaccinated' ? 'bg-white text-rose-700' : 'bg-rose-100 text-rose-800'
+                        }`}
+                      >
+                        {unvaccList.length} នាក់
+                      </span>
+                    </div>
+                    <p className={`text-[11px] mt-1.5 ${healthAlertFilter === 'unvaccinated' ? 'text-rose-100' : 'text-slate-500'}`}>
+                      មិនទាន់បានចាក់វ៉ាក់សាំងការពារជំងឺកុមារគ្រប់ដូស ឬគ្មានកំណត់ត្រា
+                    </p>
+                  </button>
+
+                  {/* Alert 2: Missed/Overdue Nurse Checkups */}
+                  <button
+                    type="button"
+                    onClick={() => setHealthAlertFilter(healthAlertFilter === 'missed_nurse' ? 'all' : 'missed_nurse')}
+                    className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      healthAlertFilter === 'missed_nurse'
+                        ? 'bg-amber-600 text-white border-amber-700 shadow-md ring-2 ring-amber-400'
+                        : 'bg-white hover:bg-amber-50/80 border-amber-200 shadow-xs'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-bold ${healthAlertFilter === 'missed_nurse' ? 'text-white' : 'text-amber-800'}`}>
+                        🩺 ខកខានពិនិត្យ/ជួបពេទ្យសាលា
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
+                          healthAlertFilter === 'missed_nurse' ? 'bg-white text-amber-800' : 'bg-amber-100 text-amber-900'
+                        }`}
+                      >
+                        {missedNurseList.length} នាក់
+                      </span>
+                    </div>
+                    <p className={`text-[11px] mt-1.5 ${healthAlertFilter === 'missed_nurse' ? 'text-amber-100' : 'text-slate-500'}`}>
+                      មិនទាន់បានពិនិត្យសុខភាពតាមកាលកំណត់ ឬមានកំណត់ត្រាខកខាន
+                    </p>
+                  </button>
+
+                  {/* Alert 3: BMI / Nutrition Risks */}
+                  <button
+                    type="button"
+                    onClick={() => setHealthAlertFilter(healthAlertFilter === 'bmi_risk' ? 'all' : 'bmi_risk')}
+                    className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      healthAlertFilter === 'bmi_risk'
+                        ? 'bg-indigo-600 text-white border-indigo-700 shadow-md ring-2 ring-indigo-400'
+                        : 'bg-white hover:bg-indigo-50/80 border-indigo-200 shadow-xs'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-bold ${healthAlertFilter === 'bmi_risk' ? 'text-white' : 'text-indigo-800'}`}>
+                        ⚖️ ហានិភ័យអាហារូបត្ថម្ភ (BMI)
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
+                          healthAlertFilter === 'bmi_risk' ? 'bg-white text-indigo-800' : 'bg-indigo-100 text-indigo-900'
+                        }`}
+                      >
+                        {bmiRiskList.length} នាក់
+                      </span>
+                    </div>
+                    <p className={`text-[11px] mt-1.5 ${healthAlertFilter === 'bmi_risk' ? 'text-indigo-100' : 'text-slate-500'}`}>
+                      សន្ទស្សន៍ BMI ក្រោម 14.5 (ស្គម) ឬលើស 20.0 (លើសទម្ងន់)
+                    </p>
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Health Registry Table Card */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden animate-fade-in">
             <div className="p-4 bg-slate-50/90 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <HeartPulse className="w-5 h-5 text-rose-500" />
-                <h3 className="text-sm font-bold text-slate-900 font-kantumruy">
-                  តារាងតាមដានអាហារូបត្ថម្ភ និងសុខភាពសិស្ស (Health & BMI Registry)
-                </h3>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 font-kantumruy">
+                    តារាងតាមដានអាហារូបត្ថម្ភ និងសុខភាពសិស្ស (Health & BMI Registry)
+                  </h3>
+                  <span className="text-xs text-slate-500">
+                    {healthAlertFilter === 'all'
+                      ? `បង្ហាញសិស្សទាំងអស់ (${students.length} នាក់)`
+                      : healthAlertFilter === 'unvaccinated'
+                      ? 'កំពុងចម្រាញ់: សិស្សខ្វះទិន្នន័យវ៉ាក់សាំង'
+                      : healthAlertFilter === 'missed_nurse'
+                      ? 'កំពុងចម្រាញ់: សិស្សខកខានពិនិត្យសុខភាព/ជួបពេទ្យ'
+                      : 'កំពុងចម្រាញ់: សិស្សមានបញ្ហាអាហារូបត្ថម្ភ (BMI)'}
+                  </span>
+                </div>
               </div>
+
+              {/* Action Buttons & Fast Filter Toolbar */}
               <div className="flex items-center gap-2 flex-wrap">
+                {/* Search Box */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={healthSearchQuery}
+                    onChange={(e) => setHealthSearchQuery(e.target.value)}
+                    placeholder="ស្វែងរកឈ្មោះ ឬអត្តលេខ..."
+                    className="pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 w-44"
+                  />
+                  {healthSearchQuery && (
+                    <button
+                      onClick={() => setHealthSearchQuery('')}
+                      className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                {healthAlertFilter !== 'all' && (
+                  <button
+                    onClick={() => setHealthAlertFilter('all')}
+                    className="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                  >
+                    បង្ហាញទាំងអស់
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setShowBulkHealthModal(true)}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                  title="នាំចូលទិន្នន័យសុខភាពសិស្សធំពីឯកសារ CSV"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>នាំចូលសុខភាព (CSV)</span>
+                </button>
+                <button
+                  onClick={() => setHealthReportStudent(classStudents[0] || students[0] || null)}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                  title="ទាញយករបាយការណ៍ប្រវត្តិសុខភាពសិស្សជាទម្រង់ PDF ផ្លូវការ"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>របាយការណ៍សុខភាព (PDF)</span>
+                </button>
                 <button
                   onClick={() => setShowPriModal(true)}
-                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-xs"
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
                   title="បោះពុម្ពតារាងស្ថិតិសិស្សផ្លូវការ PRI"
                 >
                   <FileSpreadsheet className="w-3.5 h-3.5" />
-                  <span>តារាងស្ថិតិសិស្ស PRI</span>
+                  <span>តារាងស្ថិតិ PRI</span>
                 </button>
                 <button
                   onClick={() => setHealthBookletStudent(classStudents[0] || students[0] || null)}
-                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-xs"
+                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
                   title="បោះពុម្ពសៀវភៅសុខភាព ៣ ទំព័រ (គម្របមុខ, ប្រវត្តិជំងឺ, ការពិនិត្យសុខភាព)"
                 >
                   <BookOpen className="w-3.5 h-3.5" />
-                  <span>សៀវភៅសុខភាព ៣ទំព័រ (PDF)</span>
+                  <span>សៀវភៅសុខភាព ៣ទំព័រ</span>
                 </button>
               </div>
             </div>
@@ -1141,72 +1397,178 @@ export const HealthAttendance: React.FC = () => {
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-slate-100 text-[11px] font-bold text-slate-700 border-b border-slate-200">
-                    <th className="py-3 px-4">ឈ្មោះសិស្ស</th>
+                    <th className="py-3 px-4">ឈ្មោះសិស្ស & ការដាស់តឿន</th>
                     <th className="py-3 px-4">ថ្នាក់</th>
                     <th className="py-3 px-4">កម្ពស់ (cm)</th>
                     <th className="py-3 px-4">ទម្ងន់ (kg)</th>
-                    <th className="py-3 px-4">សន្ទស្សន៍ BMI</th>
-                    <th className="py-3 px-4">ស្ថានភាពអាហារូបត្ថម្ភ</th>
+                    <th className="py-3 px-4">សន្ទស្សន៍ BMI & ស្ថានភាព</th>
                     <th className="py-3 px-4">ក្រុមឈាម & វ៉ាក់សាំង</th>
-                    <th className="py-3 px-4">ការកត់សម្គាល់</th>
-                    <th className="py-3 px-4 text-center">សកម្មភាព</th>
+                    <th className="py-3 px-4">កំណត់ត្រា / ការពិនិត្យចុងក្រោយ</th>
+                    <th className="py-3 px-4 text-center">សកម្មភាព / កត់សម្គាល់រហ័ស</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {students.map((student) => (
-                    <tr key={student.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3 px-4 font-bold text-slate-900">
-                        {student.nameKhmer}
-                        <span className="block text-[10px] text-slate-500">{student.code}</span>
-                      </td>
-                      <td className="py-3 px-4 font-medium">
-                        ថ្នាក់ទី {student.grade}{student.section}
-                      </td>
-                      <td className="py-3 px-4 font-mono">{student.health.heightCm} cm</td>
-                      <td className="py-3 px-4 font-mono">{student.health.weightKg} kg</td>
-                      <td className="py-3 px-4 font-mono font-bold text-blue-700">
-                        {student.health.bmi}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                            student.health.nutritionStatus === 'normal'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-amber-100 text-amber-800'
-                          }`}
-                        >
-                          {student.health.nutritionStatus === 'normal'
-                            ? 'សមស្រប (ធម្មតា)'
-                            : 'ស្គម (ត្រូវការបំប៉ន)'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-700">
-                        ឈាម {student.health.bloodType} •{' '}
-                        {student.health.vaccinated ? 'វ៉ាក់សាំងគ្រប់' : 'មិនទាន់គ្រប់'}
-                      </td>
-                      <td className="py-3 px-4 text-slate-500">{student.health.notes || '-'}</td>
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            id={`edit-health-${student.id}`}
-                            onClick={() => handleOpenHealthEdit(student)}
-                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg transition-colors flex items-center gap-1"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                            កែ
-                          </button>
-                          <button
-                            onClick={() => setHealthBookletStudent(student)}
-                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-lg transition-colors flex items-center gap-1"
-                            title="បោះពុម្ពសៀវភៅសុខភាព ៣ ទំព័រសម្រាប់សិស្សនេះ"
-                          >
-                            <BookOpen className="w-3.5 h-3.5 text-rose-600" />
-                            សៀវភៅសុខភាព
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {students
+                    .filter((student) => {
+                      // Apply search filter
+                      if (healthSearchQuery.trim()) {
+                        const q = healthSearchQuery.toLowerCase();
+                        const matchesName =
+                          student.nameKhmer.toLowerCase().includes(q) ||
+                          (student.nameLatin && student.nameLatin.toLowerCase().includes(q));
+                        const matchesCode = student.code.toLowerCase().includes(q);
+                        if (!matchesName && !matchesCode) return false;
+                      }
+
+                      // Apply alert category filter
+                      if (healthAlertFilter === 'unvaccinated') {
+                        return !student.health?.vaccinated;
+                      }
+                      if (healthAlertFilter === 'missed_nurse') {
+                        return (
+                          !student.health?.lastCheckedDate ||
+                          student.health?.notes?.includes('ខកខាន') ||
+                          (student.health?.bmi && (student.health.bmi < 14 || student.health.bmi > 22))
+                        );
+                      }
+                      if (healthAlertFilter === 'bmi_risk') {
+                        return student.health?.bmi < 14.5 || student.health?.bmi > 20.0;
+                      }
+                      return true;
+                    })
+                    .map((student) => {
+                      const bmiInfo = getBmiBadgeInfo(student.health?.bmi);
+                      const isUnvaccinated = !student.health?.vaccinated;
+                      const isMissedNurse =
+                        !student.health?.lastCheckedDate ||
+                        student.health?.notes?.includes('ខកខាន') ||
+                        (student.health?.bmi && (student.health.bmi < 14 || student.health.bmi > 22));
+
+                      return (
+                        <tr key={student.id} className="hover:bg-slate-50/80 transition-colors">
+                          {/* Student Name and High-Visibility Warning Badges */}
+                          <td className="py-3 px-4">
+                            <div className="flex items-start gap-2">
+                              <div>
+                                <span className="font-bold text-slate-900 text-sm font-kantumruy block">
+                                  {student.nameKhmer}
+                                </span>
+                                <span className="text-[11px] text-slate-500 font-mono">
+                                  {student.code} {student.nameLatin ? `• ${student.nameLatin}` : ''}
+                                </span>
+                                {/* Visual Alert Badges */}
+                                <div className="flex flex-wrap items-center gap-1 mt-1">
+                                  {isUnvaccinated && (
+                                    <span
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200"
+                                      title="ខ្វះទិន្នន័យវ៉ាក់សាំងកាតព្វកិច្ច"
+                                    >
+                                      <AlertTriangle className="w-3 h-3 text-rose-500" />
+                                      <span>ខ្វះវ៉ាក់សាំង</span>
+                                    </span>
+                                  )}
+                                  {isMissedNurse && (
+                                    <span
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200"
+                                      title="ខកខានពិនិត្យសុខភាព ឬមិនទាន់មានកាលបរិច្ឆេទពិនិត្យ"
+                                    >
+                                      <Clock className="w-3 h-3 text-amber-600" />
+                                      <span>ខកខានជួបពេទ្យ</span>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-3 px-4 font-medium text-slate-700">
+                            ថ្នាក់ទី {student.grade}{student.section}
+                          </td>
+                          <td className="py-3 px-4 font-mono font-semibold text-slate-800">{student.health.heightCm} cm</td>
+                          <td className="py-3 px-4 font-mono font-semibold text-slate-800">{student.health.weightKg} kg</td>
+                          
+                          {/* Color-Coded BMI Status Badge */}
+                          <td className="py-3 px-4">
+                            <div className="space-y-1">
+                              <span className="font-mono font-bold text-slate-900 text-sm">
+                                {student.health.bmi}
+                              </span>
+                              <div
+                                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${bmiInfo.bgColor}`}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${bmiInfo.dotColor}`} />
+                                <span>{bmiInfo.label}</span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Blood Type & Vaccination Status */}
+                          <td className="py-3 px-4 text-slate-700">
+                            <div className="space-y-0.5">
+                              <span className="px-1.5 py-0.2 bg-slate-100 rounded text-[10px] font-bold font-mono text-slate-700">
+                                ឈាម {student.health.bloodType}
+                              </span>
+                              <p className={`text-[11px] font-semibold ${isUnvaccinated ? 'text-rose-600' : 'text-emerald-700'}`}>
+                                {isUnvaccinated ? '⚠️ មិនទាន់គ្រប់' : '✓ វ៉ាក់សាំងគ្រប់'}
+                              </p>
+                            </div>
+                          </td>
+
+                          {/* Health Notes & Last Checked Date */}
+                          <td className="py-3 px-4 text-slate-600">
+                            <div className="max-w-[200px] truncate text-[11px]" title={student.health.notes || ''}>
+                              {student.health.notes || <span className="text-slate-400 italic">គ្មានកំណត់ត្រា</span>}
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
+                              ពិនិត្យ: {student.health.lastCheckedDate || 'មិនទាន់កំណត់'}
+                            </span>
+                          </td>
+
+                          {/* Actions: Quick Note Button, Edit, PDF Health History, Booklet */}
+                          <td className="py-3 px-4 text-center">
+                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                              {/* Quick Care Observation Button */}
+                              <button
+                                onClick={() => setQuickCareStudent(student)}
+                                className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                                title="កត់ត្រាការពិនិត្យ អាការៈ និងការថែទាំសុខភាពបន្ទាន់ដោយមិនបាច់ចាកចេញពីផ្ទាំងនេះ"
+                              >
+                                <Stethoscope className="w-3.5 h-3.5 text-amber-600" />
+                                <span>កត់សម្គាល់រហ័ស</span>
+                              </button>
+
+                              <button
+                                id={`edit-health-${student.id}`}
+                                onClick={() => handleOpenHealthEdit(student)}
+                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                                title="កែប្រែកម្ពស់ ទម្ងន់ ក្រុមឈាម"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                                <span>កែ</span>
+                              </button>
+
+                              <button
+                                onClick={() => setHealthReportStudent(student)}
+                                className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                                title="បង្កើតរបាយការណ៍ប្រវត្តិសុខភាពជា PDF សម្រាប់សិស្សនេះ"
+                              >
+                                <Printer className="w-3.5 h-3.5 text-indigo-600" />
+                                <span>PDF</span>
+                              </button>
+
+                              <button
+                                onClick={() => setHealthBookletStudent(student)}
+                                className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                                title="បោះពុម្ពសៀវភៅសុខភាព ៣ ទំព័រសម្រាប់សិស្សនេះ"
+                              >
+                                <BookOpen className="w-3.5 h-3.5 text-rose-600" />
+                                <span>សៀវភៅ</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
@@ -1216,7 +1578,7 @@ export const HealthAttendance: React.FC = () => {
 
       {/* Edit Health Modal */}
       {editingStudentHealth && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 text-xs">
             <h3 className="text-base font-bold font-moul text-slate-900">
               កែទិន្នន័យសុខភាព: {editingStudentHealth.nameKhmer}
@@ -1288,13 +1650,13 @@ export const HealthAttendance: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setEditingStudentHealth(null)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer"
                 >
                   បោះបង់
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow"
+                  className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow cursor-pointer"
                 >
                   រក្សាទុក
                 </button>
@@ -1313,6 +1675,35 @@ export const HealthAttendance: React.FC = () => {
           schoolProfile={schoolProfile}
           academicYear="២០២៥-២០២៦"
           allStudents={classStudents.length > 0 ? classStudents : students}
+        />
+      )}
+
+      {/* STUDENT HEALTH HISTORY PDF REPORT MODAL */}
+      {healthReportStudent && (
+        <StudentHealthReportPdfModal
+          isOpen={Boolean(healthReportStudent)}
+          onClose={() => setHealthReportStudent(null)}
+          student={healthReportStudent}
+          schoolProfile={schoolProfile}
+          academicYear="២០២៥-២០២៦"
+        />
+      )}
+
+      {/* BULK DATA IMPORT & EXPORT MODAL */}
+      {showBulkHealthModal && (
+        <BulkDataImportExportModal
+          isOpen={showBulkHealthModal}
+          onClose={() => setShowBulkHealthModal(false)}
+        />
+      )}
+
+      {/* QUICK CARE OBSERVATION MODAL */}
+      {quickCareStudent && (
+        <QuickCareObservationModal
+          isOpen={Boolean(quickCareStudent)}
+          onClose={() => setQuickCareStudent(null)}
+          student={quickCareStudent}
+          onSaveObservation={handleSaveQuickCareObservation}
         />
       )}
 
