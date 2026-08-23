@@ -51,10 +51,14 @@ export const MyClassTab: React.FC<MyClassTabProps> = ({
   );
 
   const filteredStudents = classStudents.filter(s => {
+    const nameKh = s.nameKhmer || '';
+    const code = s.code || '';
+    const nameLat = s.nameLatin || '';
+    const query = searchQuery.toLowerCase();
     const matchesSearch =
-      s.nameKhmer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (s.nameLatin && s.nameLatin.toLowerCase().includes(searchQuery.toLowerCase()));
+      nameKh.toLowerCase().includes(query) ||
+      code.toLowerCase().includes(query) ||
+      nameLat.toLowerCase().includes(query);
     const matchesGender =
       filterGender === 'all'
         ? true
@@ -210,7 +214,7 @@ export const MyClassTab: React.FC<MyClassTabProps> = ({
                           <td className="py-2.5 px-3">
                             <div className="flex items-center gap-2">
                               <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs flex-shrink-0">
-                                {s.nameKhmer.charAt(0)}
+                                {s.nameKhmer ? s.nameKhmer.charAt(0) : 'ស'}
                               </div>
                               <div>
                                 <p className="font-bold text-slate-800">{s.nameKhmer}</p>
@@ -284,7 +288,7 @@ export const MyClassTab: React.FC<MyClassTabProps> = ({
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2.5">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
-                        {s.nameKhmer.charAt(0)}
+                        {s.nameKhmer ? s.nameKhmer.charAt(0) : 'ស'}
                       </div>
                       <div>
                         <h4 className="font-bold text-slate-800 text-sm">{s.nameKhmer}</h4>

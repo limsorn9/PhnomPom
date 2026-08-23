@@ -122,9 +122,9 @@ export const StudentBadgesManagementTab: React.FC<StudentBadgesManagementTabProp
 
       if (searchStudentText.trim()) {
         const q = searchStudentText.toLowerCase();
-        const matchNameKh = s.nameKhmer.toLowerCase().includes(q);
-        const matchNameLat = s.nameLatin.toLowerCase().includes(q);
-        const matchCode = s.code.toLowerCase().includes(q);
+        const matchNameKh = s.nameKhmer ? s.nameKhmer.toLowerCase().includes(q) : false;
+        const matchNameLat = s.nameLatin ? s.nameLatin.toLowerCase().includes(q) : false;
+        const matchCode = s.code ? s.code.toLowerCase().includes(q) : false;
         if (!matchNameKh && !matchNameLat && !matchCode) return false;
       }
 

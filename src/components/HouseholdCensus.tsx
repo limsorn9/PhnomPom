@@ -374,7 +374,8 @@ export const HouseholdCensus: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Household_Census_${schoolProfile.nameLatin.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+    const safeLatinName = (schoolProfile.nameLatin || 'Phnom_Pom').replace(/\s+/g, '_');
+    link.download = `Household_Census_${safeLatinName}_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     showToast('បានទាញយកទិន្នន័យជំរឿនខ្នងផ្ទះជាទម្រង់ CSV ជោគជ័យ!');
   };

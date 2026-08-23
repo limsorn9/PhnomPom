@@ -105,10 +105,13 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
     return students.filter(student => {
       const matchGrade = selectedGrade === 'all' || student.grade === selectedGrade;
       const matchSection = selectedSection === 'all' || student.section === selectedSection;
+      const nameKh = student.nameKhmer || '';
+      const code = student.code || '';
+      const query = searchStudentText ? searchStudentText.toLowerCase() : '';
       const matchSearch =
-        !searchStudentText ||
-        student.nameKhmer.toLowerCase().includes(searchStudentText.toLowerCase()) ||
-        student.code.toLowerCase().includes(searchStudentText.toLowerCase());
+        !query ||
+        nameKh.toLowerCase().includes(query) ||
+        code.toLowerCase().includes(query);
       return matchGrade && matchSection && matchSearch;
     });
   }, [students, selectedGrade, selectedSection, searchStudentText]);
@@ -529,7 +532,7 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white text-2xl font-bold font-moul shrink-0">
-                {activeStudent.nameKhmer.charAt(0)}
+                {activeStudent.nameKhmer ? activeStudent.nameKhmer.charAt(0) : 'ស'}
               </div>
               <div>
                 <div className="flex items-center gap-3">

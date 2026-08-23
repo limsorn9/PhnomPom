@@ -503,7 +503,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
             <div className="flex items-start justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-lg">
-                  {selectedStudentDetail.nameKhmer.charAt(0)}
+                  {selectedStudentDetail.nameKhmer ? selectedStudentDetail.nameKhmer.charAt(0) : 'ស'}
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-800 text-base">

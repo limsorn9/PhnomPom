@@ -293,7 +293,8 @@ export const LibraryManagement: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Library_Catalog_${schoolProfile.nameLatin.replace(/\s+/g, '_')}.csv`;
+    const safeLatinName = (schoolProfile.nameLatin || 'Phnom_Pom').replace(/\s+/g, '_');
+    link.download = `Library_Catalog_${safeLatinName}.csv`;
     link.click();
     showToast('បានទាញយកទិន្នន័យបណ្ណាល័យជា CSV ជោគជ័យ!');
   };

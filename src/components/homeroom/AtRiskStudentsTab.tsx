@@ -591,7 +591,7 @@ export const AtRiskStudentsTab: React.FC<AtRiskStudentsTabProps> = ({
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2.5">
                           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-                            {item.studentName.charAt(0)}
+                            {item.studentName ? item.studentName.charAt(0) : 'ស'}
                           </div>
                           <div>
                             <div className="font-bold text-slate-800 flex items-center gap-1.5">
@@ -1147,7 +1147,7 @@ export const AtRiskStudentsTab: React.FC<AtRiskStudentsTabProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-600 to-blue-600 text-white flex items-center justify-center font-bold text-lg">
-                  {selectedStudentForAction.studentName.charAt(0)}
+                  {selectedStudentForAction.studentName ? selectedStudentForAction.studentName.charAt(0) : 'ស'}
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-800 text-base">

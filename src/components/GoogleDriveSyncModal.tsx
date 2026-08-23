@@ -101,7 +101,8 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `School_Database_Backup_${schoolProfile.nameLatin.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+    const safeLatinName = (schoolProfile.nameLatin || 'Phnom_Pom').replace(/\s+/g, '_');
+    link.download = `School_Database_Backup_${safeLatinName}_${new Date().toISOString().split('T')[0]}.json`;
     link.click();
     showToast('បានទាញយកទិន្នន័យបម្រុងទុកមូលដ្ឋានទិន្នន័យ (Full JSON Backup) ជោគជ័យ!');
   };

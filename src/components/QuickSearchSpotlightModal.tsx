@@ -245,7 +245,7 @@ export const QuickSearchSpotlightModal: React.FC<QuickSearchSpotlightModalProps>
                               : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300'
                           }`}
                         >
-                          {res.nameKhmer.slice(0, 2)}
+                          {res.nameKhmer ? res.nameKhmer.slice(0, 2) : ''}
                         </div>
                       )}
                       <span

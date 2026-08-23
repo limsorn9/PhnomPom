@@ -160,11 +160,17 @@ export const AccountsManagement: React.FC = () => {
 
   // Filter users based on role and search query
   const filteredUsers = appUsers.filter(u => {
+    const nameKh = u.nameKhmer || '';
+    const email = u.email || '';
+    const code = u.studentCode || '';
+    const phone = u.phone || '';
+    const query = searchQuery.toLowerCase();
+
     const matchesSearch =
-      u.nameKhmer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (u.studentCode && u.studentCode.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (u.phone && u.phone.includes(searchQuery));
+      nameKh.toLowerCase().includes(query) ||
+      email.toLowerCase().includes(query) ||
+      code.toLowerCase().includes(query) ||
+      phone.includes(searchQuery);
 
     const matchesRole = roleFilter === 'all' || u.role === roleFilter;
 
@@ -349,7 +355,7 @@ export const AccountsManagement: React.FC = () => {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 text-blue-700 flex items-center justify-center font-bold text-xs">
-                            {user.nameKhmer.charAt(0)}
+                            {user.nameKhmer ? user.nameKhmer.charAt(0) : 'U'}
                           </div>
                           <div>
                             <p className="font-bold text-slate-800">{user.nameKhmer}</p>
@@ -480,7 +486,7 @@ export const AccountsManagement: React.FC = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/60">
                     <div className="flex items-center gap-2.5">
                       <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
-                        {req.requestedByName.charAt(0)}
+                        {req.requestedByName ? req.requestedByName.charAt(0) : 'U'}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
