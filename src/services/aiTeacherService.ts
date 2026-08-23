@@ -129,9 +129,9 @@ export async function generateAILessonPlan(input: LessonPlanFormInput): Promise<
   const matchedLesson = matchedLessons.length > 0 ? matchedLessons[0] : null;
 
   const moeysContext = moeysCurr ? `
-Official MoEYS Textbook: ${moeysCurr.officialTextbookName} (${moeysCurr.academicYear})
-Key Subject Objectives: ${moeysCurr.subjectGoals.join('; ')}
-${matchedLesson ? `Matching Ministry Lesson: "${matchedLesson.title}" (${matchedLesson.hours} hours). Core Objectives: ${matchedLesson.learningObjectives.join('; ')}. Concepts: ${matchedLesson.keyConcepts.join(', ')}. Sample Exercises: ${matchedLesson.sampleQuestions.join(' | ')}` : ''}
+Official MoEYS Textbook: ${moeysCurr.officialTextbookName || moeysCurr.textbookTitle} (${moeysCurr.academicYear || '២០២៤-២០២៥'})
+Key Subject Objectives: ${(moeysCurr.subjectGoals || [moeysCurr.coreCompetency]).join('; ')}
+${matchedLesson ? `Matching Ministry Lesson: "${matchedLesson.title}" (${matchedLesson.hours || matchedLesson.recommendedPeriods} hours). Core Objectives: ${(matchedLesson.learningObjectives || [matchedLesson.objectives.knowledge, matchedLesson.objectives.skills, matchedLesson.objectives.attitude]).join('; ')}. Concepts: ${matchedLesson.keyConcepts.join(', ')}. Sample Exercises: ${matchedLesson.sampleQuestions.map(q => q.question).join(' | ')}` : ''}
 ` : '';
 
   const prompt = `
@@ -145,7 +145,7 @@ Details:
 - Duration: ${input.durationMinutes} minutes
 - Language: ${input.language}
 - Student Level: ${input.studentLevel}
-- Learning Objective: ${input.learningObjective || (matchedLesson ? matchedLesson.learningObjectives.join(' | ') : 'Auto-generate measurable SMART objectives in 3 domains: ចំណេះដឹង បំណិន ឥរិយាបថ')}
+- Learning Objective: ${input.learningObjective || (matchedLesson ? (matchedLesson.learningObjectives || [matchedLesson.objectives.knowledge, matchedLesson.objectives.skills, matchedLesson.objectives.attitude]).join(' | ') : 'Auto-generate measurable SMART objectives in 3 domains: ចំណេះដឹង បំណិន ឥរិយាបថ')}
 - Student Count: ${input.studentCount}
 - Teaching Style: ${input.teachingStyle}
 - Available Classroom Materials: ${input.materialsInClass || 'Whiteboard, Textbook, Posters, Slates'}
@@ -786,7 +786,7 @@ function createFallbackCurriculumPlan(input: {
     const realLesson = realLessons.length > 0 ? realLessons[(i - 1) % realLessons.length] : null;
     const topic = realLesson ? realLesson.title : topicsList[(i - 1) % topicsList.length];
     const lessonNum = realLesson ? realLesson.lessonNumber : Math.floor((i - 1) / 2) + 1;
-    const objectives = realLesson ? realLesson.learningObjectives.join(' | ') : `សិស្សយល់ដឹងពី ${topic} និងចេះអនុវត្តលំហាត់ជាក់ស្តែងយ៉ាងតិច ៨០%`;
+    const objectives = realLesson ? (realLesson.learningObjectives?.join(' | ') || [realLesson.objectives.knowledge, realLesson.objectives.skills, realLesson.objectives.attitude].join(' | ')) : `សិស្សយល់ដឹងពី ${topic} និងចេះអនុវត្តលំហាត់ជាក់ស្តែងយ៉ាងតិច ៨០%`;
 
     weeks.push({
       id: `w-${i}`,
@@ -798,7 +798,7 @@ function createFallbackCurriculumPlan(input: {
       learningObjectives: objectives,
       keyActivities: `គ្រូពន្យល់ទ្រឹស្តី បង្ហាញឧទាហរណ៍ជាក់ស្តែងតាមសៀវភៅពុម្ព និងដឹកនាំសកម្មភាពអនុវត្តជាក្រុម/បុគ្គល`,
       assessmentMethod: i % 4 === 0 ? 'តេស្តខ្លី និងវាយតម្លៃលើសន្លឹកកិច្ចការ' : 'សង្កេតការចូលរួម និងសំណួរផ្ទាល់មាត់',
-      materials: moeysCurr ? `${moeysCurr.officialTextbookName}, ប័ណ្ណរូបភាព និងក្តារខៀន` : `សៀវភៅពុម្ព ${input.subject} ថ្នាក់ទី${input.grade}, ប័ណ្ណរូបភាព និងក្តារខៀន`
+      materials: moeysCurr ? `${moeysCurr.officialTextbookName || moeysCurr.textbookTitle}, ប័ណ្ណរូបភាព និងក្តារខៀន` : `សៀវភៅពុម្ព ${input.subject} ថ្នាក់ទី${input.grade}, ប័ណ្ណរូបភាព និងក្តារខៀន`
     });
   }
 
@@ -825,8 +825,8 @@ export async function generateAIWeeklyLessonPlan(input: WeeklyLessonPlanFormInpu
   const moeysCurr = getMoEYSSubjectCurriculum(input.subject, input.grade);
   const matchedLessons = moeysCurr ? moeysCurr.chapters.flatMap(c => c.lessons) : [];
   const subjectOverview = moeysCurr ? `
-Official MoEYS Textbook: ${moeysCurr.officialTextbookName} (${moeysCurr.academicYear})
-Ministry Curriculum Chapters: ${moeysCurr.chapters.map(c => `${c.title} (${c.lessons.map(l => l.title).join(', ')})`).join('; ')}
+Official MoEYS Textbook: ${moeysCurr.officialTextbookName || moeysCurr.textbookTitle} (${moeysCurr.academicYear || '២០២៤-២០២៥'})
+Ministry Curriculum Chapters: ${moeysCurr.chapters.map(c => `${c.chapterTitle} (${c.lessons.map(l => l.title).join(', ')})`).join('; ')}
 ` : '';
 
   const prompt = `
@@ -836,8 +836,8 @@ ${subjectOverview}
 Subject: ${input.subject}, Grade: ${input.grade}, Week: ${input.weekNumber}, Semester: ${input.semester}, Academic Year: ${input.academicYear}.
 Theme/Topic: ${input.themeUnit}, Teaching Days: ${input.teachingDaysCount} days (Monday to ${input.teachingDaysCount === 6 ? 'Saturday' : 'Friday'}), Periods Per Day: ${input.periodsPerDay}.
 Student Level: ${input.studentLevel}, Teaching Style: ${input.teachingStyle}.
-Objectives: ${input.coreObjectives || (moeysCurr ? moeysCurr.subjectGoals.join(' | ') : 'MoEYS curriculum mastery in Knowledge, Skills, Attitude')}.
-Materials: ${input.materialsInClass || (moeysCurr ? `${moeysCurr.officialTextbookName}, ក្តារខៀន, ក្តារឆ្នួន, ប័ណ្ណរូបភាព` : 'Textbook, whiteboard, flashcards')}.
+Objectives: ${input.coreObjectives || (moeysCurr ? (moeysCurr.subjectGoals || [moeysCurr.coreCompetency]).join(' | ') : 'MoEYS curriculum mastery in Knowledge, Skills, Attitude')}.
+Materials: ${input.materialsInClass || (moeysCurr ? `${moeysCurr.officialTextbookName || moeysCurr.textbookTitle}, ក្តារខៀន, ក្តារឆ្នួន, ប័ណ្ណរូបភាព` : 'Textbook, whiteboard, flashcards')}.
 
 Each day MUST follow the 5-step pedagogical sequence of Cambodia MoEYS:
 1. ជំហានទី១ (រដ្ឋបាលថ្នាក់): Class inspection, attendance, hygiene, discipline (2-3 mins).

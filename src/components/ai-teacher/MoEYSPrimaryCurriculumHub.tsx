@@ -91,8 +91,8 @@ export const MoEYSPrimaryCurriculumHub: React.FC<Props> = ({ onNavigateToTab }) 
   const totalIndicatorsCount = MOEYS_MODEL_SCHOOL_STANDARDS.reduce((acc, s) => acc + s.indicators.length, 0); // 27
   const maxPossibleScore = totalIndicatorsCount * 5; // 135 points
 
-  const totalCalculatedScore = Object.values(indicatorScores).reduce((acc, sc) => acc + (sc || 0), 0);
-  const scorePercentage = Math.round((totalCalculatedScore / maxPossibleScore) * 100);
+  const totalCalculatedScore = (Object.values(indicatorScores) as number[]).reduce((acc: number, sc: number) => acc + (Number(sc) || 0), 0);
+  const scorePercentage = maxPossibleScore > 0 ? Math.round((totalCalculatedScore / maxPossibleScore) * 100) : 0;
 
   // Qualification Status according to MoEYS standards
   const getModelSchoolStatus = (pct: number) => {

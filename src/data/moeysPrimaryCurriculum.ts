@@ -12,11 +12,13 @@ export interface MoEYSTextbookLesson {
   pageRange: string;
   semester: 1 | 2;
   recommendedPeriods: number;
+  hours?: number;
   objectives: {
     knowledge: string;
     skills: string;
     attitude: string;
   };
+  learningObjectives?: string[];
   keyConcepts: string[];
   suggestedMaterials: string[];
   suggestedGameTemplate: string;
@@ -36,10 +38,14 @@ export interface MoEYSSubjectCurriculum {
   totalAnnualHours: number;
   periodsPerWeek: number;
   textbookTitle: string;
+  officialTextbookName?: string;
+  academicYear?: string;
+  subjectGoals?: string[];
   coreCompetency: string;
   chapters: {
     chapterNumber: number;
     chapterTitle: string;
+    title?: string;
     lessons: MoEYSTextbookLesson[];
   }[];
 }

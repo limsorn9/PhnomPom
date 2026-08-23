@@ -436,7 +436,7 @@ export const ScoreTablePrintModal: React.FC<ScoreTablePrintModalProps> = ({
             </div>
 
             {/* Official Primary School Score Matrix Table */}
-            <div className="relative z-1 overflow-x-auto print:overflow-visible">
+            <div className="relative z-1 overflow-x-auto print:overflow-visible no-scrollbar">
               <table className={`w-full text-center border-collapse border border-slate-900 text-slate-950 font-battambang ${
                 compactFont ? 'text-[10px] leading-tight' : 'text-xs'
               }`}>

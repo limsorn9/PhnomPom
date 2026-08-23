@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { AngkorPageWatermark, MoEYSRoyalHeader } from './AngkorMotif';
 import { UniversalPrintModal } from './UniversalPrintModal';
+import { StudentHouseholdMap } from './StudentHouseholdMap';
 
 export const HouseholdCensus: React.FC = () => {
   const {

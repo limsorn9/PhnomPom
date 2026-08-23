@@ -47,7 +47,10 @@ import { googleSignIn } from '../services/googleAuth';
 import {
   getStoredActivities,
   saveActivitiesToStorage,
-  generateSeedActivities
+  generateSeedActivities,
+  getRetentionConfig,
+  saveRetentionConfig,
+  performRetentionCleanup
 } from '../utils/activityTracker';
 import {
   syncSchoolDataToFirestore,
@@ -114,6 +117,7 @@ interface SchoolContextType {
   updateUser: (id: string, updated: Partial<AppUser>) => void;
   deleteUser: (id: string) => void;
   canAccessTab: (tab: ActiveTab) => boolean;
+  canAccessStudentDashboard: (student?: Student | string | null) => { allowed: boolean; reason: string };
 
   // Academic Years (២០២១ - បច្ចុប្បន្ន)
   academicYears: string[];
@@ -359,6 +363,7 @@ interface SchoolContextType {
   // Activity & Audit Trail Logs (កំណត់ត្រាសកម្មភាព និងការកែប្រែទិន្នន័យ)
   activityLogs: ActivityLogItem[];
   addActivityLog: (activity: Omit<ActivityLogItem, 'id' | 'timestamp'>) => void;
+  updateActivityLogs: (logs: ActivityLogItem[]) => void;
   clearActivityLogs: () => void;
 
   // Cloud Firestore Sync State & Controls (ការផ្ទុក និងធ្វើសមកាលកម្មលើពពក)
@@ -776,15 +781,31 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Activity & Data Change Audit Logs State (កំណត់ត្រាសកម្មភាព និងការកែប្រែទិន្នន័យ)
   const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>(() => {
-    const stored = getStoredActivities();
-    if (stored && stored.length > 0) return stored;
-    return generateSeedActivities(
-      initialStudents,
-      initialTeachers,
-      initialBudgetTransactions,
-      initialTransfers,
-      initialScores
-    );
+    let stored = getStoredActivities();
+    if (!stored || stored.length === 0) {
+      stored = generateSeedActivities(
+        initialStudents,
+        initialTeachers,
+        initialBudgetTransactions,
+        initialTransfers,
+        initialScores
+      );
+    }
+    // Auto-run cleanup on initial load if enabled
+    const retentionCfg = getRetentionConfig();
+    if (retentionCfg.autoCleanupEnabled && retentionCfg.retentionDays > 0) {
+      const { remainingLogs, deletedCount } = performRetentionCleanup(stored, retentionCfg.retentionDays);
+      if (deletedCount > 0) {
+        saveRetentionConfig({
+          ...retentionCfg,
+          lastCleanedAt: new Date().toISOString(),
+          lastCleanedCount: deletedCount
+        });
+        saveActivitiesToStorage(remainingLogs);
+        return remainingLogs;
+      }
+    }
+    return stored;
   });
 
   useEffect(() => {
@@ -798,6 +819,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       timestamp: new Date().toISOString()
     };
     setActivityLogs(prev => [newItem, ...prev].slice(0, 300));
+  };
+
+  const updateActivityLogs = (newLogs: ActivityLogItem[]) => {
+    setActivityLogs(newLogs);
+    saveActivitiesToStorage(newLogs);
   };
 
   const clearActivityLogs = () => {
@@ -2306,6 +2332,108 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return false;
   };
 
+  const canAccessStudentDashboard = (student?: Student | string | null): { allowed: boolean; reason: string } => {
+    if (!currentUser) {
+      return { allowed: false, reason: 'សូមចូលប្រើប្រាស់គណនីជាមុនសិន' };
+    }
+
+    const role = currentUser.role;
+
+    // 1. Director (នាយកសាលា): Full access to all students across all grades & sections
+    if (role === 'director') {
+      return { allowed: true, reason: 'សិទ្ធិនាយកសាលា៖ អាចពិនិត្យ និងគ្រប់គ្រងដាស់បតសិស្សទាំងអស់ទូទាំងសាលា' };
+    }
+
+    // 2. Secretary (លេខាធិការ): Full access to all students across all grades & sections
+    if (role === 'secretary') {
+      return { allowed: true, reason: 'សិទ្ធិលេខាធិការ៖ អាចពិនិត្យ និងតាមដានដាស់បតសិស្សទាំងអស់ទូទាំងសាលា' };
+    }
+
+    // 3. Direct Homeroom Teacher (គ្រូបន្ទុកថ្នាក់ផ្ទាល់): Can only access students in their assigned class
+    if (role === 'teacher') {
+      const assignedGrade = currentUser.assignedGrade;
+      const assignedSection = currentUser.assignedSection;
+
+      if (!assignedGrade || !assignedSection) {
+        return {
+          allowed: false,
+          reason: 'លោកគ្រូ-អ្នកគ្រូពុំទាន់មានបន្ទុកថ្នាក់ដែលបានកំណត់ឡើយ។ មានតែគ្រូបន្ទុកថ្នាក់ផ្ទាល់ នាយកសាលា និងលេខាធិការប៉ុណ្ណោះដែលមានសិទ្ធិ។'
+        };
+      }
+
+      // If checking general class dashboard access
+      if (!student) {
+        return {
+          allowed: true,
+          reason: `សិទ្ធិគ្រូបន្ទុកថ្នាក់ទី ${assignedGrade}${assignedSection} (មើលបានតែសិស្សក្នុងបន្ទុកផ្ទាល់ខ្លួន)`
+        };
+      }
+
+      // If checking a specific student
+      const studentObj = typeof student === 'string'
+        ? students.find(s => s.id === student || s.code === student)
+        : student;
+
+      if (!studentObj) {
+        return { allowed: false, reason: 'រកមិនឃើញទិន្នន័យសិស្សក្នុងប្រព័ន្ធ' };
+      }
+
+      if (studentObj.grade === assignedGrade && studentObj.section === assignedSection) {
+        return {
+          allowed: true,
+          reason: `សិទ្ធិគ្រូបន្ទុកថ្នាក់ទី ${assignedGrade}${assignedSection}`
+        };
+      } else {
+        return {
+          allowed: false,
+          reason: `គ្មានសិទ្ធិចូលមើលដាស់បតសិស្សថ្នាក់ទី ${studentObj.grade}${studentObj.section} ទេ។ លោកគ្រូ-អ្នកគ្រូមានសិទ្ធិមើលតែដាស់បតសិស្សក្នុងបន្ទុកថ្នាក់ទី ${assignedGrade}${assignedSection} ផ្ទាល់ខ្លួនប៉ុណ្ណោះ។`
+        };
+      }
+    }
+
+    // 4. The Student Themselves (សិស្សម្នាក់នោះផ្ទាល់): Can only view their own dashboard
+    if (role === 'student') {
+      if (!student) {
+        return {
+          allowed: true,
+          reason: 'សិទ្ធិសិស្សផ្ទាល់ខ្លួន (មើលបានតែគណនីផ្ទាល់ខ្លួន)'
+        };
+      }
+
+      const studentObj = typeof student === 'string'
+        ? students.find(s => s.id === student || s.code === student)
+        : student;
+
+      if (!studentObj) {
+        return { allowed: false, reason: 'រកមិនឃើញទិន្នន័យសិស្ស' };
+      }
+
+      const isSelf = Boolean(
+        (currentUser.studentId && studentObj.id === currentUser.studentId) ||
+        (currentUser.studentCode && studentObj.code === currentUser.studentCode) ||
+        (currentUser.username && studentObj.code === currentUser.username)
+      );
+
+      if (isSelf) {
+        return {
+          allowed: true,
+          reason: 'សិទ្ធិសិស្សផ្ទាល់ខ្លួន'
+        };
+      } else {
+        return {
+          allowed: false,
+          reason: 'សិស្សមានសិទ្ធិមើលបានតែដាស់បតផ្ទាល់ខ្លួនរបស់ខ្លួនឯងប៉ុណ្ណោះ។ គ្មានសិទ្ធិមើលដាស់បតសិស្សដទៃឡើយ។'
+        };
+      }
+    }
+
+    // 5. All other roles (librarian, unauthorized): Strictly no access (ក្រៅពីនោះគ្មានសិទ្ធិ)
+    return {
+      allowed: false,
+      reason: 'គ្មានសិទ្ធិចូលមើលដាស់បតសិស្សឡើយ។ ដាស់បតសិស្ស នាយកបើកមើលបាន គ្រូបន្ទុកថ្នាក់ផ្ទាល់បើកមើលបាន លេខាធិការបើកមើលបាន ក្រៅពីនោះគ្មានសិទ្ធិ (ហើយអ្នកមានសិទ្ធិបន្ទាប់គឺសិស្សម្នាក់នោះផ្ទាល់)។'
+    };
+  };
+
   const addStudent = (studentData: Omit<Student, 'id' | 'code'>) => {
     const nextIndex = students.length + 1;
     const code = `STU-2024-${String(nextIndex).padStart(3, '0')}`;
@@ -3079,6 +3207,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         updateUser,
         deleteUser,
         canAccessTab,
+        canAccessStudentDashboard,
         academicYears,
         selectedAcademicYear,
         setSelectedAcademicYear,
@@ -3240,6 +3369,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         autoSuggestBadgesForStudent,
         activityLogs,
         addActivityLog,
+        updateActivityLogs,
         clearActivityLogs,
         isCloudSyncing,
         lastCloudSyncTime,

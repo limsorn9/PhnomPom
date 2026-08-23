@@ -626,4 +626,198 @@ html.dark .border-indigo-200 {
   animation: musicNoteFloat 1.8s ease-out infinite;
 }
 
+/* -------------------------------------------------------------
+   Print & PDF Export Global Styles (Zero Scrollbars & A4 Alignment)
+   ------------------------------------------------------------- */
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Dedicated Print-Friendly Class that overrides all scroll-related styles */
+.print-view,
+.print-view *,
+.app-print-active,
+.app-print-active * {
+  overflow: visible !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+  height: auto !important;
+  max-height: none !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.print-view::-webkit-scrollbar,
+.print-view *::-webkit-scrollbar,
+.app-print-active::-webkit-scrollbar,
+.app-print-active *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.pdf-export-active {
+  overflow: visible !important;
+  height: auto !important;
+  max-height: none !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.pdf-export-active * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.pdf-export-active *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.pdf-export-active .overflow-x-auto,
+.pdf-export-active .overflow-y-auto,
+.pdf-export-active .overflow-auto,
+.pdf-export-active [class*="overflow-"] {
+  overflow: visible !important;
+  height: auto !important;
+  max-height: none !important;
+  max-width: none !important;
+}
+
+/* Specific Media Query Block for @media print */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  @page landscape {
+    size: A4 landscape;
+    margin: 6mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Globally force overflow visible on all scroll containers and body */
+  html,
+  body,
+  #root,
+  main,
+  div,
+  section,
+  article,
+  .overflow-x-auto,
+  .overflow-y-auto,
+  .overflow-auto,
+  .overflow-hidden,
+  .overflow-scroll,
+  [class*="overflow-"] {
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  body, html {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: 'Battambang', 'Kantumruy Pro', sans-serif !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .no-print,
+  .print\:hidden,
+  [data-no-print="true"],
+  nav,
+  aside,
+  button:not(.print\:inline-block),
+  .fixed:not(.print\:static),
+  .sticky {
+    display: none !important;
+  }
+
+  /* Activity logs and tables clean rendering */
+  table {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto;
+  }
+
+  /* Compact typography and padding during print to prevent horizontal overflow on A4 */
+  .activity-log-table th,
+  .activity-log-table td,
+  table.print-compact th,
+  table.print-compact td {
+    padding: 3px 4px !important;
+    font-size: 9.5px !important;
+    line-height: 1.25 !important;
+  }
+
+  .activity-log-table th {
+    font-size: 10px !important;
+    font-weight: bold !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto;
+    break-inside: avoid !important;
+  }
+
+  /* Page break every 20 items in print output */
+  .print-page-break,
+  tr.print-break-after-20 {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+
+  .page-break-before {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+
+  .page-break-inside-avoid {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+
+
+
 

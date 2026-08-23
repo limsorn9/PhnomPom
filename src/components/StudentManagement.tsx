@@ -36,7 +36,10 @@ import {
   Camera,
   UploadCloud,
   Loader2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  TrendingUp,
+  BarChart3,
+  Lock
 } from 'lucide-react';
 import { uploadStudentProfilePhoto } from '../services/firebaseStorage';
 import {
@@ -53,6 +56,7 @@ import { FormAutoSaveIndicator } from './common/FormAutoSaveIndicator';
 import { StudentProgressTrendChart } from './StudentProgressTrendChart';
 import { MultiStudentProfileSummaryPdfModal } from './MultiStudentProfileSummaryPdfModal';
 import { getStudentRiskAlert, getAllStudentRiskAlerts } from '../utils/studentRiskAlerts';
+import { StudentAnalyticsDashboard } from './StudentAnalyticsDashboard';
 
 export const StudentManagement: React.FC = () => {
   const {
@@ -68,11 +72,13 @@ export const StudentManagement: React.FC = () => {
     attendanceRecords,
     studentBadgeAssignments,
     getStudentBadges,
-    getStudentTotalPoints
+    getStudentTotalPoints,
+    canAccessStudentDashboard
   } = useSchool();
 
-  // Mode: 'roster' | 'badges'
-  const [viewMode, setViewMode] = useState<'roster' | 'badges'>('roster');
+  // Mode: 'roster' | 'badges' | 'analytics'
+  const [viewMode, setViewMode] = useState<'roster' | 'badges' | 'analytics'>('roster');
+  const [selectedStudentForAnalyticsId, setSelectedStudentForAnalyticsId] = useState<string | null>(null);
   const [selectedStudentForBadgeShowcase, setSelectedStudentForBadgeShowcase] = useState<Student | null>(null);
   const [selectedStudentForAwardBadge, setSelectedStudentForAwardBadge] = useState<Student | null>(null);
   const [selectedCertificateForView, setSelectedCertificateForView] = useState<any | null>(null);
@@ -516,6 +522,24 @@ export const StudentManagement: React.FC = () => {
               {studentBadgeAssignments.length}
             </span>
           </button>
+
+          {canAccessStudentDashboard().allowed && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedStudentForAnalyticsId(null);
+                setViewMode('analytics');
+              }}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                viewMode === 'analytics'
+                  ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4 text-indigo-300" />
+              <span>ផ្ទាំងវិភាគសមិទ្ធផល (Analytics)</span>
+            </button>
+          )}
         </div>
 
         {viewMode === 'roster' && (
@@ -532,7 +556,12 @@ export const StudentManagement: React.FC = () => {
         )}
       </div>
 
-      {viewMode === 'badges' ? (
+      {viewMode === 'analytics' ? (
+        <StudentAnalyticsDashboard
+          onBackToRoster={() => setViewMode('roster')}
+          initialStudentId={selectedStudentForAnalyticsId || undefined}
+        />
+      ) : viewMode === 'badges' ? (
         <StudentBadgesManagementTab onBackToStudents={() => setViewMode('roster')} />
       ) : (
         <>
@@ -1069,6 +1098,19 @@ export const StudentManagement: React.FC = () => {
                       </td>
                       <td className="py-3 px-4 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1">
+                          {canAccessStudentDashboard(student).allowed && (
+                            <button
+                              id={`analytics-student-${student.id}`}
+                              onClick={() => {
+                                setSelectedStudentForAnalyticsId(student.id);
+                                setViewMode('analytics');
+                              }}
+                              title="មើលផ្ទាំងវិភាគសមិទ្ធផល & ក្រាហ្វិកពិន្ទុ"
+                              className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <TrendingUp className="w-4 h-4 text-indigo-600" />
+                            </button>
+                          )}
                           <button
                             id={`award-badge-${student.id}`}
                             onClick={() => setSelectedStudentForAwardBadge(student)}

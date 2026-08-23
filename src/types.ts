@@ -1080,6 +1080,15 @@ export interface ActivityChangeField {
   newValue?: string | number | boolean | null;
 }
 
+export interface ActivityLogComment {
+  id: string;
+  authorName: string;
+  authorRole: string;
+  text: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface ActivityLogItem {
   id: string;
   domain: ActivityDomain;
@@ -1100,6 +1109,101 @@ export interface ActivityLogItem {
   targetTab?: ActiveTab;
   tags?: string[];
   details?: Record<string, any>;
+  anomalies?: ActivityAnomaly[];
+  isArchived?: boolean;
+  aiImpactSummary?: string;
+  aiImpactLevel?: 'high' | 'medium' | 'low';
+  comments?: ActivityLogComment[];
+  isHighRisk?: boolean;
+  riskScore?: number; // 0 - 100
+  riskReasons?: string[];
+  riskLevel?: 'critical' | 'high' | 'medium' | 'low';
+}
+
+export type ActivityAnomalyType = 'bulk_deletion' | 'off_hours' | 'high_finance' | 'rapid_actions' | 'sensitive_admin';
+export type AnomalySeverity = 'high' | 'medium' | 'low';
+
+export interface ActivityAnomaly {
+  id: string;
+  type: ActivityAnomalyType;
+  severity: AnomalySeverity;
+  titleKhmer: string;
+  descriptionKhmer: string;
+  detectedAt: string;
+  logId: string;
+}
+
+export interface ActivitySavedView {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  badgeColor?: string;
+  isSystem?: boolean;
+  filters: {
+    searchQuery?: string;
+    selectedDomain?: ActivityDomain | 'all';
+    selectedAction?: ActivityActionType | 'all';
+    selectedRole?: string;
+    selectedActor?: string;
+    dateFilter?: 'all' | 'today' | 'yesterday' | '7days' | '30days' | 'month' | 'last_month' | 'custom';
+    customStartDate?: string;
+    customEndDate?: string;
+    showAnomaliesOnly?: boolean;
+    showHighRiskOnly?: boolean;
+    archiveFilter?: 'active' | 'archived' | 'all';
+    viewMode?: 'table' | 'list';
+  };
+  createdAt: string;
+}
+
+export interface ActivityDriveScheduleConfig {
+  enabled: boolean;
+  frequency: 'weekly' | 'monthly' | 'biweekly';
+  dayOfWeek: number; // 0=Sunday, 1=Monday, ..., 6=Saturday
+  dayOfMonth: number; // 1-31
+  timeOfDay: string; // "08:00"
+  format: 'pdf' | 'html' | 'csv' | 'json';
+  folderName: string;
+  folderId?: string;
+  targetEmail: string;
+  includeAnomalies: boolean;
+  includeComments: boolean;
+  includeHighRiskOnly: boolean;
+  lastRunAt?: string;
+  nextRunAt?: string;
+  runHistory: Array<{
+    id: string;
+    executedAt: string;
+    status: 'success' | 'failed';
+    fileName: string;
+    recordsCount: number;
+    fileSizeKb: number;
+    message: string;
+    downloadUrl?: string;
+  }>;
+}
+
+export interface ActivityHealthMetric {
+  totalLogs: number;
+  healthScore: number; // 0 - 100
+  healthStatus: 'excellent' | 'good' | 'warning' | 'critical';
+  healthStatusKhmer: string;
+  highRiskCount: number;
+  bulkDeletionsCount: number;
+  offHoursCount: number;
+  rapidActionCount: number;
+  highFinanceCount: number;
+  unusualFrequencyCount: number;
+  systemHealthAssessment: string;
+  recommendationsKhmer: string[];
+}
+
+export interface ActivityRetentionConfig {
+  retentionDays: number; // e.g. 30, 60, 90, 180, 365, 0 (0 = keep forever)
+  autoCleanupEnabled: boolean;
+  lastCleanedAt?: string;
+  lastCleanedCount?: number;
 }
 
 // Student Progress Report & Offline Sync Types

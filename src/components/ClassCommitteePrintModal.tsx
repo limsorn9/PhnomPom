@@ -197,6 +197,7 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
   const [showWatermark, setShowWatermark] = useState(true);
   const [showStamp, setShowStamp] = useState(true);
   const [showSignatures, setShowSignatures] = useState(true);
+  const [zoomLevel, setZoomLevel] = useState<number>(100);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
@@ -251,14 +252,20 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
   };
 
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   // Trigger Print & PDF
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const targetId = activeTab === 'tree' ? 'committee-print-tree-canvas' : 'committee-print-table-canvas';
-    printElement(targetId, {
-      landscape: activeTab !== 'tree',
-      pageTitle: `គណៈកម្មការគ្រប់គ្រងថ្នាក់_ថ្នាក់ទី${selectedGrade}${selectedSection}`
-    });
+    setIsPrinting(true);
+    try {
+      await printElement(targetId, {
+        landscape: activeTab !== 'tree',
+        pageTitle: `គណៈកម្មការគ្រប់គ្រងថ្នាក់_ថ្នាក់ទី${selectedGrade}${selectedSection}`
+      });
+    } finally {
+      setIsPrinting(false);
+    }
   };
 
   const handleDownloadPdf = async () => {
@@ -268,7 +275,8 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
       const typeLabel = activeTab === 'tree' ? 'រចនាសម្ព័ន្ធរូបថត' : 'តារាងសមាសភាព';
       const filename = `គណៈកម្មការគ្រប់គ្រងថ្នាក់_${typeLabel}_ថ្នាក់ទី${selectedGrade}${selectedSection}_${schoolProfile.nameKhmer || 'សាលារៀន'}.pdf`;
       await downloadElementAsPdf(targetId, filename, {
-        landscape: activeTab !== 'tree'
+        landscape: activeTab !== 'tree',
+        scale: 2
       });
     } catch (err) {
       console.error('Failed to export Committee PDF:', err);
@@ -345,22 +353,50 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
+            {/* Zoom Controls for Print Preview */}
+            <div className="hidden lg:flex items-center gap-1 bg-white border border-slate-200 rounded-xl px-2 py-1 shadow-xs text-xs">
+              <span className="text-slate-500 text-[11px] font-medium mr-1">ពង្រីក/បង្រួម:</span>
+              <button
+                onClick={() => setZoomLevel(prev => Math.max(70, prev - 10))}
+                className="w-6 h-6 flex items-center justify-center rounded hover:bg-slate-100 text-slate-700 font-bold"
+                title="បង្រួម"
+              >
+                -
+              </button>
+              <button
+                onClick={() => setZoomLevel(100)}
+                className="px-1.5 py-0.5 rounded text-[11px] font-bold text-blue-700 hover:bg-blue-50"
+                title="ទំហំដើម ១០០%"
+              >
+                {zoomLevel}%
+              </button>
+              <button
+                onClick={() => setZoomLevel(prev => Math.min(130, prev + 10))}
+                className="w-6 h-6 flex items-center justify-center rounded hover:bg-slate-100 text-slate-700 font-bold"
+                title="ពង្រីក"
+              >
+                +
+              </button>
+            </div>
+
             <button
               onClick={handleDownloadPdf}
               disabled={isExportingPdf}
               className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
-              title="ទាញយកឯកសារជាទម្រង់ PDF"
+              title="ទាញយកឯកសារជាទម្រង់ PDF គ្មានជាប់របារអូស"
             >
               <Download className="w-4 h-4" />
-              <span>{isExportingPdf ? 'កំពុងបង្កើត...' : 'ទាញយកជា PDF'}</span>
+              <span>{isExportingPdf ? 'កំពុងបង្កើត PDF...' : 'ទាញយកជា PDF'}</span>
             </button>
 
             <button
               onClick={handlePrint}
+              disabled={isPrinting}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              title="បើកផ្ទាំងបោះពុម្ព (Print Preview Dialog)"
             >
               <Printer className="w-4 h-4" />
-              <span>បោះពុម្ព (Print)</span>
+              <span>{isPrinting ? 'កំពុងដំណើរការ...' : 'បោះពុម្ព (Print)'}</span>
             </button>
 
             <button
@@ -447,7 +483,8 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
           {activeTab === 'table' && (
             <div
               id="committee-print-table-canvas"
-              className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-200 w-full max-w-[1100px] print:max-w-none print:w-full print:shadow-none print:border-none print:p-4 print-landscape-mode relative"
+              style={{ zoom: `${zoomLevel}%` }}
+              className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-200 w-full max-w-[1100px] print:max-w-none print:w-full print:shadow-none print:border-none print:p-4 print-landscape-mode relative transition-transform"
             >
               {/* Background Watermark */}
               {showWatermark && <AngkorPageWatermark opacity={0.04} />}
@@ -483,8 +520,8 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
                 </p>
               </div>
 
-              {/* Table Matching Screenshot 1 */}
-              <div className="relative z-10 overflow-x-auto mt-4">
+              {/* Table Matching Screenshot 1 with zero-scrollbar styling */}
+              <div className="relative z-10 overflow-x-auto print:overflow-visible no-scrollbar mt-4">
                 <table className="w-full text-[11px] sm:text-xs text-left border-collapse border border-slate-900">
                   <thead>
                     <tr className="bg-slate-100 font-bold text-slate-900 text-center font-battambang">
@@ -568,7 +605,8 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
           {activeTab === 'tree' && (
             <div
               id="committee-print-tree-canvas"
-              className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-200 w-full max-w-[850px] print:max-w-none print:w-full print:shadow-none print:border-none print:p-4 relative"
+              style={{ zoom: `${zoomLevel}%` }}
+              className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-200 w-full max-w-[850px] print:max-w-none print:w-full print:shadow-none print:border-none print:p-4 relative transition-transform"
             >
               {/* Background Watermark */}
               {showWatermark && <AngkorPageWatermark opacity={0.04} />}

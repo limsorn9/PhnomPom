@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { Student, StudentScoreRecord, DailyAttendanceRecord, Gender } from '../types';
 import {
@@ -45,7 +45,12 @@ import {
   BookOpen,
   HeartPulse,
   Eye,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ShieldAlert,
+  ShieldCheck,
+  Lock,
+  ArrowLeft,
+  School
 } from 'lucide-react';
 
 const MONTH_ORDER = [
@@ -82,6 +87,8 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
   initialStudentId
 }) => {
   const {
+    currentUser,
+    canAccessStudentDashboard,
     students,
     scores,
     attendanceRecords,
@@ -89,20 +96,97 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
     classrooms,
     selectedAcademicYear,
     studentBadgeAssignments,
-    setActiveTab
+    setActiveTab,
+    showToast
   } = useSchool();
 
-  // Filters State
-  const [selectedGrade, setSelectedGrade] = useState<number | 'all'>('all');
-  const [selectedSection, setSelectedSection] = useState<string>('all');
-  const [selectedStudentId, setSelectedStudentId] = useState<string>(initialStudentId || 'all');
+  // Role resolution & authorization check
+  const role = currentUser?.role || 'student';
+  const isDirector = role === 'director';
+  const isSecretary = role === 'secretary';
+  const isTeacher = role === 'teacher';
+  const isStudent = role === 'student';
+
+  const teacherGrade = currentUser?.assignedGrade;
+  const teacherSection = currentUser?.assignedSection;
+
+  // Student self-record resolution
+  const currentStudentSelf = useMemo(() => {
+    if (!isStudent) return null;
+    return students.find(
+      s =>
+        (currentUser?.studentId && s.id === currentUser.studentId) ||
+        (currentUser?.studentCode && s.code === currentUser.studentCode) ||
+        (currentUser?.username && s.code === currentUser.username)
+    ) || students[0] || null;
+  }, [students, currentUser, isStudent]);
+
+  // Overall General Access Check
+  const accessCheck = canAccessStudentDashboard();
+
+  // Initial Filter State based on Role
+  const [selectedGrade, setSelectedGrade] = useState<number | 'all'>(() => {
+    if (isTeacher && teacherGrade) return teacherGrade;
+    if (isStudent && currentStudentSelf) return currentStudentSelf.grade;
+    return 'all';
+  });
+
+  const [selectedSection, setSelectedSection] = useState<string>(() => {
+    if (isTeacher && teacherSection) return teacherSection;
+    if (isStudent && currentStudentSelf) return currentStudentSelf.section;
+    return 'all';
+  });
+
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(() => {
+    if (isStudent && currentStudentSelf) return currentStudentSelf.id;
+    if (initialStudentId) return initialStudentId;
+    return 'all';
+  });
+
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [searchStudentText, setSearchStudentText] = useState('');
-  const [analysisView, setAnalysisView] = useState<'class_overview' | 'individual_deepdive'>('class_overview');
+  const [analysisView, setAnalysisView] = useState<'class_overview' | 'individual_deepdive'>(() => {
+    if (isStudent || (initialStudentId && initialStudentId !== 'all')) return 'individual_deepdive';
+    return 'class_overview';
+  });
 
-  // Filtered Students
+  // Enforce Teacher Lock & Student Lock on mount/role changes
+  useEffect(() => {
+    if (isTeacher && teacherGrade && teacherSection) {
+      setSelectedGrade(teacherGrade);
+      setSelectedSection(teacherSection);
+      if (initialStudentId && initialStudentId !== 'all') {
+        const check = canAccessStudentDashboard(initialStudentId);
+        if (!check.allowed) {
+          showToast(check.reason, 'error');
+          setSelectedStudentId('all');
+          setAnalysisView('class_overview');
+        }
+      }
+    } else if (isStudent && currentStudentSelf) {
+      setSelectedGrade(currentStudentSelf.grade);
+      setSelectedSection(currentStudentSelf.section);
+      setSelectedStudentId(currentStudentSelf.id);
+      setAnalysisView('individual_deepdive');
+    }
+  }, [isTeacher, isStudent, teacherGrade, teacherSection, currentStudentSelf, initialStudentId]);
+
+  // Filtered Students with strict security boundary
   const filteredStudents = useMemo(() => {
     return students.filter(student => {
+      // 1. Teacher boundary: only students in their assigned class
+      if (isTeacher && teacherGrade && teacherSection) {
+        if (student.grade !== teacherGrade || student.section !== teacherSection) {
+          return false;
+        }
+      }
+
+      // 2. Student boundary: only their own profile
+      if (isStudent && currentStudentSelf) {
+        return student.id === currentStudentSelf.id;
+      }
+
+      // 3. Director/Secretary: full filterable scope
       const matchGrade = selectedGrade === 'all' || student.grade === selectedGrade;
       const matchSection = selectedSection === 'all' || student.section === selectedSection;
       const nameKh = student.nameKhmer || '';
@@ -114,7 +198,7 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
         code.toLowerCase().includes(query);
       return matchGrade && matchSection && matchSearch;
     });
-  }, [students, selectedGrade, selectedSection, searchStudentText]);
+  }, [students, selectedGrade, selectedSection, searchStudentText, isTeacher, teacherGrade, teacherSection, isStudent, currentStudentSelf]);
 
   // Selected Student Object if individual mode
   const activeStudent = useMemo(() => {
@@ -122,26 +206,52 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
     return students.find(s => s.id === selectedStudentId) || null;
   }, [students, selectedStudentId]);
 
+  // Individual Student Specific Access Check
+  const activeStudentAccessCheck = useMemo(() => {
+    if (!activeStudent) return { allowed: true, reason: '' };
+    return canAccessStudentDashboard(activeStudent);
+  }, [activeStudent, canAccessStudentDashboard]);
+
   // Filtered Scores for current scope
   const scopedScores = useMemo(() => {
     return scores.filter(score => {
+      if (isTeacher && teacherGrade && teacherSection) {
+        if (score.grade !== teacherGrade || score.section !== teacherSection) {
+          return false;
+        }
+      }
+      if (isStudent && currentStudentSelf) {
+        if (score.studentId !== currentStudentSelf.id) {
+          return false;
+        }
+      }
       const matchGrade = selectedGrade === 'all' || score.grade === selectedGrade;
       const matchSection = selectedSection === 'all' || score.section === selectedSection;
       const matchStudent = selectedStudentId === 'all' || score.studentId === selectedStudentId;
       const matchMonth = selectedMonth === 'all' || score.monthOrSemester === selectedMonth;
       return matchGrade && matchSection && matchStudent && matchMonth;
     });
-  }, [scores, selectedGrade, selectedSection, selectedStudentId, selectedMonth]);
+  }, [scores, selectedGrade, selectedSection, selectedStudentId, selectedMonth, isTeacher, teacherGrade, teacherSection, isStudent, currentStudentSelf]);
 
   // Filtered Attendance for current scope
   const scopedAttendance = useMemo(() => {
     return attendanceRecords.filter(att => {
+      if (isTeacher && teacherGrade && teacherSection) {
+        if (att.grade !== teacherGrade || att.section !== teacherSection) {
+          return false;
+        }
+      }
+      if (isStudent && currentStudentSelf) {
+        if (att.studentId !== currentStudentSelf.id) {
+          return false;
+        }
+      }
       const matchGrade = selectedGrade === 'all' || att.grade === selectedGrade;
       const matchSection = selectedSection === 'all' || att.section === selectedSection;
       const matchStudent = selectedStudentId === 'all' || att.studentId === selectedStudentId;
       return matchGrade && matchSection && matchStudent;
     });
-  }, [attendanceRecords, selectedGrade, selectedSection, selectedStudentId]);
+  }, [attendanceRecords, selectedGrade, selectedSection, selectedStudentId, isTeacher, teacherGrade, teacherSection, isStudent, currentStudentSelf]);
 
   // 1. Monthly Score Trend Data (Across Months in Academic Year)
   const monthlyScoreTrendData = useMemo(() => {
@@ -323,17 +433,89 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
     window.print();
   };
 
+  // 1. Hard Security Gate: If overall access is denied
+  if (!accessCheck.allowed) {
+    return (
+      <div className="bg-white rounded-3xl p-8 sm:p-12 border border-rose-200 shadow-xl max-w-3xl mx-auto my-8 text-center space-y-6">
+        <div className="w-20 h-20 mx-auto rounded-3xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-inner">
+          <ShieldAlert className="w-10 h-10" />
+        </div>
+
+        <div className="space-y-2">
+          <span className="px-3.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200 inline-flex items-center gap-1.5">
+            <Lock className="w-3.5 h-3.5" />
+            ការរឹតត្បិតសិទ្ធិសុវត្ថិភាព (Access Restricted)
+          </span>
+          <h2 className="text-xl sm:text-2xl font-bold font-moul text-slate-900">
+            គ្មានសិទ្ធិចូលមើលដាស់បតសិស្ស (Access Denied)
+          </h2>
+          <p className="text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
+            {accessCheck.reason}
+          </p>
+        </div>
+
+        {/* MoEYS RBAC Policy Explanation Card */}
+        <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-3">
+          <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+            <School className="w-4 h-4 text-blue-600" />
+            <span>គោលការណ៍សិទ្ធិចូលប្រើប្រាស់ប្រព័ន្ធ (MoEYS RBAC Policy)៖</span>
+          </h4>
+          <ul className="text-xs text-slate-600 space-y-2">
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-blue-700 shrink-0">១. នាយកសាលា (Director) ៖</span>
+              <span>មានសិទ្ធិបើកមើល និងគ្រប់គ្រងដាស់បតសិស្សគ្រប់កម្រិតថ្នាក់ទូទាំងសាលា។</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-emerald-700 shrink-0">២. គ្រូបន្ទុកថ្នាក់ផ្ទាល់ (Homeroom Teacher) ៖</span>
+              <span>មានសិទ្ធិបើកមើលតែដាស់បតសិស្សក្នុងបន្ទុកថ្នាក់ផ្ទាល់ខ្លួនប៉ុណ្ណោះ។</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-indigo-700 shrink-0">៣. លេខាធិការ (Secretary) ៖</span>
+              <span>មានសិទ្ធិបើកមើល និងតាមដានដាស់បតសិស្សទូទាំងសាលា។</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-amber-700 shrink-0">៤. សិស្សម្នាក់នោះផ្ទាល់ (Student) ៖</span>
+              <span>មានសិទ្ធិបើកមើលតែទិន្នន័យដាស់បតគណនីផ្ទាល់ខ្លួនរបស់ខ្លួនឯងប៉ុណ្ណោះ។</span>
+            </li>
+            <li className="flex items-start gap-2 text-rose-700 font-semibold">
+              <span className="shrink-0">៥. ក្រៅពីនេះ ៖</span>
+              <span>គ្មានសិទ្ធិចូលមើលដាស់បតសិស្សឡើយ។</span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+          {onBackToRoster && (
+            <button
+              onClick={onBackToRoster}
+              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>ត្រឡប់ក្រោយ</span>
+            </button>
+          )}
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className="px-6 py-2.5 bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer"
+          >
+            ត្រឡប់ទៅផ្ទាំងគ្រប់គ្រងដើម
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Top Banner & Mode Selector */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm no-print">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-blue-600 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-blue-600 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-indigo-200 shrink-0">
               <TrendingUp className="w-7 h-7" />
             </div>
             <div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-xl font-bold font-moul text-blue-950">
                   ផ្ទាំងវិភាគសមិទ្ធផល & ការរីកចម្រើនសិក្សា
                 </h1>
@@ -341,9 +523,39 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
                   <Sparkles className="w-3.5 h-3.5" />
                   Diagnostic Analytics
                 </span>
+
+                {/* Role Status Badge */}
+                {isDirector && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-900 border border-purple-200 flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-purple-700" />
+                    👑 នាយកសាលា (សិទ្ធិពេញលេញទូទាំងសាលា)
+                  </span>
+                )}
+                {isSecretary && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-900 border border-blue-200 flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-blue-700" />
+                    📋 លេខាធិការ (សិទ្ធិពេញលេញទូទាំងសាលា)
+                  </span>
+                )}
+                {isTeacher && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-200 flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-emerald-700" />
+                    👨‍🏫 គ្រូបន្ទុកថ្នាក់ទី {teacherGrade}{teacherSection} (សិទ្ធិមើលតែសិស្សក្នុងបន្ទុក)
+                  </span>
+                )}
+                {isStudent && currentStudentSelf && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-200 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-amber-700" />
+                    🎓 គណនីសិស្សផ្ទាល់ខ្លួន៖ {currentStudentSelf.nameKhmer} ({currentStudentSelf.code})
+                  </span>
+                )}
               </div>
               <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                វិភាគក្រាហ្វិកពិន្ទុសិស្ស និទ្ទេសតាមមុខវិជ្ជា ការវិវឌ្ឍប្រចាំខែ និងស្ថិតិវត្តមានពេញមួយឆ្នាំសិក្សា {selectedAcademicYear}
+                {isStudent
+                  ? `របាយការណ៍លទ្ធផលសិក្សាផ្ទាល់ខ្លួន និទ្ទេសតាមមុខវិជ្ជា និងស្ថិតិវត្តមាន ឆ្នាំសិក្សា ${selectedAcademicYear}`
+                  : isTeacher
+                  ? `វិភាគក្រាហ្វិកពិន្ទុសិស្សក្នុងបន្ទុកថ្នាក់ទី ${teacherGrade}${teacherSection} និទ្ទេសតាមមុខវិជ្ជា និងស្ថិតិវត្តមាន ឆ្នាំសិក្សា ${selectedAcademicYear}`
+                  : `វិភាគក្រាហ្វិកពិន្ទុសិស្ស និទ្ទេសតាមមុខវិជ្ជា ការវិវឌ្ឍប្រចាំខែ និងស្ថិតិវត្តមានពេញមួយឆ្នាំសិក្សា ${selectedAcademicYear}`}
               </p>
             </div>
           </div>
@@ -369,89 +581,122 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
           </div>
         </div>
 
-        {/* Global Diagnostic Filters Toolbar */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-5 border-t border-slate-100">
-          {/* Grade Filter */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">កម្រិតថ្នាក់</label>
-            <select
-              value={selectedGrade}
-              onChange={e => setSelectedGrade(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
-            >
-              <option value="all">គ្រប់កម្រិតថ្នាក់ (ថ្នាក់ទី១ - ទី៦)</option>
-              {[1, 2, 3, 4, 5, 6].map(g => (
-                <option key={g} value={g}>ថ្នាក់ទី {g}</option>
-              ))}
-            </select>
-          </div>
+        {/* Global Diagnostic Filters Toolbar (Role-Adaptive) */}
+        {!isStudent && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-5 border-t border-slate-100">
+            {/* Grade Filter */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                កម្រិតថ្នាក់ {isTeacher && <span className="text-[10px] text-emerald-600 font-normal">(កំណត់ជាប់)</span>}
+              </label>
+              {isTeacher ? (
+                <div className="w-full text-xs bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-emerald-900 font-bold flex items-center justify-between">
+                  <span>ថ្នាក់ទី {teacherGrade}</span>
+                  <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                </div>
+              ) : (
+                <select
+                  value={selectedGrade}
+                  onChange={e => setSelectedGrade(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+                >
+                  <option value="all">គ្រប់កម្រិតថ្នាក់ (ថ្នាក់ទី១ - ទី៦)</option>
+                  {[1, 2, 3, 4, 5, 6].map(g => (
+                    <option key={g} value={g}>ថ្នាក់ទី {g}</option>
+                  ))}
+                </select>
+              )}
+            </div>
 
-          {/* Section Filter */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">បន្ទប់ / សាល</label>
-            <select
-              value={selectedSection}
-              onChange={e => setSelectedSection(e.target.value)}
-              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
-            >
-              <option value="all">គ្រប់បន្ទប់ទាំងអស់</option>
-              {['ក', 'ខ', 'គ', 'A', 'B'].map(s => (
-                <option key={s} value={s}>បន្ទប់ «{s}»</option>
-              ))}
-            </select>
-          </div>
+            {/* Section Filter */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                បន្ទប់ / សាល {isTeacher && <span className="text-[10px] text-emerald-600 font-normal">(កំណត់ជាប់)</span>}
+              </label>
+              {isTeacher ? (
+                <div className="w-full text-xs bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-emerald-900 font-bold flex items-center justify-between">
+                  <span>បន្ទប់ «{teacherSection}»</span>
+                  <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                </div>
+              ) : (
+                <select
+                  value={selectedSection}
+                  onChange={e => setSelectedSection(e.target.value)}
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+                >
+                  <option value="all">គ្រប់បន្ទប់ទាំងអស់</option>
+                  {['ក', 'ខ', 'គ', 'A', 'B'].map(s => (
+                    <option key={s} value={s}>បន្ទប់ «{s}»</option>
+                  ))}
+                </select>
+              )}
+            </div>
 
-          {/* Target Student Filter */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">ជ្រើសរើសសិស្សជាក់លាក់ (ជម្រើស)</label>
-            <select
-              value={selectedStudentId}
-              onChange={e => {
-                setSelectedStudentId(e.target.value);
-                if (e.target.value !== 'all') {
-                  setAnalysisView('individual_deepdive');
-                }
-              }}
-              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
-            >
-              <option value="all">📊 មើលជារួម (ថ្នាក់ទាំងមូល / Class Wide)</option>
-              {filteredStudents.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.nameKhmer} ({s.gender === 'F' || s.gender === 'female' ? 'ស្រី' : 'ប្រុស'}) - ថ្នាក់ទី{s.grade}{s.section}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Scope Mode Switch */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">ទម្រង់មើលការវិភាគ</label>
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl">
-              <button
-                type="button"
-                onClick={() => setAnalysisView('class_overview')}
-                className={`py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  analysisView === 'class_overview'
-                    ? 'bg-white text-blue-950 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+            {/* Target Student Filter */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                {isTeacher ? `ជ្រើសរើសសិស្សថ្នាក់ទី ${teacherGrade}${teacherSection}` : 'ជ្រើសរើសសិស្សជាក់លាក់ (ជម្រើស)'}
+              </label>
+              <select
+                value={selectedStudentId}
+                onChange={e => {
+                  setSelectedStudentId(e.target.value);
+                  if (e.target.value !== 'all') {
+                    setAnalysisView('individual_deepdive');
+                  }
+                }}
+                className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
               >
-                ទិដ្ឋភាពថ្នាក់
-              </button>
-              <button
-                type="button"
-                onClick={() => setAnalysisView('individual_deepdive')}
-                className={`py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  analysisView === 'individual_deepdive'
-                    ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                សិស្សបុគ្គល
-              </button>
+                <option value="all">📊 មើលជារួម ({isTeacher ? `ថ្នាក់ទី ${teacherGrade}${teacherSection} ទាំងមូល` : 'ថ្នាក់ទាំងមូល / Class Wide'})</option>
+                {filteredStudents.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.nameKhmer} ({s.gender === 'F' || s.gender === 'female' ? 'ស្រី' : 'ប្រុស'}) - ថ្នាក់ទី{s.grade}{s.section}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Scope Mode Switch */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">ទម្រង់មើលការវិភាគ</label>
+              <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setAnalysisView('class_overview')}
+                  className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    analysisView === 'class_overview'
+                      ? 'bg-white text-blue-950 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  ទិដ្ឋភាពថ្នាក់
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAnalysisView('individual_deepdive')}
+                  className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    analysisView === 'individual_deepdive'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  សិស្សបុគ្គល
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Warning if individual student is blocked */}
+        {!activeStudentAccessCheck.allowed && activeStudent && (
+          <div className="mt-4 p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 text-rose-800 text-xs">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+            <div>
+              <p className="font-bold">ការរឹតត្បិតសិទ្ធិមើលទិន្នន័យសិស្ស</p>
+              <p className="mt-0.5">{activeStudentAccessCheck.reason}</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* KPI Cards Ribbon */}
