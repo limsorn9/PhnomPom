@@ -11,8 +11,16 @@ import {
   AIEducationalGame, 
   GameTemplateType,
   AICreationItem,
-  StudentLevel
+  StudentLevel,
+  WeeklyLessonPlanFormInput,
+  WeeklyLessonDayItem,
+  AIWeeklyLessonPlan
 } from '../components/ai-teacher/types';
+import { 
+  getMoEYSSubjectCurriculum, 
+  getLessonsBySubjectAndGrade, 
+  MOEYS_MODEL_SCHOOL_STANDARDS 
+} from '../data/moeysPrimaryCurriculum';
 
 const STORAGE_KEY = 'phnom_pom_ai_teacher_creations_v1';
 
@@ -116,8 +124,20 @@ export async function generateAIChatResponse(prompt: string, systemInstruction?:
    1. LESSON PLAN GENERATOR
    ========================================================================== */
 export async function generateAILessonPlan(input: LessonPlanFormInput): Promise<AILessonPlan> {
+  const moeysCurr = getMoEYSSubjectCurriculum(input.subject, input.grade);
+  const matchedLessons = moeysCurr ? moeysCurr.chapters.flatMap(c => c.lessons).filter(l => l.title.includes(input.topic) || input.topic.includes(l.title)) : [];
+  const matchedLesson = matchedLessons.length > 0 ? matchedLessons[0] : null;
+
+  const moeysContext = moeysCurr ? `
+Official MoEYS Textbook: ${moeysCurr.officialTextbookName} (${moeysCurr.academicYear})
+Key Subject Objectives: ${moeysCurr.subjectGoals.join('; ')}
+${matchedLesson ? `Matching Ministry Lesson: "${matchedLesson.title}" (${matchedLesson.hours} hours). Core Objectives: ${matchedLesson.learningObjectives.join('; ')}. Concepts: ${matchedLesson.keyConcepts.join(', ')}. Sample Exercises: ${matchedLesson.sampleQuestions.join(' | ')}` : ''}
+` : '';
+
   const prompt = `
-Generate a comprehensive, structured lesson plan for a Cambodian classroom according to Ministry of Education, Youth and Sport (MoEYS) standards.
+Generate a comprehensive, structured lesson plan for a Cambodian classroom according to Ministry of Education, Youth and Sport (MoEYS) standards and official curriculum.
+${moeysContext}
+
 Details:
 - Subject: ${input.subject}
 - Grade: ${input.grade}
@@ -125,16 +145,16 @@ Details:
 - Duration: ${input.durationMinutes} minutes
 - Language: ${input.language}
 - Student Level: ${input.studentLevel}
-- Learning Objective: ${input.learningObjective || 'Auto-generate measurable SMART objectives'}
+- Learning Objective: ${input.learningObjective || (matchedLesson ? matchedLesson.learningObjectives.join(' | ') : 'Auto-generate measurable SMART objectives in 3 domains: ចំណេះដឹង បំណិន ឥរិយាបថ')}
 - Student Count: ${input.studentCount}
 - Teaching Style: ${input.teachingStyle}
-- Available Classroom Materials: ${input.materialsInClass || 'Whiteboard, Textbook, Posters'}
+- Available Classroom Materials: ${input.materialsInClass || 'Whiteboard, Textbook, Posters, Slates'}
 Include steps: Warm-up (${input.includeWarmup}), Activities (${input.includeActivities}), Q&A (${input.includeQuestions}), Exercises (${input.includeExercises}), Homework (${input.includeHomework}), Assessment (${input.includeAssessment}), Summary (${input.includeSummary}).
 
 Return valid JSON with format:
 {
-  "title": "...",
-  "objectives": ["Objective 1", "Objective 2", "Objective 3"],
+  "title": "កិច្ចតែងការ៖ ...",
+  "objectives": ["ចំណេះដឹង៖ ...", "បំណិន៖ ...", "ឥរិយាបថ៖ ..."],
   "materialsList": ["Item 1", "Item 2"],
   "activities": [
     {
@@ -157,7 +177,9 @@ Return valid JSON with format:
 }
 `;
 
-  const aiResult = await callAIGenerator(prompt);
+  const systemInstruction = `You are a certified master pedagogue in the Kingdom of Cambodia specializing in the primary curriculum of the Ministry of Education, Youth and Sport (MoEYS). All outputs must be in fluent, grammatically accurate Khmer language strictly following official MoEYS teaching methodology and textbook vocabulary.`;
+
+  const aiResult = await callAIGenerator(prompt, systemInstruction);
   if (aiResult && aiResult.activities && Array.isArray(aiResult.activities)) {
     const lesson: AILessonPlan = {
       id: `lp-${Date.now()}`,
@@ -690,6 +712,9 @@ function createFallbackCurriculumPlan(input: {
   studentLevel: StudentLevel;
 }): AICurriculumPlan {
   const weeks: any[] = [];
+  const moeysCurr = getMoEYSSubjectCurriculum(input.subject, input.grade);
+  const realLessons = moeysCurr ? moeysCurr.chapters.flatMap(c => c.lessons) : [];
+
   const subjectTopics: Record<string, string[]> = {
     'ភាសាខ្មែរ': [
       'ការអានអត្ថបទ និងស្វែងយល់អត្ថន័យពាក្យ',
@@ -758,8 +783,11 @@ function createFallbackCurriculumPlan(input: {
   ];
 
   for (let i = 1; i <= input.totalWeeks; i++) {
-    const topic = topicsList[(i - 1) % topicsList.length];
-    const lessonNum = Math.floor((i - 1) / 2) + 1;
+    const realLesson = realLessons.length > 0 ? realLessons[(i - 1) % realLessons.length] : null;
+    const topic = realLesson ? realLesson.title : topicsList[(i - 1) % topicsList.length];
+    const lessonNum = realLesson ? realLesson.lessonNumber : Math.floor((i - 1) / 2) + 1;
+    const objectives = realLesson ? realLesson.learningObjectives.join(' | ') : `សិស្សយល់ដឹងពី ${topic} និងចេះអនុវត្តលំហាត់ជាក់ស្តែងយ៉ាងតិច ៨០%`;
+
     weeks.push({
       id: `w-${i}`,
       weekNumber: i,
@@ -767,16 +795,16 @@ function createFallbackCurriculumPlan(input: {
       lessonTitle: `មេរៀនទី ${lessonNum}៖ ${topic.split('៖')[0]}`,
       topic: topic,
       teachingHours: input.hoursPerWeek,
-      learningObjectives: `សិស្សយល់ដឹងពី ${topic} និងចេះអនុវត្តលំហាត់ជាក់ស្តែងយ៉ាងតិច ៨០%`,
-      keyActivities: `គ្រូពន្យល់ទ្រឹស្តី បង្ហាញឧទាហរណ៍ និងឱ្យសិស្សអនុវត្តជាក្រុម និងបុគ្គល`,
+      learningObjectives: objectives,
+      keyActivities: `គ្រូពន្យល់ទ្រឹស្តី បង្ហាញឧទាហរណ៍ជាក់ស្តែងតាមសៀវភៅពុម្ព និងដឹកនាំសកម្មភាពអនុវត្តជាក្រុម/បុគ្គល`,
       assessmentMethod: i % 4 === 0 ? 'តេស្តខ្លី និងវាយតម្លៃលើសន្លឹកកិច្ចការ' : 'សង្កេតការចូលរួម និងសំណួរផ្ទាល់មាត់',
-      materials: `សៀវភៅពុម្ព ${input.subject} ថ្នាក់ទី${input.grade}, ប័ណ្ណរូបភាព និងក្តារខៀន`
+      materials: moeysCurr ? `${moeysCurr.officialTextbookName}, ប័ណ្ណរូបភាព និងក្តារខៀន` : `សៀវភៅពុម្ព ${input.subject} ថ្នាក់ទី${input.grade}, ប័ណ្ណរូបភាព និងក្តារខៀន`
     });
   }
 
   return {
     id: `curr-${Date.now()}`,
-    title: `បំណែងចែកកម្មវិធីសិក្សា ${input.subject} ថ្នាក់ទី${input.grade} (${input.academicYear})`,
+    title: `បំណែងចែកកម្មវិធីសិក្សា ${input.subject} ថ្នាក់ទី${input.grade} (${input.academicYear}) - ស្តង់ដារ MoEYS`,
     subject: input.subject,
     grade: input.grade,
     semester: input.semester,
@@ -785,6 +813,248 @@ function createFallbackCurriculumPlan(input: {
     hoursPerWeek: input.hoursPerWeek,
     studentLevel: input.studentLevel,
     weeks,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+/* ==========================================================================
+   3.5. WEEKLY LESSON PLAN GENERATOR (MOEYS STANDARD PEDAGOGY)
+   ========================================================================== */
+export async function generateAIWeeklyLessonPlan(input: WeeklyLessonPlanFormInput): Promise<AIWeeklyLessonPlan> {
+  const moeysCurr = getMoEYSSubjectCurriculum(input.subject, input.grade);
+  const matchedLessons = moeysCurr ? moeysCurr.chapters.flatMap(c => c.lessons) : [];
+  const subjectOverview = moeysCurr ? `
+Official MoEYS Textbook: ${moeysCurr.officialTextbookName} (${moeysCurr.academicYear})
+Ministry Curriculum Chapters: ${moeysCurr.chapters.map(c => `${c.title} (${c.lessons.map(l => l.title).join(', ')})`).join('; ')}
+` : '';
+
+  const prompt = `
+Generate an official MoEYS-standard Primary School Weekly Lesson Plan for Cambodia according to the official curriculum and textbook.
+${subjectOverview}
+
+Subject: ${input.subject}, Grade: ${input.grade}, Week: ${input.weekNumber}, Semester: ${input.semester}, Academic Year: ${input.academicYear}.
+Theme/Topic: ${input.themeUnit}, Teaching Days: ${input.teachingDaysCount} days (Monday to ${input.teachingDaysCount === 6 ? 'Saturday' : 'Friday'}), Periods Per Day: ${input.periodsPerDay}.
+Student Level: ${input.studentLevel}, Teaching Style: ${input.teachingStyle}.
+Objectives: ${input.coreObjectives || (moeysCurr ? moeysCurr.subjectGoals.join(' | ') : 'MoEYS curriculum mastery in Knowledge, Skills, Attitude')}.
+Materials: ${input.materialsInClass || (moeysCurr ? `${moeysCurr.officialTextbookName}, ក្តារខៀន, ក្តារឆ្នួន, ប័ណ្ណរូបភាព` : 'Textbook, whiteboard, flashcards')}.
+
+Each day MUST follow the 5-step pedagogical sequence of Cambodia MoEYS:
+1. ជំហានទី១ (រដ្ឋបាលថ្នាក់): Class inspection, attendance, hygiene, discipline (2-3 mins).
+2. ជំហានទី២ (រំលឹកមេរៀនចាស់): Review previous day's concept and homework check (5 mins).
+3. ជំហានទី៣ (មេរៀនថ្មី): Step-by-step active learning, teacher script & student activities (25-30 mins).
+4. ជំហានទី៤ (ពង្រឹងចំណេះដឹង): Fast checking questions, practice exercises on slate/notebook (8-10 mins).
+5. ជំហានទី៥ (បណ្តាំផ្ញើ & កិច្ចការផ្ទះ): Moral advice, homework assignment, hygiene reminder (3-5 mins).
+
+Return valid JSON with format:
+{
+  "title": "កិច្ចតែងការបង្រៀនប្រចាំសប្តាហ៍ទី...",
+  "themeUnit": "...",
+  "generalObjectives": ["ចំណេះដឹង៖ ...", "បំណិន៖ ...", "ឥរិយាបថ៖ ..."],
+  "teachingAidsRequired": ["...", "..."],
+  "weeklySummaryNotes": "...",
+  "days": [
+    {
+      "dayIndex": 1,
+      "dayOfWeek": "Monday",
+      "dayNameKh": "ថ្ងៃចន្ទ",
+      "lessonNumber": "មេរៀនទី... (ម៉ោងទី...)",
+      "topicTitle": "...",
+      "periodsCount": 2,
+      "objectives": {
+        "knowledge": "...",
+        "skills": "...",
+        "attitude": "..."
+      },
+      "teachingSteps": {
+        "step1_admin": "...",
+        "step2_review": "...",
+        "step3_newLesson": "...",
+        "step4_consolidation": "...",
+        "step5_homework": "..."
+      },
+      "materials": ["..."],
+      "assessmentMethod": "...",
+      "differentiatedSupport": {
+        "slowLearners": "...",
+        "fastLearners": "..."
+      },
+      "notes": "..."
+    }
+  ]
+}
+`;
+
+  const systemInstruction = `You are a certified MoEYS pedagogical inspector in Cambodia. Ensure every single day strictly complies with the 5-step MoEYS primary lesson format and official curriculum textbooks. Write solely in authentic Khmer pedagogical terminology.`;
+
+  const aiResult = await callAIGenerator(prompt, systemInstruction);
+  if (aiResult && aiResult.days && Array.isArray(aiResult.days) && aiResult.days.length > 0) {
+    return {
+      id: `weekly-lesson-${Date.now()}`,
+      title: aiResult.title || `កិច្ចតែងការបង្រៀនប្រចាំសប្តាហ៍ទី${input.weekNumber} មុខវិជ្ជា${input.subject} ថ្នាក់ទី${input.grade}`,
+      grade: input.grade,
+      subject: input.subject,
+      weekNumber: input.weekNumber,
+      semester: input.semester,
+      academicYear: input.academicYear,
+      themeUnit: aiResult.themeUnit || input.themeUnit,
+      totalPeriods: input.teachingDaysCount * input.periodsPerDay,
+      generalObjectives: aiResult.generalObjectives || [
+        `ចំណេះដឹង៖ សិស្សយល់ច្បាស់ពីខ្លឹមសារមេរៀន និងក្បួនខ្នាតសំខាន់ៗនៃ${input.subject}`,
+        `បំណិន៖ សិស្សចេះអនុវត្ត ដោះស្រាយលំហាត់ និងសហការជាក្រុមបានរលូន`,
+        `ឥរិយាបថ៖ បណ្តុះស្មារតីឧស្សាហ៍ព្យាយាម ស្រឡាញ់ការរៀនសូត្រ និងមានសីលធម៌ល្អ`
+      ],
+      days: aiResult.days.map((d: any, idx: number) => ({
+        id: `day-${idx + 1}-${Date.now()}`,
+        dayIndex: d.dayIndex || idx + 1,
+        dayOfWeek: d.dayOfWeek || (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][idx] as any),
+        dayNameKh: d.dayNameKh || (['ថ្ងៃចន្ទ', 'ថ្ងៃអង្គារ', 'ថ្ងៃពុធ', 'ថ្ងៃព្រហស្បតិ៍', 'ថ្ងៃសុក្រ', 'ថ្ងៃសៅរ៍'][idx]),
+        lessonNumber: d.lessonNumber || `មេរៀនទី ${input.weekNumber} (ម៉ោងទី ${idx * input.periodsPerDay + 1}-${idx * input.periodsPerDay + input.periodsPerDay})`,
+        topicTitle: d.topicTitle || `${input.themeUnit} - ផ្នែកទី ${idx + 1}`,
+        periodsCount: d.periodsCount || input.periodsPerDay,
+        objectives: d.objectives || {
+          knowledge: `សិស្សស្គាល់ និងចងចាំខ្លឹមសារគន្លឹះនៃប្រធានបទ`,
+          skills: `សិស្សចេះអនុវត្តលំហាត់ និងឆ្លើយសំណួរបានត្រឹមត្រូវ`,
+          attitude: `សិស្សមានទំនុកចិត្ត និងចូលរួមសកម្មភាពដោយស្វាហាប់`
+        },
+        teachingSteps: d.teachingSteps || {
+          step1_admin: 'ពិនិត្យអនាម័យ កាយវិការ វត្តមានសិស្ស និងពង្រឹងវិន័យក្នុងថ្នាក់ (២ នាទី)',
+          step2_review: 'ហៅសិស្ស ២ នាក់ឡើងមកកែកិច្ចការផ្ទះ និងសួរសំណួររំលឹកមេរៀនចាស់ (៥ នាទី)',
+          step3_newLesson: 'បង្ហាញវត្ថុបំណង ណែនាំប័ណ្ណរូបភាព ពន្យល់ទ្រឹស្តី និងដឹកនាំសកម្មភាពក្រុម (២៥ នាទី)',
+          step4_consolidation: 'ដាក់សំណួរពង្រឹងពុទ្ធិ និងឱ្យសិស្សសរសេរលំហាត់លើក្តារឆ្នួន (៨ នាទី)',
+          step5_homework: 'ដាក់កិច្ចការផ្ទះ និងផ្តាំផ្ញើឱ្យសិស្សថែរក្សាសុខភាព និងជួយការងារឪពុកម្តាយ (៥ នាទី)'
+        },
+        materials: Array.isArray(d.materials) ? d.materials : ['សៀវភៅពុម្ព', 'ក្តារខៀន', 'ប័ណ្ណរូបភាព'],
+        assessmentMethod: d.assessmentMethod || 'ការសង្កេតកាយវិការ សំណួរផ្ទាល់មាត់ និងការពិនិត្យសន្លឹកកិច្ចការ',
+        differentiatedSupport: d.differentiatedSupport || {
+          slowLearners: 'ផ្តល់ជំនួយផ្ទាល់ និងប្រើប្រាស់រូបភាពគំនូរបន្ថែម',
+          fastLearners: 'ផ្តល់សំណួរត្រិះរិះ និងលើកទឹកចិត្តឱ្យជួយពន្យល់មិត្តភក្តិ'
+        },
+        notes: d.notes || ''
+      })),
+      teachingAidsRequired: aiResult.teachingAidsRequired || [
+        'សៀវភៅគោលក្រសួងអប់រំ យុវជន និងកីឡា',
+        'សៀវភៅណែនាំគ្រូ និងកិច្ចតែងការគំរូ',
+        'ប័ណ្ណពាក្យ/ប័ណ្ណរូបភាពគំនូរជីវចល',
+        'ក្តារឆ្នួន ប៊ិចហ្វឺត និងក្រដាសផ្ទាំងធំ'
+      ],
+      weeklySummaryNotes: aiResult.weeklySummaryNotes || `ផែនការបង្រៀនប្រចាំសប្តាហ៍ទី${input.weekNumber} ត្រូវបានរៀបចំស្របតាមស្តង់ដារកម្មវិធីសិក្សាបឋមសិក្សាជាតិ។`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  // Offline Rich Primary School MoEYS Weekly Lesson Plan Fallback Generator
+  return generateOfflineWeeklyLessonPlan(input);
+}
+
+function generateOfflineWeeklyLessonPlan(input: WeeklyLessonPlanFormInput): AIWeeklyLessonPlan {
+  const dayNamesKh = ['ថ្ងៃចន្ទ', 'ថ្ងៃអង្គារ', 'ថ្ងៃពុធ', 'ថ្ងៃព្រហស្បតិ៍', 'ថ្ងៃសុក្រ', 'ថ្ងៃសៅរ៍'];
+  const dayOfWeekList: Array<'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday'> = [
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
+  ];
+
+  const subjectDailyTopics: Record<string, string[]> = {
+    'ភាសាខ្មែរ': [
+      'អំណានអត្ថបទ និងការពន្យល់ពាក្យពិបាក (Vocab & Reading)',
+      'សំណួរស្វែងយល់អត្ថបទ និងការវិភាគគំនិតសំខាន់ (Comprehension)',
+      'វេយ្យាករណ៍៖ កិរិយាសព្ទ គុណនាម និងការបង្កើតល្បះ (Grammar)',
+      'អក្ខរាវិរុទ្ធ៖ ការសរសេរតាមអាន និងការកែសរសេរខុស (Spelling & Dictation)',
+      'តែងសេចក្តី៖ ការរៀបចំគំនិត និងតែងកថាខណ្ឌ (Composition)',
+      'ការសង្ខេបមេរៀនប្រចាំសប្តាហ៍ និងការពិភាក្សាជាក្រុម (Review)'
+    ],
+    'គណិតវិទ្យា': [
+      'សញ្ញាណគ្រឹះ និងការស្វែងយល់តាមរយៈរូបភាពជាក់ស្តែង (Concept Intro)',
+      'ការបង្ហាញរូបមន្ត និងវិធីសាស្ត្រគណនាជាជំហានៗ (Methodology)',
+      'ការអនុវត្តលំហាត់គំរូនាំមុខដោយគ្រូ និងសិស្សចូលរួម (Guided Practice)',
+      'លំហាត់អនុវត្តជាដៃគូ និងសកម្មភាពក្រុម (Peer Collaboration)',
+      'ការដោះស្រាយចំណោទអនុវត្តក្នុងជីវភាពរស់នៅ (Word Problem Solving)',
+      'តេស្តពង្រឹងសមត្ថភាពចុងសប្តាហ៍ និងការកែកំហុសទូទៅ (Weekly Assessment)'
+    ],
+    'វិទ្យាសាស្ត្រ': [
+      'ការសង្កេត និងស្វែងយល់បាតុភូតធម្មជាតិ (Observation)',
+      'ការពិសោធន៍សាមញ្ញ និងការកត់ត្រាលទ្ធផល (Simple Experiment)',
+      'ការពន្យល់ទ្រឹស្តី និងមូលហេតុវិទ្យាសាស្ត្រ (Scientific Explanation)',
+      'ការអនុវត្តការការពារ និងថែរក្សាសុខភាព/បរិស្ថាន (Practical Application)',
+      'ការបង្កើតគំរូសាមញ្ញ និងធ្វើបទបង្ហាញ (Project & Presentation)',
+      'ការសង្ខេបចំណេះដឹង និងឆ្លើយសំណួរត្រិះរិះ (Summary & Q&A)'
+    ]
+  };
+
+  const topicPool = subjectDailyTopics[input.subject] || [
+    'ការណែនាំគោលគំនិត និងវត្ថុបំណងមេរៀន',
+    'ការពន្យល់ខ្លឹមសារលម្អិត និងបង្ហាញឧទាហរណ៍ជាក់ស្តែង',
+    'ការអនុវត្តជាក់ស្តែង និងការធ្វើការងារជាក្រុម',
+    'ការដោះស្រាយបញ្ហា និងសំណួរត្រិះរិះពិចារណា',
+    'ការផលិតស្នាដៃ និងការធ្វើបទបង្ហាញក្នុងថ្នាក់',
+    'ការវាយតម្លៃពង្រឹងពុទ្ធិ និងការបូកសរុបសប្តាហ៍'
+  ];
+
+  const count = Math.min(input.teachingDaysCount || 5, 6);
+  const days: WeeklyLessonDayItem[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const dayName = dayNamesKh[i];
+    const dayOfWeek = dayOfWeekList[i];
+    const subTopic = topicPool[i % topicPool.length];
+
+    days.push({
+      id: `day-${i + 1}-${Date.now()}`,
+      dayIndex: i + 1,
+      dayOfWeek,
+      dayNameKh: dayName,
+      lessonNumber: `មេរៀនទី ${input.weekNumber} (ម៉ោងទី ${i * input.periodsPerDay + 1}-${i * input.periodsPerDay + input.periodsPerDay})`,
+      topicTitle: `${input.themeUnit || input.subject}៖ ${subTopic}`,
+      periodsCount: input.periodsPerDay || 2,
+      objectives: {
+        knowledge: `សិស្សប្រាប់បានច្បាស់លាស់ពីគោលគំនិត និងខ្លឹមសារសំខាន់នៃ ${subTopic}។`,
+        skills: `សិស្សអនុវត្តលំហាត់ បំពេញកិច្ចការ និងឆ្លើយសំណួរបានត្រឹមត្រូវយ៉ាងតិច ៨០% នៃខ្លឹមសារ។`,
+        attitude: `សិស្សមានទំនួលខុសត្រូវ ស្រឡាញ់ការរៀនសូត្រ សហការល្អជាមួយមិត្តភក្តិ និងគោរពវិន័យ។`
+      },
+      teachingSteps: {
+        step1_admin: 'ពិនិត្យវត្តមាន សណ្តាប់ធ្នាប់ អនាម័យសម្លៀកបំពាក់ ក្រចកដៃ និងពង្រឹងស្មារតីមុនរៀន (២ នាទី)',
+        step2_review: 'ហៅសិស្ស ២-៣ នាក់ឡើងមកកែកិច្ចការផ្ទះលើក្តារខៀន និងសួរសំណួររំលឹកមេរៀនពីម្សិលមិញ (៥ នាទី)',
+        step3_newLesson: `• បង្ហាញចំណងជើងមេរៀន និងវត្ថុបំណង\n• ប្រើប្រាស់ប័ណ្ណរូបភាព/សម្ភារឧបទេសដើម្បីពន្យល់ទ្រឹស្តី\n• គ្រូធ្វើការបង្ហាញគំរូជាក់ស្តែងមួយជំហានម្តងៗ\n• ឱ្យសិស្សអនុវត្តជាដៃគូ ឬជាក្រុម ៤ នាក់ (២៥ នាទី)`,
+        step4_consolidation: 'ដាក់សំណួរត្រួតពិនិត្យការយល់ដឹងឱ្យសិស្សឆ្លើយលើក្តារឆ្នួន និងកែតម្រូវកំហុសរួមគ្នា (៨ នាទី)',
+        step5_homework: 'ដាក់កិច្ចការផ្ទះ ២ លំហាត់ក្នុងសៀវភៅលំហាត់ និងផ្តាំផ្ញើឱ្យសិស្សកុំភ្លេចជួយការងារផ្ទះ និងរំលឹកមេរៀន (៥ នាទី)'
+      },
+      materials: [
+        'សៀវភៅពុម្ពសិក្សាគោល',
+        'ក្តារខៀន និងដីស/ប៊ិចហ្វឺត',
+        'ប័ណ្ណរូបភាព និងផ្ទាំងសន្លឹកកិច្ចការក្រុម',
+        'ក្តារឆ្នួន និងសៀវភៅសរសេរសិស្ស'
+      ],
+      assessmentMethod: 'ការសង្កេតការចូលរួម ការឆ្លើយសំណួរលើក្តារឆ្នួន និងការកែសន្លឹកកិច្ចការបុគ្គល',
+      differentiatedSupport: {
+        slowLearners: 'គ្រូដើរជួយណែនាំផ្ទាល់ ប្រើសម្ភាររូបភាពបន្ថែម និងផ្គូផ្គងជាមួយមិត្តជួយមិត្ត',
+        fastLearners: 'ផ្តល់លំហាត់ប្រឈមបន្ថែម (Bonus Questions) និងឱ្យជួយពន្យល់មិត្តភក្តិក្នុងក្រុម'
+      },
+      notes: ''
+    });
+  }
+
+  return {
+    id: `weekly-plan-${Date.now()}`,
+    title: `កិច្ចតែងការបង្រៀនប្រចាំសប្តាហ៍ទី${input.weekNumber} មុខវិជ្ជា${input.subject} ថ្នាក់ទី${input.grade}`,
+    grade: input.grade,
+    subject: input.subject,
+    weekNumber: input.weekNumber,
+    semester: input.semester,
+    academicYear: input.academicYear,
+    themeUnit: input.themeUnit || `ការបង្រៀនប្រចាំសប្តាហ៍ទី ${input.weekNumber}`,
+    totalPeriods: input.teachingDaysCount * input.periodsPerDay,
+    generalObjectives: [
+      `ចំណេះដឹង៖ សិស្សក្តាប់បាននូវទ្រឹស្តី វិធាន និងក្បួនខ្នាតគន្លឹះនៃមុខវិជ្ជា ${input.subject} ថ្នាក់ទី${input.grade}`,
+      `បំណិន៖ សិស្សអភិវឌ្ឍសមត្ថភាពគិតពិចារណា ចេះដោះស្រាយបញ្ហា និងអនុវត្តកិច្ចការជាក់ស្តែងបានស្ទាត់ជំនាញ`,
+      `ឥរិយាបថ៖ បណ្តុះស្មារតីស្រឡាញ់ការសិក្សា មានវិន័យ សីលធម៌ និងភាពជាពលរដ្ឋល្អក្នុងសង្គម`
+    ],
+    days,
+    teachingAidsRequired: [
+      'សៀវភៅសិក្សាគោល និងសៀវភៅណែនាំគ្រូ របស់ក្រសួងអប់រំ យុវជន និងកីឡា',
+      'សម្ភារឧបទេសបង្រៀន៖ ប័ណ្ណពាក្យ ប័ណ្ណរូបភាព វត្ថុជាក់ស្តែង និងផ្ទាំងគំនូសបំព្រួញ',
+      'ឧបករណ៍រៀនរបស់សិស្ស៖ ក្តារឆ្នួន សៀវភៅកត់ត្រា ប៊ិច បន្ទាត់'
+    ],
+    weeklySummaryNotes: `កិច្ចតែងការបង្រៀនសប្តាហ៍ទី${input.weekNumber} នេះត្រូវបានរៀបចំឡើងយ៉ាងហ្មត់ចត់ស្របតាមស្តង់ដារគរុកោសល្យ ៥ ជំហានរបស់ក្រសួងអប់រំ យុវជន និងកីឡា។`,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };

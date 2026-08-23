@@ -65,7 +65,10 @@ export const RecentActivityDashboard: React.FC<RecentActivityDashboardProps> = (
   const [selectedDomain, setSelectedDomain] = useState<ActivityDomain | 'all'>('all');
   const [selectedAction, setSelectedAction] = useState<ActivityActionType | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [dateFilter, setDateFilter] = useState<'all' | 'today' | '7days' | 'month'>('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'yesterday' | '7days' | '30days' | 'month' | 'last_month' | 'custom'>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [selectedActor, setSelectedActor] = useState<string>('all');
   const [selectedItemForDetail, setSelectedItemForDetail] = useState<ActivityLogItem | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isManualLogModalOpen, setIsManualLogModalOpen] = useState(false);
@@ -98,6 +101,15 @@ export const RecentActivityDashboard: React.FC<RecentActivityDashboardProps> = (
     };
   }, [activityLogs]);
 
+  // Extract unique actors for filtering
+  const uniqueActors = useMemo(() => {
+    const actorsSet = new Set<string>();
+    activityLogs.forEach(log => {
+      if (log.actorName) actorsSet.add(log.actorName);
+    });
+    return Array.from(actorsSet);
+  }, [activityLogs]);
+
   // Filtered Activities
   const filteredLogs = useMemo(() => {
     return activityLogs.filter(log => {
@@ -106,6 +118,9 @@ export const RecentActivityDashboard: React.FC<RecentActivityDashboardProps> = (
 
       // Action type filter
       if (selectedAction !== 'all' && log.actionType !== selectedAction) return false;
+
+      // Actor filter
+      if (selectedActor !== 'all' && log.actorName !== selectedActor) return false;
 
       // Search Query filter
       if (searchQuery.trim()) {
@@ -121,29 +136,58 @@ export const RecentActivityDashboard: React.FC<RecentActivityDashboardProps> = (
         }
       }
 
-      // Date filter
+      // Date Range filter
       if (dateFilter !== 'all') {
         const logDate = new Date(log.timestamp);
         const now = new Date();
+
         if (dateFilter === 'today') {
           const isToday =
             logDate.getDate() === now.getDate() &&
             logDate.getMonth() === now.getMonth() &&
             logDate.getFullYear() === now.getFullYear();
           if (!isToday) return false;
+        } else if (dateFilter === 'yesterday') {
+          const yesterday = new Date(now);
+          yesterday.setDate(now.getDate() - 1);
+          const isYesterday =
+            logDate.getDate() === yesterday.getDate() &&
+            logDate.getMonth() === yesterday.getMonth() &&
+            logDate.getFullYear() === yesterday.getFullYear();
+          if (!isYesterday) return false;
         } else if (dateFilter === '7days') {
           const diffDays = (now.getTime() - logDate.getTime()) / (1000 * 3600 * 24);
-          if (diffDays > 7) return false;
+          if (diffDays > 7 || diffDays < 0) return false;
+        } else if (dateFilter === '30days') {
+          const diffDays = (now.getTime() - logDate.getTime()) / (1000 * 3600 * 24);
+          if (diffDays > 30 || diffDays < 0) return false;
         } else if (dateFilter === 'month') {
           const isThisMonth =
             logDate.getMonth() === now.getMonth() && logDate.getFullYear() === now.getFullYear();
           if (!isThisMonth) return false;
+        } else if (dateFilter === 'last_month') {
+          const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+          const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+          const isLastMonth =
+            logDate.getMonth() === lastMonth && logDate.getFullYear() === lastMonthYear;
+          if (!isLastMonth) return false;
+        } else if (dateFilter === 'custom') {
+          if (customStartDate) {
+            const start = new Date(customStartDate);
+            start.setHours(0, 0, 0, 0);
+            if (logDate < start) return false;
+          }
+          if (customEndDate) {
+            const end = new Date(customEndDate);
+            end.setHours(23, 59, 59, 999);
+            if (logDate > end) return false;
+          }
         }
       }
 
       return true;
     });
-  }, [activityLogs, selectedDomain, selectedAction, searchQuery, dateFilter]);
+  }, [activityLogs, selectedDomain, selectedAction, selectedActor, searchQuery, dateFilter, customStartDate, customEndDate]);
 
   const displayedLogs = maxItems ? filteredLogs.slice(0, maxItems) : filteredLogs;
 
@@ -510,15 +554,16 @@ export const RecentActivityDashboard: React.FC<RecentActivityDashboardProps> = (
           </div>
 
           {/* Search and Dropdown Filter Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 pt-1">
             {/* Search Input */}
-            <div className="sm:col-span-6 relative">
+            <div className="sm:col-span-4 relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
+                id="activity-search-input"
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="ស្វែងរកតាមឈ្មោះសិស្ស គ្រូ បង្កាន់ដៃថវិកា អត្តលេខ ឬអ្នកកែប្រែ..."
+                placeholder="ស្វែងរកតាមចំណងជើង ឈ្មោះសិស្ស គ្រូ អត្តលេខ..."
                 className="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               {searchQuery && (
@@ -534,35 +579,203 @@ export const RecentActivityDashboard: React.FC<RecentActivityDashboardProps> = (
             {/* Action Type Dropdown */}
             <div className="sm:col-span-3">
               <select
+                id="activity-action-type-filter"
                 value={selectedAction}
                 onChange={e => setSelectedAction(e.target.value as any)}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
               >
                 <option value="all">គ្រប់ប្រភេទសកម្មភាព (All Actions)</option>
-                <option value="create">➕ បង្កើតថ្មី (Created)</option>
-                <option value="update">✏️ កែប្រែព័ត៌មាន (Updated)</option>
-                <option value="delete">🗑️ លុបទិន្នន័យ (Deleted)</option>
+                <option value="create">➕ បង្កើតទិន្នន័យថ្មី (Create)</option>
+                <option value="update">✏️ កែប្រែព័ត៌មាន (Update)</option>
+                <option value="delete">🗑️ លុបទិន្នន័យ (Delete)</option>
+                <option value="attendance">📋 កត់ត្រាវត្តមាន (Attendance)</option>
+                <option value="score">📝 បញ្ចូលពិន្ទុ & លទ្ធផល (Scores)</option>
                 <option value="income">💵 ចំណូលថវិកា (Income)</option>
                 <option value="expense">💳 ចំណាយថវិកា (Expense)</option>
-                <option value="transfer">🔄 ផ្ទេរសិស្ស (Transfers)</option>
-                <option value="score">📝 បញ្ចូលពិន្ទុ (Scores)</option>
+                <option value="transfer">🔄 ផ្ទេរសិស្សចេញ/ចូល (Transfer)</option>
+                <option value="document">📑 ឯកសាររដ្ឋបាល (Document)</option>
+                <option value="approval">✅ ការអនុម័ត & ផ្ទៀងផ្ទាត់ (Approval)</option>
               </select>
             </div>
 
             {/* Date Range Dropdown */}
             <div className="sm:col-span-3">
               <select
+                id="activity-date-range-filter"
                 value={dateFilter}
                 onChange={e => setDateFilter(e.target.value as any)}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
               >
-                <option value="all">គ្រប់ពេលវេលា (All Time)</option>
-                <option value="today">ថ្ងៃនេះ (Today)</option>
-                <option value="7days">៧ ថ្ងៃចុងក្រោយ (Last 7 Days)</option>
-                <option value="month">ខែនេះ (This Month)</option>
+                <option value="all">🕒 គ្រប់ពេលវេលា (All Time)</option>
+                <option value="today">📅 ថ្ងៃនេះ (Today)</option>
+                <option value="yesterday">⏮️ ម្សិលមិញ (Yesterday)</option>
+                <option value="7days">🗓️ ៧ ថ្ងៃចុងក្រោយ (Last 7 Days)</option>
+                <option value="30days">🗓️ ៣០ ថ្ងៃចុងក្រោយ (Last 30 Days)</option>
+                <option value="month">📆 ខែនេះ (This Month)</option>
+                <option value="last_month">⏪ ខែមុន (Last Month)</option>
+                <option value="custom">⚙️ កំណត់កាលបរិច្ឆេទផ្ទាល់ខ្លួន (Custom Range)...</option>
+              </select>
+            </div>
+
+            {/* Actor / User Filter */}
+            <div className="sm:col-span-2">
+              <select
+                id="activity-actor-filter"
+                value={selectedActor}
+                onChange={e => setSelectedActor(e.target.value)}
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              >
+                <option value="all">👤 គ្រប់អ្នកប្រើប្រាស់</option>
+                {uniqueActors.map(actor => (
+                  <option key={actor} value={actor}>
+                    {actor}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
+
+          {/* Custom Date Range Picker Row (Appears when 'custom' is selected) */}
+          {dateFilter === 'custom' && (
+            <div className="flex flex-wrap items-center gap-3 p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs">
+              <div className="flex items-center gap-1.5 font-bold text-blue-900">
+                <Calendar className="w-4 h-4 text-blue-600" />
+                <span>ចន្លោះកាលបរិច្ឆេទកំណត់ផ្ទាល់ខ្លួន៖</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-slate-600 font-medium">ចាប់ពីថ្ងៃ៖</span>
+                <input
+                  id="activity-custom-start-date"
+                  type="date"
+                  value={customStartDate}
+                  onChange={e => setCustomStartDate(e.target.value)}
+                  className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-slate-600 font-medium">ដល់ថ្ងៃ៖</span>
+                <input
+                  id="activity-custom-end-date"
+                  type="date"
+                  value={customEndDate}
+                  onChange={e => setCustomEndDate(e.target.value)}
+                  className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const today = new Date().toISOString().split('T')[0];
+                    setCustomStartDate(today);
+                    setCustomEndDate(today);
+                  }}
+                  className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-md text-[11px] font-bold transition-colors"
+                >
+                  ថ្ងៃនេះ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                    const today = now.toISOString().split('T')[0];
+                    setCustomStartDate(firstDay);
+                    setCustomEndDate(today);
+                  }}
+                  className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-md text-[11px] font-bold transition-colors"
+                >
+                  ដើមខែដល់ថ្ងៃនេះ
+                </button>
+                {(customStartDate || customEndDate) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomStartDate('');
+                      setCustomEndDate('');
+                    }}
+                    className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-md text-[11px] font-bold transition-colors"
+                  >
+                    សម្អាតកាលបរិច្ឆេទ
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Active Filter Badges Bar */}
+          {(searchQuery || selectedDomain !== 'all' || selectedAction !== 'all' || dateFilter !== 'all' || selectedActor !== 'all') && (
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-slate-500 text-[11px] font-bold">តម្រងកំពុងប្រើ៖</span>
+                {selectedDomain !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold text-[11px]">
+                    ផ្នែក: {getDomainLabel(selectedDomain)}
+                    <button onClick={() => setSelectedDomain('all')} className="hover:text-blue-950 font-bold ml-1">×</button>
+                  </span>
+                )}
+                {selectedAction !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-semibold text-[11px]">
+                    សកម្មភាព: {getActionLabel(selectedAction)}
+                    <button onClick={() => setSelectedAction('all')} className="hover:text-indigo-950 font-bold ml-1">×</button>
+                  </span>
+                )}
+                {dateFilter !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold text-[11px]">
+                    កាលបរិច្ឆេទ: {dateFilter === 'custom' ? `${customStartDate || '...'} ដល់ ${customEndDate || '...'}` : dateFilter}
+                    <button onClick={() => { setDateFilter('all'); setCustomStartDate(''); setCustomEndDate(''); }} className="hover:text-emerald-950 font-bold ml-1">×</button>
+                  </span>
+                )}
+                {selectedActor !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 font-semibold text-[11px]">
+                    អ្នកធ្វើ: {selectedActor}
+                    <button onClick={() => setSelectedActor('all')} className="hover:text-purple-950 font-bold ml-1">×</button>
+                  </span>
+                )}
+                {searchQuery && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold text-[11px]">
+                    ពាក្យគន្លឹះ: "{searchQuery}"
+                    <button onClick={() => setSearchQuery('')} className="hover:text-amber-950 font-bold ml-1">×</button>
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-slate-600">
+                  បង្ហាញ {filteredLogs.length} ក្នុងចំណោម {activityLogs.length} កំណត់ត្រា
+                </span>
+                <button
+                  type="button"
+                  id="export-filtered-csv-btn"
+                  onClick={handleExportCSV}
+                  disabled={isExporting || filteredLogs.length === 0}
+                  className="px-2.5 py-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  title="ទាញយកកំណត់ត្រាដែលកំពុងបង្ហាញជាឯកសារ CSV/Excel"
+                >
+                  <Download className="w-3 h-3 text-emerald-600" />
+                  <span>ទាញយក CSV ({filteredLogs.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedDomain('all');
+                    setSelectedAction('all');
+                    setSelectedActor('all');
+                    setDateFilter('all');
+                    setCustomStartDate('');
+                    setCustomEndDate('');
+                  }}
+                  className="px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors"
+                >
+                  សម្អាតតម្រងទាំងអស់
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Activity Feed List */}

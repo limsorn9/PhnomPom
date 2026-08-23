@@ -330,6 +330,41 @@ export interface DailyAttendanceRecord {
   notes?: string;
 }
 
+export type HealthScreeningStatus = 'normal' | 'monitor' | 'warning' | 'isolate';
+
+export interface DailyHealthCheckRecord {
+  id: string;
+  date: string; // YYYY-MM-DD
+  grade: number;
+  section: string;
+  studentId: string;
+  studentNameKhmer: string;
+  temperature: number; // e.g. 36.5
+  status: HealthScreeningStatus; // 'normal' (🟢), 'monitor' (🟡), 'warning' (🟠), 'isolate' (🔴)
+  symptoms: string[]; // ['ក្តៅខ្លួន', 'ក្អក', 'ហៀរសំបោរ', 'ឈឺក្បាល', 'ឈឺពោះ', 'ភ្នែកក្រហម']
+  session: 'morning' | 'afternoon';
+  checkedAt?: string;
+  notes?: string;
+}
+
+export interface StudentRiskAlert {
+  studentId: string;
+  hasConsecutiveAbsenceAlert: boolean;
+  consecutiveAbsenceCount: number;
+  consecutiveAbsenceDates: string[];
+  hasScoreDropAlert: boolean;
+  scoreDropAmount: number; // e.g. 1.25 points
+  previousPeriodScore: {
+    period: string;
+    average: number;
+  } | null;
+  latestPeriodScore: {
+    period: string;
+    average: number;
+  } | null;
+  alertSummary: string;
+}
+
 export type BudgetSource = 
   | 'ថវិការដ្ឋ (PB)'
   | 'សហគមន៍/សមាគមមាតាបិតា'
@@ -373,6 +408,8 @@ export interface SchoolProfile {
   mapUrl?: string;
   facebookPage?: string;
   gradingScaleType?: GradingScaleType; // 'khmer_term' (ល្អណាស់, ល្អ, ល្អបង្គួរ...) vs 'letter' (A, B, C...)
+  sessionRememberDays?: string; // '1_day' | '7_days' | '14_days' | '30_days' | '90_days' | 'forever' | 'session_only'
+  lastDatabaseBackup?: string; // ISO Timestamp of last manual database snapshot
 }
 
 export type CalendarEventType = 'exam' | 'holiday' | 'vacation' | 'meeting' | 'ceremony' | 'academic';
@@ -1033,8 +1070,8 @@ export interface StudentBadgeAssignment {
 }
 
 // Activity & Data Change Audit Log Types
-export type ActivityDomain = 'student' | 'teacher' | 'finance' | 'academic' | 'admin';
-export type ActivityActionType = 'create' | 'update' | 'delete' | 'transfer' | 'income' | 'expense' | 'score' | 'attendance' | 'document' | 'approval';
+export type ActivityDomain = 'student' | 'teacher' | 'finance' | 'academic' | 'admin' | 'health';
+export type ActivityActionType = 'create' | 'update' | 'delete' | 'transfer' | 'income' | 'expense' | 'score' | 'attendance' | 'document' | 'approval' | 'health_check';
 
 export interface ActivityChangeField {
   fieldName: string;
@@ -1063,5 +1100,44 @@ export interface ActivityLogItem {
   targetTab?: ActiveTab;
   tags?: string[];
   details?: Record<string, any>;
+}
+
+// Student Progress Report & Offline Sync Types
+export interface StudentProgressReport {
+  id: string;
+  studentId: string;
+  studentCode: string;
+  nameKhmer: string;
+  grade: number;
+  section: string;
+  academicYear: string;
+  evaluationPeriod: string; // e.g. 'ខែមករា' or 'ឆមាសទី១'
+  averageScore: number;
+  totalScore?: number;
+  rank?: number;
+  attendancePercentage: number;
+  conduct: 'ល្អប្រសើរ' | 'ល្អ' | 'ល្អបង្គួរ' | 'មធ្យម' | 'ត្រូវការពង្រឹង';
+  readingWritingSkill?: 'ស្ទាត់ជំនាញ' | 'មធ្យម' | 'នៅខ្សោយ' | 'មិនទាន់ចេះអាន';
+  mathCalculationSkill?: 'ពូកែ' | 'មធ្យម' | 'ត្រូវការពង្រឹង';
+  socialTeamwork?: 'រួសរាយសហការ' | 'ស្ងៀមស្ងាត់' | 'ត្រូវការជំរុញ';
+  strengths: string;
+  areasForImprovement: string;
+  teacherRecommendations: string;
+  evaluatedByTeacherName: string;
+  createdAt: string;
+  updatedAt: string;
+  syncStatus: 'synced' | 'pending_sync' | 'error';
+  lastSyncedAt?: string;
+}
+
+export interface OfflineSyncQueueItem {
+  id: string;
+  collectionName: string;
+  docId: string;
+  action: 'create' | 'update' | 'delete';
+  payload: any;
+  createdAt: string;
+  retryCount: number;
+  error?: string;
 }
 

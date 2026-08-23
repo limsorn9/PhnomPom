@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Master Super Admin Check - strictly restricted to limsorn9@gmail.com
+    function isMasterAdmin() {
+      return request.auth != null && 
+             request.auth.token.email == 'limsorn9@gmail.com';
+    }
+
+    // Authenticated Staff or read-allowed viewers
+    function isStaffReadOnly() {
+      return request.auth != null;
+    }
+
+    // Default catch-all
+    match /{document=**} {
+      allow read: if true;
+      allow write, create, update, delete: if isMasterAdmin();
+    }
+
+    // Specific match for schools collection
+    match /schools/{schoolId} {
+      allow read, get, list: if true;
+      allow write, create, update, delete: if isMasterAdmin();
+    }
+
+    // Specific match for users collection
+    match /users/{userId} {
+      allow read, get, list: if true;
+      allow write, create, update, delete: if isMasterAdmin() || (request.auth != null && request.auth.uid == userId);
+    }
+  }
+}
+

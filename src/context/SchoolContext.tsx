@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import {
   Student,
   Teacher,
@@ -39,7 +39,8 @@ import {
   DailyClassLog,
   BadgeDefinition,
   StudentBadgeAssignment,
-  ActivityLogItem
+  ActivityLogItem,
+  DailyHealthCheckRecord
 } from '../types';
 import { getTranslation, AppLanguage } from '../utils/translations';
 import { googleSignIn } from '../services/googleAuth';
@@ -48,6 +49,17 @@ import {
   saveActivitiesToStorage,
   generateSeedActivities
 } from '../utils/activityTracker';
+import {
+  syncSchoolDataToFirestore,
+  fetchSchoolDataFromFirestore,
+  subscribeToSchoolData
+} from '../services/firestoreSync';
+import {
+  setupOfflineAutoSync,
+  cacheStudentProgressReport,
+  getCachedProgressReports,
+  syncPendingReportsToFirestore
+} from '../services/offlineSyncService';
 import {
   initialSchoolProfile,
   initialTeachers,
@@ -196,6 +208,13 @@ interface SchoolContextType {
   recordAttendance: (record: Omit<DailyAttendanceRecord, 'id'>) => void;
   batchRecordAttendance: (records: Array<Omit<DailyAttendanceRecord, 'id'>>) => void;
   getAttendanceForDateAndClass: (date: string, grade: number, section: string) => DailyAttendanceRecord[];
+  recordTeacherQuickCheckIn: (teacherId: string, status?: 'present' | 'absent') => void;
+  getTeacherCheckInStatus: (teacherId: string, targetDate?: string) => DailyAttendanceRecord | null;
+
+  // Daily Morning Health Screening (ការពិនិត្យសុខភាពពេលព្រឹក)
+  dailyHealthChecks: DailyHealthCheckRecord[];
+  batchRecordHealthChecks: (records: Array<Omit<DailyHealthCheckRecord, 'id'>>) => void;
+  getHealthChecksForDateAndClass: (date: string, grade: number, section: string, session?: 'morning' | 'afternoon') => DailyHealthCheckRecord[];
 
   // Academic Calendar
   calendarEvents: AcademicCalendarEvent[];
@@ -341,6 +360,12 @@ interface SchoolContextType {
   activityLogs: ActivityLogItem[];
   addActivityLog: (activity: Omit<ActivityLogItem, 'id' | 'timestamp'>) => void;
   clearActivityLogs: () => void;
+
+  // Cloud Firestore Sync State & Controls (ការផ្ទុក និងធ្វើសមកាលកម្មលើពពក)
+  isCloudSyncing: boolean;
+  lastCloudSyncTime: string | null;
+  syncAllToCloud: () => Promise<boolean>;
+  pullAllFromCloud: () => Promise<boolean>;
 }
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
@@ -418,6 +443,36 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_attendance`);
     return saved ? JSON.parse(saved) : initialAttendanceRecords;
   });
+
+  const [dailyHealthChecks, setDailyHealthChecks] = useState<DailyHealthCheckRecord[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_health_checks`);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        // fallback
+      }
+    }
+    const todayStr = new Date().toISOString().split('T')[0];
+    return initialStudents.slice(0, 24).map((st, idx) => ({
+      id: `hc-${st.id}-${todayStr}`,
+      date: todayStr,
+      grade: st.grade,
+      section: st.section,
+      studentId: st.id,
+      studentNameKhmer: st.nameKhmer,
+      temperature: idx === 2 ? 37.8 : (idx === 5 ? 38.6 : (idx === 8 ? 37.6 : 36.5)),
+      status: idx === 5 ? ('isolate' as const) : (idx === 2 || idx === 8 ? ('monitor' as const) : ('normal' as const)),
+      symptoms: idx === 2 ? ['ក្អក', 'ហៀរសំបោរ'] : (idx === 5 ? ['ក្តៅខ្លួន', 'ឈឺក្បាល'] : (idx === 8 ? ['ឈឺក្បាល'] : [])),
+      session: 'morning' as const,
+      checkedAt: `${todayStr} 07:30`,
+      notes: idx === 5 ? 'សីតុណ្ហភាពខ្ពស់ ជូនដំណឹងអាណាព្យាបាល' : ''
+    }));
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_health_checks`, JSON.stringify(dailyHealthChecks));
+  }, [dailyHealthChecks]);
 
   const [calendarEvents, setCalendarEvents] = useState<AcademicCalendarEvent[]>(() => {
     const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_calendar`);
@@ -1385,6 +1440,223 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     localStorage.setItem(`${LOCAL_STORAGE_KEY}_transfers`, JSON.stringify(transfers));
   }, [transfers]);
+
+  // Cloud Firestore Sync State
+  const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
+  const [lastCloudSyncTime, setLastCloudSyncTime] = useState<string | null>(() => {
+    return localStorage.getItem(`${LOCAL_STORAGE_KEY}_last_cloud_sync_time`);
+  });
+  const isRemoteUpdateRef = useRef<boolean>(false);
+
+  // Pull All Data from Firestore Cloud
+  const pullAllFromCloud = async (): Promise<boolean> => {
+    setIsCloudSyncing(true);
+    try {
+      const cloudData = await fetchSchoolDataFromFirestore();
+      if (cloudData) {
+        isRemoteUpdateRef.current = true;
+        if (cloudData.schoolProfile) setSchoolProfile(cloudData.schoolProfile);
+        if (cloudData.students) setStudents(cloudData.students);
+        if (cloudData.teachers) setTeachers(cloudData.teachers);
+        if (cloudData.classrooms) setClassrooms(cloudData.classrooms);
+        if (cloudData.scores) setScores(cloudData.scores);
+        if (cloudData.budgetTransactions) setBudgetTransactions(cloudData.budgetTransactions);
+        if (cloudData.attendanceRecords) setAttendanceRecords(cloudData.attendanceRecords);
+        if (cloudData.calendarEvents) setCalendarEvents(cloudData.calendarEvents);
+        if (cloudData.transfers) setTransfers(cloudData.transfers);
+        if (cloudData.academicYears) setAcademicYears(cloudData.academicYears);
+        if (cloudData.examSubjects) setExamSubjects(cloudData.examSubjects);
+        if (cloudData.profileEditRequests) setProfileEditRequests(cloudData.profileEditRequests);
+        if (cloudData.releasedResults) setReleasedResults(cloudData.releasedResults);
+        if (cloudData.villages) setVillages(cloudData.villages);
+        if (cloudData.households) setHouseholds(cloudData.households);
+        if (cloudData.libraryBooks) setLibraryBooks(cloudData.libraryBooks);
+        if (cloudData.readingLogs) setReadingLogs(cloudData.readingLogs);
+        if (cloudData.printSettings) setPrintSettings(cloudData.printSettings);
+        if (cloudData.studentFeedbacks) setStudentFeedbacks(cloudData.studentFeedbacks);
+        if (cloudData.lessonPlans) setLessonPlans(cloudData.lessonPlans);
+        if (cloudData.parentMeetings) setParentMeetings(cloudData.parentMeetings);
+        if (cloudData.parentRequests) setParentRequests(cloudData.parentRequests);
+        if (cloudData.classCouncils) setClassCouncils(cloudData.classCouncils);
+        if (cloudData.atRiskStudents) setAtRiskStudents(cloudData.atRiskStudents);
+        if (cloudData.dailyClassLogs) setDailyClassLogs(cloudData.dailyClassLogs);
+        if (cloudData.studentBadgeDefinitions) setStudentBadgeDefinitions(cloudData.studentBadgeDefinitions);
+        if (cloudData.studentBadgeAssignments) setStudentBadgeAssignments(cloudData.studentBadgeAssignments);
+        if (cloudData.correspondences) setCorrespondences(cloudData.correspondences);
+        if (cloudData.staffAdminRecords) setStaffAdminRecords(cloudData.staffAdminRecords);
+        if (cloudData.schoolCommittees) setSchoolCommittees(cloudData.schoolCommittees);
+        if (cloudData.schoolStrategicPlans) setSchoolStrategicPlans(cloudData.schoolStrategicPlans);
+        if (cloudData.modelSchoolStandards) setModelSchoolStandards(cloudData.modelSchoolStandards);
+        if (cloudData.schoolAssets) setSchoolAssets(cloudData.schoolAssets);
+        if (cloudData.appUsers) setAppUsers(cloudData.appUsers);
+
+        const now = new Date().toISOString();
+        setLastCloudSyncTime(now);
+        localStorage.setItem(`${LOCAL_STORAGE_KEY}_last_cloud_sync_time`, now);
+        showToast('បានទាញយកទិន្នន័យពី Cloud Firestore ជោគជ័យ!', 'success');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('Error pulling from cloud:', e);
+      showToast('បរាជ័យក្នុងការទាញយកទិន្នន័យពី Cloud', 'error');
+      return false;
+    } finally {
+      setIsCloudSyncing(false);
+    }
+  };
+
+  // Sync All Local Data to Firestore Cloud
+  const syncAllToCloud = async (): Promise<boolean> => {
+    setIsCloudSyncing(true);
+    try {
+      const payload = {
+        schoolProfile,
+        students,
+        teachers,
+        classrooms,
+        scores,
+        budgetTransactions,
+        attendanceRecords,
+        calendarEvents,
+        transfers,
+        academicYears,
+        examSubjects,
+        profileEditRequests,
+        releasedResults,
+        villages,
+        households,
+        libraryBooks,
+        readingLogs,
+        printSettings,
+        studentFeedbacks,
+        lessonPlans,
+        parentMeetings,
+        parentRequests,
+        classCouncils,
+        atRiskStudents,
+        dailyClassLogs,
+        studentBadgeDefinitions,
+        studentBadgeAssignments,
+        correspondences,
+        staffAdminRecords,
+        schoolCommittees,
+        schoolStrategicPlans,
+        modelSchoolStandards,
+        schoolAssets,
+        activityLogs,
+        appUsers,
+        updatedBy: currentUser?.nameKhmer || 'Admin'
+      };
+
+      const success = await syncSchoolDataToFirestore(payload, true);
+      if (success) {
+        const now = new Date().toISOString();
+        setLastCloudSyncTime(now);
+        localStorage.setItem(`${LOCAL_STORAGE_KEY}_last_cloud_sync_time`, now);
+        showToast('បានរក្សាទុកទិន្នន័យឡើង Cloud Firestore ដោយជោគជ័យ!', 'success');
+        return true;
+      } else {
+        showToast('មិនអាចរក្សាទុកទៅកាន់ Cloud បានទេ', 'error');
+        return false;
+      }
+    } catch (e) {
+      console.error('Cloud upload error:', e);
+      showToast('មានបញ្ហាក្នុងការតភ្ជាប់ Cloud', 'error');
+      return false;
+    } finally {
+      setIsCloudSyncing(false);
+    }
+  };
+
+  // Auto-sync debounced changes to Cloud whenever local user mutates data
+  useEffect(() => {
+    if (isRemoteUpdateRef.current) {
+      isRemoteUpdateRef.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      syncSchoolDataToFirestore({
+        schoolProfile,
+        students,
+        teachers,
+        classrooms,
+        scores,
+        budgetTransactions,
+        attendanceRecords,
+        calendarEvents,
+        transfers,
+        activityLogs,
+        appUsers
+      }).catch(err => console.warn('Background firestore sync notice:', err));
+    }, 3500);
+
+    return () => clearTimeout(timer);
+  }, [
+    schoolProfile,
+    students,
+    teachers,
+    classrooms,
+    scores,
+    budgetTransactions,
+    attendanceRecords,
+    calendarEvents,
+    transfers,
+    activityLogs,
+    appUsers
+  ]);
+
+  // Initial Real-time Listener & Cloud pull on mount
+  useEffect(() => {
+    // Check if cloud has newer data on startup
+    fetchSchoolDataFromFirestore().then(cloudData => {
+      if (cloudData && cloudData.students && cloudData.students.length > 0) {
+        // If local is default empty/first time or cloud has more records, sync it
+        const localSavedStudents = localStorage.getItem(`${LOCAL_STORAGE_KEY}_students`);
+        if (!localSavedStudents) {
+          isRemoteUpdateRef.current = true;
+          if (cloudData.schoolProfile) setSchoolProfile(cloudData.schoolProfile);
+          if (cloudData.students) setStudents(cloudData.students);
+          if (cloudData.teachers) setTeachers(cloudData.teachers);
+          if (cloudData.classrooms) setClassrooms(cloudData.classrooms);
+          if (cloudData.scores) setScores(cloudData.scores);
+          if (cloudData.budgetTransactions) setBudgetTransactions(cloudData.budgetTransactions);
+          if (cloudData.attendanceRecords) setAttendanceRecords(cloudData.attendanceRecords);
+          if (cloudData.calendarEvents) setCalendarEvents(cloudData.calendarEvents);
+          if (cloudData.transfers) setTransfers(cloudData.transfers);
+          if (cloudData.activityLogs) setActivityLogs(cloudData.activityLogs);
+        }
+      }
+    });
+
+    // Real-time Firestore Subscription across active clients
+    const unsubscribe = subscribeToSchoolData((cloudData) => {
+      if (cloudData) {
+        isRemoteUpdateRef.current = true;
+        if (cloudData.schoolProfile) setSchoolProfile(prev => ({ ...prev, ...cloudData.schoolProfile }));
+        if (cloudData.students && Array.isArray(cloudData.students)) setStudents(cloudData.students);
+        if (cloudData.teachers && Array.isArray(cloudData.teachers)) setTeachers(cloudData.teachers);
+        if (cloudData.classrooms && Array.isArray(cloudData.classrooms)) setClassrooms(cloudData.classrooms);
+        if (cloudData.scores && Array.isArray(cloudData.scores)) setScores(cloudData.scores);
+        if (cloudData.budgetTransactions && Array.isArray(cloudData.budgetTransactions)) setBudgetTransactions(cloudData.budgetTransactions);
+        if (cloudData.attendanceRecords && Array.isArray(cloudData.attendanceRecords)) setAttendanceRecords(cloudData.attendanceRecords);
+        if (cloudData.calendarEvents && Array.isArray(cloudData.calendarEvents)) setCalendarEvents(cloudData.calendarEvents);
+        if (cloudData.transfers && Array.isArray(cloudData.transfers)) setTransfers(cloudData.transfers);
+        if (cloudData.activityLogs && Array.isArray(cloudData.activityLogs)) setActivityLogs(cloudData.activityLogs);
+      }
+    });
+
+    // Auto Background Sync from IndexedDB to Firestore once online
+    const cleanupOfflineSync = setupOfflineAutoSync((syncedCount) => {
+      showToast(`បានធ្វើសមកាលកម្មស្វ័យប្រវត្តិ (Auto-sync) របាយការណ៍សិស្ស ${syncedCount} ឡើង Cloud Firestore ជោគជ័យ!`, 'success');
+    });
+
+    return () => {
+      unsubscribe();
+      cleanupOfflineSync();
+    };
+  }, []);
 
   const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToastMessage({ text: message, type });
@@ -2414,6 +2686,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const batchRecordAttendance = (newRecords: Array<Omit<DailyAttendanceRecord, 'id'>>) => {
+    const timestampStr = new Date().toISOString();
     const recordsWithId: DailyAttendanceRecord[] = newRecords.map((r, i) => ({
       ...r,
       id: `att-${Date.now()}-${i}`
@@ -2430,12 +2703,135 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return [...recordsWithId, ...filtered];
     });
 
+    if (newRecords.length > 0) {
+      const targetDate = newRecords[0].date;
+      const targetGrade = newRecords[0].grade;
+      const targetSection = newRecords[0].section;
+      const presentCount = newRecords.filter(r => r.status === 'present').length;
+      const permCount = newRecords.filter(r => r.status === 'permission').length;
+      const absentCount = newRecords.filter(r => r.status === 'absent').length;
+
+      addActivityLog({
+        domain: 'student',
+        actionType: 'attendance',
+        title: `បានកត់ត្រាវត្តមានសិស្សជាក្រុម (Batch Check-in)៖ ថ្នាក់ទី ${targetGrade}${targetSection}`,
+        description: `កាលបរិច្ឆេទ ${targetDate} • សរុប ${newRecords.length} នាក់ (វត្តមាន: ${presentCount}, ច្បាប់: ${permCount}, ឥតច្បាប់: ${absentCount})`,
+        entityId: `att-batch-${targetGrade}-${targetSection}-${targetDate}`,
+        entityCode: `ATT-G${targetGrade}${targetSection}`,
+        entityName: `ថ្នាក់ទី ${targetGrade}${targetSection}`,
+        actorName: currentUser?.nameKhmer || 'លោកគ្រូ/អ្នកគ្រូបន្ទុកថ្នាក់',
+        actorRole: currentUser?.role ? getRoleLabel(currentUser.role) : 'គ្រូបង្រៀន',
+        targetTab: 'attendance_health',
+        tags: [`ថ្នាក់ទី ${targetGrade}${targetSection}`, targetDate, 'Batch Update', 'Firestore Timestamp']
+      });
+    }
+
     showToast(`បានរក្សាទុកបញ្ជីវត្តមានចំនួន ${newRecords.length} នាក់រួចរាល់!`);
   };
 
   const getAttendanceForDateAndClass = (date: string, grade: number, section: string) => {
     return attendanceRecords.filter(
       r => r.date === date && r.grade === grade && r.section === section
+    );
+  };
+
+  const recordTeacherQuickCheckIn = (teacherId: string, status: 'present' | 'absent' = 'present') => {
+    const today = new Date().toISOString().split('T')[0];
+    const nowTimeStr = new Date().toLocaleTimeString('km-KH', { hour: '2-digit', minute: '2-digit' });
+    const teacher = teachers.find(t => t.id === teacherId);
+    if (!teacher) return;
+
+    const recordId = `att-teacher-${teacherId}-${today}`;
+
+    setAttendanceRecords(prev => {
+      const existingIdx = prev.findIndex(r => r.id === recordId || (r.studentId === teacherId && r.date === today));
+      const newRecord: DailyAttendanceRecord = {
+        id: recordId,
+        date: today,
+        grade: teacher.assignedGrade || 0,
+        section: teacher.assignedSection || 'staff',
+        studentId: teacher.id,
+        studentNameKhmer: teacher.nameKhmer,
+        status: status,
+        session: 'morning',
+        notes: `Check-in ម៉ោង ${nowTimeStr}`
+      };
+
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        updated[existingIdx] = newRecord;
+        return updated;
+      } else {
+        return [newRecord, ...prev];
+      }
+    });
+
+    addActivityLog({
+      domain: 'teacher',
+      actionType: 'attendance',
+      title: status === 'present' ? `លោកគ្រូ/អ្នកគ្រូ ${teacher.nameKhmer} បាន Check-in វត្តមាន` : `បានកត់ត្រាអវត្តមានគ្រូ ${teacher.nameKhmer}`,
+      description: `វត្តមានប្រចាំថ្ងៃ ${today} វេលាម៉ោង ${nowTimeStr} • តួនាទី៖ ${teacher.role}`,
+      entityId: teacher.id,
+      entityCode: teacher.staffCode,
+      entityName: teacher.nameKhmer,
+      actorName: currentUser?.nameKhmer || 'Admin',
+      actorRole: currentUser?.role || 'នាយកសាលា',
+      targetTab: 'teachers'
+    });
+
+    showToast(status === 'present' ? `បានកត់ត្រាវត្តមាន Check-in ${teacher.nameKhmer} វេលាម៉ោង ${nowTimeStr}` : `បានកត់ត្រាអវត្តមាន ${teacher.nameKhmer}`);
+  };
+
+  const getTeacherCheckInStatus = (teacherId: string, targetDate?: string) => {
+    const date = targetDate || new Date().toISOString().split('T')[0];
+    const record = attendanceRecords.find(r => (r.studentId === teacherId || r.id === `att-teacher-${teacherId}-${date}`) && r.date === date);
+    return record || null;
+  };
+
+  const batchRecordHealthChecks = (newRecords: Array<Omit<DailyHealthCheckRecord, 'id'>>) => {
+    const recordsWithId: DailyHealthCheckRecord[] = newRecords.map((r, i) => ({
+      ...r,
+      id: `hc-${r.studentId}-${r.date}-${r.session || 'morning'}-${Date.now()}-${i}`
+    }));
+
+    setDailyHealthChecks(prev => {
+      if (newRecords.length === 0) return prev;
+      const targetDate = newRecords[0].date;
+      const targetGrade = newRecords[0].grade;
+      const targetSection = newRecords[0].section;
+      const targetSession = newRecords[0].session;
+      const filtered = prev.filter(
+        item => !(item.date === targetDate && item.grade === targetGrade && item.section === targetSection && item.session === targetSession)
+      );
+      return [...recordsWithId, ...filtered];
+    });
+
+    if (newRecords.length > 0) {
+      const normalCount = newRecords.filter(r => r.status === 'normal').length;
+      const monitorCount = newRecords.filter(r => r.status === 'monitor').length;
+      const isolateCount = newRecords.filter(r => r.status === 'isolate' || r.status === 'warning').length;
+
+      addActivityLog({
+        domain: 'health',
+        actionType: 'health_check',
+        title: `បានកត់ត្រាការពិនិត្យសុខភាពពេលព្រឹក៖ ថ្នាក់ទី ${newRecords[0].grade}${newRecords[0].section}`,
+        description: `កាលបរិច្ឆេទ ${newRecords[0].date} • សរុប ${newRecords.length} នាក់ (ធម្មតា: ${normalCount}, តាមដាន: ${monitorCount}, សម្រាក: ${isolateCount})`,
+        entityId: `hc-batch-${newRecords[0].grade}-${newRecords[0].section}-${newRecords[0].date}`,
+        entityCode: `HC-G${newRecords[0].grade}${newRecords[0].section}`,
+        entityName: `ថ្នាក់ទី ${newRecords[0].grade}${newRecords[0].section}`,
+        actorName: currentUser?.nameKhmer || 'លោកគ្រូ/អ្នកគ្រូ',
+        actorRole: currentUser?.role ? getRoleLabel(currentUser.role) : 'គ្រូបង្រៀន',
+        targetTab: 'attendance_health',
+        tags: [`ថ្នាក់ទី ${newRecords[0].grade}${newRecords[0].section}`, newRecords[0].date, 'Morning Health Screening']
+      });
+    }
+
+    showToast(`បានរក្សាទុកកំណត់ត្រាពិនិត្យសុខភាពសិស្សចំនួន ${newRecords.length} នាក់ជោគជ័យ!`);
+  };
+
+  const getHealthChecksForDateAndClass = (date: string, grade: number, section: string, session: 'morning' | 'afternoon' = 'morning') => {
+    return dailyHealthChecks.filter(
+      r => r.date === date && r.grade === grade && r.section === section && r.session === session
     );
   };
 
@@ -2736,6 +3132,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         recordAttendance,
         batchRecordAttendance,
         getAttendanceForDateAndClass,
+        recordTeacherQuickCheckIn,
+        getTeacherCheckInStatus,
+        dailyHealthChecks,
+        batchRecordHealthChecks,
+        getHealthChecksForDateAndClass,
         calendarEvents,
         addCalendarEvent,
         updateCalendarEvent,
@@ -2839,7 +3240,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         autoSuggestBadgesForStudent,
         activityLogs,
         addActivityLog,
-        clearActivityLogs
+        clearActivityLogs,
+        isCloudSyncing,
+        lastCloudSyncTime,
+        syncAllToCloud,
+        pullAllFromCloud
       }}
     >
       {children}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { SchoolProfile, GradingScaleType } from '../types';
+import { useSchool } from '../context/SchoolContext';
 import {
   X,
   Save,
@@ -17,7 +18,16 @@ import {
   Info,
   Globe,
   Sliders,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Sun,
+  Moon,
+  Shield,
+  Database,
+  Download,
+  Lock,
+  Clock,
+  HardDrive,
+  Check
 } from 'lucide-react';
 
 interface SchoolProfileModalProps {
@@ -46,10 +56,23 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
   onSave,
   showToast
 }) => {
+  const {
+    isDarkMode,
+    toggleDarkMode,
+    students,
+    scores,
+    attendanceRecords,
+    dailyHealthChecks,
+    teachers,
+    studentBadgeAssignments,
+    activityLogs,
+    transfers
+  } = useSchool();
   const [formData, setFormData] = useState<SchoolProfile>(initialProfile);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [activeTab, setActiveTab] = useState<'general' | 'location' | 'contact' | 'links' | 'settings'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'location' | 'contact' | 'links' | 'settings' | 'security'>('general');
+  const [isExportingSnapshot, setIsExportingSnapshot] = useState(false);
 
   // Reset form when modal opens with fresh initialProfile
   useEffect(() => {
@@ -282,6 +305,65 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
     showToast('បានរក្សាទុក និងផ្ទៀងផ្ទាត់ព័ត៌មានសាលារៀនដោយជោគជ័យ!', 'success');
   };
 
+  const handleTriggerDatabaseSnapshot = () => {
+    setIsExportingSnapshot(true);
+    try {
+      const nowIso = new Date().toISOString();
+      const snapshotData = {
+        exportedAt: nowIso,
+        system: 'ប្រព័ន្ធគ្រប់គ្រងសាលាបឋមសិក្សាភ្នំពុំ (MoEYS Primary School Management System)',
+        schoolProfile: {
+          ...formData,
+          lastDatabaseBackup: nowIso
+        },
+        statistics: {
+          totalStudents: students.length,
+          totalScores: scores.length,
+          totalAttendanceRecords: attendanceRecords.length,
+          totalHealthCheckRecords: dailyHealthChecks.length,
+          totalTeachers: teachers.length,
+          totalBadgeAssignments: studentBadgeAssignments.length,
+          totalActivityLogs: activityLogs.length,
+          totalTransfers: transfers.length
+        },
+        data: {
+          students,
+          scores,
+          attendanceRecords,
+          dailyHealthChecks,
+          teachers,
+          studentBadgeAssignments,
+          activityLogs,
+          transfers
+        }
+      };
+
+      const jsonStr = JSON.stringify(snapshotData, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      link.href = url;
+      link.download = `phnom_pom_school_full_snapshot_${timestamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      const updatedProfile = {
+        ...formData,
+        lastDatabaseBackup: nowIso
+      };
+      setFormData(updatedProfile);
+      onSave(updatedProfile);
+      showToast('បានទាញយក និងរក្សាទុកទិន្នន័យបម្រុងទុក (Full Database Snapshot) ដោយជោគជ័យ!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'បរាជ័យក្នុងការទាញយកទិន្នន័យបម្រុងទុក', 'error');
+    } finally {
+      setIsExportingSnapshot(false);
+    }
+  };
+
   const hasErrors = useMemo(() => Object.keys(errors).length > 0, [errors]);
 
   if (!isOpen) return null;
@@ -394,6 +476,19 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
           >
             <Sliders className="w-3.5 h-3.5 text-amber-600" />
             <span>ស្តង់ដារពិន្ទុ & Logo</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('security')}
+            className={`px-3.5 py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+              activeTab === 'security'
+                ? 'bg-white text-blue-900 border-t-2 border-t-blue-600 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+            }`}
+          >
+            <Shield className="w-3.5 h-3.5 text-rose-600" />
+            <span>សុវត្ថិភាព & បម្រុងទុក</span>
           </button>
         </div>
 
@@ -834,9 +929,79 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
             </div>
           )}
 
-          {/* TAB 5: GRADING SCALE & LOGO */}
+          {/* TAB 5: GRADING SCALE, THEME & LOGO */}
           {activeTab === 'settings' && (
             <div className="space-y-4 animate-in fade-in">
+              {/* Dark Mode / Theme Settings Card */}
+              <div className="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <label className="block text-slate-900 dark:text-white font-bold text-xs">
+                      ទម្រង់ផ្ទៃកម្មវិធី (Theme & Display Mode)
+                    </label>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      កំណត់រចនាប័ទ្មពណ៌ទូទៅរបស់ប្រព័ន្ធ និងរក្សាទុកក្នុងកុំព្យូទ័រ/ឧបករណ៍របស់អ្នក (Local Storage)
+                    </p>
+                  </div>
+                  <span
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                      isDarkMode
+                        ? 'bg-indigo-950 text-indigo-300 border border-indigo-700'
+                        : 'bg-amber-100 text-amber-800 border border-amber-300'
+                    }`}
+                  >
+                    {isDarkMode ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+                    <span>{isDarkMode ? 'ទម្រង់ងងឹត (Dark)' : 'ទម្រង់ពន្លឺ (Light)'}</span>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    id="theme-toggle-light"
+                    onClick={() => {
+                      if (isDarkMode) toggleDarkMode();
+                      showToast('បានប្តូរទៅប្រើទម្រង់ពន្លឺធម្មតា (Light Mode)', 'info');
+                    }}
+                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
+                      !isDarkMode
+                        ? 'bg-white border-blue-500 shadow-sm ring-2 ring-blue-500/20 text-slate-900'
+                        : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:border-slate-400 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 shadow-xs">
+                      <Sun className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-xs">ទម្រង់ពន្លឺធម្មតា (Light Mode)</p>
+                      <p className="text-[11px] text-slate-500">ផ្ទៃពណ៌ស ភ្លឺច្បាស់ ងាយស្រួលមើលពេលថ្ងៃ</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    id="theme-toggle-dark"
+                    onClick={() => {
+                      if (!isDarkMode) toggleDarkMode();
+                      showToast('បានប្តូរទៅប្រើទម្រង់ងងឹត (Dark Mode)', 'info');
+                    }}
+                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
+                      isDarkMode
+                        ? 'bg-slate-900 border-blue-500 shadow-sm ring-2 ring-blue-500/20 text-white'
+                        : 'bg-white border-slate-200 hover:border-slate-300 text-slate-700'
+                    }`}
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-indigo-950 text-indigo-400 flex items-center justify-center shrink-0 shadow-xs border border-indigo-800">
+                      <Moon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-xs">ទម្រង់ងងឹត (Dark Mode)</p>
+                      <p className="text-[11px] text-slate-500">ផ្ទៃងងឹតកាត់បន្ថយចំណាំងពន្លឺ ថែរក្សាភ្នែក</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               {/* Grading Scale */}
               <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                 <label className="block text-slate-800 font-bold mb-1.5">
@@ -912,6 +1077,135 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
                 <p className="mt-1 text-[10px] text-slate-500">
                   បង្ហាញលើប័ណ្ណសរសើរ កាតសិស្ស និងក្បាលលិខិតផ្លូវការ
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: SECURITY, BACKUP & SESSION PERSISTENCE */}
+          {activeTab === 'security' && (
+            <div className="space-y-4 animate-in fade-in">
+              {/* Full Database Snapshot Card */}
+              <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-4 sm:p-5 rounded-2xl border border-indigo-800 shadow-md space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-800/80 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-600/40 border border-indigo-400/40 flex items-center justify-center text-indigo-300 flex-shrink-0">
+                      <Database className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm font-moul text-indigo-100">
+                        ទាញយកទិន្នន័យបម្រុងទុកពេញលេញ (Full Database Snapshot)
+                      </h4>
+                      <p className="text-[11px] text-indigo-200/80 mt-0.5">
+                        នាំចេញទិន្នន័យសាលាទាំងស្រុងជាឯកសារ JSON រួមមានសិស្ស ពិន្ទុ វត្តមាន ពិនិត្យសុខភាព គ្រូបង្រៀន និងកំណត់ត្រាផ្សេងៗ
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    id="trigger-db-backup-btn"
+                    onClick={handleTriggerDatabaseSnapshot}
+                    disabled={isExportingSnapshot}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl shadow transition-all active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>{isExportingSnapshot ? 'កំពុងដំណើរការ...' : 'ទាញយក Backup ឥឡូវនេះ'}</span>
+                  </button>
+                </div>
+
+                {/* Database Statistics Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                  <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                    <span className="text-indigo-200 text-[10px] block">ទិន្នន័យសិស្ស</span>
+                    <strong className="text-sm font-bold font-times text-white">{students.length} នាក់</strong>
+                  </div>
+                  <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                    <span className="text-indigo-200 text-[10px] block">កំណត់ត្រាពិន្ទុ</span>
+                    <strong className="text-sm font-bold font-times text-white">{scores.length} កំណត់ត្រា</strong>
+                  </div>
+                  <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                    <span className="text-indigo-200 text-[10px] block">កំណត់ត្រាវត្តមាន</span>
+                    <strong className="text-sm font-bold font-times text-white">{attendanceRecords.length} ថ្ងៃ</strong>
+                  </div>
+                  <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                    <span className="text-indigo-200 text-[10px] block">ពិនិត្យសុខភាពប្រចាំថ្ងៃ</span>
+                    <strong className="text-sm font-bold font-times text-white">{dailyHealthChecks.length} កំណត់ត្រា</strong>
+                  </div>
+                </div>
+
+                {/* Last Backup Info */}
+                <div className="flex items-center gap-2 text-[11px] text-indigo-300 bg-white/5 px-3 py-2 rounded-xl border border-white/10">
+                  <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>
+                    កាលបរិច្ឆេទចម្លងទិន្នន័យចុងក្រោយ៖{' '}
+                    <strong className="text-white font-times">
+                      {formData.lastDatabaseBackup
+                        ? new Date(formData.lastDatabaseBackup).toLocaleString('km-KH')
+                        : 'មិនទាន់ធ្លាប់បានបម្រុងទុកដោយដៃ'}
+                    </strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Session Persistence & Remember Me Settings Card */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-xs text-slate-900">
+                      សុពលភាពចងចាំគណនីចូលប្រព័ន្ធ (Session "Remember Me" Persistence)
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      កំណត់រយៈពេលរក្សាវត្តមានចូលប្រើប្រាស់ប្រព័ន្ធដោយស្វ័យប្រវត្តិកុំឱ្យទាមទារ Password ញឹកញាប់
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                  {[
+                    { days: 1, label: '១ ថ្ងៃ (1 Day)', desc: 'ទាមទារចូលរាល់ថ្ងៃ សុវត្ថិភាពខ្ពស់' },
+                    { days: 7, label: '៧ ថ្ងៃ (1 Week)', desc: 'រក្សាទុក ១ សប្តាហ៍' },
+                    { days: 14, label: '១៤ ថ្ងៃ (2 Weeks)', desc: 'រក្សាទុក ២ សប្តាហ៍' },
+                    { days: 30, label: '៣០ ថ្ងៃ (1 Month)', desc: 'ជម្រើសណែនាំទូទៅ (Default)' },
+                    { days: 365, label: '១ ឆ្នាំ (Permanent)', desc: 'រក្សាទុកយូរអង្វែងលើកុំព្យូទ័រផ្ទាល់ខ្លួន' }
+                  ].map(item => {
+                    const isSelected = (formData.sessionRememberDays || 30) === item.days;
+                    return (
+                      <label
+                        key={item.days}
+                        className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${
+                          isSelected
+                            ? 'bg-blue-50 border-blue-500 text-blue-950 ring-1 ring-blue-500 shadow-xs'
+                            : 'bg-white border-slate-200 hover:bg-slate-100/80 text-slate-700'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="sessionRememberDays"
+                          checked={isSelected}
+                          onChange={() => handleFieldChange('sessionRememberDays', item.days)}
+                          className="mt-0.5"
+                        />
+                        <div>
+                          <p className="font-bold text-xs">{item.label}</p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">{item.desc}</p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Persistence Strategy Note */}
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 flex items-start gap-2">
+                <Shield className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">ស្តង់ដារសុវត្ថិភាពទិន្នន័យ (MoEYS Dual-Storage Persistence)</p>
+                  <p className="text-amber-800 mt-0.5">
+                    ប្រព័ន្ធដំណើរការស្របគ្នាលើ Local Storage (កុំព្យូទ័រអ្នក) និងពពកទិន្នន័យ Google Cloud Firestore ដោយស្វ័យប្រវត្តិ។ ការទាញយក Snapshot ដោយដៃជួយការពារទិន្នន័យបន្ថែមនៅពេលប្តូរឧបករណ៍ ឬដំឡើង Windows ថ្មី។
+                  </p>
+                </div>
               </div>
             </div>
           )}

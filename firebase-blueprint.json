@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "School": {
+      "title": "School Database",
+      "description": "Unified school database container for Phnom Pom Primary School",
+      "type": "object",
+      "properties": {
+        "schoolProfile": { "type": "object", "description": "MoEYS School demographic and administrative metadata" },
+        "students": { "type": "array", "description": "Enrolled primary student roster" },
+        "teachers": { "type": "array", "description": "Teaching and administrative staff" },
+        "classrooms": { "type": "array", "description": "Active classroom sections" },
+        "scores": { "type": "array", "description": "Academic scores and grading records" },
+        "budgetTransactions": { "type": "array", "description": "Programme Budgeting and fund transactions" },
+        "attendanceRecords": { "type": "array", "description": "Daily and monthly student attendance records" },
+        "lastUpdated": { "type": "string", "format": "date-time", "description": "ISO timestamp of last update" },
+        "updatedBy": { "type": "string", "description": "Email or user ID of updating administrator" },
+        "clientId": { "type": "string", "description": "Client synchronization identifier" }
+      },
+      "required": ["lastUpdated"]
+    },
+    "User": {
+      "title": "User Account",
+      "description": "Staff and administrator profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "displayName": { "type": "string", "description": "Full name in Khmer" },
+        "role": { "type": "string", "enum": ["admin", "teacher", "director", "staff"], "description": "System role" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    }
+  },
+  "firestore": {
+    "/schools/{schoolId}": {
+      "schema": "School",
+      "description": "Primary school persistent records and MoEYS operational dataset"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Registered faculty and staff user profiles"
+    }
+  }
+}

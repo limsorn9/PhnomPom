@@ -19,9 +19,25 @@ import {
   Sparkles,
   Layers,
   ExternalLink,
-  LogIn
+  LogIn,
+  MapPin,
+  Phone,
+  Mail,
+  Globe,
+  BookOpen,
+  GraduationCap,
+  ShieldCheck,
+  Heart,
+  Droplets,
+  Check,
+  Filter,
+  CheckSquare,
+  Camera,
+  ScanLine
 } from 'lucide-react';
 import { printElement, downloadElementAsPdf } from '../utils/printUtils';
+import { WebcamQRScannerModal } from './WebcamQRScannerModal';
+import { ExportStudentIdBadgeModal } from './ExportStudentIdBadgeModal';
 
 export const ReportsAndQR: React.FC = () => {
   const {
@@ -41,18 +57,41 @@ export const ReportsAndQR: React.FC = () => {
   } = useSchool();
 
   const [activeReportType, setActiveReportType] = useState<
-    'census' | 'score_sheet' | 'finance' | 'student_qr_cards' | 'staff_qr_cards'
+    'census' | 'score_sheet' | 'finance' | 'student_qr_cards' | 'student_qr_grid' | 'staff_qr_cards' | 'school_profile'
   >('census');
 
   const [selectedGrade, setSelectedGrade] = useState<number>(6);
   const [selectedSection, setSelectedSection] = useState<string>('ក');
   const [selectedMonth, setSelectedMonth] = useState<string>('មករា');
   const [cardsPerA4, setCardsPerA4] = useState<6 | 8 | 12>(8);
+  const [gridDensityPerA4, setGridDensityPerA4] = useState<12 | 16 | 20 | 24 | 30>(24);
+  const [selectedStudentBatchIds, setSelectedStudentBatchIds] = useState<string[]>([]);
+  const [batchGradeFilter, setBatchGradeFilter] = useState<string>('all');
+  const [batchSearchQuery, setBatchSearchQuery] = useState<string>('');
 
   // Filter students for active class
   const classStudents = students.filter(
     s => s.grade === selectedGrade && s.section === selectedSection
   );
+
+  // Filter students for batch QR code grid
+  const filteredBatchStudents = students.filter(st => {
+    if (batchGradeFilter !== 'all') {
+      const g = Number(batchGradeFilter);
+      if (st.grade !== g) return false;
+    }
+    if (batchSearchQuery.trim()) {
+      const q = batchSearchQuery.toLowerCase().trim();
+      const matchName = st.nameKhmer.toLowerCase().includes(q) || (st.nameLatin && st.nameLatin.toLowerCase().includes(q));
+      const matchCode = st.code.toLowerCase().includes(q);
+      if (!matchName && !matchCode) return false;
+    }
+    return true;
+  });
+
+  const studentsForQRGrid = selectedStudentBatchIds.length > 0
+    ? students.filter(st => selectedStudentBatchIds.includes(st.id))
+    : filteredBatchStudents;
 
   const activeScores = scores.filter(
     s =>
@@ -62,6 +101,9 @@ export const ReportsAndQR: React.FC = () => {
   );
 
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isWebcamScannerOpen, setIsWebcamScannerOpen] = useState(false);
+  const [isSingleIdBadgeModalOpen, setIsSingleIdBadgeModalOpen] = useState(false);
+  const [selectedStudentForBadgeId, setSelectedStudentForBadgeId] = useState<string | undefined>(undefined);
 
   const getReportTitle = () => {
     switch (activeReportType) {
@@ -69,7 +111,9 @@ export const ReportsAndQR: React.FC = () => {
       case 'score_sheet': return `តារាងពិន្ទុ_ថ្នាក់ទី${selectedGrade}${selectedSection}_ខែ${selectedMonth}`;
       case 'finance': return `របាយការណ៍ហិរញ្ញវត្ថុ_${schoolProfile.academicYear}`;
       case 'student_qr_cards': return `កាតសិស្ស_ថ្នាក់ទី${selectedGrade}${selectedSection}`;
+      case 'student_qr_grid': return `តារាងក្រឡា_QR_Code_សិស្ស_${schoolProfile.academicYear}`;
       case 'staff_qr_cards': return `ប័ណ្ណសម្គាល់បុគ្គលិក_${schoolProfile.academicYear}`;
+      case 'school_profile': return `កម្រងប្រវត្តិរូបសាលារៀន_${schoolProfile.nameLatin || 'School_Profile'}_${schoolProfile.academicYear}`;
       default: return 'របាយការណ៍_MoEYS';
     }
   };
@@ -81,15 +125,19 @@ export const ReportsAndQR: React.FC = () => {
     });
   };
 
-  const handleDownloadPdf = async () => {
+  const handleDownloadPdf = async (customReportName?: string) => {
     setIsExportingPdf(true);
     try {
-      const filename = `${getReportTitle()}_${schoolProfile.nameKhmer || 'សាលារៀន'}.pdf`;
+      const filename = customReportName 
+        ? `${customReportName}.pdf` 
+        : `${getReportTitle()}_${schoolProfile.nameKhmer || 'សាលារៀន'}.pdf`;
       await downloadElementAsPdf('reports-printable-container', filename, {
         landscape: activeReportType === 'census' || activeReportType === 'score_sheet'
       });
+      showToast(`បានទាញយកឯកសារ PDF «${filename}» ជោគជ័យ!`);
     } catch (err) {
       console.error('Failed to export report PDF:', err);
+      showToast('មានបញ្ហាក្នុងការបង្កើតឯកសារ PDF សូមព្យាយាមម្តងទៀត', 'error');
     } finally {
       setIsExportingPdf(false);
     }
@@ -159,6 +207,33 @@ export const ReportsAndQR: React.FC = () => {
     downloadExcelFile(`MoEYS_Staff_Directory_${schoolProfile.academicYear}`, csv);
   };
 
+  // Export 6: School Profile to Excel
+  const exportSchoolProfileToExcel = () => {
+    let csv = 'ផ្នែកព័ត៌មាន,សូចនាករ/ធាតុព័ត៌មាន,តម្លៃទិន្នន័យ\n';
+    csv += `ព័ត៌មានទូទៅ,ឈ្មោះសាលារៀន (ខ្មែរ),"${schoolProfile.nameKhmer}"\n`;
+    csv += `ព័ត៌មានទូទៅ,ឈ្មោះសាលារៀន (ឡាតាំង),"${schoolProfile.nameLatin}"\n`;
+    csv += `ព័ត៌មានទូទៅ,លេខកូដសាលា,"${schoolProfile.schoolCode}"\n`;
+    csv += `ព័ត៌មានទូទៅ,ឆ្នាំបង្កើត,"${schoolProfile.establishedYear}"\n`;
+    csv += `ព័ត៌មានទូទៅ,ឆ្នាំសិក្សា,"${schoolProfile.academicYear}"\n`;
+    csv += `ព័ត៌មានទូទៅ,សម្ព័ន្ធសាលា,"${schoolProfile.cluster}"\n`;
+    csv += `ទីតាំងភូមិសាស្ត្រ,ភូមិ,"${schoolProfile.village}"\n`;
+    csv += `ទីតាំងភូមិសាស្ត្រ,ឃុំ,"${schoolProfile.commune}"\n`;
+    csv += `ទីតាំងភូមិសាស្ត្រ,ស្រុក,"${schoolProfile.district}"\n`;
+    csv += `ទីតាំងភូមិសាស្ត្រ,ខេត្ត,"${schoolProfile.province}"\n`;
+    csv += `គណៈគ្រប់គ្រង,នាយកសាលា,"${schoolProfile.principalName}"\n`;
+    csv += `គណៈគ្រប់គ្រង,ទូរស័ព្ទនាយក,"${schoolProfile.principalPhone}"\n`;
+    csv += `គណៈគ្រប់គ្រង,នាយករង,"${schoolProfile.deputyPrincipalName || 'មិនមាន'}"\n`;
+    csv += `ស្ថិតិបុគ្គលិក,បុគ្គលិកសរុប,${teachers.length}\n`;
+    csv += `ស្ថិតិបុគ្គលិក,គ្រូស្រី,${teachers.filter(t => t.gender === 'F').length}\n`;
+    csv += `ស្ថិតិសិស្ស,សិស្សសរុប,${students.length}\n`;
+    csv += `ស្ថិតិសិស្ស,សិស្សស្រី,${students.filter(s => s.gender === 'F').length}\n`;
+    csv += `ស្ថិតិសិស្ស,សិស្សក្រីក្រ (IDPoor),${students.filter(s => s.livingCondition?.includes('ក្រ')).length}\n`;
+    csv += `ស្ថិតិសិស្ស,សិស្សកំព្រា,${students.filter(s => s.orphanStatus && s.orphanStatus !== 'មិនកំព្រា').length}\n`;
+    csv += `ស្ថិតិសិស្ស,សិស្សពិការ,${students.filter(s => s.disability && s.disability !== 'មិនពិការ').length}\n`;
+    csv += `ថ្នាក់រៀន,ចំនួនបន្ទប់សរុប,${classrooms.length || 6}\n`;
+    downloadExcelFile(`MoEYS_School_Profile_${schoolProfile.nameLatin || 'School'}_${schoolProfile.academicYear}`, csv);
+  };
+
   // Individual Card Download
   const handleDownloadCardImage = (name: string, code: string) => {
     showToast(`កំពុងរៀបចំទាញយកកាតសម្គាល់ «${name} (${code})»...`);
@@ -202,6 +277,31 @@ export const ReportsAndQR: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Export High-Res Student ID Badge Card Action Button */}
+            <button
+              id="open-export-student-id-card-btn"
+              onClick={() => {
+                setSelectedStudentForBadgeId(classStudents[0]?.id || students[0]?.id);
+                setIsSingleIdBadgeModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer ring-2 ring-amber-400/30"
+              title="បង្កើត និងនាំចេញប័ណ្ណសម្គាល់ខ្លួនសិស្សម្នាក់ៗ (High-Resolution Student ID Badge Card)"
+            >
+              <CreditCard className="w-4 h-4 text-white" />
+              <span>នាំចេញកាតសិស្សម្នាក់ៗ (ID Card)</span>
+            </button>
+
+            {/* Webcam QR Scanner Action Button */}
+            <button
+              id="open-webcam-qr-scanner-btn"
+              onClick={() => setIsWebcamScannerOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer ring-2 ring-blue-400/30"
+              title="បើកម៉ាស៊ីនស្កេន QR Code តាម Webcam សម្រាប់ Check-in វត្តមាន និងផ្ទៀងផ្ទាត់សិស្ស"
+            >
+              <Camera className="w-4 h-4 text-white animate-pulse" />
+              <span>ស្កេន QR តាម Camera</span>
+            </button>
+
             {/* Universal Excel Export Action */}
             <button
               onClick={() => {
@@ -209,7 +309,8 @@ export const ReportsAndQR: React.FC = () => {
                 else if (activeReportType === 'score_sheet') exportScoresToExcel();
                 else if (activeReportType === 'finance') exportFinanceToExcel();
                 else if (activeReportType === 'student_qr_cards') exportStudentsToExcel();
-                else exportStaffToExcel();
+                else if (activeReportType === 'staff_qr_cards') exportStaffToExcel();
+                else exportSchoolProfileToExcel();
               }}
               className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
             >
@@ -219,7 +320,7 @@ export const ReportsAndQR: React.FC = () => {
 
             {/* Download PDF Action */}
             <button
-              onClick={handleDownloadPdf}
+              onClick={() => handleDownloadPdf()}
               disabled={isExportingPdf}
               className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
               title="ទាញយកជារូបរាង PDF"
@@ -227,6 +328,23 @@ export const ReportsAndQR: React.FC = () => {
               <Download className="w-4 h-4" />
               <span>{isExportingPdf ? 'កំពុងបង្កើត...' : 'ទាញយកជា PDF'}</span>
             </button>
+
+            {/* Quick Export School Profile PDF */}
+            {activeReportType !== 'school_profile' && (
+              <button
+                onClick={() => {
+                  setActiveReportType('school_profile');
+                  setTimeout(() => {
+                    handleDownloadPdf(`កម្រងប្រវត្តិរូបសាលារៀន_${schoolProfile.nameLatin || 'School'}_${schoolProfile.academicYear}`);
+                  }, 250);
+                }}
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-bold rounded-xl shadow-2xs transition-all cursor-pointer"
+                title="ទាញយកកម្រងប្រវត្តិរូបសាលារៀនជា PDF ដោយផ្ទាល់"
+              >
+                <School className="w-4 h-4 text-indigo-600" />
+                <span>PDF ប្រវត្តិរូបសាលា</span>
+              </button>
+            )}
 
             {/* Print Action */}
             <button
@@ -287,6 +405,18 @@ export const ReportsAndQR: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveReportType('student_qr_grid')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeReportType === 'student_qr_grid'
+                ? 'bg-purple-600 text-white shadow-sm ring-2 ring-purple-600/30'
+                : 'bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200'
+            }`}
+          >
+            <QrCode className="w-3.5 h-3.5" />
+            <span>៥. តារាងក្រឡា QR Code សុទ្ធ (Printable Sheet)</span>
+          </button>
+
+          <button
             onClick={() => setActiveReportType('staff_qr_cards')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               activeReportType === 'staff_qr_cards'
@@ -294,7 +424,28 @@ export const ReportsAndQR: React.FC = () => {
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
           >
-            ៥. ប័ណ្ណសម្គាល់បុគ្គលិក (Staff Badge)
+            ៦. ប័ណ្ណសម្គាល់បុគ្គលិក (Staff Badge)
+          </button>
+
+          <button
+            onClick={() => setActiveReportType('school_profile')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeReportType === 'school_profile'
+                ? 'bg-blue-900 text-white shadow-sm ring-2 ring-blue-900/30'
+                : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100 border border-indigo-200'
+            }`}
+          >
+            <School className="w-3.5 h-3.5" />
+            <span>៧. កម្រងប្រវត្តិរូបសាលារៀន (School Profile)</span>
+          </button>
+
+          <button
+            id="tab-webcam-qr-scanner-btn"
+            onClick={() => setIsWebcamScannerOpen(true)}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-xs hover:from-indigo-600 hover:to-blue-700"
+          >
+            <Camera className="w-3.5 h-3.5 animate-pulse" />
+            <span>៨. ស្កេន QR តាម Webcam (Live Scanner)</span>
           </button>
         </div>
       </div>
@@ -630,7 +781,200 @@ export const ReportsAndQR: React.FC = () => {
           </div>
         )}
 
-        {/* 5. Staff QR Code Badges View */}
+        {/* 5. Printable Batch QR Grid Sheet View */}
+        {activeReportType === 'student_qr_grid' && (
+          <div className="space-y-6">
+            <div className="text-center space-y-1">
+              <h3 className="text-lg font-bold font-moul text-slate-900">
+                តារាងក្រឡា QR Code សិស្សលើសន្លឹក A4 (Printable Student QR Sheet)
+              </h3>
+              <p className="text-xs text-slate-500">
+                ជ្រើសរើសសិស្សជាក្រុម (Batch Selection) និងបោះពុម្ព QR Code ជាក្រឡាក្នុងមួយសន្លឹក A4 ដោយផ្ទាល់តាមរយៈ Browser Print
+              </p>
+            </div>
+
+            {/* Batch Selection & Density Control Toolbar (no-print) */}
+            <div className="no-print bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-purple-600" />
+                  <span className="font-bold text-slate-800">ចម្រោះសិស្សតាមកម្រិតថ្នាក់៖</span>
+                  <select
+                    value={batchGradeFilter}
+                    onChange={e => setBatchGradeFilter(e.target.value)}
+                    className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="all">គ្រប់ថ្នាក់ទាំងអស់ ({students.length} នាក់)</option>
+                    {[1, 2, 3, 4, 5, 6].map(g => (
+                      <option key={g} value={g}>
+                        ថ្នាក់ទី {g} ({students.filter(s => s.grade === g).length} នាក់)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-700">ដង់ស៊ីតេលើក្រដាស A4៖</span>
+                  <div className="flex items-center gap-1">
+                    {[12, 16, 20, 24, 30].map(density => (
+                      <button
+                        key={density}
+                        onClick={() => setGridDensityPerA4(density as 12 | 16 | 20 | 24 | 30)}
+                        className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${
+                          gridDensityPerA4 === density
+                            ? 'bg-purple-600 text-white shadow-xs'
+                            : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {density}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Batch Select Controls */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200/80">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedStudentBatchIds.length === filteredBatchStudents.length) {
+                        setSelectedStudentBatchIds([]);
+                      } else {
+                        setSelectedStudentBatchIds(filteredBatchStudents.map(s => s.id));
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors"
+                  >
+                    <CheckSquare className="w-3.5 h-3.5 text-purple-600" />
+                    <span>
+                      {selectedStudentBatchIds.length === filteredBatchStudents.length
+                        ? 'ដោះការជ្រើសរើសទាំងអស់ (Clear All)'
+                        : `ជ្រើសរើសសិស្សទាំងអស់ (${filteredBatchStudents.length})`}
+                    </span>
+                  </button>
+
+                  <span className="px-2.5 py-1 rounded-md bg-purple-100 text-purple-900 font-bold text-xs">
+                    បានជ្រើសរើស៖ {studentsForQRGrid.length} សិស្ស
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      printElement('reports-printable-container', {
+                        pageTitle: `តារាងក្រឡា_QR_Code_សិស្ស_${schoolProfile.academicYear}`,
+                        landscape: false
+                      });
+                    }}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-all"
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>បោះពុម្ពតារាង QR លើក្រដាស A4</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Student Selection Chip List (no-print) */}
+            <div className="no-print bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs max-h-44 overflow-y-auto">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
+                ជ្រើសរើសសិស្សនីមួយៗ (ចុចដើម្បីជ្រើសរើស/ដោះចេញ)៖
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {filteredBatchStudents.map(st => {
+                  const isSelected = selectedStudentBatchIds.includes(st.id);
+                  return (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedStudentBatchIds(prev =>
+                          prev.includes(st.id) ? prev.filter(id => id !== st.id) : [...prev, st.id]
+                        );
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+                        isSelected
+                          ? 'bg-purple-50 text-purple-900 border-purple-300 font-bold shadow-xs'
+                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-purple-600' : 'bg-slate-300'}`} />
+                      <span>{st.nameKhmer}</span>
+                      <span className="font-mono text-[10px] text-slate-400 font-normal">({st.code})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Printable QR Grid Container */}
+            <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="border-b border-slate-200 pb-3 mb-4 flex items-center justify-between text-xs">
+                <div>
+                  <h4 className="font-bold font-moul text-slate-900">{schoolProfile.nameKhmer}</h4>
+                  <p className="text-[11px] text-slate-500">តារាងលេខកូដសម្គាល់ QR Code សម្រាប់សិស្សានុសិស្ស • ឆ្នាំសិក្សា {schoolProfile.academicYear}</p>
+                </div>
+                <span className="font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg font-mono">
+                  សរុប៖ {studentsForQRGrid.length} ប័ណ្ណ
+                </span>
+              </div>
+
+              {/* Dynamic Grid Density Styling */}
+              <div
+                className={`grid gap-3 ${
+                  gridDensityPerA4 === 12
+                    ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'
+                    : gridDensityPerA4 === 16
+                    ? 'grid-cols-2 sm:grid-cols-4 md:grid-cols-4'
+                    : gridDensityPerA4 === 20
+                    ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5'
+                    : gridDensityPerA4 === 24
+                    ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6'
+                    : 'grid-cols-3 sm:grid-cols-5 md:grid-cols-6'
+                }`}
+              >
+                {studentsForQRGrid.map((st, idx) => (
+                  <div
+                    key={st.id}
+                    className="border-2 border-slate-800 rounded-xl p-2.5 bg-white flex flex-col items-center justify-between text-center relative overflow-hidden shadow-xs hover:border-purple-600 transition-colors"
+                  >
+                    {/* Tiny header */}
+                    <div className="w-full flex items-center justify-between text-[8px] text-slate-500 font-bold border-b border-slate-100 pb-1 mb-1.5">
+                      <span className="truncate max-w-[70px]">{schoolProfile.nameKhmer}</span>
+                      <span className="font-mono text-purple-700">#{idx + 1}</span>
+                    </div>
+
+                    {/* QR Code */}
+                    <div className="my-1 flex flex-col items-center">
+                      <div className="p-1 bg-white border border-slate-300 rounded-md">
+                        <QrCode className="w-16 h-16 text-slate-950" />
+                      </div>
+                    </div>
+
+                    {/* Student Info */}
+                    <div className="w-full space-y-0.5 mt-1">
+                      <h5 className="text-[11px] font-bold font-moul text-slate-900 truncate" title={st.nameKhmer}>
+                        {st.nameKhmer}
+                      </h5>
+                      <p className="text-[9px] font-semibold text-slate-600 truncate font-times">
+                        {st.nameLatin || st.code}
+                      </p>
+                      <div className="flex items-center justify-between text-[8.5px] font-bold text-slate-700 bg-slate-50 rounded px-1.5 py-0.5 mt-1 border border-slate-200/60">
+                        <span className="font-mono text-indigo-900">{st.code}</span>
+                        <span>ថ្នាក់ទី {st.grade}{st.section || 'ក'}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 6. Staff QR Code Badges View */}
         {activeReportType === 'staff_qr_cards' && (
           <div className="space-y-6">
             <div className="text-center space-y-1">
@@ -717,6 +1061,352 @@ export const ReportsAndQR: React.FC = () => {
           </div>
         )}
 
+        {/* 6. School Profile Comprehensive MoEYS Report */}
+        {activeReportType === 'school_profile' && (
+          <div className="space-y-8">
+            {/* Header Title */}
+            <div className="text-center space-y-1 pb-2 border-b border-slate-200">
+              <div className="inline-flex items-center justify-center p-2.5 bg-blue-50 text-blue-900 rounded-full mb-2">
+                <School className="w-6 h-6 text-blue-800" />
+              </div>
+              <h3 className="text-xl font-bold font-moul text-blue-950">
+                កម្រងប្រវត្តិរូប និងរបាយការណ៍សង្ខេបសាលារៀន (School Profile & Overview)
+              </h3>
+              <p className="text-xs text-slate-600">
+                ព័ត៌មានលម្អិតស្ដីពីអត្តសញ្ញាណ ហេដ្ឋារចនាសម្ព័ន្ធ បុគ្គលិកអប់រំ និងស្ថិតិសិស្សានុសិស្ស ឆ្នាំសិក្សា {schoolProfile.academicYear}
+              </p>
+            </div>
+
+            {/* Quick Export Actions inside Profile view */}
+            <div className="no-print flex flex-wrap items-center justify-between gap-3 p-4 bg-gradient-to-r from-blue-50 via-indigo-50 to-slate-50 rounded-2xl border border-blue-200/80">
+              <div className="flex items-center gap-2 text-xs text-blue-950 font-bold">
+                <Sparkles className="w-4 h-4 text-blue-600" />
+                <span>ឯកសារប្រវត្តិរូបសាលារៀនស្ដង់ដារ MoEYS សម្រាប់តម្កល់ទុក និងរាយការណ៍ផ្លូវការ</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={exportSchoolProfileToExcel}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-2xs transition-all cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>Excel ប្រវត្តិរូប</span>
+                </button>
+                <button
+                  onClick={() => handleDownloadPdf(`កម្រងប្រវត្តិរូបសាលារៀន_${schoolProfile.nameLatin || 'School'}_${schoolProfile.academicYear}`)}
+                  disabled={isExportingPdf}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-lg shadow-2xs transition-all cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>{isExportingPdf ? 'កំពុងបង្កើត PDF...' : 'ទាញយក PDF ប្រវត្តិរូបសាលា'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Section 1: Executive KPI Overview */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-blue-50/60 p-4 rounded-xl border border-blue-200">
+                <div className="flex items-center justify-between text-blue-900 mb-1">
+                  <span className="text-xs font-bold">សិស្សសរុប</span>
+                  <Users className="w-4 h-4 text-blue-700" />
+                </div>
+                <div className="text-2xl font-bold font-mono text-blue-950">
+                  {students.length} <span className="text-xs font-normal text-slate-600">នាក់</span>
+                </div>
+                <div className="text-[11px] text-blue-800 mt-1">
+                  ស្រី: <strong className="font-mono">{students.filter(s => s.gender === 'F').length}</strong> នាក់ ({students.length ? Math.round((students.filter(s => s.gender === 'F').length / students.length) * 100) : 0}%)
+                </div>
+              </div>
+
+              <div className="bg-emerald-50/60 p-4 rounded-xl border border-emerald-200">
+                <div className="flex items-center justify-between text-emerald-900 mb-1">
+                  <span className="text-xs font-bold">បុគ្គលិកអប់រំ</span>
+                  <GraduationCap className="w-4 h-4 text-emerald-700" />
+                </div>
+                <div className="text-2xl font-bold font-mono text-emerald-950">
+                  {teachers.length} <span className="text-xs font-normal text-slate-600">រូប</span>
+                </div>
+                <div className="text-[11px] text-emerald-800 mt-1">
+                  ស្រី: <strong className="font-mono">{teachers.filter(t => t.gender === 'F').length}</strong> រូប • គ្រូបង្រៀន: <strong className="font-mono">{teachers.filter(t => t.assignedGrade).length}</strong>
+                </div>
+              </div>
+
+              <div className="bg-indigo-50/60 p-4 rounded-xl border border-indigo-200">
+                <div className="flex items-center justify-between text-indigo-900 mb-1">
+                  <span className="text-xs font-bold">កម្រិតថ្នាក់ & បន្ទប់</span>
+                  <Building className="w-4 h-4 text-indigo-700" />
+                </div>
+                <div className="text-2xl font-bold font-mono text-indigo-950">
+                  6 <span className="text-xs font-normal text-slate-600">កម្រិត</span>
+                </div>
+                <div className="text-[11px] text-indigo-800 mt-1">
+                  បន្ទប់រៀនសរុប: <strong className="font-mono">{classrooms.length || 6}</strong> បន្ទប់
+                </div>
+              </div>
+
+              <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200">
+                <div className="flex items-center justify-between text-amber-900 mb-1">
+                  <span className="text-xs font-bold">សិស្សងាយរងគ្រោះ</span>
+                  <Heart className="w-4 h-4 text-amber-700" />
+                </div>
+                <div className="text-2xl font-bold font-mono text-amber-950">
+                  {students.filter(s => s.livingCondition?.includes('ក្រ') || (s.orphanStatus && s.orphanStatus !== 'មិនកំព្រា') || (s.disability && s.disability !== 'មិនពិការ')).length} <span className="text-xs font-normal text-slate-600">នាក់</span>
+                </div>
+                <div className="text-[11px] text-amber-800 mt-1">
+                  ក្រីក្រ IDPoor: <strong className="font-mono">{students.filter(s => s.livingCondition?.includes('ក្រ')).length}</strong> នាក់
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2: General Identification & Geographical Information */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold font-moul text-blue-900 flex items-center gap-2 border-b border-slate-200 pb-2">
+                <School className="w-4 h-4 text-blue-700" />
+                ១. ព័ត៌មានទូទៅ និងអត្តសញ្ញាណសាលារៀន (General Identification)
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
+                  <div className="flex justify-between py-1 border-b border-slate-200/60">
+                    <span className="text-slate-600">ឈ្មោះសាលារៀន (ភាសាខ្មែរ)៖</span>
+                    <strong className="font-moul text-blue-950">{schoolProfile.nameKhmer}</strong>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-200/60">
+                    <span className="text-slate-600">ឈ្មោះសាលារៀន (អក្សរឡាតាំង)៖</span>
+                    <strong className="font-semibold text-slate-800">{schoolProfile.nameLatin}</strong>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-200/60">
+                    <span className="text-slate-600">លេខកូដសាលារៀន (School Code)៖</span>
+                    <strong className="font-mono text-indigo-900">{schoolProfile.schoolCode}</strong>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-200/60">
+                    <span className="text-slate-600">ឆ្នាំបង្កើតសាលា (Established)៖</span>
+                    <strong className="font-mono text-slate-800">{schoolProfile.establishedYear || '២០០០'}</strong>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-600">សម្ព័ន្ធសាលា (School Cluster)៖</span>
+                    <strong className="text-slate-800">{schoolProfile.cluster || 'បឋមសិក្សាបង្គោល'}</strong>
+                  </div>
+                </div>
+
+                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
+                  <div className="flex justify-between py-1 border-b border-slate-200/60">
+                    <span className="text-slate-600">ទីតាំងភូមិ៖</span>
+                    <strong className="text-slate-800">{schoolProfile.village || 'ភ្នំពំ'}</strong>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-200/60">
+                    <span className="text-slate-600">ឃុំ / សង្កាត់៖</span>
+                    <strong className="text-slate-800">{schoolProfile.commune || 'រំចេក'}</strong>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-200/60">
+                    <span className="text-slate-600">ក្រុង / ស្រុក / ខណ្ឌ៖</span>
+                    <strong className="text-slate-800">{schoolProfile.district}</strong>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-200/60">
+                    <span className="text-slate-600">រាជធានី / ខេត្ត៖</span>
+                    <strong className="text-slate-800">{schoolProfile.province}</strong>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-600">ទំនាក់ទំនងនាយកសាលា៖</span>
+                    <strong className="font-mono text-slate-800">{schoolProfile.principalPhone} ({schoolProfile.principalName})</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Grade-by-Grade Student Breakdown */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold font-moul text-blue-900 flex items-center gap-2 border-b border-slate-200 pb-2">
+                <Users className="w-4 h-4 text-blue-700" />
+                ២. ស្ថិតិសិស្សតាមកម្រិតថ្នាក់ពីថ្នាក់ទី១ ដល់ថ្នាក់ទី៦ (Grade Breakdown)
+              </h4>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse border border-slate-300 text-xs">
+                  <thead>
+                    <tr className="bg-slate-100 font-bold text-slate-800 text-center">
+                      <th className="border border-slate-300 py-2 px-3">កម្រិតថ្នាក់</th>
+                      <th className="border border-slate-300 py-2 px-3">បន្ទប់</th>
+                      <th className="border border-slate-300 py-2 px-3">សិស្សសរុប</th>
+                      <th className="border border-slate-300 py-2 px-3">ស្រី</th>
+                      <th className="border border-slate-300 py-2 px-3">ប្រុស</th>
+                      <th className="border border-slate-300 py-2 px-3">ក្រីក្រ (IDPoor)</th>
+                      <th className="border border-slate-300 py-2 px-3">សិស្សពិការ</th>
+                      <th className="border border-slate-300 py-2 px-3 text-left">គ្រូបន្ទុកថ្នាក់</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[1, 2, 3, 4, 5, 6].map(grade => {
+                      const gradeStudents = students.filter(s => s.grade === grade);
+                      const fCount = gradeStudents.filter(s => s.gender === 'F').length;
+                      const mCount = gradeStudents.length - fCount;
+                      const poorCount = gradeStudents.filter(s => s.livingCondition?.includes('ក្រ')).length;
+                      const disCount = gradeStudents.filter(s => s.disability && s.disability !== 'មិនពិការ').length;
+                      const teacher = teachers.find(t => t.assignedGrade === grade);
+
+                      return (
+                        <tr key={grade} className="text-center hover:bg-slate-50">
+                          <td className="border border-slate-300 py-2 px-3 font-bold text-blue-950">ថ្នាក់ទី {grade}</td>
+                          <td className="border border-slate-300 py-2 px-3 font-mono">១</td>
+                          <td className="border border-slate-300 py-2 px-3 font-bold font-mono text-slate-900">{gradeStudents.length}</td>
+                          <td className="border border-slate-300 py-2 px-3 font-mono text-pink-700">{fCount}</td>
+                          <td className="border border-slate-300 py-2 px-3 font-mono text-blue-700">{mCount}</td>
+                          <td className="border border-slate-300 py-2 px-3 font-mono">{poorCount}</td>
+                          <td className="border border-slate-300 py-2 px-3 font-mono">{disCount}</td>
+                          <td className="border border-slate-300 py-2 px-3 text-left font-medium text-slate-800">
+                            {teacher?.nameKhmer || <span className="text-slate-400 italic">មិនទាន់ចាត់តាំង</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    <tr className="bg-slate-100 font-bold text-center text-slate-900">
+                      <td className="border border-slate-300 py-2.5 px-3">សរុបរួម</td>
+                      <td className="border border-slate-300 py-2.5 px-3 font-mono">៦</td>
+                      <td className="border border-slate-300 py-2.5 px-3 font-mono text-blue-900">{students.length}</td>
+                      <td className="border border-slate-300 py-2.5 px-3 font-mono text-pink-800">{students.filter(s => s.gender === 'F').length}</td>
+                      <td className="border border-slate-300 py-2.5 px-3 font-mono text-blue-800">{students.filter(s => s.gender === 'M').length}</td>
+                      <td className="border border-slate-300 py-2.5 px-3 font-mono">{students.filter(s => s.livingCondition?.includes('ក្រ')).length}</td>
+                      <td className="border border-slate-300 py-2.5 px-3 font-mono">{students.filter(s => s.disability && s.disability !== 'មិនពិការ').length}</td>
+                      <td className="border border-slate-300 py-2.5 px-3 text-left">-</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Section 4: Leadership & Educational Staff Directory */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold font-moul text-blue-900 flex items-center gap-2 border-b border-slate-200 pb-2">
+                <GraduationCap className="w-4 h-4 text-blue-700" />
+                ៣. រចនាសម្ព័ន្ធគណៈគ្រប់គ្រង និងបុគ្គលិកអប់រំ (School Leadership & Staff)
+              </h4>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse border border-slate-300 text-xs">
+                  <thead>
+                    <tr className="bg-slate-100 font-bold text-slate-800">
+                      <th className="border border-slate-300 py-2 px-3 w-10 text-center">ល.រ</th>
+                      <th className="border border-slate-300 py-2 px-3">អត្តលេខ</th>
+                      <th className="border border-slate-300 py-2 px-3">គោត្តនាម និងនាម</th>
+                      <th className="border border-slate-300 py-2 px-3 text-center">ភេទ</th>
+                      <th className="border border-slate-300 py-2 px-3">មុខតំណែង / ភារកិច្ច</th>
+                      <th className="border border-slate-300 py-2 px-3 text-center">ថ្នាក់ទទួលបន្ទុក</th>
+                      <th className="border border-slate-300 py-2 px-3">លេខទូរស័ព្ទ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teachers.map((t, idx) => (
+                      <tr key={t.id} className="hover:bg-slate-50">
+                        <td className="border border-slate-300 py-1.5 px-3 text-center font-mono">{idx + 1}</td>
+                        <td className="border border-slate-300 py-1.5 px-3 font-mono font-semibold text-slate-700">{t.staffCode}</td>
+                        <td className="border border-slate-300 py-1.5 px-3 font-bold text-slate-900">
+                          {t.nameKhmer} <span className="text-[10px] font-normal text-slate-500">({t.nameLatin})</span>
+                        </td>
+                        <td className="border border-slate-300 py-1.5 px-3 text-center">
+                          {t.gender === 'F' ? <span className="text-pink-700 font-medium">ស្រី</span> : <span className="text-blue-700 font-medium">ប្រុស</span>}
+                        </td>
+                        <td className="border border-slate-300 py-1.5 px-3 text-slate-800 font-medium">{t.role}</td>
+                        <td className="border border-slate-300 py-1.5 px-3 text-center font-semibold text-indigo-900">
+                          {t.assignedGrade ? `ថ្នាក់ទី ${t.assignedGrade}` : '-'}
+                        </td>
+                        <td className="border border-slate-300 py-1.5 px-3 font-mono text-slate-700">{t.phone}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Section 5: School Infrastructure, WASH & Facilities */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold font-moul text-blue-900 flex items-center gap-2 border-b border-slate-200 pb-2">
+                <Building className="w-4 h-4 text-blue-700" />
+                ៤. ហេដ្ឋារចនាសម្ព័ន្ធ បណ្ណាល័យ និងបរិស្ថានអនាម័យ (Infrastructure & WASH)
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
+                  <div className="font-bold text-slate-900 flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                    <Building className="w-3.5 h-3.5 text-blue-700" />
+                    <span>អគារ និងបន្ទប់សិក្សា</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-200/50">
+                    <span className="text-slate-600">អគារសិក្សាសរុប៖</span>
+                    <strong className="font-mono">២ ខ្នង</strong>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-200/50">
+                    <span className="text-slate-600">បន្ទប់រៀនដំណើរការ៖</span>
+                    <strong className="font-mono">{classrooms.length || 6} បន្ទប់</strong>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-600">បន្ទប់រដ្ឋបាល/នាយក៖</span>
+                    <strong className="font-mono">១ បន្ទប់</strong>
+                  </div>
+                </div>
+
+                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
+                  <div className="font-bold text-slate-900 flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                    <BookOpen className="w-3.5 h-3.5 text-indigo-700" />
+                    <span>បណ្ណាល័យ និងបច្ចេកវិទ្យា</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-200/50">
+                    <span className="text-slate-600">បណ្ណាល័យស្ដង់ដារ៖</span>
+                    <strong className="text-emerald-700 font-semibold flex items-center gap-1"><Check className="w-3 h-3" /> មានដំណើរការ</strong>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-200/50">
+                    <span className="text-slate-600">បន្ទប់កុំព្យូទ័រ/ICT៖</span>
+                    <strong className="text-emerald-700 font-semibold flex items-center gap-1"><Check className="w-3 h-3" /> បំពាក់ Tablet</strong>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-600">ប្រព័ន្ធអ៊ីនធឺណិត៖</span>
+                    <strong className="text-slate-800 font-mono">Wi-Fi School</strong>
+                  </div>
+                </div>
+
+                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
+                  <div className="font-bold text-slate-900 flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                    <Droplets className="w-3.5 h-3.5 text-teal-700" />
+                    <span>បរិស្ថាន និងអនាម័យ (WASH)</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-200/50">
+                    <span className="text-slate-600">ប្រព័ន្ធទឹកស្អាតពិសារ៖</span>
+                    <strong className="text-emerald-700 font-semibold">មានស្ដង់ដារ</strong>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-200/50">
+                    <span className="text-slate-600">បង្គន់អនាម័យសិស្ស៖</span>
+                    <strong className="font-mono">៤ បន្ទប់ (បែងចែកស្រី/ប្រុស)</strong>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-600">កន្លែងលាងដៃអនាម័យ៖</span>
+                    <strong className="font-mono">២ កន្លែង</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 6: Vision, Mission and Strategic Goals */}
+            <div className="space-y-3 border border-blue-100 bg-blue-50/30 p-5 rounded-2xl">
+              <h4 className="text-sm font-bold font-moul text-blue-950 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-blue-700" />
+                ៥. ចក្ខុវិស័យ បេសកកម្ម និងទិសដៅយុទ្ធសាស្ត្ររបស់សាលារៀន
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-700">
+                <div className="space-y-1">
+                  <strong className="text-blue-900 font-bold block">ចក្ខុវិស័យ (Vision)៖</strong>
+                  <p className="leading-relaxed">
+                    កសាងសាលាបឋមសិក្សា {schoolProfile.nameKhmer} ឱ្យក្លាយជាសាលារៀនគំរូ ប្រកបដោយគុណភាពអប់រំ សមធម៌ បរិយាបន្ន និងបង្កើតបរិស្ថានសិក្សាប្រកបដោយសុវត្ថិភាព ផាសុកភាព និងការរៀនសូត្រពេញមួយជីវិត។
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <strong className="text-blue-900 font-bold block">បេសកកម្ម (Mission)៖</strong>
+                  <p className="leading-relaxed">
+                    ពង្រឹងគុណភាពបង្រៀននិងរៀនមុខវិជ្ជាភាសាខ្មែរ និងគណិតវិទ្យាថ្នាក់ដំបូង លើកកម្ពស់អាហារូបត្ថម្ភនិងសុខភាពសិស្ស និងពង្រឹងកិច្ចសហការយ៉ាងជិតស្និទ្ធរវាងសាលារៀន អាណាព្យាបាល និងសហគមន៍។
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Official Signature Footer */}
         <div className="flex justify-between items-end mt-12 pt-6 border-t border-slate-300 text-xs">
           <div className="text-center">
@@ -734,6 +1424,23 @@ export const ReportsAndQR: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Live Webcam QR Scanner Modal */}
+      {isWebcamScannerOpen && (
+        <WebcamQRScannerModal onClose={() => setIsWebcamScannerOpen(false)} />
+      )}
+
+      {/* High-Resolution Individual Student ID Card Badge Export Modal */}
+      {isSingleIdBadgeModalOpen && (
+        <ExportStudentIdBadgeModal
+          isOpen={isSingleIdBadgeModalOpen}
+          onClose={() => setIsSingleIdBadgeModalOpen(false)}
+          students={students}
+          schoolProfile={schoolProfile}
+          initialStudentId={selectedStudentForBadgeId}
+          showToast={showToast}
+        />
+      )}
     </div>
   );
 };

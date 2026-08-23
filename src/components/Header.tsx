@@ -44,6 +44,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { NotificationsModal } from './NotificationsModal';
+import { OfflineSyncStatusBadge } from './OfflineSyncStatusBadge';
 
 interface HeaderProps {
   onToggleMobileSidebar: () => void;
@@ -82,7 +83,10 @@ export const Header: React.FC<HeaderProps> = ({
     setLanguage,
     isDarkMode,
     toggleDarkMode,
-    t
+    t,
+    isCloudSyncing,
+    lastCloudSyncTime,
+    syncAllToCloud
   } = useSchool();
 
   const [showNotifModal, setShowNotifModal] = useState(false);
@@ -352,6 +356,32 @@ export const Header: React.FC<HeaderProps> = ({
               </kbd>
             </button>
           </div>
+
+          {/* Offline Sync / IndexedDB Status Badge */}
+          <OfflineSyncStatusBadge />
+
+          {/* Firebase Cloud Firestore Real-time Sync Status Indicator */}
+          <button
+            type="button"
+            onClick={() => syncAllToCloud()}
+            disabled={isCloudSyncing}
+            className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-xl text-xs font-bold transition-all shadow-2xs ${
+              isCloudSyncing
+                ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 text-amber-800 dark:text-amber-300 animate-pulse'
+                : 'bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/50 border-teal-200 dark:border-teal-800/60 text-teal-900 dark:text-teal-200'
+            }`}
+            title={
+              lastCloudSyncTime
+                ? `Cloud Firestore ភ្ជាប់ជាប់លាប់! ធ្វើសមកាលកម្មចុងក្រោយ៖ ${new Date(lastCloudSyncTime).toLocaleTimeString('km-KH')}`
+                : 'ចុចដើម្បី Sync ទិន្នន័យឡើង Cloud Firestore ឥឡូវនេះ'
+            }
+          >
+            <div className={`w-2 h-2 rounded-full ${isCloudSyncing ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'}`} />
+            <Cloud className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin text-amber-600' : 'text-teal-700 dark:text-teal-400'}`} />
+            <span className="hidden sm:inline">
+              {isCloudSyncing ? 'កំពុង Cloud Sync...' : 'Cloud Online'}
+            </span>
+          </button>
 
           {/* Google Drive Cloud Sync Quick Button */}
           {onOpenDriveSync && (

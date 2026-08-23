@@ -31,8 +31,26 @@ export const AITeacherDashboard: React.FC<Props> = ({ onSelectTab, onOpenCreatio
 
   const featureCards = [
     {
+      id: 'moeys_standards' as AITeacherSubTab,
+      title: 'ស្តង់ដារបឋមសិក្សាគំរូ & កម្មវិធីសិក្សា MoEYS',
+      subtitle: 'Official MoEYS Standards & Textbooks',
+      desc: 'ផ្ទៀងផ្ទាត់ ៥ ស្តង់ដារ ២៧ សូចនាករបឋមសិក្សាគំរូ និងកម្មវិធីសិក្សាគ្រប់មុខវិជ្ជាថ្នាក់ទី១ ដល់ទី៦ ស្របតាមសៀវភៅពុម្ពក្រសួងអប់រំ។',
+      icon: '🏆',
+      gradient: 'from-amber-600 to-indigo-800',
+      badge: 'ស្តង់ដារជាតិ MoEYS'
+    },
+    {
+      id: 'weekly_lesson' as AITeacherSubTab,
+      title: 'កិច្ចតែងការបង្រៀនប្រចាំសប្តាហ៍',
+      subtitle: 'MoEYS Weekly Lesson Template',
+      desc: 'រៀបចំកិច្ចតែងការបង្រៀន ៥ ជំហាន (ចន្ទ ដល់ សុក្រ/សៅរ៍) តាមស្តង់ដារក្រសួងអប់រំ បែងចែកចំណេះដឹង បំណិន ឥរិយាបថ និងការគាំទ្រសិស្សរៀនយឺត។',
+      icon: '📅',
+      gradient: 'from-emerald-600 to-teal-700',
+      badge: 'គំរូផ្លូវការក្រសួង'
+    },
+    {
       id: 'lesson_slide' as AITeacherSubTab,
-      title: 'កិច្ចតែងការបង្រៀន & ស្លាយ',
+      title: 'កិច្ចតែងការទោល & ស្លាយ',
       subtitle: 'Lesson Plan & Slide Deck',
       desc: 'រៀបចំកិច្ចតែងការ ៩ ជំហានតាមស្តង់ដារក្រសួងអប់រំ ព្រមទាំងបង្កើតស្លាយបង្រៀនអន្តរកម្មស្វ័យប្រវត្តិជាមួយទម្រង់ Presenter។',
       icon: '📝',
@@ -89,18 +107,25 @@ export const AITeacherDashboard: React.FC<Props> = ({ onSelectTab, onOpenCreatio
           {/* Quick Action Buttons */}
           <div className="flex flex-wrap gap-3 pt-2">
             <button
-              onClick={() => onSelectTab('lesson_slide')}
-              className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer"
+              onClick={() => onSelectTab('moeys_standards')}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer"
             >
-              <Sparkles className="w-4 h-4" />
-              <span>បង្កើតកិច្ចតែងការថ្មី</span>
+              <Award className="w-4 h-4" />
+              <span>ស្តង់ដារបឋមសិក្សាគំរូ & សៀវភៅពុម្ព MoEYS</span>
+            </button>
+            <button
+              onClick={() => onSelectTab('weekly_lesson')}
+              className="flex items-center gap-2 px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer backdrop-blur-xs"
+            >
+              <Calendar className="w-4 h-4 text-emerald-300" />
+              <span>កិច្ចតែងការប្រចាំសប្តាហ៍</span>
             </button>
             <button
               onClick={() => onSelectTab('educational_game')}
               className="flex items-center gap-2 px-5 py-2.5 bg-white/15 hover:bg-white/25 text-white font-medium rounded-xl text-xs transition-all cursor-pointer backdrop-blur-xs"
             >
-              <Gamepad2 className="w-4 h-4" />
-              <span>បង្កើតល្បែងក្នុងថ្នាក់</span>
+              <Gamepad2 className="w-4 h-4 text-cyan-300" />
+              <span>ល្បែងសិក្សា & ចាប់ឈ្មោះ</span>
             </button>
           </div>
         </div>

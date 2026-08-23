@@ -32,8 +32,13 @@ import {
   ArrowRightLeft,
   Printer,
   Trophy,
-  Medal
+  Medal,
+  Camera,
+  UploadCloud,
+  Loader2,
+  Image as ImageIcon
 } from 'lucide-react';
+import { uploadStudentProfilePhoto } from '../services/firebaseStorage';
 import {
   MoEYSRoyalHeader,
   AngkorPageWatermark
@@ -43,6 +48,11 @@ import { BadgeIcon } from './badges/BadgeIcon';
 import { AwardBadgeModal } from './badges/AwardBadgeModal';
 import { StudentBadgeShowcaseModal } from './badges/StudentBadgeShowcaseModal';
 import { CertificateModal } from './badges/CertificateModal';
+import { useFormAutoSave } from '../hooks/useFormAutoSave';
+import { FormAutoSaveIndicator } from './common/FormAutoSaveIndicator';
+import { StudentProgressTrendChart } from './StudentProgressTrendChart';
+import { MultiStudentProfileSummaryPdfModal } from './MultiStudentProfileSummaryPdfModal';
+import { getStudentRiskAlert, getAllStudentRiskAlerts } from '../utils/studentRiskAlerts';
 
 export const StudentManagement: React.FC = () => {
   const {
@@ -54,6 +64,8 @@ export const StudentManagement: React.FC = () => {
     schoolProfile,
     showToast,
     setActiveTab,
+    scores,
+    attendanceRecords,
     studentBadgeAssignments,
     getStudentBadges,
     getStudentTotalPoints
@@ -68,11 +80,51 @@ export const StudentManagement: React.FC = () => {
   const [selectedGrade, setSelectedGrade] = useState<number | 'all'>('all');
   const [selectedGender, setSelectedGender] = useState<Gender | 'all'>('all');
   const [selectedVulnerability, setSelectedVulnerability] = useState<'all' | 'idpoor' | 'scholarship' | 'orphan' | 'disability' | 'repeater'>('all');
+  const [selectedRiskFilter, setSelectedRiskFilter] = useState<'all' | 'at_risk' | 'consecutive_absent' | 'score_drop' | 'normal'>('all');
   const [localSearch, setLocalSearch] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStudentForView, setSelectedStudentForView] = useState<Student | null>(null);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isExportingSheets, setIsExportingSheets] = useState(false);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [isMultiPdfModalOpen, setIsMultiPdfModalOpen] = useState(false);
+
+  // Profile Photo Upload State
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isDragOverPhoto, setIsDragOverPhoto] = useState(false);
+  const [photoUploadSource, setPhotoUploadSource] = useState<'firebase' | 'base64' | 'url' | null>(null);
+
+  // Handle Photo File Upload to Firebase Storage
+  const handlePhotoFileUpload = async (file: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('សូមជ្រើសរើសឯកសាររូបភាពប៉ុណ្ណោះ (JPG, PNG, WebP)', 'error');
+      return;
+    }
+    
+    if (file.size > 12 * 1024 * 1024) {
+      showToast('ទំហំរូបភាពធំពេក សូមជ្រើសរើសរូបក្រោម 12MB', 'error');
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const studentIdentifier = formData.nameLatin || formData.nameKhmer || 'student';
+      const result = await uploadStudentProfilePhoto(file, studentIdentifier);
+      setFormData(prev => ({ ...prev, avatarUrl: result.downloadUrl }));
+      setPhotoUploadSource(result.isFirebaseStorage ? 'firebase' : 'base64');
+      if (result.isFirebaseStorage) {
+        showToast('បាន Upload រូបថតសិស្សទៅកាន់ Firebase Storage ជោគជ័យ!', 'success');
+      } else {
+        showToast('បានរក្សាទុក និង Compress រូបថតសិស្សដោយជោគជ័យ!', 'success');
+      }
+    } catch (err: any) {
+      console.error('Photo upload error:', err);
+      showToast('មានបញ្ហាក្នុងការ Upload រូបថត', 'error');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   // New Student Form State
   const initialFormState = {
@@ -117,6 +169,7 @@ export const StudentManagement: React.FC = () => {
     previousSchool: '',
     admissionDate: new Date().toISOString().split('T')[0],
     status: 'active' as const,
+    avatarUrl: '',
     // Health
     heightCm: 120,
     weightKg: 22,
@@ -125,12 +178,52 @@ export const StudentManagement: React.FC = () => {
     notes: ''
   };
 
-  const [formData, setFormData] = useState(initialFormState);
+  const {
+    formData,
+    setFormData,
+    resetForm,
+    clearDraft,
+    discardDraft,
+    hasSavedDraft,
+    lastSavedTime,
+    isSaving
+  } = useFormAutoSave('phnom_pom_draft_student_registration', initialFormState, {
+    enabled: isAddModalOpen && !editingStudent
+  });
 
   // Build and memoize Fuzzy Search Index for students
   const studentSearchIndex = useMemo(() => {
     return new StudentSearchIndex(students);
   }, [students]);
+
+  // Compute Risk Alerts Map for all students (>3 consecutive absences or score drop)
+  const studentAlertsMap = useMemo(() => {
+    return getAllStudentRiskAlerts(students, scores, attendanceRecords || []);
+  }, [students, scores, attendanceRecords]);
+
+  const atRiskCount = useMemo(() => {
+    let count = 0;
+    studentAlertsMap.forEach(alert => {
+      if (alert.hasConsecutiveAbsenceAlert || alert.hasScoreDropAlert) count++;
+    });
+    return count;
+  }, [studentAlertsMap]);
+
+  const absenceAlertCount = useMemo(() => {
+    let count = 0;
+    studentAlertsMap.forEach(alert => {
+      if (alert.hasConsecutiveAbsenceAlert) count++;
+    });
+    return count;
+  }, [studentAlertsMap]);
+
+  const scoreDropAlertCount = useMemo(() => {
+    let count = 0;
+    studentAlertsMap.forEach(alert => {
+      if (alert.hasScoreDropAlert) count++;
+    });
+    return count;
+  }, [studentAlertsMap]);
 
   // Filter and fuzzy search students
   const filteredStudents = useMemo(() => {
@@ -143,7 +236,7 @@ export const StudentManagement: React.FC = () => {
       candidateStudents = searchResults.map(res => res.item);
     }
 
-    // Step 2: Apply categorical filters (Grade, Gender, Vulnerability)
+    // Step 2: Apply categorical filters (Grade, Gender, Vulnerability, Risk Alerts)
     return candidateStudents.filter(student => {
       const matchesGrade = selectedGrade === 'all' || student.grade === selectedGrade;
       const matchesGender = selectedGender === 'all' || student.gender === selectedGender;
@@ -161,9 +254,21 @@ export const StudentManagement: React.FC = () => {
         matchesVulnerability = student.academicHistory === 'ត្រួតថ្នាក់';
       }
 
-      return matchesGrade && matchesGender && matchesVulnerability;
+      let matchesRisk = true;
+      const alert = studentAlertsMap.get(student.id);
+      if (selectedRiskFilter === 'at_risk') {
+        matchesRisk = Boolean(alert && (alert.hasConsecutiveAbsenceAlert || alert.hasScoreDropAlert));
+      } else if (selectedRiskFilter === 'consecutive_absent') {
+        matchesRisk = Boolean(alert && alert.hasConsecutiveAbsenceAlert);
+      } else if (selectedRiskFilter === 'score_drop') {
+        matchesRisk = Boolean(alert && alert.hasScoreDropAlert);
+      } else if (selectedRiskFilter === 'normal') {
+        matchesRisk = !alert || (!alert.hasConsecutiveAbsenceAlert && !alert.hasScoreDropAlert);
+      }
+
+      return matchesGrade && matchesGender && matchesVulnerability && matchesRisk;
     });
-  }, [students, studentSearchIndex, searchQuery, localSearch, selectedGrade, selectedGender, selectedVulnerability]);
+  }, [students, studentSearchIndex, searchQuery, localSearch, selectedGrade, selectedGender, selectedVulnerability, selectedRiskFilter, studentAlertsMap]);
 
   const handleCreateStudent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,9 +329,11 @@ export const StudentManagement: React.FC = () => {
       previousSchool: formData.previousSchool,
       admissionDate: formData.admissionDate,
       status: formData.status,
-      avatarUrl: formData.gender === 'F'
-        ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'
-        : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+      avatarUrl: formData.avatarUrl && formData.avatarUrl.trim() !== ''
+        ? formData.avatarUrl
+        : (formData.gender === 'F'
+          ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'
+          : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'),
       health: {
         heightCm: Number(formData.heightCm) || 120,
         weightKg: Number(formData.weightKg) || 22,
@@ -243,12 +350,13 @@ export const StudentManagement: React.FC = () => {
     if (editingStudent) {
       updateStudent(editingStudent.id, newStudentData);
       setEditingStudent(null);
+      resetForm(initialFormState);
     } else {
       addStudent(newStudentData);
+      resetForm(initialFormState);
     }
 
     setIsAddModalOpen(false);
-    setFormData(initialFormState);
   };
 
   const handleEditClick = (student: Student) => {
@@ -291,6 +399,7 @@ export const StudentManagement: React.FC = () => {
       previousSchool: student.previousSchool || '',
       admissionDate: student.admissionDate,
       status: student.status,
+      avatarUrl: student.avatarUrl || '',
       heightCm: student.health.heightCm,
       weightKg: student.health.weightKg,
       bloodType: student.health.bloodType,
@@ -449,6 +558,20 @@ export const StudentManagement: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2.5">
             <button
+              id="export-multi-student-pdf-btn"
+              onClick={() => {
+                if (selectedStudentIds.length === 0 && filteredStudents.length > 0) {
+                  setSelectedStudentIds(filteredStudents.map(s => s.id));
+                }
+                setIsMultiPdfModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 text-white text-xs font-bold rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer ring-2 ring-indigo-400/30"
+              title="បង្កើតឯកសារ PDF សង្ខេបលទ្ធផល និងប្រវត្តិពិន្ទុសិស្សច្រើននាក់ក្នុងឯកសារតែមួយ"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-blue-200" />
+              <span>PDF សង្ខេបពិន្ទុជាក្រុម {selectedStudentIds.length > 0 ? `(${selectedStudentIds.length})` : ''}</span>
+            </button>
+            <button
               id="export-students-sheets-btn"
               onClick={handleExportToGoogleSheets}
               disabled={isExportingSheets}
@@ -564,6 +687,81 @@ export const StudentManagement: React.FC = () => {
             សិស្សត្រួតថ្នាក់
           </button>
         </div>
+
+        {/* Early Warning & Academic Risk Notification Banner */}
+        <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-indigo-500/10 border border-amber-200/80">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 text-white flex items-center justify-center shadow-xs flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 font-moul">
+                    ប្រព័ន្ធជូនដំណឹង & តាមដានសិស្សប្រឈម (Early Warning Alerts)
+                  </h4>
+                  {atRiskCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-600 text-white animate-pulse">
+                      រកឃើញ {atRiskCount} នាក់
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-600 mt-0.5">
+                  ត្រួតពិនិត្យសិស្សដែលមានអវត្តមានលើសពី ៣ ថ្ងៃជាប់គ្នា ឬមានពិន្ទុមធ្យមភាគធ្លាក់ចុះធៀបនឹងខែមុន
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Risk Filter Buttons */}
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setSelectedRiskFilter('all')}
+                className={`px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                  selectedRiskFilter === 'all'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-white/80 text-slate-700 hover:bg-white border border-slate-200'
+                }`}
+              >
+                ទាំងអស់ ({students.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedRiskFilter('at_risk')}
+                className={`px-2.5 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  selectedRiskFilter === 'at_risk'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100'
+                }`}
+              >
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>សិស្សប្រឈមសរុប ({atRiskCount})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedRiskFilter('consecutive_absent')}
+                className={`px-2.5 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  selectedRiskFilter === 'consecutive_absent'
+                    ? 'bg-red-700 text-white shadow-xs'
+                    : 'bg-red-50 text-red-800 border border-red-200 hover:bg-red-100'
+                }`}
+              >
+                <span>🚫 អវត្តមាន ៣+ ថ្ងៃ ({absenceAlertCount})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedRiskFilter('score_drop')}
+                className={`px-2.5 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  selectedRiskFilter === 'score_drop'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
+                }`}
+              >
+                <span>📉 ពិន្ទុធ្លាក់ចុះ ({scoreDropAlertCount})</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Filter and Table Container */}
@@ -651,9 +849,57 @@ export const StudentManagement: React.FC = () => {
             </div>
           </div>
 
+          {/* Floating Batch Action Bar */}
+          {selectedStudentIds.length > 0 && (
+            <div className="no-print p-3 sm:p-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white rounded-2xl shadow-lg border border-slate-700 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs font-bold">
+                  បានជ្រើសរើសសិស្សចំនួន <strong className="text-blue-300 font-mono text-sm px-1.5 py-0.5 bg-white/10 rounded">{selectedStudentIds.length}</strong> នាក់
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setIsMultiPdfModalOpen(true)}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer ring-2 ring-blue-400/40"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>បង្កើតឯកសារ PDF សង្ខេបពិន្ទុ & ប្រវត្តិរូប ({selectedStudentIds.length} ទំព័រ A4)</span>
+                </button>
+                <button
+                  onClick={() => setSelectedStudentIds(filteredStudents.map(s => s.id))}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-xl transition-colors"
+                >
+                  ជ្រើសរើសទាំងអស់ ({filteredStudents.length})
+                </button>
+                <button
+                  onClick={() => setSelectedStudentIds([])}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-200 text-xs font-medium rounded-xl transition-colors"
+                >
+                  លុបការជ្រើសរើស
+                </button>
+              </div>
+            </div>
+          )}
+
           <table className="w-full text-left text-xs sm:text-sm">
             <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
               <tr>
+                <th className="py-3.5 px-3 text-center no-print w-10">
+                  <input
+                    type="checkbox"
+                    checked={filteredStudents.length > 0 && selectedStudentIds.length === filteredStudents.length}
+                    onChange={() => {
+                      if (selectedStudentIds.length === filteredStudents.length && filteredStudents.length > 0) {
+                        setSelectedStudentIds([]);
+                      } else {
+                        setSelectedStudentIds(filteredStudents.map(s => s.id));
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                    title="ជ្រើសរើសទាំងអស់"
+                  />
+                </th>
                 <th className="py-3.5 px-4">អត្តលេខ & ឈ្មោះសិស្ស</th>
                 <th className="py-3.5 px-4 text-center">ភេទ</th>
                 <th className="py-3.5 px-4">ថ្ងៃកំណើត</th>
@@ -662,7 +908,7 @@ export const StudentManagement: React.FC = () => {
                 <th className="py-3.5 px-4">អាណាព្យាបាល & ទំនាក់ទំនង</th>
                 <th className="py-3.5 px-4">សុខភាព (BMI)</th>
                 <th className="py-3.5 px-4 text-center">ផ្លាកសញ្ញា & ពិន្ទុ</th>
-                <th className="py-3.5 px-4 text-center">សកម្មភាព</th>
+                <th className="py-3.5 px-4 text-center no-print">សកម្មភាព</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -670,9 +916,30 @@ export const StudentManagement: React.FC = () => {
                 filteredStudents.map(student => {
                   const studentBadges = getStudentBadges(student.id);
                   const totalPoints = getStudentTotalPoints(student.id);
+                  const isSelected = selectedStudentIds.includes(student.id);
+                  const riskAlert = studentAlertsMap.get(student.id);
 
                   return (
-                    <tr key={student.id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr
+                      key={student.id}
+                      className={`hover:bg-slate-50/80 transition-colors ${
+                        isSelected ? 'bg-blue-50/50' : ''
+                      }`}
+                    >
+                      <td className="py-3 px-3 text-center no-print" onClick={e => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {
+                            setSelectedStudentIds(prev =>
+                              prev.includes(student.id)
+                                ? prev.filter(id => id !== student.id)
+                                : [...prev, student.id]
+                            );
+                          }}
+                          className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                        />
+                      </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <img
@@ -688,6 +955,29 @@ export const StudentManagement: React.FC = () => {
                               <span>•</span>
                               <span className="font-times text-blue-600 font-semibold">{student.code}</span>
                             </div>
+
+                            {/* Risk Alert Badges */}
+                            {riskAlert && (riskAlert.hasConsecutiveAbsenceAlert || riskAlert.hasScoreDropAlert) && (
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                {riskAlert.hasConsecutiveAbsenceAlert && (
+                                  <span
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200 text-[10px] font-bold"
+                                    title={`អវត្តមាន ${riskAlert.consecutiveAbsenceCount} ថ្ងៃជាប់គ្នា៖ ${riskAlert.consecutiveAbsenceDates.join(', ')}`}
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
+                                    <span>🚫 អវត្តមាន {riskAlert.consecutiveAbsenceCount} ថ្ងៃជាប់គ្នា</span>
+                                  </span>
+                                )}
+                                {riskAlert.hasScoreDropAlert && (
+                                  <span
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-bold"
+                                    title={`ពិន្ទុធ្លាក់ចុះ -${riskAlert.scoreDropAmount} (ពី ${riskAlert.previousPeriodScore?.period} ${riskAlert.previousPeriodScore?.average} មក ${riskAlert.latestPeriodScore?.period} ${riskAlert.latestPeriodScore?.average})`}
+                                  >
+                                    <span>📉 ធ្លាក់ពិន្ទុ (-{riskAlert.scoreDropAmount})</span>
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -916,6 +1206,51 @@ export const StudentManagement: React.FC = () => {
                 </div>
               </div>
 
+              {/* Student Risk & Early Warning Assessment Box (if any) */}
+              {(() => {
+                const modalRiskAlert = getStudentRiskAlert(selectedStudentForView, scores, attendanceRecords || []);
+                if (!modalRiskAlert.hasConsecutiveAbsenceAlert && !modalRiskAlert.hasScoreDropAlert) return null;
+
+                return (
+                  <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-slate-800 space-y-2">
+                    <div className="flex items-center gap-2 text-rose-900 font-bold font-moul text-xs">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 animate-pulse" />
+                      <span>ការជូនដំណឹងពីហានិភ័យសិក្សា & អវត្តមាន (Early Warning Alert)</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
+                      {modalRiskAlert.hasConsecutiveAbsenceAlert && (
+                        <div className="bg-white p-3 rounded-xl border border-rose-200 shadow-2xs space-y-1">
+                          <p className="font-bold text-rose-700 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-rose-600" />
+                            អវត្តមានជាប់គ្នា ៖ {modalRiskAlert.consecutiveAbsenceCount} ថ្ងៃ
+                          </p>
+                          <p className="text-[11px] text-slate-600">
+                            កាលបរិច្ឆេទអវត្តមាន៖ {modalRiskAlert.consecutiveAbsenceDates.join(', ')}
+                          </p>
+                          <p className="text-[10px] text-rose-600 italic">
+                            * តម្រូវឱ្យគ្រូបន្ទុកថ្នាក់ទាក់ទងទៅកាន់អាណាព្យាបាលជាបន្ទាន់
+                          </p>
+                        </div>
+                      )}
+                      {modalRiskAlert.hasScoreDropAlert && (
+                        <div className="bg-white p-3 rounded-xl border border-amber-200 shadow-2xs space-y-1">
+                          <p className="font-bold text-amber-700 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-amber-600" />
+                            ធ្លាក់ចុះពិន្ទុមធ្យមភាគ ៖ -{modalRiskAlert.scoreDropAmount} ពិន្ទុ
+                          </p>
+                          <p className="text-[11px] text-slate-600">
+                            ពិន្ទុខែមុន ({modalRiskAlert.previousPeriodScore?.period}) ៖ <strong className="text-slate-800">{modalRiskAlert.previousPeriodScore?.average}</strong> ➔ ពិន្ទុខែនេះ ({modalRiskAlert.latestPeriodScore?.period}) ៖ <strong className="text-rose-700">{modalRiskAlert.latestPeriodScore?.average}</strong>
+                          </p>
+                          <p className="text-[10px] text-amber-700 italic">
+                            * ណែនាំឱ្យមានការបំប៉នបន្ថែម ឬពិភាក្សាជាមួយអាណាព្យាបាល
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Core Information Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 relative z-1">
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
@@ -1060,6 +1395,15 @@ export const StudentManagement: React.FC = () => {
                     <strong className="text-slate-800">{selectedStudentForView.health.notes || 'គ្មាន'}</strong>
                   </div>
                 </div>
+              </div>
+
+              {/* Recharts Progress Trend Line Chart Section */}
+              <div className="border-t border-slate-200 pt-4">
+                <StudentProgressTrendChart
+                  student={selectedStudentForView}
+                  scores={scores}
+                  dailyAttendance={attendanceRecords}
+                />
               </div>
 
               {/* Digital Badges & Achievements Section */}
@@ -1228,12 +1572,162 @@ export const StudentManagement: React.FC = () => {
 
             {/* Form */}
             <form onSubmit={handleCreateStudent} className="p-6 space-y-6 text-xs sm:text-sm">
+              {/* Auto-Save Draft Indicator */}
+              <FormAutoSaveIndicator
+                hasSavedDraft={hasSavedDraft}
+                lastSavedTime={lastSavedTime}
+                isSaving={isSaving}
+                onDiscardDraft={discardDraft}
+                isEditing={!!editingStudent}
+              />
+
               {/* Section 1: Core Identification */}
               <div className="space-y-4">
-                <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-2">
-                  <Sparkles className="w-4 h-4 text-amber-500" />
-                  ១. អត្តសញ្ញាណទូទៅ និងកម្រិតថ្នាក់
-                </h4>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-200 pb-2 gap-2">
+                  <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    ១. អត្តសញ្ញាណទូទៅ និងរូបថតសិស្ស (Student Photo & Identity)
+                  </h4>
+                </div>
+
+                {/* Student Photo Upload & Preview Bar */}
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragOverPhoto(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    setIsDragOverPhoto(false);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragOverPhoto(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) {
+                      handlePhotoFileUpload(file);
+                    }
+                  }}
+                  className={`p-4 rounded-xl border transition-all ${
+                    isDragOverPhoto
+                      ? 'bg-blue-50 border-blue-400 ring-2 ring-blue-300'
+                      : 'bg-slate-50 border-slate-200'
+                  } flex flex-col sm:flex-row items-center gap-4`}
+                >
+                  <div className="relative w-20 h-24 sm:w-24 sm:h-28 rounded-xl overflow-hidden border-2 border-blue-200 bg-white flex items-center justify-center flex-shrink-0 shadow-xs group">
+                    {isUploadingPhoto ? (
+                      <div className="flex flex-col items-center justify-center p-2 text-center text-blue-600">
+                        <Loader2 className="w-6 h-6 animate-spin mb-1 text-blue-600" />
+                        <span className="text-[10px] font-semibold">កំពុង Upload...</span>
+                      </div>
+                    ) : formData.avatarUrl ? (
+                      <>
+                        <img
+                          src={formData.avatarUrl}
+                          alt="រូបថតសិស្ស"
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <label className="cursor-pointer text-white p-1 hover:text-blue-200">
+                            <Camera className="w-5 h-5" />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handlePhotoFileUpload(file);
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center p-2 text-slate-400 text-[10px]">
+                        <Users className="w-7 h-7 mx-auto mb-1 text-slate-300" />
+                        <span className="font-medium">គ្មានរូបថត</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 w-full space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                          <UploadCloud className="w-4 h-4 text-blue-600" />
+                          រូបថតសិស្ស (Firebase Storage Profile Photo)
+                        </label>
+                        {photoUploadSource === 'firebase' && (
+                          <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full">
+                            Cloud Storage
+                          </span>
+                        )}
+                      </div>
+                      {formData.avatarUrl && !isUploadingPhoto && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, avatarUrl: '' });
+                            setPhotoUploadSource(null);
+                          }}
+                          className="text-[11px] text-rose-600 hover:text-rose-700 hover:underline font-semibold transition-colors"
+                        >
+                          លុបរូបថតចេញ
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <label
+                        className={`cursor-pointer flex items-center justify-center gap-2 px-3 py-2 bg-white hover:bg-slate-100 border rounded-lg text-xs font-semibold shadow-2xs transition-all ${
+                          isUploadingPhoto
+                            ? 'opacity-60 pointer-events-none border-slate-200 text-slate-400'
+                            : 'border-blue-300 text-blue-700 hover:border-blue-400 hover:bg-blue-50/50'
+                        }`}
+                      >
+                        {isUploadingPhoto ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                        ) : (
+                          <Camera className="w-4 h-4 text-blue-600" />
+                        )}
+                        <span>{isUploadingPhoto ? 'កំពុងផ្ទុកឡើង Firebase...' : 'ជ្រើសរើសរូបថត (Upload)'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={isUploadingPhoto}
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handlePhotoFileUpload(file);
+                          }}
+                        />
+                      </label>
+
+                      <div className="relative">
+                        <input
+                          type="url"
+                          value={formData.avatarUrl || ''}
+                          onChange={(e) => {
+                            setFormData({ ...formData, avatarUrl: e.target.value });
+                            setPhotoUploadSource(e.target.value ? 'url' : null);
+                          }}
+                          placeholder="ឬបិទភ្ជាប់ Image URL (Google Drive / Web)..."
+                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none placeholder:text-slate-400"
+                        />
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                      <span>💡</span>
+                      <span>
+                        អ្នកអាចចុច Upload ជ្រើសរើសរូបថត ឬទាញទម្លាក់ (Drag & Drop) ចូលទីនេះ។ រូបភាពនឹងត្រូវផ្ទុកឡើង <strong>Firebase Storage</strong> ដោយស្វ័យប្រវត្តិ។
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -1730,6 +2224,23 @@ export const StudentManagement: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Multi-Student Profile & Score History Multi-Page PDF Modal */}
+      {isMultiPdfModalOpen && (
+        <MultiStudentProfileSummaryPdfModal
+          students={
+            selectedStudentIds.length > 0
+              ? students.filter(s => selectedStudentIds.includes(s.id))
+              : filteredStudents
+          }
+          scores={scores}
+          dailyAttendance={attendanceRecords}
+          schoolProfile={schoolProfile}
+          getStudentBadges={getStudentBadges}
+          getStudentTotalPoints={getStudentTotalPoints}
+          onClose={() => setIsMultiPdfModalOpen(false)}
+        />
       )}
     </div>
   );

@@ -25,7 +25,7 @@ export const AICreationsHistory: React.FC<Props> = ({ onOpenCreation }) => {
   const { showToast } = useSchool();
   const [creations, setCreations] = useState<AICreationItem[]>(getSavedAICreations());
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'lesson' | 'slide' | 'curriculum' | 'test' | 'game'>('all');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'weekly_lesson' | 'lesson' | 'slide' | 'curriculum' | 'test' | 'game'>('all');
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -38,6 +38,8 @@ export const AICreationsHistory: React.FC<Props> = ({ onOpenCreation }) => {
 
   const getIcon = (type: string) => {
     switch (type) {
+      case 'weekly_lesson':
+        return <Calendar className="w-5 h-5 text-emerald-600" />;
       case 'lesson':
         return <FileText className="w-5 h-5 text-blue-600" />;
       case 'slide':
@@ -95,7 +97,8 @@ export const AICreationsHistory: React.FC<Props> = ({ onOpenCreation }) => {
         <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
           {[
             { id: 'all', label: 'ទាំងអស់' },
-            { id: 'lesson', label: 'កិច្ចតែងការ' },
+            { id: 'weekly_lesson', label: 'កិច្ចតែងការសប្តាហ៍' },
+            { id: 'lesson', label: 'កិច្ចតែងការទោល' },
             { id: 'slide', label: 'ស្លាយ' },
             { id: 'curriculum', label: 'កម្មវិធីសិក្សា' },
             { id: 'test', label: 'វិញ្ញាសាតេស្ត' },
