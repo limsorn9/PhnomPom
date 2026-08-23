@@ -462,9 +462,28 @@ export const AccountsManagement: React.FC = () => {
         user={currentUser}
         variant="card"
         onOpenMfa={() => setActiveTab('security_sessions')}
+        onToggleMfa={(enabled) => {
+          if (!currentUser) return;
+          updateUser(currentUser.id, {
+            mfaConfig: {
+              enabled,
+              type: 'totp',
+              backupCodesCount: enabled ? 8 : undefined,
+              enrolledAt: enabled ? new Date().toISOString() : undefined,
+              lastVerifiedAt: enabled ? new Date().toISOString() : undefined
+            }
+          });
+          showToast(
+            enabled
+              ? 'បានបើកដំណើរការ MFA / 2FA លើទិន្នន័យគណនី Firebase ដោយជោគជ័យ!'
+              : 'បានបិទដំណើរការ MFA / 2FA លើគណនី Firebase!',
+            enabled ? 'success' : 'info'
+          );
+        }}
         onChangePassword={() => {
           if (currentUser) {
             setSelectedUserForEdit(currentUser);
+            setEditPasswordInput('');
           }
         }}
         onReviewSecurityLogs={handleReviewSecurityLogs}
@@ -812,6 +831,12 @@ export const AccountsManagement: React.FC = () => {
           currentUser={currentUser}
           onUpdateAllStaffForceRotation={() => setShowBulkForceConfirmModal(true)}
           onShowToast={showToast}
+          onChangePassword={() => {
+            if (currentUser) {
+              setSelectedUserForEdit(currentUser);
+              setEditPasswordInput('');
+            }
+          }}
         />
       )}
 
@@ -1237,7 +1262,10 @@ export const AccountsManagement: React.FC = () => {
               {/* Real-time Password Strength Indicator */}
               {editPasswordInput.length > 0 && (
                 <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
-                  <PasswordStrengthIndicator password={editPasswordInput} />
+                  <PasswordStrengthIndicator
+                    password={editPasswordInput}
+                    userForHistoryCheck={selectedUserForEdit}
+                  />
                 </div>
               )}
 
@@ -1393,7 +1421,10 @@ export const AccountsManagement: React.FC = () => {
               {/* Real-time Strength Indicator */}
               {mandatoryNewPassword && (
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                  <PasswordStrengthIndicator password={mandatoryNewPassword} />
+                  <PasswordStrengthIndicator
+                    password={mandatoryNewPassword}
+                    userForHistoryCheck={currentUser}
+                  />
                 </div>
               )}
 

@@ -21,6 +21,7 @@ import { OfficialDocumentCenter } from './components/OfficialDocumentCenter';
 import { StudentTransferManagement } from './components/StudentTransferManagement';
 import { HouseholdCensus } from './components/HouseholdCensus';
 import { LibraryManagement } from './components/LibraryManagement';
+import { OtherLearningResources } from './components/OtherLearningResources';
 import { RecentActivityDashboard } from './components/RecentActivityDashboard';
 import { AITeacherHub } from './components/ai-teacher/AITeacherHub';
 import { BulkDataImportExportModal } from './components/BulkDataImportExportModal';
@@ -156,6 +157,7 @@ const MainLayout: React.FC = () => {
           {activeTab === 'transfers' && canAccessTab('transfers') && <StudentTransferManagement />}
           {activeTab === 'household_census' && canAccessTab('household_census') && <HouseholdCensus />}
           {activeTab === 'library' && canAccessTab('library') && <LibraryManagement />}
+          {activeTab === 'learning_resources' && canAccessTab('learning_resources') && <OtherLearningResources />}
           {activeTab === 'teachers' && canAccessTab('teachers') && <TeacherManagement />}
           {(activeTab === 'classrooms' || activeTab === 'scores') && canAccessTab(activeTab) && <ClassroomScores />}
           {activeTab === 'attendance_health' && canAccessTab('attendance_health') && <HealthAttendance />}

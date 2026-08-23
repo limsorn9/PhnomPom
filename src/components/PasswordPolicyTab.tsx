@@ -24,17 +24,41 @@ interface PasswordPolicyTabProps {
   currentUser: AppUser | null;
   onUpdateAllStaffForceRotation: () => void;
   onShowToast: (message: string, type?: 'success' | 'info' | 'error') => void;
+  onChangePassword?: () => void;
 }
 
 export const PasswordPolicyTab: React.FC<PasswordPolicyTabProps> = ({
   currentUser,
   onUpdateAllStaffForceRotation,
-  onShowToast
+  onShowToast,
+  onChangePassword
 }) => {
   const [policy, setPolicy] = useState<PasswordPolicyConfig>(() => getSavedPasswordPolicy());
   const [isSaved, setIsSaved] = useState(false);
 
   const isDirector = currentUser?.role === 'director';
+
+  // Calculate current user's password age and days remaining until mandatory change
+  const pwDateStr = currentUser?.passwordUpdatedAt || currentUser?.createdAt;
+  const pwUpdatedDate = pwDateStr ? new Date(pwDateStr) : new Date(Date.now() - 35 * 86400000);
+  const daysSinceChange = Math.max(
+    0,
+    Math.floor((Date.now() - pwUpdatedDate.getTime()) / (1000 * 60 * 60 * 24))
+  );
+
+  const expirationDays = policy.expirationDays;
+  const isNeverExpire = expirationDays === 0;
+  const daysRemaining = isNeverExpire ? 999 : Math.max(0, expirationDays - daysSinceChange);
+  const isExpired = !isNeverExpire && (daysRemaining === 0 || !!currentUser?.forcePasswordChange);
+  const isExpiringSoon = !isNeverExpire && !isExpired && daysRemaining <= 14;
+
+  const nextMandatoryDate = new Date(
+    pwUpdatedDate.getTime() + (expirationDays || 90) * 86400000
+  ).toISOString().split('T')[0];
+
+  const progressPercent = isNeverExpire
+    ? 100
+    : Math.max(0, Math.min(100, Math.round((daysRemaining / expirationDays) * 100)));
 
   const handleSavePolicy = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +96,153 @@ export const PasswordPolicyTab: React.FC<PasswordPolicyTabProps> = ({
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
             កំណត់និងអនុវត្តស្តង់ដារសុវត្ថិភាពពាក្យសម្ងាត់សម្រាប់គណនីទាំងអស់ រួមមាន រយៈពេលផុតកំណត់សុពលភាព (Expiration Durations), ការទប់ស្កាត់ការប្រើពាក្យសម្ងាត់ចាស់ ៣ លើកចុងក្រោយ (Password History), និងកម្រិតស្មុគស្មាញនៃតួអក្សរ។
           </p>
+        </div>
+      </div>
+
+      {/* Visual Indicator: Days Remaining Until Next Mandatory Password Change for Current User */}
+      <div
+        className={`rounded-3xl border-2 p-5 sm:p-6 shadow-md transition-all relative overflow-hidden ${
+          isExpired
+            ? 'bg-rose-50/90 border-rose-400 text-rose-950'
+            : isExpiringSoon
+            ? 'bg-amber-50/90 border-amber-400 text-amber-950'
+            : 'bg-gradient-to-br from-indigo-50/90 via-white to-blue-50/60 border-indigo-200 text-slate-900'
+        }`}
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          <div className="flex items-start gap-4">
+            <div
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
+                isExpired
+                  ? 'bg-rose-600 text-white animate-pulse'
+                  : isExpiringSoon
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-indigo-600 text-white'
+              }`}
+            >
+              {isExpired ? (
+                <AlertTriangle className="w-6 h-6" />
+              ) : isExpiringSoon ? (
+                <Clock className="w-6 h-6" />
+              ) : (
+                <KeyRound className="w-6 h-6" />
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-moul text-sm sm:text-base">
+                  សុពលភាពពាក្យសម្ងាត់របស់អ្នក (Current Password Expiry Status)
+                </span>
+                <span
+                  className={`px-3 py-0.5 rounded-full text-[11px] font-bold border ${
+                    isExpired
+                      ? 'bg-rose-100 text-rose-800 border-rose-300'
+                      : isExpiringSoon
+                      ? 'bg-amber-100 text-amber-800 border-amber-300'
+                      : isNeverExpire
+                      ? 'bg-blue-100 text-blue-800 border-blue-300'
+                      : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                  }`}
+                >
+                  {isExpired
+                    ? '● ផុតកំណត់សុពលភាព (Action Required)'
+                    : isExpiringSoon
+                    ? '▲ ជិតដល់ថ្ងៃផុតកំណត់ (Expiring Soon)'
+                    : isNeverExpire
+                    ? '● មិនកំណត់ផុតកំណត់ (No Expiry)'
+                    : '✓ សុពលភាពនៅមានប្រសិទ្ធភាព (Active & Healthy)'}
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
+                គណនីបច្ចុប្បន្ន៖ <strong className="text-indigo-900 font-bold">{currentUser?.nameKhmer || 'អ្នកប្រើប្រាស់'}</strong> ({currentUser?.email || 'N/A'}) — គោលការណ៍តម្រូវឱ្យផ្លាស់ប្តូរពាក្យសម្ងាត់រៀងរាល់ {isNeverExpire ? 'មិនកំណត់' : `${expirationDays} ថ្ងៃ`}។
+              </p>
+            </div>
+          </div>
+
+          {/* Days Remaining Big Badge & Action Button */}
+          <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto shrink-0">
+            <div className="px-4 py-2 bg-white rounded-2xl border border-slate-200 shadow-xs text-center">
+              <span className="text-[10.5px] text-slate-500 font-bold block uppercase tracking-wider">
+                ចំនួនថ្ងៃនៅសល់ (Days Remaining)
+              </span>
+              <span
+                className={`text-xl sm:text-2xl font-black font-mono block ${
+                  isExpired
+                    ? 'text-rose-600 animate-pulse'
+                    : isExpiringSoon
+                    ? 'text-amber-600'
+                    : 'text-indigo-700'
+                }`}
+              >
+                {isNeverExpire ? '∞ គ្មានដែនកំណត់' : isExpired ? '០ ថ្ងៃ (ផុតកំណត់)' : `នៅសល់ ${daysRemaining} ថ្ងៃ`}
+              </span>
+            </div>
+
+            {onChangePassword && (
+              <button
+                type="button"
+                onClick={onChangePassword}
+                className={`px-4 py-3 rounded-2xl font-bold text-xs shadow-sm transition-all flex items-center gap-2 cursor-pointer ${
+                  isExpired
+                    ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/30'
+                    : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20'
+                }`}
+              >
+                <KeyRound className="w-4 h-4" />
+                <span>ផ្លាស់ប្តូរពាក្យសម្ងាត់ឥឡូវនេះ</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Visual Progress Countdown Bar & Key Dates Row */}
+        <div className="mt-4 pt-4 border-t border-slate-200/80 space-y-2.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-bold text-slate-700">
+              វដ្តសុពលភាពពាក្យសម្ងាត់ (Password Lifecycle):
+            </span>
+            <span className="font-mono font-bold text-slate-600">
+              {isNeverExpire ? '១០០%' : `${progressPercent}% នៅសល់`}
+            </span>
+          </div>
+
+          <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden flex shadow-inner">
+            <div
+              className={`h-full transition-all duration-700 ${
+                isExpired
+                  ? 'bg-rose-600'
+                  : isExpiringSoon
+                  ? 'bg-amber-500'
+                  : 'bg-emerald-500'
+              }`}
+              style={{ width: `${isNeverExpire ? 100 : progressPercent}%` }}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-xs">
+            <div className="bg-white/80 rounded-xl p-2.5 border border-slate-200/60">
+              <span className="text-[10.5px] text-slate-500 block">កាលបរិច្ឆេទផ្លាស់ប្តូរចុងក្រោយ</span>
+              <span className="font-bold text-slate-800 mt-0.5 block font-mono">
+                {pwUpdatedDate.toISOString().split('T')[0]} ({daysSinceChange} ថ្ងៃមុន)
+              </span>
+            </div>
+
+            <div className="bg-white/80 rounded-xl p-2.5 border border-slate-200/60">
+              <span className="text-[10.5px] text-slate-500 block">កាលបរិច្ឆេទផុតកំណត់បន្ទាប់</span>
+              <span className="font-bold text-slate-800 mt-0.5 block font-mono">
+                {isNeverExpire ? 'មិនកំណត់ (Never)' : nextMandatoryDate}
+              </span>
+            </div>
+
+            <div className="bg-white/80 rounded-xl p-2.5 border border-slate-200/60">
+              <span className="text-[10.5px] text-slate-500 block">គោលការណ៍អនុវត្តបច្ចុប្បន្ន</span>
+              <span className="font-bold text-indigo-700 mt-0.5 block">
+                {isNeverExpire ? 'មិនកំណត់កាលបរិច្ឆេទ' : `ប្តូររៀងរាល់ ${expirationDays} ថ្ងៃ`}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 

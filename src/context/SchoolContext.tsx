@@ -2314,19 +2314,19 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (role === 'director') return true;
 
     if (role === 'secretary') {
-      return ['dashboard', 'homeroom_dashboard', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'accounts', 'library', 'workspace'].includes(tab);
+      return ['dashboard', 'homeroom_dashboard', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'accounts', 'library', 'learning_resources', 'workspace'].includes(tab);
     }
 
     if (role === 'librarian') {
-      return ['library', 'dashboard', 'calendar', 'official_documents'].includes(tab);
+      return ['library', 'learning_resources', 'dashboard', 'calendar', 'official_documents'].includes(tab);
     }
 
     if (role === 'teacher') {
-      return ['homeroom_dashboard', 'dashboard', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'classrooms', 'scores', 'attendance_health', 'calendar', 'reports_qr', 'accounts', 'library', 'workspace'].includes(tab);
+      return ['homeroom_dashboard', 'dashboard', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'classrooms', 'scores', 'attendance_health', 'calendar', 'reports_qr', 'accounts', 'library', 'learning_resources', 'workspace'].includes(tab);
     }
 
     if (role === 'student') {
-      return ['student_portal', 'calendar', 'library'].includes(tab);
+      return ['student_portal', 'learning_resources', 'calendar', 'library'].includes(tab);
     }
 
     return false;

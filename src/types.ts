@@ -567,6 +567,7 @@ export type ActiveTab =
   | 'scores'
   | 'attendance_health'
   | 'library'
+  | 'learning_resources'
   | 'calendar'
   | 'finance'
   | 'reports_qr'

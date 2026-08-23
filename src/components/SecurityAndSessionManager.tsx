@@ -145,16 +145,29 @@ export const SecurityAndSessionManager: React.FC<SecurityAndSessionManagerProps>
     onShowToast('បានផ្តាច់សម័យកាល (Session terminated) ជោគជ័យ!', 'info');
   };
 
+  const handleDirectMfaToggle = (enabled: boolean) => {
+    if (!currentUser) return;
+    onUpdateUser(currentUser.id, {
+      mfaConfig: {
+        enabled,
+        type: 'totp',
+        backupCodesCount: enabled ? 8 : undefined,
+        enrolledAt: enabled ? new Date().toISOString() : undefined,
+        lastVerifiedAt: enabled ? new Date().toISOString() : undefined
+      }
+    });
+    onShowToast(
+      enabled
+        ? 'បានបើកដំណើរការ MFA / 2FA លើទិន្នន័យគណនី Firebase ដោយជោគជ័យ!'
+        : 'បានបិទដំណើរការ MFA / 2FA លើគណនី Firebase!',
+      enabled ? 'success' : 'info'
+    );
+  };
+
   const handleToggleMfa = () => {
     if (currentUser?.mfaConfig?.enabled) {
       if (window.confirm('តើអ្នកប្រាកដជាចង់បិទការផ្ទៀងផ្ទាត់ ២ ជាន់ (MFA/2FA) មែនទេ?')) {
-        onUpdateUser(currentUser.id, {
-          mfaConfig: {
-            enabled: false,
-            type: 'totp'
-          }
-        });
-        onShowToast('បានបិទមុខងារ 2FA/MFA រួចរាល់!', 'info');
+        handleDirectMfaToggle(false);
       }
     } else {
       setShowMfaModal(true);
@@ -231,9 +244,24 @@ export const SecurityAndSessionManager: React.FC<SecurityAndSessionManagerProps>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
+            {/* Simple Direct Enable MFA Toggle */}
+            <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/15">
+              <span className="text-xs font-bold text-white">Enable MFA:</span>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={isMfaActive}
+                  onChange={e => handleDirectMfaToggle(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
+
             <button
+              type="button"
               onClick={handleToggleMfa}
-              className={`px-5 py-2.5 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-4 py-2.5 rounded-2xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer ${
                 isMfaActive
                   ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40'
                   : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-900/30'
@@ -247,7 +275,7 @@ export const SecurityAndSessionManager: React.FC<SecurityAndSessionManagerProps>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  <span>បើកដំណើរការ MFA / 2FA ឥឡូវនេះ</span>
+                  <span>រៀបចំ Authenticator (TOTP)</span>
                 </>
               )}
             </button>

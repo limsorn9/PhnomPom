@@ -127,20 +127,26 @@ interface PasswordStrengthIndicatorProps {
   password: string;
   showRules?: boolean;
   userForHistoryCheck?: AppUser | null;
+  policy?: PasswordPolicyConfig;
 }
 
 export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps> = ({
   password,
   showRules = true,
-  userForHistoryCheck = null
+  userForHistoryCheck = null,
+  policy: customPolicy
 }) => {
   if (!password) {
     return null;
   }
 
-  const policy = getSavedPasswordPolicy();
+  const policy = customPolicy || getSavedPasswordPolicy();
   const result = evaluatePassword(password, policy);
-  const historyCheck = checkPasswordHistoryReuse(password, userForHistoryCheck, policy.preventRecentPasswordsCount);
+  const historyCheck = checkPasswordHistoryReuse(
+    password,
+    userForHistoryCheck,
+    policy.preventRecentPasswordsCount
+  );
 
   const getMeterColor = () => {
     switch (result.score) {
@@ -158,47 +164,72 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
   const getMeterLabel = () => {
     switch (result.score) {
       case 4:
-        return { text: 'រឹងមាំខ្លាំង (Strong / Secure)', color: 'text-emerald-700' };
+        return {
+          text: 'រឹងមាំខ្លាំង (Strong / Secure)',
+          color: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+          percent: '100%'
+        };
       case 3:
-        return { text: 'មធ្យម (Good / Acceptable)', color: 'text-blue-700' };
+        return {
+          text: 'មធ្យម (Good / Acceptable)',
+          color: 'text-blue-700 bg-blue-50 border-blue-200',
+          percent: '75%'
+        };
       case 2:
-        return { text: 'ខ្សោយ (Weak)', color: 'text-amber-700' };
+        return {
+          text: 'ខ្សោយ (Weak)',
+          color: 'text-amber-700 bg-amber-50 border-amber-200',
+          percent: '50%'
+        };
       default:
-        return { text: 'ខ្សោយខ្លាំង (Very Weak)', color: 'text-rose-700' };
+        return {
+          text: 'ខ្សោយខ្លាំង (Very Weak)',
+          color: 'text-rose-700 bg-rose-50 border-rose-200',
+          percent: '25%'
+        };
     }
   };
 
   const label = getMeterLabel();
 
   return (
-    <div className="space-y-2.5 mt-2 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+    <div className="space-y-2.5 mt-2 p-3.5 bg-slate-50/90 border border-slate-200 rounded-2xl text-xs transition-all animate-fade-in font-kantumruy">
       {/* Password Reuse in History Alert */}
       {historyCheck.isReused && (
-        <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-rose-800 flex items-start gap-2 animate-shake">
+        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 flex items-start gap-2.5 shadow-xs">
           <History className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-bold text-[11px]">រកឃើញការប្រើពាក្យសម្ងាត់ចាស់ឡើងវិញ (Password Reuse Detected)</p>
-            <p className="text-[10.5px] mt-0.5 text-rose-700 leading-tight">
-              {historyCheck.message}
+          <div className="space-y-0.5">
+            <p className="font-bold text-[11.5px] text-rose-900">
+              រកឃើញការប្រើពាក្យសម្ងាត់ចាស់ឡើងវិញ (Password History Reuse)
             </p>
+            <p className="text-[11px] text-rose-700 leading-relaxed">{historyCheck.message}</p>
           </div>
         </div>
       )}
 
-      {/* Strength Bar */}
+      {/* Strength Bar Header & Percentage */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
+          <span className="text-[11.5px] font-bold text-slate-700 flex items-center gap-1.5">
             {result.isValid && !historyCheck.isReused ? (
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
             ) : (
-              <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+              <ShieldAlert className="w-4 h-4 text-amber-600" />
             )}
-            កម្រិតសុវត្ថិភាពពាក្យសម្ងាត់ (Strength):
+            <span>កម្រិតសុវត្ថិភាពពាក្យសម្ងាត់ (Strength Meter):</span>
           </span>
-          <span className={`text-[11px] font-bold ${label.color}`}>{label.text}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-bold font-mono text-slate-600">{label.percent}</span>
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10.5px] font-bold border ${label.color}`}
+            >
+              {label.text}
+            </span>
+          </div>
         </div>
-        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden flex gap-1">
+
+        {/* 4-Step Animated Visual Progress Meter */}
+        <div className="w-full h-2 bg-slate-200/80 rounded-full overflow-hidden flex gap-1 p-0.5">
           {[1, 2, 3, 4].map(idx => (
             <div
               key={idx}
@@ -210,68 +241,79 @@ export const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps>
         </div>
       </div>
 
-      {/* Rules Checklist */}
+      {/* Rules Checklist with Interactive Visual Status */}
       {showRules && (
-        <div className="space-y-1 pt-1 border-t border-slate-200/60">
+        <div className="space-y-1.5 pt-2 border-t border-slate-200/80">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              លក្ខខណ្ឌសុវត្ថិភាពតាមគោលការណ៍ (Requirements):
+            <p className="text-[10.5px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1">
+              <span>លក្ខខណ្ឌសុវត្ថិភាពកំណត់ (Complexity Requirements):</span>
             </p>
-            <span className="text-[10px] text-slate-400 font-mono">
-              គោលការណ៍ការពារ ៣ ពាក្យសម្ងាត់ចុងក្រោយ
+            <span className="text-[10px] text-slate-500 font-medium">
+              ការពារប្រវត្តិ {policy.preventRecentPasswordsCount} លើកចុងក្រោយ
             </span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px]">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]">
+            {/* Rule 1: Min Length */}
             <div
-              className={`flex items-center gap-1.5 ${
-                result.hasMinLength ? 'text-emerald-700 font-semibold' : 'text-slate-500'
+              className={`flex items-center gap-1.5 p-1.5 rounded-lg border transition-all ${
+                result.hasMinLength
+                  ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800 font-bold'
+                  : 'bg-white border-slate-200 text-slate-500'
               }`}
             >
               {result.hasMinLength ? (
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               ) : (
-                <X className="w-3.5 h-3.5 text-rose-500" />
+                <X className="w-3.5 h-3.5 text-rose-500 shrink-0" />
               )}
               <span>យ៉ាងតិច {policy.minLength || 8} តួអក្សរ (≥ {policy.minLength || 8} chars)</span>
             </div>
 
+            {/* Rule 2: Upper and Lower Case */}
             <div
-              className={`flex items-center gap-1.5 ${
+              className={`flex items-center gap-1.5 p-1.5 rounded-lg border transition-all ${
                 result.hasLower && result.hasUpper
-                  ? 'text-emerald-700 font-semibold'
-                  : 'text-slate-500'
+                  ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800 font-bold'
+                  : 'bg-white border-slate-200 text-slate-500'
               }`}
             >
               {result.hasLower && result.hasUpper ? (
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               ) : (
-                <X className="w-3.5 h-3.5 text-rose-500" />
+                <X className="w-3.5 h-3.5 text-rose-500 shrink-0" />
               )}
               <span>អក្សរធំ និងអក្សរតូច (A-Z, a-z)</span>
             </div>
 
+            {/* Rule 3: Numbers */}
             <div
-              className={`flex items-center gap-1.5 ${
-                result.hasNumber ? 'text-emerald-700 font-semibold' : 'text-slate-500'
+              className={`flex items-center gap-1.5 p-1.5 rounded-lg border transition-all ${
+                result.hasNumber
+                  ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800 font-bold'
+                  : 'bg-white border-slate-200 text-slate-500'
               }`}
             >
               {result.hasNumber ? (
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               ) : (
-                <X className="w-3.5 h-3.5 text-rose-500" />
+                <X className="w-3.5 h-3.5 text-rose-500 shrink-0" />
               )}
               <span>លេខយ៉ាងតិច ១ ខ្ទង់ (0-9)</span>
             </div>
 
+            {/* Rule 4: Special Characters */}
             <div
-              className={`flex items-center gap-1.5 ${
-                result.hasSpecial ? 'text-emerald-700 font-semibold' : 'text-slate-500'
+              className={`flex items-center gap-1.5 p-1.5 rounded-lg border transition-all ${
+                result.hasSpecial
+                  ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800 font-bold'
+                  : 'bg-white border-slate-200 text-slate-500'
               }`}
             >
               {result.hasSpecial ? (
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               ) : (
-                <X className="w-3.5 h-3.5 text-rose-500" />
+                <X className="w-3.5 h-3.5 text-rose-500 shrink-0" />
               )}
               <span>សញ្ញាពិសេស (@, $, !, %, *, #)</span>
             </div>

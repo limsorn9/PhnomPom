@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { ActiveTab, UserRole } from '../types';
+import { ALL_LEARNING_RESOURCES } from '../data/learningResourcesData';
 import {
   LayoutDashboard,
   Users,
@@ -34,7 +35,9 @@ import {
   Building2,
   Printer,
   History,
-  Sparkles
+  Sparkles,
+  Tv,
+  Bookmark
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 
@@ -76,6 +79,50 @@ export const Sidebar: React.FC<SidebarProps> = ({
     activityLogs,
     language
   } = useSchool();
+
+  // State to track favorite/pinned MoEYS learning resources
+  const [savedFavoriteIds, setSavedFavoriteIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('school_favorite_learning_resources');
+      return saved ? JSON.parse(saved) : ['plp', 'sala', 'g1-khmer', 'g1-math'];
+    } catch {
+      return ['plp', 'sala', 'g1-khmer', 'g1-math'];
+    }
+  });
+
+  const [allResourcesList, setAllResourcesList] = useState(() => {
+    try {
+      const custom = localStorage.getItem('school_custom_learning_resources');
+      const parsedCustom = custom ? JSON.parse(custom) : [];
+      return [...ALL_LEARNING_RESOURCES, ...parsedCustom];
+    } catch {
+      return ALL_LEARNING_RESOURCES;
+    }
+  });
+
+  useEffect(() => {
+    const handleSyncFavorites = () => {
+      try {
+        const saved = localStorage.getItem('school_favorite_learning_resources');
+        setSavedFavoriteIds(saved ? JSON.parse(saved) : []);
+
+        const custom = localStorage.getItem('school_custom_learning_resources');
+        const parsedCustom = custom ? JSON.parse(custom) : [];
+        setAllResourcesList([...ALL_LEARNING_RESOURCES, ...parsedCustom]);
+      } catch {
+        // ignore
+      }
+    };
+
+    window.addEventListener('school_favorites_updated', handleSyncFavorites);
+    window.addEventListener('storage', handleSyncFavorites);
+    return () => {
+      window.removeEventListener('school_favorites_updated', handleSyncFavorites);
+      window.removeEventListener('storage', handleSyncFavorites);
+    };
+  }, []);
+
+  const savedFavoriteItems = allResourcesList.filter(item => savedFavoriteIds.includes(item.id));
 
   const allNavItems: {
     id: ActiveTab;
@@ -178,6 +225,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: LibraryIcon,
       badge: libraryBooks.length,
       badgeColor: 'bg-teal-100 text-teal-800 font-semibold',
+    },
+    {
+      id: 'learning_resources',
+      labelKh: 'ការសិក្សាផ្សេងៗ',
+      labelEn: 'Other Learning & MoEYS',
+      icon: Tv,
+      badge: 'MoEYS',
+      badgeColor: 'bg-emerald-100 text-emerald-800 font-bold',
     },
     {
       id: 'teachers',
@@ -433,6 +488,50 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           );
         })}
+
+        {/* Saved Resources (Pinned MoEYS links) Section */}
+        {savedFavoriteItems.length > 0 && !isCollapsed && (
+          <div className="pt-3 mt-3 border-t border-slate-800/80 space-y-1.5 animate-fade-in">
+            <div className="flex items-center justify-between px-2 py-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                <Bookmark className="w-3 h-3 fill-amber-400" />
+                <span>{language === 'en' ? 'Saved Resources' : 'ធនធានបានរក្សាទុក'}</span>
+              </span>
+              <span className="px-1.5 py-0.2 rounded-md bg-amber-500/20 text-amber-300 font-mono text-[9px] font-bold">
+                {savedFavoriteItems.length}
+              </span>
+            </div>
+
+            {savedFavoriteItems.map(fav => (
+              <div
+                key={fav.id}
+                className="group flex items-center justify-between gap-1 px-2.5 py-1.5 rounded-xl text-xs bg-slate-800/50 hover:bg-slate-800 text-slate-300 transition-colors border border-slate-700/40"
+              >
+                <button
+                  type="button"
+                  onClick={() => handleNavClick('learning_resources')}
+                  className="flex items-center gap-2 min-w-0 text-left flex-1 cursor-pointer"
+                  title={fav.titleKhmer}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                  <span className="truncate text-[11px] font-medium text-slate-200 group-hover:text-amber-300">
+                    {fav.titleKhmer}
+                  </span>
+                </button>
+
+                <a
+                  href={fav.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1 text-slate-400 hover:text-white shrink-0 hover:bg-slate-700/60 rounded-md transition-colors"
+                  title={language === 'en' ? 'Open link in new tab' : 'បើកមើលតំណភ្ជាប់'}
+                >
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Bottom Footer Section: Google Workspace Auth & Settings */}

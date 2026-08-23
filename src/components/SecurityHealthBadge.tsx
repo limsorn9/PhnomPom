@@ -17,6 +17,7 @@ interface SecurityHealthBadgeProps {
   user: AppUser | null;
   variant?: 'badge' | 'card' | 'compact';
   onOpenMfa?: () => void;
+  onToggleMfa?: (enabled: boolean) => void;
   onChangePassword?: () => void;
   onReviewSecurityLogs?: () => void;
 }
@@ -102,6 +103,7 @@ export const SecurityHealthBadge: React.FC<SecurityHealthBadgeProps> = ({
   user,
   variant = 'badge',
   onOpenMfa,
+  onToggleMfa,
   onChangePassword,
   onReviewSecurityLogs
 }) => {
@@ -204,9 +206,13 @@ export const SecurityHealthBadge: React.FC<SecurityHealthBadgeProps> = ({
       {/* 3 Verification Pillars Checklist & Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1 text-xs">
         {/* Pillar 1: MFA / 2FA */}
-        <div className={`p-2.5 rounded-xl border flex flex-col justify-between gap-2 ${
-          health.hasMfa ? 'bg-emerald-50/60 border-emerald-200' : 'bg-rose-50/60 border-rose-200'
-        }`}>
+        <div
+          className={`p-3 rounded-2xl border flex flex-col justify-between gap-2.5 transition-all ${
+            health.hasMfa
+              ? 'bg-emerald-50/70 border-emerald-200'
+              : 'bg-rose-50/70 border-rose-200'
+          }`}
+        >
           <div>
             <div className="flex items-center justify-between">
               <span className="font-bold text-[11.5px] text-slate-800 flex items-center gap-1.5">
@@ -219,23 +225,47 @@ export const SecurityHealthBadge: React.FC<SecurityHealthBadgeProps> = ({
               </span>
               <span className="text-[10px] font-bold font-mono text-slate-600">+35%</span>
             </div>
-            <p className="text-[10.5px] text-slate-600 mt-1">
+            <p className="text-[10.5px] text-slate-600 mt-1 leading-relaxed">
               {health.hasMfa
-                ? 'បានបើកដំណើរការផ្ទៀងផ្ទាត់ ២ ជំហាន (Active)'
-                : 'មិនទាន់បានបើកដំណើរការ 2FA (TOTP/SMS) នៅឡើយទេ'}
+                ? 'បានបើកដំណើរការ MFA / 2FA រួចរាល់ (Active)'
+                : 'មិនទាន់បានបើកដំណើរការ MFA (TOTP/SMS) នៅឡើយទេ'}
             </p>
           </div>
 
-          {!health.hasMfa && onOpenMfa && (
-            <button
-              type="button"
-              onClick={onOpenMfa}
-              className="mt-1 text-[10.5px] font-bold text-rose-700 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
-            >
-              <span>បើកដំណើរការ 2FA ឥឡូវនេះ</span>
-              <ArrowRight className="w-3 h-3" />
-            </button>
-          )}
+          <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">
+            {onToggleMfa ? (
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={health.hasMfa}
+                    onChange={e => onToggleMfa(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                </div>
+                <span
+                  className={`text-[11px] font-bold ${
+                    health.hasMfa ? 'text-emerald-800' : 'text-slate-600'
+                  }`}
+                >
+                  {health.hasMfa ? 'Enable MFA: បើក' : 'Enable MFA: បិទ'}
+                </span>
+              </label>
+            ) : (
+              !health.hasMfa &&
+              onOpenMfa && (
+                <button
+                  type="button"
+                  onClick={onOpenMfa}
+                  className="text-[10.5px] font-bold text-rose-700 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
+                >
+                  <span>បើកដំណើរការ 2FA</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              )
+            )}
+          </div>
         </div>
 
         {/* Pillar 2: Password Freshness */}

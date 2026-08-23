@@ -41,7 +41,8 @@ import {
   Cloud,
   FileSpreadsheet as FileSpreadsheetIcon,
   History,
-  Sparkles
+  Sparkles,
+  Tv
 } from 'lucide-react';
 import { NotificationsModal } from './NotificationsModal';
 import { OfflineSyncStatusBadge } from './OfflineSyncStatusBadge';
@@ -148,6 +149,11 @@ export const Header: React.FC<HeaderProps> = ({
       title: language === 'en' ? 'Library & Reading' : 'បណ្ណាល័យ & សៀវភៅ',
       subtitle: language === 'en' ? 'Textbooks, book loans & reading logs' : 'គ្រប់គ្រងសៀវភៅសិក្សា និងការខ្ចី-សង',
       icon: LibraryIcon
+    },
+    learning_resources: {
+      title: language === 'en' ? 'Other Learning Resources & MoEYS' : 'ការសិក្សាផ្សេងៗ & ថ្នាលឌីជីថល',
+      subtitle: language === 'en' ? 'Grade 1-6 video lessons, PLP & Sala Digital MoEYS' : 'បណ្ដុំវីដេអូបង្រៀនថ្នាក់ទី១-៦ ថ្នាលបឋម PLP និងសាលាឌីជីថល',
+      icon: Tv
     },
     teachers: {
       title: language === 'en' ? 'Teachers & Staff' : 'គ្រូបង្រៀន & បុគ្គលិក',
