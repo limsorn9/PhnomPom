@@ -42,7 +42,11 @@ import {
   FileSpreadsheet as FileSpreadsheetIcon,
   History,
   Sparkles,
-  Tv
+  Tv,
+  CalendarDays,
+  Laptop,
+  Users2,
+  FolderKanban
 } from 'lucide-react';
 import { NotificationsModal } from './NotificationsModal';
 import { OfflineSyncStatusBadge } from './OfflineSyncStatusBadge';
@@ -114,6 +118,26 @@ export const Header: React.FC<HeaderProps> = ({
       title: language === 'en' ? 'Homeroom Teacher Hub' : 'ផ្ទាំងការងារគ្រូបន្ទុកថ្នាក់',
       subtitle: language === 'en' ? 'Unified homeroom class, attendance, grades, lesson plans & parent meetings' : 'ប្រព័ន្ធគ្រប់គ្រងថ្នាក់រៀន វត្តមាន ពិន្ទុ កិច្ចតែងការ និងប្រជុំមាតាបិតា',
       icon: Award
+    },
+    teacher_agenda: {
+      title: language === 'en' ? 'Teacher Daily Agenda' : 'របៀបវារៈប្រចាំថ្ងៃរបស់គ្រូ',
+      subtitle: language === 'en' ? 'Daily teaching schedule, tasks and Google Calendar reminders' : 'កាលវិភាគបង្រៀនប្រចាំថ្ងៃ ភារកិច្ច និងការរំលឹកតាម Google Calendar',
+      icon: CalendarDays
+    },
+    equipment_loans: {
+      title: language === 'en' ? 'School Equipment Check-in/out' : 'បញ្ជីត្រួតពិនិត្យឧបករណ៍សាលា',
+      subtitle: language === 'en' ? 'Borrowing/returning tech equipment with Google Sheets sync' : 'ចុះឈ្មោះខ្ចី-ប្រើប្រាស់ឧបករណ៍បច្ចេកវិទ្យា និង sync ទៅ Google Sheets',
+      icon: Laptop
+    },
+    teacher_meetings: {
+      title: language === 'en' ? 'Teacher Meeting Minutes' : 'កំណត់ត្រាការប្រជុំគ្រូ',
+      subtitle: language === 'en' ? 'Meeting agenda, attendee list, resolutions and Google Calendar sync' : 'កត់ត្រារបៀបវារៈ សេចក្តីសម្រេច វត្តមាន និង sync ទៅ Google Calendar',
+      icon: Users2
+    },
+    teaching_resources: {
+      title: language === 'en' ? 'Teaching Resource Center' : 'មជ្ឈមណ្ឌលធនធានបង្រៀន',
+      subtitle: language === 'en' ? 'Lesson plans, exam templates and educational materials in Google Drive' : 'ចែករំលែកកិច្ចតែងការ វិញ្ញាសា និងឯកសារបង្រៀនក្នុង Google Drive',
+      icon: FolderKanban
     },
     school_admin: {
       title: language === 'en' ? 'School Administration' : 'រដ្ឋបាល & លិខិតស្នាមសាលា',

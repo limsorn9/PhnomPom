@@ -24,6 +24,10 @@ import { LibraryManagement } from './components/LibraryManagement';
 import { OtherLearningResources } from './components/OtherLearningResources';
 import { RecentActivityDashboard } from './components/RecentActivityDashboard';
 import { AITeacherHub } from './components/ai-teacher/AITeacherHub';
+import { SchoolEquipmentLoanManager } from './components/SchoolEquipmentLoanManager';
+import { TeacherDailyAgendaPanel } from './components/TeacherDailyAgendaPanel';
+import { TeacherMeetingMinutesManager } from './components/TeacherMeetingMinutesManager';
+import { TeachingResourceHub } from './components/TeachingResourceHub';
 import { BulkDataImportExportModal } from './components/BulkDataImportExportModal';
 import { GoogleDriveSyncModal } from './components/GoogleDriveSyncModal';
 import { QuickSearchSpotlightModal } from './components/QuickSearchSpotlightModal';
@@ -149,6 +153,10 @@ const MainLayout: React.FC = () => {
           {activeTab === 'ai_teacher' && canAccessTab('ai_teacher') && <AITeacherHub />}
           {activeTab === 'activity_logs' && canAccessTab('activity_logs') && <RecentActivityDashboard />}
           {activeTab === 'homeroom_dashboard' && canAccessTab('homeroom_dashboard') && <HomeroomTeacherDashboard />}
+          {activeTab === 'teacher_agenda' && canAccessTab('teacher_agenda') && <TeacherDailyAgendaPanel />}
+          {activeTab === 'equipment_loans' && canAccessTab('equipment_loans') && <SchoolEquipmentLoanManager />}
+          {activeTab === 'teacher_meetings' && canAccessTab('teacher_meetings') && <TeacherMeetingMinutesManager />}
+          {activeTab === 'teaching_resources' && canAccessTab('teaching_resources') && <TeachingResourceHub />}
           {activeTab === 'school_admin' && canAccessTab('school_admin') && <SchoolAdmin />}
           {activeTab === 'school_management' && canAccessTab('school_management') && <SchoolManagement />}
           {activeTab === 'official_documents' && canAccessTab('official_documents') && <OfficialDocumentCenter />}

@@ -37,7 +37,11 @@ import {
   History,
   Sparkles,
   Tv,
-  Bookmark
+  Bookmark,
+  CalendarDays,
+  Laptop,
+  FolderKanban,
+  Users2
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 
@@ -77,6 +81,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     canAccessTab,
     appUsers,
     activityLogs,
+    equipmentLoans,
+    teacherDailyTasks,
+    teacherMeetings,
+    teachingResources,
     language
   } = useSchool();
 
@@ -163,6 +171,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Award,
       badge: 'Hub',
       badgeColor: 'bg-indigo-100 text-indigo-700 font-bold',
+    },
+    {
+      id: 'teacher_agenda',
+      labelKh: 'របៀបវារៈប្រចាំថ្ងៃ (Calendar)',
+      labelEn: 'Teacher Daily Agenda',
+      icon: CalendarDays,
+      badge: teacherDailyTasks.filter(t => !t.isCompleted).length > 0 ? `${teacherDailyTasks.filter(t => !t.isCompleted).length}` : undefined,
+      badgeColor: 'bg-blue-100 text-blue-700 font-bold',
+    },
+    {
+      id: 'equipment_loans',
+      labelKh: 'ត្រួតពិនិត្យឧបករណ៍សាលា (Sheets)',
+      labelEn: 'Equipment Loans (Sheets)',
+      icon: Laptop,
+      badge: equipmentLoans.filter(l => l.status === 'borrowed').length > 0 ? `${equipmentLoans.filter(l => l.status === 'borrowed').length}` : 'New',
+      badgeColor: 'bg-amber-100 text-amber-800 font-bold',
+    },
+    {
+      id: 'teacher_meetings',
+      labelKh: 'កំណត់ត្រាការប្រជុំគ្រូ (Minutes)',
+      labelEn: 'Teacher Meeting Minutes',
+      icon: Users2,
+      badge: teacherMeetings.length,
+      badgeColor: 'bg-purple-100 text-purple-700 font-semibold',
+    },
+    {
+      id: 'teaching_resources',
+      labelKh: 'ធនធានបង្រៀន (Google Drive)',
+      labelEn: 'Teaching Resource Center',
+      icon: FolderKanban,
+      badge: teachingResources.length,
+      badgeColor: 'bg-sky-100 text-sky-700 font-semibold',
     },
     {
       id: 'school_admin',

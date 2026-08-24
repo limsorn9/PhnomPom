@@ -560,6 +560,10 @@ export interface SystemNotification {
 export type ActiveTab = 
   | 'dashboard'
   | 'homeroom_dashboard'
+  | 'teacher_agenda'
+  | 'equipment_loans'
+  | 'teacher_meetings'
+  | 'teaching_resources'
   | 'ai_teacher'
   | 'activity_logs'
   | 'school_admin'
@@ -1327,5 +1331,240 @@ export interface OfflineSyncQueueItem {
   createdAt: string;
   retryCount: number;
   error?: string;
+}
+
+// ----------------------------------------------------
+// 1. SCHOOL EQUIPMENT & TECH LOAN CHECKLIST (បញ្ជីឧបករណ៍ និងការខ្ចី)
+// ----------------------------------------------------
+export type EquipmentCategory =
+  | 'projector'       // ម៉ាស៊ីនបញ្ចាំង (Projector)
+  | 'laptop'          // កុំព្យូទ័រយួរដៃ (Laptop)
+  | 'tablet'          // ថេប្លេត (Tablet / iPad)
+  | 'speaker_mic'     // ធុងបាស និងមីក្រូហ្វូនឥតខ្សែ (Wireless Speaker & Mic)
+  | 'smart_tv'        // ទូរទស្សន៍ឆ្លាតវៃ / អេក្រង់ (Smart TV / Interactive Display)
+  | 'document_camera' // ម៉ាស៊ីនស្កេនឯកសារបង្រៀន (Document Visualizer)
+  | 'solar_power'     // ផ្ទាំងសូឡា / អាគុយផ្ទុកថាមពល (Solar Inverter / Power Bank)
+  | 'science_kit'     // ឧបករណ៍ពិសោធន៍វិទ្យាសាស្ត្រ (Science Lab Kit)
+  | 'other';
+
+export type LoanStatus = 'borrowed' | 'returned' | 'overdue' | 'damaged';
+
+export interface SchoolEquipmentItem {
+  id: string;
+  code: string; // ឧ. TECH-PRJ-01, TECH-LAP-03
+  nameKhmer: string; // ម៉ាស៊ីនបញ្ចាំង Epson EB-X06
+  category: EquipmentCategory;
+  brandModel: string;
+  serialNumber?: string;
+  locationRoom: string; // បន្ទប់កុំព្យូទ័រ, ការិយាល័យ, បណ្ណាល័យ
+  condition: 'good' | 'fair' | 'maintenance' | 'broken';
+  totalQuantity: number;
+  availableQuantity: number;
+  statusNotes?: string;
+}
+
+export interface EquipmentLoanRecord {
+  id: string;
+  loanNumber: string; // ឧ. LN-2024-001
+  equipmentId: string;
+  equipmentCode: string;
+  equipmentName: string;
+  equipmentCategory: EquipmentCategory;
+  teacherId?: string;
+  teacherName: string; // ឈ្មោះគ្រូខ្ចី
+  teacherPhone?: string;
+  gradeSection: string; // ឧ. ថ្នាក់ទី៥ក, បន្ទប់កុំព្យូទ័រ
+  purposeOfUse: string; // គោលបំណង ឧ. បញ្ចាំងស្លាយមេរៀនវិទ្យាសាស្ត្រ, ប្រជុំគ្រូ
+  borrowDate: string; // YYYY-MM-DD
+  borrowTime?: string; // HH:mm
+  expectedReturnDate: string; // YYYY-MM-DD
+  expectedReturnTime?: string;
+  actualReturnDate?: string;
+  status: LoanStatus;
+  conditionBefore: string; // ដំណើរការល្អ
+  conditionAfter?: string; // ដំណើរការល្អ ឬ មានបញ្ហា
+  recordedBy: string; // អ្នកកត់ត្រា/បណ្ណារក្ស
+  syncedToGoogleSheets?: boolean;
+  googleSheetRowIndex?: number;
+  notes?: string;
+  createdAt: string;
+}
+
+// ----------------------------------------------------
+// 2. TEACHER DAILY AGENDA & TASKS (របៀបវារៈប្រចាំថ្ងៃរបស់គ្រូ)
+// ----------------------------------------------------
+export type TaskPriority = 'urgent' | 'high' | 'normal' | 'low';
+export type TaskCategory = 'teaching' | 'exam_grading' | 'meeting' | 'attendance' | 'admin' | 'google_calendar';
+
+export interface TeacherDailyTask {
+  id: string;
+  title: string;
+  description?: string;
+  date: string; // YYYY-MM-DD
+  startTime?: string; // HH:mm
+  endTime?: string;
+  category: TaskCategory;
+  priority: TaskPriority;
+  isCompleted: boolean;
+  completedAt?: string;
+  assignedTeacherName?: string;
+  gradeSection?: string;
+  googleCalendarEventId?: string;
+  googleCalendarHtmlLink?: string;
+  isSyncedToGoogleCalendar?: boolean;
+  createdAt: string;
+}
+
+// ----------------------------------------------------
+// 3. TEACHER MEETING MINUTES & RESOLUTIONS (កំណត់ត្រាការប្រជុំគ្រូ)
+// ----------------------------------------------------
+export type TeacherMeetingType =
+  | 'monthly'          // កិច្ចប្រជុំប្រចាំខែ (Monthly General Staff Meeting)
+  | 'pedagogical'      // កិច្ចប្រជុំបច្ចេកទេស/គរុកោសល្យ (Technical & Pedagogical Meeting)
+  | 'exam_review'      // កិច្ចប្រជុំបូកសរុបលទ្ធផលប្រឡង (Exam & Score Evaluation)
+  | 'emergency'        // កិច្ចប្រជុំបន្ទាន់ (Emergency / Ad-hoc Meeting)
+  | 'semester_opening' // កិច្ចប្រជុំបើកបវេសនកាល/ឆមាស (Semester Kickoff)
+  | 'community_school';// កិច្ចប្រជុំជាមួយគណៈកម្មការទ្រទ្រង់សាលា
+
+export interface MeetingAttendee {
+  id: string;
+  name: string;
+  role: string;
+  present: boolean;
+  permissionReason?: string;
+}
+
+export interface MeetingActionItem {
+  id: string;
+  taskTitle: string;
+  responsiblePerson: string;
+  deadlineDate: string;
+  status: 'pending' | 'in_progress' | 'completed';
+}
+
+export interface TeacherMeetingRecord {
+  id: string;
+  meetingCode: string; // ឧ. MT-2024-10
+  title: string; // កិច្ចប្រជុំប្រចាំខែតុលា បូកសរុបការបង្រៀន និងផែនការប្រឡងឆមាសទី១
+  meetingType: TeacherMeetingType;
+  academicYear: string;
+  meetingDate: string; // YYYY-MM-DD
+  meetingTime: string; // ឧ. 08:30 - 11:30 ព្រឹក
+  location: string; // ឧ. បន្ទប់ប្រជុំធំ សាលាបឋមសិក្សាភ្នំព្រឹក
+  chairpersonName: string; // ប្រធានអង្គប្រជុំ (លោកនាយក)
+  secretaryName: string; // លេខាអង្គប្រជុំ
+  totalInvited: number;
+  totalPresent: number;
+  attendees: MeetingAttendee[];
+  agendas: string[]; // របៀបវារៈប្រជុំ
+  discussionSummary: string; // សង្ខេបខ្លឹមសារពិភាក្សា
+  resolutions: string[]; // សេចក្ដីសម្រេចចិត្តពីការប្រជុំ (Decisions & Agreed Points)
+  actionItems: MeetingActionItem[]; // ផែនការសកម្មភាពបន្ត និងអ្នកទទួលបន្ទុក
+  googleCalendarEventId?: string;
+  googleCalendarHtmlLink?: string;
+  isSyncedToGoogleCalendar?: boolean;
+  syncedAt?: string;
+  // Google Drive synchronization fields
+  isSyncedToGoogleDrive?: boolean;
+  googleDriveFileId?: string;
+  googleDriveWebViewLink?: string;
+  driveSyncedAt?: string;
+  status: 'draft' | 'approved' | 'published';
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ----------------------------------------------------
+// 4. GOOGLE DRIVE AUTOMATED SYNC STATE & LOGS
+// ----------------------------------------------------
+export interface DriveAutoSyncConfig {
+  enabled: boolean;
+  intervalMinutes: number; // e.g. 15, 30, 60, 1440
+  syncMeetings: boolean;
+  syncFinances: boolean;
+  syncFullBackup: boolean;
+  folderId: string;
+  lastAutoSyncTime?: string;
+  autoSyncOnChanges: boolean;
+}
+
+export interface DriveSyncHistoryItem {
+  id: string;
+  title: string;
+  category: 'meeting_minutes' | 'financial_report' | 'database_backup' | 'custom_file';
+  categoryLabelKhmer: string;
+  fileName: string;
+  fileSizeBytes?: number;
+  fileSizeFormatted?: string;
+  folderId: string;
+  driveFileId?: string;
+  driveWebViewLink?: string;
+  status: 'success' | 'syncing' | 'failed' | 'pending';
+  errorMessage?: string;
+  syncedAt: string;
+  syncedBy: string;
+}
+
+// ----------------------------------------------------
+// 4. TEACHING RESOURCE HUB & GOOGLE DRIVE SHARING (មជ្ឈមណ្ឌលធនធានបង្រៀន)
+// ----------------------------------------------------
+export type ResourceSubject =
+  | 'khmer'            // ភាសាខ្មែរ
+  | 'math'             // គណិតវិទ្យា
+  | 'science'          // វិទ្យាសាស្ត្រ
+  | 'social'           // សិក្សាសង្គម
+  | 'arts_music'       // សិល្បៈ-តន្ត្រី
+  | 'physical_health'  // អប់រំកាយ និងសុខភាព
+  | 'english'          // ភាសាអង់គ្លេស
+  | 'pedagogy_guide'   // ឯកសារគរុកោសល្យ/វិធីសាស្ត្របង្រៀន
+  | 'general_knowledge';
+
+export type ResourceFileType = 'pdf' | 'slide' | 'doc' | 'sheet' | 'image' | 'video' | 'zip' | 'link';
+
+export interface TeachingResourceFile {
+  id: string;
+  titleKhmer: string;
+  description?: string;
+  gradeLevel: number; // 0=ទូទៅ, 1 to 6
+  subject: ResourceSubject;
+  fileType: ResourceFileType;
+  fileSizeBytes?: number;
+  fileSizeFormatted?: string; // ឧ. 2.4 MB
+  originalFileName: string;
+  downloadUrl?: string;
+  driveFileId?: string;
+  driveWebViewLink?: string;
+  driveDownloadLink?: string;
+  authorTeacherName: string;
+  isSharedWithAllTeachers: boolean;
+  tags?: string[];
+  viewsCount: number;
+  downloadsCount: number;
+  syncedToGoogleDrive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// ----------------------------------------------------
+// 5. MONTHLY BUDGET TRACKING WITH GOOGLE SHEETS
+// ----------------------------------------------------
+export interface MonthlyBudgetSummary {
+  monthName: string; // ឧ. តុលា, វិច្ឆិកា...
+  monthNumber: number;
+  academicYear: string;
+  incomeRiel: number;
+  expenseRiel: number;
+  balanceRiel: number;
+  incomeUsd: number;
+  expenseUsd: number;
+  balanceUsd: number;
+  transactionCount: number;
+  bySource: {
+    pbStateBudget: { income: number; expense: number };
+    sigImprovementGrant: { income: number; expense: number };
+    communityParents: { income: number; expense: number };
+    ngoPartner: { income: number; expense: number };
+  };
+  byCategory: Record<string, number>;
 }
 

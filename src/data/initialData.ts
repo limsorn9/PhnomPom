@@ -25,7 +25,12 @@ import {
   AtRiskStudent,
   DailyClassLog,
   BadgeDefinition,
-  StudentBadgeAssignment
+  StudentBadgeAssignment,
+  SchoolEquipmentItem,
+  EquipmentLoanRecord,
+  TeacherDailyTask,
+  TeacherMeetingRecord,
+  TeachingResourceFile
 } from '../types';
 
 export const initialSchoolProfile: SchoolProfile = {
@@ -3430,6 +3435,399 @@ export const initialStudentBadgeAssignments: StudentBadgeAssignment[] = [
     reasonOrEvidence: 'ជាជំនួយការសិក្សាគំរូ (Peer Tutor) ជួយបង្រៀនមិត្តភក្តិ ៣នាក់ឱ្យចេះអានបានយ៉ាងស្ទាត់',
     certificateNumber: 'CERT-2024-007',
     createdAt: '2024-12-01'
+  }
+];
+
+// =========================================================================
+// 1. INITIAL SCHOOL EQUIPMENT CATALOG & LOAN RECORDS (បញ្ជីឧបករណ៍ និងការខ្ចី)
+// =========================================================================
+export const initialSchoolEquipment: SchoolEquipmentItem[] = [
+  {
+    id: 'eq-1',
+    code: 'TECH-PRJ-01',
+    nameKhmer: 'ម៉ាស៊ីនបញ្ចាំងស្លាយ Epson EB-X06 (Projector)',
+    category: 'projector',
+    brandModel: 'Epson EB-X06 3600 Lumens',
+    serialNumber: 'X06-KHM-2023-01',
+    locationRoom: 'បន្ទប់កុំព្យូទ័រ & ធនធាន',
+    condition: 'good',
+    totalQuantity: 2,
+    availableQuantity: 1,
+    statusNotes: 'រូបភាពច្បាស់ ភ្ជាប់ខ្សែ HDMI/VGA បានល្អ'
+  },
+  {
+    id: 'eq-2',
+    code: 'TECH-PRJ-02',
+    nameKhmer: 'ម៉ាស៊ីនបញ្ចាំងចល័ត ViewSonic M1+ (Portable Projector)',
+    category: 'projector',
+    brandModel: 'ViewSonic M1+ LED with Battery',
+    serialNumber: 'VS-M1-2023-08',
+    locationRoom: 'បន្ទប់បណ្ណាល័យ',
+    condition: 'good',
+    totalQuantity: 1,
+    availableQuantity: 1,
+    statusNotes: 'មានថ្មក្នុងខ្លួន ងាយស្រួលយកបញ្ចាំងតាមថ្នាក់រៀន'
+  },
+  {
+    id: 'eq-3',
+    code: 'TECH-LAP-01',
+    nameKhmer: 'កុំព្យូទ័រយួរដៃ Dell Latitude 3420 (Laptop គ្រូបង្រៀន)',
+    category: 'laptop',
+    brandModel: 'Dell Latitude 3420 Core i5 / 8GB / 256GB SSD',
+    serialNumber: 'DELL-3420-001',
+    locationRoom: 'បន្ទប់កុំព្យូទ័រ',
+    condition: 'good',
+    totalQuantity: 3,
+    availableQuantity: 2,
+    statusNotes: 'ដំឡើង Windows 11 & Khmer Unicode & កម្មវិធីបង្រៀន MoEYS រួចរាល់'
+  },
+  {
+    id: 'eq-4',
+    code: 'TECH-TAB-01',
+    nameKhmer: 'កញ្ចប់ថេប្លេតបង្រៀន Samsung Galaxy Tab A8 (កញ្ចប់ ១០ គ្រឿង)',
+    category: 'tablet',
+    brandModel: 'Samsung Galaxy Tab A8 10.5"',
+    serialNumber: 'TAB-A8-SET-01',
+    locationRoom: 'បន្ទប់បច្ចេកវិទ្យា ICT',
+    condition: 'good',
+    totalQuantity: 10,
+    availableQuantity: 10,
+    statusNotes: 'សម្រាប់សិស្សរៀនកម្មវិធី Komar Rien Komar Chhlat និង PLP'
+  },
+  {
+    id: 'eq-5',
+    code: 'TECH-SPK-01',
+    nameKhmer: 'ធុងបាសចល័ត + មីក្រូហ្វូនឥតខ្សែ ២ (Wireless PA Speaker & Mic)',
+    category: 'speaker_mic',
+    brandModel: 'Temeisheng 12" Bluetooth + 2 Wireless Mics',
+    serialNumber: 'TMS-12-MIC-01',
+    locationRoom: 'សាលប្រជុំ / ការិយាល័យរដ្ឋបាល',
+    condition: 'good',
+    totalQuantity: 2,
+    availableQuantity: 1,
+    statusNotes: 'សម្រាប់គោរពទង់ជាតិ កម្មវិធីសាលា និងបង្រៀនភាសាអង់គ្លេស'
+  },
+  {
+    id: 'eq-6',
+    code: 'TECH-TV-01',
+    nameKhmer: 'ទូរទស្សន៍ឆ្លាតវៃ Smart TV LG 55" 4K',
+    category: 'smart_tv',
+    brandModel: 'LG 55UQ7550 Smart WebOS',
+    serialNumber: 'LG-55-2022-09',
+    locationRoom: 'បន្ទប់កុមារមេត្រី / ថ្នាក់ទី១',
+    condition: 'good',
+    totalQuantity: 1,
+    availableQuantity: 1,
+    statusNotes: 'បំពាក់ជាប់ជញ្ជាំងថ្នាក់រៀនសម្រាប់ចាក់វីដេអូអប់រំក្រសួង'
+  },
+  {
+    id: 'eq-7',
+    code: 'TECH-SOLAR-01',
+    nameKhmer: 'ប្រព័ន្ធផ្ទាំងសូឡា និងអាគុយបម្រុងអគ្គិសនី (Solar Hybrid Inverter)',
+    category: 'solar_power',
+    brandModel: 'Growatt 3kW Hybrid + Lithium Battery 48V',
+    serialNumber: 'GW-3KW-SOLAR-01',
+    locationRoom: 'អគារសិក្សាធំ',
+    condition: 'good',
+    totalQuantity: 1,
+    availableQuantity: 1,
+    statusNotes: 'ផ្គត់ផ្គង់ភ្លើងអគ្គិសនីសម្រាប់កុំព្យូទ័រ និងម៉ាស៊ីនបញ្ចាំងពេលដាច់ភ្លើង'
+  }
+];
+
+export const initialEquipmentLoans: EquipmentLoanRecord[] = [
+  {
+    id: 'loan-1',
+    loanNumber: 'LN-2024-001',
+    equipmentId: 'eq-1',
+    equipmentCode: 'TECH-PRJ-01',
+    equipmentName: 'ម៉ាស៊ីនបញ្ចាំងស្លាយ Epson EB-X06 (Projector)',
+    equipmentCategory: 'projector',
+    teacherId: 't-1',
+    teacherName: 'អ្នកគ្រូ កែវ ផល្លា',
+    teacherPhone: '012 34 56 78',
+    gradeSection: 'ថ្នាក់ទី៥ក',
+    purposeOfUse: 'បញ្ចាំងស្លាយមេរៀនវិទ្យាសាស្ត្រស្ដីពី «វដ្តជីវិតរបស់រុក្ខជាតិ»',
+    borrowDate: '2024-10-14',
+    borrowTime: '08:00',
+    expectedReturnDate: '2024-10-14',
+    expectedReturnTime: '11:00',
+    actualReturnDate: '2024-10-14',
+    status: 'returned',
+    conditionBefore: 'ដំណើរការល្អ កម្រិតពន្លឺច្បាស់',
+    conditionAfter: 'ប្រគល់គ្រប់គ្រឿង ខ្សែ HDMI និងតេឡេពេញលេញ',
+    recordedBy: 'លោក សុខ ពិសិដ្ឋ (បណ្ណារក្ស)',
+    syncedToGoogleSheets: true,
+    createdAt: '2024-10-14T08:00:00Z'
+  },
+  {
+    id: 'loan-2',
+    loanNumber: 'LN-2024-002',
+    equipmentId: 'eq-3',
+    equipmentCode: 'TECH-LAP-01',
+    equipmentName: 'កុំព្យូទ័រយួរដៃ Dell Latitude 3420 (Laptop គ្រូបង្រៀន)',
+    equipmentCategory: 'laptop',
+    teacherId: 't-2',
+    teacherName: 'លោកគ្រូ ចាន់ សុភាព',
+    teacherPhone: '098 76 54 32',
+    gradeSection: 'ថ្នាក់ទី៦ក',
+    purposeOfUse: 'បញ្ចូលទិន្នន័យពិន្ទុសិស្សប្រចាំខែ និងរៀបចំកិច្ចតែងការបង្រៀនគណិតវិទ្យា',
+    borrowDate: new Date().toISOString().split('T')[0],
+    borrowTime: '07:30',
+    expectedReturnDate: new Date().toISOString().split('T')[0],
+    expectedReturnTime: '17:00',
+    status: 'borrowed',
+    conditionBefore: 'ដំណើរការល្អ ថ្មពេញ ១០០%',
+    recordedBy: 'អ្នកគ្រូ ពេជ្រ ធីតា (លេខាធិការ)',
+    syncedToGoogleSheets: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'loan-3',
+    loanNumber: 'LN-2024-003',
+    equipmentId: 'eq-5',
+    equipmentCode: 'TECH-SPK-01',
+    equipmentName: 'ធុងបាសចល័ត + មីក្រូហ្វូនឥតខ្សែ ២ (Wireless PA Speaker & Mic)',
+    equipmentCategory: 'speaker_mic',
+    teacherId: 't-3',
+    teacherName: 'អ្នកគ្រូ ស៊ុន ម៉ាលី',
+    teacherPhone: '088 12 34 56',
+    gradeSection: 'ទីធ្លាសាលារៀន',
+    purposeOfUse: 'ហាត់សមរបាំប្រពៃណី និងអប់រំកាយសម្រាប់ទិវាកុមារអន្តរជាតិ',
+    borrowDate: new Date().toISOString().split('T')[0],
+    borrowTime: '13:30',
+    expectedReturnDate: new Date().toISOString().split('T')[0],
+    expectedReturnTime: '16:30',
+    status: 'borrowed',
+    conditionBefore: 'មីក្រូហ្វូន ២ ដំណើរការល្អ ថ្មសាកពេញ',
+    recordedBy: 'លោក សុខ ពិសិដ្ឋ (បណ្ណារក្ស)',
+    syncedToGoogleSheets: false,
+    createdAt: new Date().toISOString()
+  }
+];
+
+// =========================================================================
+// 2. INITIAL TEACHER DAILY AGENDA TASKS (របៀបវារៈប្រចាំថ្ងៃរបស់គ្រូ)
+// =========================================================================
+export const initialTeacherDailyTasks: TeacherDailyTask[] = [
+  {
+    id: 'task-1',
+    title: 'បញ្ចូលពិន្ទុប្រឡងប្រចាំខែតុលា មុខវិជ្ជាគណិតវិទ្យា និងភាសាខ្មែរ',
+    description: 'ផ្ទៀងផ្ទាត់សន្លឹកកិច្ចការសិស្ស ៣២ នាក់ និងស្រង់ចូលប្រព័ន្ធ',
+    date: new Date().toISOString().split('T')[0],
+    startTime: '08:30',
+    endTime: '10:00',
+    category: 'exam_grading',
+    priority: 'urgent',
+    isCompleted: false,
+    assignedTeacherName: 'អ្នកគ្រូ កែវ ផល្លា',
+    gradeSection: 'ថ្នាក់ទី៥ក',
+    isSyncedToGoogleCalendar: true,
+    createdAt: '2024-10-15T01:00:00Z'
+  },
+  {
+    id: 'task-2',
+    title: 'ត្រួតពិនិត្យវត្តមានសិស្ស និងសុខភាព BMI ប្រចាំត្រីមាស',
+    description: 'កត់ត្រាសិស្សអវត្តមាន និងថ្លឹងទម្ងន់ វាស់កម្ពស់សិស្សជួរទី២',
+    date: new Date().toISOString().split('T')[0],
+    startTime: '07:00',
+    endTime: '07:30',
+    category: 'attendance',
+    priority: 'high',
+    isCompleted: true,
+    completedAt: '2024-10-15T07:25:00Z',
+    assignedTeacherName: 'លោកគ្រូ ចាន់ សុភាព',
+    gradeSection: 'ថ្នាក់ទី៦ក',
+    isSyncedToGoogleCalendar: true,
+    createdAt: '2024-10-15T01:00:00Z'
+  },
+  {
+    id: 'task-3',
+    title: 'កិច្ចប្រជុំក្រុមបច្ចេកទេសគរុកោសល្យ កម្រងសាលាភ្នំព្រឹក',
+    description: 'ពិភាក្សាវិធីសាស្ត្របង្រៀនអំណានដំបូង និងការប្រើប្រាស់កញ្ចប់សម្ភារៈ PLP',
+    date: new Date().toISOString().split('T')[0],
+    startTime: '14:00',
+    endTime: '16:00',
+    category: 'meeting',
+    priority: 'high',
+    isCompleted: false,
+    assignedTeacherName: 'លោកគ្រូ ឈិន សុផល (នាយករង)',
+    gradeSection: 'បន្ទប់ប្រជុំធំ',
+    isSyncedToGoogleCalendar: true,
+    createdAt: '2024-10-15T01:00:00Z'
+  },
+  {
+    id: 'task-4',
+    title: 'រៀបចំកិច្ចតែងការបង្រៀនសប្តាហ៍ទី ៤ មុខវិជ្ជាវិទ្យាសាស្ត្រ',
+    description: 'ទាញយកឯកសារជំនួយពី Google Drive និងរៀបចំសម្ភារៈពិសោធន៍ស្លឹកឈើ',
+    date: new Date(Date.now() + 86400000).toISOString().split('T')[0], // ថ្ងៃស្អែក
+    startTime: '10:30',
+    endTime: '11:30',
+    category: 'teaching',
+    priority: 'normal',
+    isCompleted: false,
+    assignedTeacherName: 'អ្នកគ្រូ ស៊ុន ម៉ាលី',
+    gradeSection: 'ថ្នាក់ទី៤ក',
+    isSyncedToGoogleCalendar: false,
+    createdAt: '2024-10-15T01:00:00Z'
+  }
+];
+
+// =========================================================================
+// 3. INITIAL TEACHER MEETING MINUTES & DECISIONS (កំណត់ត្រាការប្រជុំគ្រូ)
+// =========================================================================
+export const initialTeacherMeetings: TeacherMeetingRecord[] = [
+  {
+    id: 'mtg-1',
+    meetingCode: 'MT-2024-10',
+    title: 'កិច្ចប្រជុំប្រចាំខែតុលា បូកសរុបលទ្ធផលបង្រៀន និងផែនការត្រៀមប្រឡងឆមាសទី១',
+    meetingType: 'monthly',
+    academicYear: '២០២៤ - ២០២៥',
+    meetingDate: '2024-10-10',
+    meetingTime: '08:30 - 11:30 ព្រឹក',
+    location: 'បន្ទប់ប្រជុំធំ សាលាបឋមសិក្សាភ្នំពុំ',
+    chairpersonName: 'លោក លីម សន (នាយកសាលា)',
+    secretaryName: 'អ្នកគ្រូ ពេជ្រ ធីតា (លេខាធិការ)',
+    totalInvited: 12,
+    totalPresent: 11,
+    attendees: [
+      { id: 'att-1', name: 'លោក លីម សន', role: 'នាយកសាលា', present: true },
+      { id: 'att-2', name: 'លោក ឈិន សុផល', role: 'នាយករង', present: true },
+      { id: 'att-3', name: 'អ្នកគ្រូ កែវ ផល្លា', role: 'ប្រធានក្រុមបច្ចេកទេសថ្នាក់ទី៥', present: true },
+      { id: 'att-4', name: 'លោកគ្រូ ចាន់ សុភាព', role: 'គ្រូបន្ទុកថ្នាក់ទី៦', present: true },
+      { id: 'att-5', name: 'អ្នកគ្រូ ស៊ុន ម៉ាលី', role: 'គ្រូបន្ទុកថ្នាក់ទី៤', present: true },
+      { id: 'att-6', name: 'លោកគ្រូ ហុង វណ្ណា', role: 'គ្រូបន្ទុកថ្នាក់ទី៣', present: true },
+      { id: 'att-7', name: 'អ្នកគ្រូ ម៉ី សុខុម', role: 'គ្រូបន្ទុកថ្នាក់ទី២', present: true },
+      { id: 'att-8', name: 'អ្នកគ្រូ អ៊ឹម សារ៉េត', role: 'គ្រូបន្ទុកថ្នាក់ទី១', present: true },
+      { id: 'att-9', name: 'លោក សុខ ពិសិដ្ឋ', role: 'បណ្ណារក្ស & ICT', present: true },
+      { id: 'att-10', name: 'អ្នកគ្រូ ពេជ្រ ធីតា', role: 'លេខាធិការ & គណនេយ្យ', present: true },
+      { id: 'att-11', name: 'លោក អ៊ុក វ៉ាន់នី', role: 'តំណាងគណៈកម្មការទ្រទ្រង់សាលា', present: true },
+      { id: 'att-12', name: 'អ្នកគ្រូ ឡុង ចរិយា', role: 'គ្រូជំនួយការ', present: false, permissionReason: 'សុំច្បាប់ព្យាបាលជំងឺ' }
+    ],
+    agendas: [
+      '១. បូកសរុបលទ្ធផលនៃការបង្រៀន និងវត្តមានសិស្សប្រចាំខែកញ្ញា-តុលា',
+      '២. ត្រួតពិនិត្យការអនុវត្តវិធីសាស្ត្របង្រៀនអំណានដំបូង និងគណិតវិទ្យាថ្នាក់ដំបូង (PLP/MoEYS)',
+      '៣. ការគ្រប់គ្រង និងថែរក្សាឧបករណ៍បច្ចេកវិទ្យា (Projector, Laptop, Tablet)',
+      '៤. ផែនការរៀបចំការប្រឡងប្រចាំខែវិច្ឆិកា និងការផ្ទៀងផ្ទាត់ស្រង់ពិន្ទុ'
+    ],
+    discussionSummary: 'អង្គប្រជុំបានពិភាក្សាយ៉ាងផុសផុលលើបញ្ហាសិស្សរៀនយឺតមួយចំនួននៅថ្នាក់ទី១ និងទី២។ លោកនាយកបានកោតសរសើរចំពោះការខិតខំប្រឹងប្រែងរបស់លោកគ្រូ-អ្នកគ្រូទាំងអស់ក្នុងការអនុវត្តវិធីសាស្ត្របង្រៀនសកម្ម និងការប្រើប្រាស់បច្ចេកវិទ្យាព័ត៌មានវិទ្យា។ បណ្ណារក្សបានរាយការណ៍អំពីការខ្ចី Projector និង Laptop កើនឡើងខ្ពស់ដែលជំរុញឱ្យការបង្រៀនកាន់តែមានភាពរស់រវើក។',
+    resolutions: [
+      '១. ឯកភាពរៀបចំកម្មវិធីបង្រៀនបំប៉នបន្ថែម (Remedial Class) សម្រាប់សិស្សរៀនយឺត ២ ម៉ោងក្នុងមួយសប្តាហ៍ (រៀងរាល់ថ្ងៃអង្គារ និងព្រហស្បតិ៍)',
+      '២. កំណត់ឱ្យគ្រូបង្រៀនទាំងអស់ត្រូវកត់ត្រាការខ្ចី-ប្រើប្រាស់ឧបករណ៍បច្ចេកវិទ្យាក្នុងប្រព័ន្ធ និង sync ទៅ Google Sheets ជាប្រចាំដើម្បីងាយស្រួលគ្រប់គ្រង',
+      '៣. ផ្ទៀងផ្ទាត់ពិន្ទុសិស្ស និងបញ្ជូនលទ្ធផលឱ្យបានមុនថ្ងៃទី ២៥ នៃខែនីមួយៗ',
+      '៤. បង្កើនការសម្អាតបរិស្ថានសាលារៀន និងការដាំកូនឈើបន្ថែមនៅមុខអគារសិក្សា'
+    ],
+    actionItems: [
+      {
+        id: 'act-1',
+        taskTitle: 'រៀបចំកាលវិភាគបង្រៀនបំប៉នសិស្សរៀនយឺតថ្នាក់ទី១ ដល់ទី៣',
+        responsiblePerson: 'លោក ឈិន សុផល (នាយករង)',
+        deadlineDate: '2024-10-20',
+        status: 'completed'
+      },
+      {
+        id: 'act-2',
+        taskTitle: 'ត្រួតពិនិត្យស្តុកឧបករណ៍បច្ចេកវិទ្យា និងខ្សែតភ្ជាប់ HDMI/Projector ទាំងអស់',
+        responsiblePerson: 'លោក សុខ ពិសិដ្ឋ (បណ្ណារក្ស)',
+        deadlineDate: '2024-10-18',
+        status: 'completed'
+      },
+      {
+        id: 'act-3',
+        taskTitle: 'បូកសរុបរបាយការណ៍ហិរញ្ញវត្ថុចំណូល-ចំណាយ SIG ប្រចាំខែតុលា ដាក់ជូនគណៈកម្មការពិនិត្យ',
+        responsiblePerson: 'អ្នកគ្រូ ពេជ្រ ធីតា (គណនេយ្យ)',
+        deadlineDate: '2024-10-31',
+        status: 'in_progress'
+      }
+    ],
+    googleCalendarEventId: 'mtg-cal-001',
+    isSyncedToGoogleCalendar: true,
+    syncedAt: '2024-10-10T12:00:00Z',
+    status: 'approved',
+    createdAt: '2024-10-10T11:45:00Z',
+    updatedAt: '2024-10-10T12:00:00Z'
+  }
+];
+
+// =========================================================================
+// 4. INITIAL TEACHING RESOURCE CENTER (មជ្ឈមណ្ឌលធនធានបង្រៀន Google Drive)
+// =========================================================================
+export const initialTeachingResources: TeachingResourceFile[] = [
+  {
+    id: 'res-1',
+    titleKhmer: 'កិច្ចតែងការបង្រៀនគំរូ ភាសាខ្មែរថ្នាក់ទី១ មេរៀនព្យញ្ជនៈ ៣៣ តួ',
+    description: 'កិច្ចតែងការលម្អិតតាមក្បួនវិធីសាស្ត្រអំណានដំបូង MoEYS ដំណាក់កាលទី១ ដល់ទី៤',
+    gradeLevel: 1,
+    subject: 'khmer',
+    fileType: 'doc',
+    fileSizeBytes: 2450000,
+    fileSizeFormatted: '2.4 MB',
+    originalFileName: 'Lesson_Plan_G1_Khmer_Consonants_MoEYS.docx',
+    authorTeacherName: 'អ្នកគ្រូ អ៊ឹម សារ៉េត',
+    isSharedWithAllTeachers: true,
+    tags: ['ភាសាខ្មែរ', 'ថ្នាក់ទី១', 'កិច្ចតែងការ', 'អំណានដំបូង'],
+    viewsCount: 48,
+    downloadsCount: 35,
+    syncedToGoogleDrive: true,
+    driveWebViewLink: 'https://drive.google.com/drive/folders/1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g',
+    createdAt: '2024-10-05T08:00:00Z'
+  },
+  {
+    id: 'res-2',
+    titleKhmer: 'ស្លាយបទបង្ហាញបង្រៀន (PowerPoint) គណិតវិទ្យាថ្នាក់ទី៥ «ប្រភាគ និងទសភាគ»',
+    description: 'ស្លាយមានគំនូរជីវចល និងលំហាត់អនុវត្តអន្តរកម្ម ស័ក្តិសមសម្រាប់បញ្ចាំង Projector',
+    gradeLevel: 5,
+    subject: 'math',
+    fileType: 'slide',
+    fileSizeBytes: 8900000,
+    fileSizeFormatted: '8.9 MB',
+    originalFileName: 'Slide_Math_G5_Fractions_Interactive.pptx',
+    authorTeacherName: 'អ្នកគ្រូ កែវ ផល្លា',
+    isSharedWithAllTeachers: true,
+    tags: ['គណិតវិទ្យា', 'ថ្នាក់ទី៥', 'ស្លាយបញ្ចាំង', 'ប្រភាគ'],
+    viewsCount: 72,
+    downloadsCount: 54,
+    syncedToGoogleDrive: true,
+    driveWebViewLink: 'https://drive.google.com/drive/folders/1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g',
+    createdAt: '2024-10-08T09:30:00Z'
+  },
+  {
+    id: 'res-3',
+    titleKhmer: 'សន្លឹកកិច្ចការ និងលំហាត់ពិសោធន៍ វិទ្យាសាស្ត្រថ្នាក់ទី៦ «ប្រព័ន្ធរំលាយអាហារ»',
+    description: 'សន្លឹកកិច្ចការ PDF សម្រាប់ចែកសិស្សបំពេញ និងគំនូសបំព្រួញសរីរាង្គមនុស្ស',
+    gradeLevel: 6,
+    subject: 'science',
+    fileType: 'pdf',
+    fileSizeBytes: 1800000,
+    fileSizeFormatted: '1.8 MB',
+    originalFileName: 'Worksheet_G6_Science_Digestion_System.pdf',
+    authorTeacherName: 'លោកគ្រូ ចាន់ សុភាព',
+    isSharedWithAllTeachers: true,
+    tags: ['វិទ្យាសាស្ត្រ', 'ថ្នាក់ទី៦', 'សន្លឹកកិច្ចការ', 'PDF'],
+    viewsCount: 65,
+    downloadsCount: 42,
+    syncedToGoogleDrive: true,
+    driveWebViewLink: 'https://drive.google.com/drive/folders/1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g',
+    createdAt: '2024-10-12T14:15:00Z'
+  },
+  {
+    id: 'res-4',
+    titleKhmer: 'កញ្ចប់សន្លឹកបណ្ណពាក្យ និងរូបភាព Flashcards ភាសាអង់គ្លេសបឋមសិក្សា (English Alphabet & Phonics)',
+    description: 'ឯកសាររូបភាព Flashcards សម្រាប់បោះពុម្ពពណ៌ ឬបញ្ចាំងលើ Smart TV',
+    gradeLevel: 4,
+    subject: 'english',
+    fileType: 'image',
+    fileSizeBytes: 12400000,
+    fileSizeFormatted: '12.4 MB',
+    originalFileName: 'Flashcards_English_Phonics_Primary.zip',
+    authorTeacherName: 'អ្នកគ្រូ ស៊ុន ម៉ាលី',
+    isSharedWithAllTeachers: true,
+    tags: ['អង់គ្លេស', 'Flashcards', 'រូបភាពបង្រៀន'],
+    viewsCount: 39,
+    downloadsCount: 28,
+    syncedToGoogleDrive: true,
+    driveWebViewLink: 'https://drive.google.com/drive/folders/1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g',
+    createdAt: '2024-10-14T10:00:00Z'
   }
 ];
 

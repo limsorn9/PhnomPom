@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { RecentActivityDashboard } from './RecentActivityDashboard';
+import { TeacherDailyAgendaPanel } from './TeacherDailyAgendaPanel';
 import {
   Users,
   GraduationCap,
@@ -478,6 +479,9 @@ export const Dashboard: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Teacher Daily Agenda & Google Calendar Reminders Widget */}
+      <TeacherDailyAgendaPanel />
 
       {/* Recent Activity Tracking & Data Changes Audit Feed */}
       <RecentActivityDashboard />

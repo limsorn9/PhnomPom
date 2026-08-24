@@ -3,6 +3,7 @@ import { useSchool } from '../context/SchoolContext';
 import { BudgetTransaction, BudgetSource } from '../types';
 import { exportFinanceToGoogleSheets } from '../services/googleSheets';
 import { getAccessToken, googleSignIn } from '../services/googleAuth';
+import { MonthlyBudgetSheetsSync } from './MonthlyBudgetSheetsSync';
 import {
   CircleDollarSign,
   TrendingUp,
@@ -44,6 +45,7 @@ export const BudgetFinance: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isExportingSheets, setIsExportingSheets] = useState(false);
+  const [financeSubTab, setFinanceSubTab] = useState<'general' | 'monthly_sheets'>('general');
 
 
   // Form State
@@ -276,10 +278,39 @@ export const BudgetFinance: React.FC = () => {
             </span>
           </div>
         </div>
+
+        {/* Sub-tabs Navigation */}
+        <div className="flex items-center gap-2 mt-5 pt-4 border-t border-slate-100">
+          <button
+            onClick={() => setFinanceSubTab('general')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
+              financeSubTab === 'general'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            ប្រតិបត្តិការទូទៅ & ក្រាហ្វិក
+          </button>
+          <button
+            onClick={() => setFinanceSubTab('monthly_sheets')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 ${
+              financeSubTab === 'monthly_sheets'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>តាមដានថវិកាប្រចាំខែ (១២ ខែ & Google Sheets)</span>
+          </button>
+        </div>
       </div>
 
-      {/* Chart: Income vs Expense by Source */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+      {financeSubTab === 'monthly_sheets' ? (
+        <MonthlyBudgetSheetsSync />
+      ) : (
+        <>
+          {/* Chart: Income vs Expense by Source */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-sm font-bold text-slate-900 font-kantumruy">
@@ -457,6 +488,8 @@ export const BudgetFinance: React.FC = () => {
           </div>
         </div>
       </div>
+      </>
+      )}
 
       {/* Add Transaction Modal */}
       {isAddModalOpen && (

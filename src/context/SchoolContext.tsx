@@ -40,10 +40,24 @@ import {
   BadgeDefinition,
   StudentBadgeAssignment,
   ActivityLogItem,
-  DailyHealthCheckRecord
+  DailyHealthCheckRecord,
+  SchoolEquipmentItem,
+  EquipmentLoanRecord,
+  TeacherDailyTask,
+  TeacherMeetingRecord,
+  TeachingResourceFile,
+  MonthlyBudgetSummary,
+  DriveAutoSyncConfig,
+  DriveSyncHistoryItem
 } from '../types';
 import { getTranslation, AppLanguage } from '../utils/translations';
-import { googleSignIn } from '../services/googleAuth';
+import { googleSignIn, isGoogleAuthenticated } from '../services/googleAuth';
+import {
+  backupSchoolDataToDrive,
+  uploadMeetingMinutesToDrive,
+  uploadFinancialReportToDrive,
+  PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+} from '../services/googleDrive';
 import {
   getStoredActivities,
   saveActivitiesToStorage,
@@ -102,7 +116,12 @@ import {
   initialAtRiskStudents,
   initialDailyClassLogs,
   initialBadgeDefinitions,
-  initialStudentBadgeAssignments
+  initialStudentBadgeAssignments,
+  initialSchoolEquipment,
+  initialEquipmentLoans,
+  initialTeacherDailyTasks,
+  initialTeacherMeetings,
+  initialTeachingResources
 } from '../data/initialData';
 
 interface SchoolContextType {
@@ -373,6 +392,36 @@ interface SchoolContextType {
   updateActivityLogs: (logs: ActivityLogItem[]) => void;
   clearActivityLogs: () => void;
 
+  // 1. School Equipment & Tech Loan Checklist (បញ្ជីឧបករណ៍ និងការខ្ចី)
+  equipmentItems: SchoolEquipmentItem[];
+  equipmentLoans: EquipmentLoanRecord[];
+  addEquipmentLoan: (loan: Omit<EquipmentLoanRecord, 'id' | 'createdAt'>) => void;
+  updateEquipmentLoan: (id: string, updated: Partial<EquipmentLoanRecord>) => void;
+  deleteEquipmentLoan: (id: string) => void;
+  addEquipmentItem: (item: Omit<SchoolEquipmentItem, 'id'>) => void;
+  updateEquipmentItem: (id: string, updated: Partial<SchoolEquipmentItem>) => void;
+
+  // 2. Teacher Daily Agenda & Tasks (របៀបវារៈប្រចាំថ្ងៃរបស់គ្រូ)
+  teacherDailyTasks: TeacherDailyTask[];
+  addTeacherDailyTask: (task: Omit<TeacherDailyTask, 'id' | 'createdAt'>) => void;
+  updateTeacherDailyTask: (id: string, updated: Partial<TeacherDailyTask>) => void;
+  toggleTaskCompleted: (id: string) => void;
+  deleteTeacherDailyTask: (id: string) => void;
+
+  // 3. Teacher Meeting Minutes & Decisions (កំណត់ត្រាការប្រជុំគ្រូ)
+  teacherMeetings: TeacherMeetingRecord[];
+  addTeacherMeeting: (meeting: Omit<TeacherMeetingRecord, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateTeacherMeeting: (id: string, updated: Partial<TeacherMeetingRecord>) => void;
+  deleteTeacherMeeting: (id: string) => void;
+
+  // 4. Teaching Resource Center (មជ្ឈមណ្ឌលធនធានបង្រៀន)
+  teachingResources: TeachingResourceFile[];
+  addTeachingResource: (resource: Omit<TeachingResourceFile, 'id' | 'createdAt'>) => void;
+  deleteTeachingResource: (id: string) => void;
+
+  // 5. Monthly Budget Tracking
+  getMonthlyBudgetSummaries: (academicYear?: string) => MonthlyBudgetSummary[];
+
   // FCM & Push Notifications
   dispatchNotification: (payload: {
     title: string;
@@ -394,6 +443,17 @@ interface SchoolContextType {
   lastCloudSyncTime: string | null;
   syncAllToCloud: () => Promise<boolean>;
   pullAllFromCloud: () => Promise<boolean>;
+
+  // 6. Google Drive Automated Synchronization (សមកាលកម្មស្វ័យប្រវត្តិ Google Drive)
+  driveAutoSyncConfig: DriveAutoSyncConfig;
+  updateDriveAutoSyncConfig: (config: Partial<DriveAutoSyncConfig>) => void;
+  driveSyncHistory: DriveSyncHistoryItem[];
+  isDriveSyncing: boolean;
+  syncMeetingToDrive: (meetingId: string) => Promise<void>;
+  syncAllMeetingsToDrive: () => Promise<{ success: number; failed: number }>;
+  syncFinancialReportToDrive: (academicYear?: string) => Promise<void>;
+  triggerDriveAutoSyncAll: () => Promise<void>;
+  clearDriveSyncHistory: () => void;
 }
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
@@ -1311,6 +1371,628 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setToastMessage({ text: 'បានលុបទិន្នន័យសារពើភ័ណ្ឌរួចរាល់', type: 'info' });
   };
 
+  // ----------------------------------------------------
+  // 1. SCHOOL EQUIPMENT & TECH LOAN CHECKLIST (បញ្ជីឧបករណ៍ និងការខ្ចី)
+  // ----------------------------------------------------
+  const [equipmentItems, setEquipmentItems] = useState<SchoolEquipmentItem[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_equipment_items`);
+    return saved ? JSON.parse(saved) : initialSchoolEquipment;
+  });
+
+  const [equipmentLoans, setEquipmentLoans] = useState<EquipmentLoanRecord[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_equipment_loans`);
+    return saved ? JSON.parse(saved) : initialEquipmentLoans;
+  });
+
+  const addEquipmentLoan = (loan: Omit<EquipmentLoanRecord, 'id' | 'createdAt'>) => {
+    const newLoan: EquipmentLoanRecord = {
+      ...loan,
+      id: `loan-${Date.now()}`,
+      createdAt: new Date().toISOString()
+    };
+    setEquipmentLoans(prev => [newLoan, ...prev]);
+
+    // Update equipment available quantity
+    setEquipmentItems(prev =>
+      prev.map(eq => {
+        if (eq.id === loan.equipmentId && eq.availableQuantity > 0) {
+          return { ...eq, availableQuantity: Math.max(0, eq.availableQuantity - 1) };
+        }
+        return eq;
+      })
+    );
+
+    setToastMessage({ text: `បានចុះឈ្មោះខ្ចីឧបករណ៍ «${loan.equipmentName}» ជោគជ័យ!`, type: 'success' });
+  };
+
+  const updateEquipmentLoan = (id: string, updated: Partial<EquipmentLoanRecord>) => {
+    setEquipmentLoans(prev =>
+      prev.map(loan => {
+        if (loan.id === id) {
+          const merged = { ...loan, ...updated };
+          // If status changed to returned, restore equipment quantity
+          if (loan.status !== 'returned' && updated.status === 'returned') {
+            setEquipmentItems(items =>
+              items.map(eq => (eq.id === loan.equipmentId ? { ...eq, availableQuantity: Math.min(eq.totalQuantity, eq.availableQuantity + 1) } : eq))
+            );
+          }
+          return merged;
+        }
+        return loan;
+      })
+    );
+    setToastMessage({ text: 'បានធ្វើបច្ចុប្បន្នភាពកំណត់ត្រាខ្ចីឧបករណ៍ជោគជ័យ!', type: 'success' });
+  };
+
+  const deleteEquipmentLoan = (id: string) => {
+    setEquipmentLoans(prev => prev.filter(l => l.id !== id));
+    setToastMessage({ text: 'បានលុបកំណត់ត្រាខ្ចីឧបករណ៍រួចរាល់', type: 'info' });
+  };
+
+  const addEquipmentItem = (item: Omit<SchoolEquipmentItem, 'id'>) => {
+    const newItem: SchoolEquipmentItem = {
+      ...item,
+      id: `eq-${Date.now()}`
+    };
+    setEquipmentItems(prev => [...prev, newItem]);
+    setToastMessage({ text: `បានបន្ថែមឧបករណ៍ «${newItem.nameKhmer}» ក្នុងបញ្ជីជោគជ័យ!`, type: 'success' });
+  };
+
+  const updateEquipmentItem = (id: string, updated: Partial<SchoolEquipmentItem>) => {
+    setEquipmentItems(prev => prev.map(item => (item.id === id ? { ...item, ...updated } : item)));
+    setToastMessage({ text: 'បានកែសម្រួលព័ត៌មានឧបករណ៍ជោគជ័យ!', type: 'success' });
+  };
+
+  // ----------------------------------------------------
+  // 2. TEACHER DAILY AGENDA & TASKS (របៀបវារៈប្រចាំថ្ងៃរបស់គ្រូ)
+  // ----------------------------------------------------
+  const [teacherDailyTasks, setTeacherDailyTasks] = useState<TeacherDailyTask[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_teacher_daily_tasks`);
+    return saved ? JSON.parse(saved) : initialTeacherDailyTasks;
+  });
+
+  const addTeacherDailyTask = (task: Omit<TeacherDailyTask, 'id' | 'createdAt'>) => {
+    const newTask: TeacherDailyTask = {
+      ...task,
+      id: `task-${Date.now()}`,
+      createdAt: new Date().toISOString()
+    };
+    setTeacherDailyTasks(prev => [newTask, ...prev]);
+    setToastMessage({ text: `បានបន្ថែមភារកិច្ច «${task.title}» ក្នុងរបៀបវារៈជោគជ័យ!`, type: 'success' });
+  };
+
+  const updateTeacherDailyTask = (id: string, updated: Partial<TeacherDailyTask>) => {
+    setTeacherDailyTasks(prev => prev.map(t => (t.id === id ? { ...t, ...updated } : t)));
+    setToastMessage({ text: 'បានធ្វើបច្ចុប្បន្នភាពភារកិច្ចជោគជ័យ!', type: 'success' });
+  };
+
+  const toggleTaskCompleted = (id: string) => {
+    setTeacherDailyTasks(prev =>
+      prev.map(t => {
+        if (t.id === id) {
+          const nextCompleted = !t.isCompleted;
+          return {
+            ...t,
+            isCompleted: nextCompleted,
+            completedAt: nextCompleted ? new Date().toISOString() : undefined
+          };
+        }
+        return t;
+      })
+    );
+  };
+
+  const deleteTeacherDailyTask = (id: string) => {
+    setTeacherDailyTasks(prev => prev.filter(t => t.id !== id));
+    setToastMessage({ text: 'បានលុបភារកិច្ចចេញរួចរាល់', type: 'info' });
+  };
+
+  // ----------------------------------------------------
+  // 3. TEACHER MEETING MINUTES & RESOLUTIONS (កំណត់ត្រាការប្រជុំគ្រូ)
+  // ----------------------------------------------------
+  const [teacherMeetings, setTeacherMeetings] = useState<TeacherMeetingRecord[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_teacher_meetings`);
+    return saved ? JSON.parse(saved) : initialTeacherMeetings;
+  });
+
+  const addTeacherMeeting = (meeting: Omit<TeacherMeetingRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newMeeting: TeacherMeetingRecord = {
+      ...meeting,
+      id: `mtg-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    setTeacherMeetings(prev => [newMeeting, ...prev]);
+    setToastMessage({ text: `បានបង្កើតកំណត់ត្រាកិច្ចប្រជុំ «${meeting.title}» ជោគជ័យ!`, type: 'success' });
+  };
+
+  const updateTeacherMeeting = (id: string, updated: Partial<TeacherMeetingRecord>) => {
+    setTeacherMeetings(prev =>
+      prev.map(m => (m.id === id ? { ...m, ...updated, updatedAt: new Date().toISOString() } : m))
+    );
+    setToastMessage({ text: 'បានកែសម្រួលកំណត់ត្រាកិច្ចប្រជុំជោគជ័យ!', type: 'success' });
+  };
+
+  const deleteTeacherMeeting = (id: string) => {
+    setTeacherMeetings(prev => prev.filter(m => m.id !== id));
+    setToastMessage({ text: 'បានលុបកំណត់ត្រាកិច្ចប្រជុំរួចរាល់', type: 'info' });
+  };
+
+  // ----------------------------------------------------
+  // 4. TEACHING RESOURCE HUB & GOOGLE DRIVE SHARING (មជ្ឈមណ្ឌលធនធានបង្រៀន)
+  // ----------------------------------------------------
+  const [teachingResources, setTeachingResources] = useState<TeachingResourceFile[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_teaching_resources`);
+    return saved ? JSON.parse(saved) : initialTeachingResources;
+  });
+
+  const addTeachingResource = (resource: Omit<TeachingResourceFile, 'id' | 'createdAt'>) => {
+    const newRes: TeachingResourceFile = {
+      ...resource,
+      id: `res-${Date.now()}`,
+      createdAt: new Date().toISOString()
+    };
+    setTeachingResources(prev => [newRes, ...prev]);
+    setToastMessage({ text: `បានបញ្ចូលធនធានបង្រៀន «${resource.titleKhmer}» ជោគជ័យ!`, type: 'success' });
+  };
+
+  const deleteTeachingResource = (id: string) => {
+    setTeachingResources(prev => prev.filter(r => r.id !== id));
+    setToastMessage({ text: 'បានលុបឯកសារធនធានរួចរាល់', type: 'info' });
+  };
+
+  // ----------------------------------------------------
+  // 5. MONTHLY BUDGET SUMMARIES CALCULATOR
+  // ----------------------------------------------------
+  const getMonthlyBudgetSummaries = (yearFilter?: string): MonthlyBudgetSummary[] => {
+    const targetYear = yearFilter || selectedAcademicYear;
+    const monthsOrder = [
+      { name: 'តុលា', num: 10 },
+      { name: 'វិច្ឆិកា', num: 11 },
+      { name: 'ធ្នូ', num: 12 },
+      { name: 'មករា', num: 1 },
+      { name: 'កុម្ភៈ', num: 2 },
+      { name: 'មីនា', num: 3 },
+      { name: 'មេសា', num: 4 },
+      { name: 'ឧសភា', num: 5 },
+      { name: 'មិថុនា', num: 6 },
+      { name: 'កក្កដា', num: 7 },
+      { name: 'សីហា', num: 8 },
+      { name: 'កញ្ញា', num: 9 }
+    ];
+
+    return monthsOrder.map(m => {
+      // Find transactions matching this month
+      const matchingTxs = budgetTransactions.filter(tx => {
+        if (!tx.date) return false;
+        const txMonth = new Date(tx.date).getMonth() + 1; // 1-12
+        return txMonth === m.num;
+      });
+
+      let incomeRiel = 0;
+      let expenseRiel = 0;
+      const byCategory: Record<string, number> = {};
+      const bySource = {
+        pbStateBudget: { income: 0, expense: 0 },
+        sigImprovementGrant: { income: 0, expense: 0 },
+        communityParents: { income: 0, expense: 0 },
+        ngoPartner: { income: 0, expense: 0 }
+      };
+
+      matchingTxs.forEach(tx => {
+        if (tx.type === 'income') {
+          incomeRiel += tx.amountRiel;
+          if (tx.source.includes('PB')) bySource.pbStateBudget.income += tx.amountRiel;
+          else if (tx.source.includes('SIG')) bySource.sigImprovementGrant.income += tx.amountRiel;
+          else if (tx.source.includes('សហគមន៍') || tx.source.includes('មាតាបិតា')) bySource.communityParents.income += tx.amountRiel;
+          else bySource.ngoPartner.income += tx.amountRiel;
+        } else {
+          expenseRiel += tx.amountRiel;
+          if (tx.source.includes('PB')) bySource.pbStateBudget.expense += tx.amountRiel;
+          else if (tx.source.includes('SIG')) bySource.sigImprovementGrant.expense += tx.amountRiel;
+          else if (tx.source.includes('សហគមន៍') || tx.source.includes('មាតាបិតា')) bySource.communityParents.expense += tx.amountRiel;
+          else bySource.ngoPartner.expense += tx.amountRiel;
+
+          byCategory[tx.category] = (byCategory[tx.category] || 0) + tx.amountRiel;
+        }
+      });
+
+      const balanceRiel = incomeRiel - expenseRiel;
+      return {
+        monthName: m.name,
+        monthNumber: m.num,
+        academicYear: targetYear,
+        incomeRiel,
+        expenseRiel,
+        balanceRiel,
+        incomeUsd: Math.round(incomeRiel / 4050),
+        expenseUsd: Math.round(expenseRiel / 4050),
+        balanceUsd: Math.round(balanceRiel / 4050),
+        transactionCount: matchingTxs.length,
+        bySource,
+        byCategory
+      };
+    });
+  };
+
+  // ----------------------------------------------------
+  // 6. GOOGLE DRIVE AUTOMATED SYNCHRONIZATION ENGINE
+  // ----------------------------------------------------
+  const initialDriveAutoSyncConfig: DriveAutoSyncConfig = {
+    enabled: true,
+    intervalMinutes: 30,
+    syncMeetings: true,
+    syncFinances: true,
+    syncFullBackup: true,
+    folderId: PRIMARY_SCHOOL_DRIVE_FOLDER_ID,
+    autoSyncOnChanges: true,
+    lastAutoSyncTime: undefined
+  };
+
+  const [driveAutoSyncConfig, setDriveAutoSyncConfig] = useState<DriveAutoSyncConfig>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_gdrive_auto_sync_config`);
+    return saved ? JSON.parse(saved) : initialDriveAutoSyncConfig;
+  });
+
+  const [driveSyncHistory, setDriveSyncHistory] = useState<DriveSyncHistoryItem[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_gdrive_sync_history`);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [
+      {
+        id: 'sync-init-1',
+        title: 'កំណត់ហេតុកិច្ចប្រជុំគ្រូប្រចាំខែសីហា',
+        category: 'meeting_minutes',
+        categoryLabelKhmer: 'កំណត់ហេតុកិច្ចប្រជុំ',
+        fileName: 'កំណត់ហេតុ_កិច្ចប្រជុំប្រចាំខែសីហា_២០២៦_2026-08-28.html',
+        fileSizeFormatted: '18.4 KB',
+        folderId: PRIMARY_SCHOOL_DRIVE_FOLDER_ID,
+        driveFileId: 'drv-mock-mtg-1',
+        driveWebViewLink: `https://drive.google.com/drive/folders/${PRIMARY_SCHOOL_DRIVE_FOLDER_ID}`,
+        status: 'success',
+        syncedAt: '2026-08-23T18:30:00Z',
+        syncedBy: 'limsorn9@gmail.com'
+      },
+      {
+        id: 'sync-init-2',
+        title: 'របាយការណ៍បូកសរុបថវិកា ១២ ខែ (PB & SIG)',
+        category: 'financial_report',
+        categoryLabelKhmer: 'របាយការណ៍ហិរញ្ញវត្ថុ',
+        fileName: 'របាយការណ៍ហិរញ្ញវត្ថុ_ថវិកា១២ខែ_2026-2027.html',
+        fileSizeFormatted: '24.2 KB',
+        folderId: PRIMARY_SCHOOL_DRIVE_FOLDER_ID,
+        driveFileId: 'drv-mock-fin-1',
+        driveWebViewLink: `https://drive.google.com/drive/folders/${PRIMARY_SCHOOL_DRIVE_FOLDER_ID}`,
+        status: 'success',
+        syncedAt: '2026-08-23T18:30:10Z',
+        syncedBy: 'limsorn9@gmail.com'
+      }
+    ];
+  });
+
+  const [isDriveSyncing, setIsDriveSyncing] = useState<boolean>(false);
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_gdrive_auto_sync_config`, JSON.stringify(driveAutoSyncConfig));
+  }, [driveAutoSyncConfig]);
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_gdrive_sync_history`, JSON.stringify(driveSyncHistory));
+  }, [driveSyncHistory]);
+
+  const updateDriveAutoSyncConfig = (config: Partial<DriveAutoSyncConfig>) => {
+    setDriveAutoSyncConfig(prev => ({ ...prev, ...config }));
+    setToastMessage({ text: 'បានកែសម្រួលការកំណត់ Auto-Sync Google Drive ជោគជ័យ!', type: 'success' });
+  };
+
+  const clearDriveSyncHistory = () => {
+    setDriveSyncHistory([]);
+    localStorage.removeItem(`${LOCAL_STORAGE_KEY}_gdrive_sync_history`);
+    setToastMessage({ text: 'បានសម្អាតប្រវត្តិ Sync Google Drive រួចរាល់', type: 'info' });
+  };
+
+  const syncMeetingToDrive = async (meetingId: string) => {
+    const meeting = teacherMeetings.find(m => m.id === meetingId);
+    if (!meeting) {
+      setToastMessage({ text: 'រកមិនឃើញកំណត់ត្រាកិច្ចប្រជុំដែលត្រូវ Sync ឡើយ', type: 'error' });
+      return;
+    }
+
+    setIsDriveSyncing(true);
+    const targetFolder = driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    try {
+      if (!isGoogleAuthenticated()) {
+        await googleSignIn();
+      }
+
+      const driveItem = await uploadMeetingMinutesToDrive(meeting, schoolProfile, targetFolder);
+      const nowIso = new Date().toISOString();
+
+      // Update meeting record with sync metadata
+      setTeacherMeetings(prev =>
+        prev.map(m =>
+          m.id === meetingId
+            ? {
+                ...m,
+                isSyncedToGoogleDrive: true,
+                googleDriveFileId: driveItem.id,
+                googleDriveWebViewLink: driveItem.webViewLink || `https://drive.google.com/drive/folders/${targetFolder}`,
+                driveSyncedAt: nowIso
+              }
+            : m
+        )
+      );
+
+      // Add to history
+      const newHistoryItem: DriveSyncHistoryItem = {
+        id: `sync-${Date.now()}`,
+        title: meeting.title,
+        category: 'meeting_minutes',
+        categoryLabelKhmer: 'កំណត់ហេតុកិច្ចប្រជុំ',
+        fileName: driveItem.name || `កំណត់ហេតុ_${meeting.title}.html`,
+        fileSizeFormatted: driveItem.size ? `${(parseInt(driveItem.size) / 1024).toFixed(1)} KB` : '18.5 KB',
+        folderId: targetFolder,
+        driveFileId: driveItem.id,
+        driveWebViewLink: driveItem.webViewLink || `https://drive.google.com/drive/folders/${targetFolder}`,
+        status: 'success',
+        syncedAt: nowIso,
+        syncedBy: currentUser?.email || 'limsorn9@gmail.com'
+      };
+
+      setDriveSyncHistory(prev => [newHistoryItem, ...prev.slice(0, 49)]);
+      setDriveAutoSyncConfig(prev => ({ ...prev, lastAutoSyncTime: nowIso }));
+
+      setToastMessage({
+        text: `បាន Sync កំណត់ហេតុ «${meeting.title}» ទៅកាន់ Google Drive (Folder: ${targetFolder}) ជោគជ័យ!`,
+        type: 'success'
+      });
+    } catch (err: any) {
+      console.error('Failed to sync meeting to Drive:', err);
+      const errorItem: DriveSyncHistoryItem = {
+        id: `sync-${Date.now()}`,
+        title: meeting.title,
+        category: 'meeting_minutes',
+        categoryLabelKhmer: 'កំណត់ហេតុកិច្ចប្រជុំ',
+        fileName: `កំណត់ហេតុ_${meeting.title}.html`,
+        folderId: targetFolder,
+        status: 'failed',
+        errorMessage: err.message || 'បញ្ហាក្នុងការភ្ជាប់ Google Drive',
+        syncedAt: new Date().toISOString(),
+        syncedBy: currentUser?.email || 'limsorn9@gmail.com'
+      };
+      setDriveSyncHistory(prev => [errorItem, ...prev.slice(0, 49)]);
+      setToastMessage({ text: `បរាជ័យក្នុងការ Sync ទៅ Google Drive: ${err.message}`, type: 'error' });
+    } finally {
+      setIsDriveSyncing(false);
+    }
+  };
+
+  const syncAllMeetingsToDrive = async (): Promise<{ success: number; failed: number }> => {
+    setIsDriveSyncing(true);
+    let successCount = 0;
+    let failedCount = 0;
+    const targetFolder = driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+
+    try {
+      if (!isGoogleAuthenticated()) {
+        await googleSignIn();
+      }
+
+      for (const meeting of teacherMeetings) {
+        try {
+          const driveItem = await uploadMeetingMinutesToDrive(meeting, schoolProfile, targetFolder);
+          const nowIso = new Date().toISOString();
+
+          setTeacherMeetings(prev =>
+            prev.map(m =>
+              m.id === meeting.id
+                ? {
+                    ...m,
+                    isSyncedToGoogleDrive: true,
+                    googleDriveFileId: driveItem.id,
+                    googleDriveWebViewLink: driveItem.webViewLink || `https://drive.google.com/drive/folders/${targetFolder}`,
+                    driveSyncedAt: nowIso
+                  }
+                : m
+            )
+          );
+
+          const newHistoryItem: DriveSyncHistoryItem = {
+            id: `sync-batch-${Date.now()}-${meeting.id}`,
+            title: meeting.title,
+            category: 'meeting_minutes',
+            categoryLabelKhmer: 'កំណត់ហេតុកិច្ចប្រជុំ',
+            fileName: driveItem.name || `កំណត់ហេតុ_${meeting.title}.html`,
+            fileSizeFormatted: driveItem.size ? `${(parseInt(driveItem.size) / 1024).toFixed(1)} KB` : '18.5 KB',
+            folderId: targetFolder,
+            driveFileId: driveItem.id,
+            driveWebViewLink: driveItem.webViewLink || `https://drive.google.com/drive/folders/${targetFolder}`,
+            status: 'success',
+            syncedAt: nowIso,
+            syncedBy: currentUser?.email || 'limsorn9@gmail.com'
+          };
+
+          setDriveSyncHistory(prev => [newHistoryItem, ...prev.slice(0, 49)]);
+          successCount++;
+        } catch (e) {
+          failedCount++;
+        }
+      }
+
+      const nowIso = new Date().toISOString();
+      setDriveAutoSyncConfig(prev => ({ ...prev, lastAutoSyncTime: nowIso }));
+      setToastMessage({
+        text: `បាន Sync កំណត់ហេតុការប្រជុំសរុប ${successCount} ឯកសារ ទៅកាន់ Google Drive (${targetFolder}) ជោគជ័យ!`,
+        type: 'success'
+      });
+    } catch (err: any) {
+      setToastMessage({ text: `មានបញ្ហាក្នុងការ Sync ទៅ Google Drive: ${err.message}`, type: 'error' });
+    } finally {
+      setIsDriveSyncing(false);
+    }
+    return { success: successCount, failed: failedCount };
+  };
+
+  const syncFinancialReportToDrive = async (academicYear?: string) => {
+    setIsDriveSyncing(true);
+    const targetYear = academicYear || selectedAcademicYear;
+    const summaries = getMonthlyBudgetSummaries(targetYear);
+    const targetFolder = driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+
+    try {
+      if (!isGoogleAuthenticated()) {
+        await googleSignIn();
+      }
+
+      const driveItem = await uploadFinancialReportToDrive(
+        summaries,
+        budgetTransactions,
+        schoolProfile,
+        targetYear,
+        targetFolder
+      );
+
+      const nowIso = new Date().toISOString();
+      const newHistoryItem: DriveSyncHistoryItem = {
+        id: `sync-fin-${Date.now()}`,
+        title: `របាយការណ៍ហិរញ្ញវត្ថុ ១២ ខែ (${targetYear})`,
+        category: 'financial_report',
+        categoryLabelKhmer: 'របាយការណ៍ហិរញ្ញវត្ថុ',
+        fileName: driveItem.name || `របាយការណ៍ហិរញ្ញវត្ថុ_${targetYear}.html`,
+        fileSizeFormatted: driveItem.size ? `${(parseInt(driveItem.size) / 1024).toFixed(1)} KB` : '22.0 KB',
+        folderId: targetFolder,
+        driveFileId: driveItem.id,
+        driveWebViewLink: driveItem.webViewLink || `https://drive.google.com/drive/folders/${targetFolder}`,
+        status: 'success',
+        syncedAt: nowIso,
+        syncedBy: currentUser?.email || 'limsorn9@gmail.com'
+      };
+
+      setDriveSyncHistory(prev => [newHistoryItem, ...prev.slice(0, 49)]);
+      setDriveAutoSyncConfig(prev => ({ ...prev, lastAutoSyncTime: nowIso }));
+
+      setToastMessage({
+        text: `បាន Sync របាយការណ៍ហិរញ្ញវត្ថុ ១២ ខែ ទៅកាន់ Google Drive (Folder: ${targetFolder}) ជោគជ័យ!`,
+        type: 'success'
+      });
+    } catch (err: any) {
+      console.error('Financial report drive sync failed:', err);
+      const errorItem: DriveSyncHistoryItem = {
+        id: `sync-fin-err-${Date.now()}`,
+        title: `របាយការណ៍ហិរញ្ញវត្ថុ (${targetYear})`,
+        category: 'financial_report',
+        categoryLabelKhmer: 'របាយការណ៍ហិរញ្ញវត្ថុ',
+        fileName: `របាយការណ៍ហិរញ្ញវត្ថុ_${targetYear}.html`,
+        folderId: targetFolder,
+        status: 'failed',
+        errorMessage: err.message || 'បញ្ហាក្នុងការ Sync របាយការណ៍ហិរញ្ញវត្ថុ',
+        syncedAt: new Date().toISOString(),
+        syncedBy: currentUser?.email || 'limsorn9@gmail.com'
+      };
+      setDriveSyncHistory(prev => [errorItem, ...prev.slice(0, 49)]);
+      setToastMessage({ text: `បរាជ័យក្នុងការ Sync របាយការណ៍ហិរញ្ញវត្ថុ: ${err.message}`, type: 'error' });
+    } finally {
+      setIsDriveSyncing(false);
+    }
+  };
+
+  const triggerDriveAutoSyncAll = async () => {
+    setIsDriveSyncing(true);
+    const targetFolder = driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    try {
+      if (!isGoogleAuthenticated()) {
+        await googleSignIn();
+      }
+
+      const nowIso = new Date().toISOString();
+
+      // 1. Sync All Meeting Minutes
+      if (driveAutoSyncConfig.syncMeetings && teacherMeetings.length > 0) {
+        for (const meeting of teacherMeetings) {
+          try {
+            const driveItem = await uploadMeetingMinutesToDrive(meeting, schoolProfile, targetFolder);
+            setTeacherMeetings(prev =>
+              prev.map(m =>
+                m.id === meeting.id
+                  ? {
+                      ...m,
+                      isSyncedToGoogleDrive: true,
+                      googleDriveFileId: driveItem.id,
+                      googleDriveWebViewLink: driveItem.webViewLink || `https://drive.google.com/drive/folders/${targetFolder}`,
+                      driveSyncedAt: nowIso
+                    }
+                  : m
+              )
+            );
+          } catch (e) {}
+        }
+      }
+
+      // 2. Sync Financial Reports
+      if (driveAutoSyncConfig.syncFinances) {
+        try {
+          const summaries = getMonthlyBudgetSummaries(selectedAcademicYear);
+          await uploadFinancialReportToDrive(summaries, budgetTransactions, schoolProfile, selectedAcademicYear, targetFolder);
+        } catch (e) {}
+      }
+
+      // 3. Sync Full Database Snapshot JSON
+      if (driveAutoSyncConfig.syncFullBackup) {
+        const fullBackup = {
+          version: '2.5.0',
+          autoSyncedAt: nowIso,
+          schoolProfile,
+          teacherMeetings,
+          budgetTransactions,
+          students,
+          teachers,
+          classrooms,
+          scores,
+          attendanceRecords,
+          calendarEvents,
+          households,
+          libraryBooks
+        };
+        await backupSchoolDataToDrive(
+          fullBackup,
+          schoolProfile.nameKhmer || 'សាលាបឋមសិក្សាភ្នំព្រឹក',
+          targetFolder
+        );
+      }
+
+      // Add a bundle history item
+      const summaryItem: DriveSyncHistoryItem = {
+        id: `sync-all-${Date.now()}`,
+        title: 'ស្វ័យប្រវត្តិកម្ម Synchronization ឯកសារសំខាន់ៗ (កិច្ចប្រជុំ, ហិរញ្ញវត្ថុ, JSON Backup)',
+        category: 'database_backup',
+        categoryLabelKhmer: 'Auto-Sync កញ្ចប់ឯកសារ',
+        fileName: `AutoSync_Package_${new Date().toISOString().split('T')[0]}.json`,
+        fileSizeFormatted: '142 KB',
+        folderId: targetFolder,
+        driveWebViewLink: `https://drive.google.com/drive/folders/${targetFolder}`,
+        status: 'success',
+        syncedAt: nowIso,
+        syncedBy: currentUser?.email || 'limsorn9@gmail.com'
+      };
+
+      setDriveSyncHistory(prev => [summaryItem, ...prev.slice(0, 49)]);
+      setDriveAutoSyncConfig(prev => ({ ...prev, lastAutoSyncTime: nowIso }));
+
+      setToastMessage({
+        text: `បានធ្វើស្វ័យប្រវត្តិកម្ម Sync ឯកសារសំខាន់ៗទាំងអស់ទៅ Google Drive (${targetFolder}) ជោគជ័យ!`,
+        type: 'success'
+      });
+    } catch (err: any) {
+      console.error('Auto sync all error:', err);
+      setToastMessage({ text: `បញ្ហាក្នុងការ Sync ទៅ Google Drive: ${err.message}`, type: 'error' });
+    } finally {
+      setIsDriveSyncing(false);
+    }
+  };
+
   // LocalStorage sync for new collections
   useEffect(() => {
     localStorage.setItem(`${LOCAL_STORAGE_KEY}_correspondences`, JSON.stringify(correspondences));
@@ -1373,6 +2055,26 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     localStorage.setItem(`${LOCAL_STORAGE_KEY}_student_feedbacks`, JSON.stringify(studentFeedbacks));
   }, [studentFeedbacks]);
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_equipment_items`, JSON.stringify(equipmentItems));
+  }, [equipmentItems]);
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_equipment_loans`, JSON.stringify(equipmentLoans));
+  }, [equipmentLoans]);
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_teacher_daily_tasks`, JSON.stringify(teacherDailyTasks));
+  }, [teacherDailyTasks]);
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_teacher_meetings`, JSON.stringify(teacherMeetings));
+  }, [teacherMeetings]);
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_teaching_resources`, JSON.stringify(teachingResources));
+  }, [teachingResources]);
 
   // Sync Dark Mode with document
   useEffect(() => {
@@ -2368,19 +3070,19 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (role === 'director') return true;
 
     if (role === 'secretary') {
-      return ['dashboard', 'homeroom_dashboard', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'accounts', 'library', 'learning_resources', 'workspace'].includes(tab);
+      return ['dashboard', 'homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'accounts', 'library', 'learning_resources', 'workspace'].includes(tab);
     }
 
     if (role === 'librarian') {
-      return ['library', 'learning_resources', 'dashboard', 'calendar', 'official_documents'].includes(tab);
+      return ['library', 'teaching_resources', 'learning_resources', 'dashboard', 'calendar', 'official_documents'].includes(tab);
     }
 
     if (role === 'teacher') {
-      return ['homeroom_dashboard', 'dashboard', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'classrooms', 'scores', 'attendance_health', 'calendar', 'reports_qr', 'accounts', 'library', 'learning_resources', 'workspace'].includes(tab);
+      return ['homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'dashboard', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'classrooms', 'scores', 'attendance_health', 'calendar', 'reports_qr', 'accounts', 'library', 'learning_resources', 'workspace'].includes(tab);
     }
 
     if (role === 'student') {
-      return ['student_portal', 'learning_resources', 'calendar', 'library'].includes(tab);
+      return ['student_portal', 'teaching_resources', 'learning_resources', 'calendar', 'library'].includes(tab);
     }
 
     return false;
@@ -3410,6 +4112,26 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         addSchoolAsset,
         updateSchoolAsset,
         deleteSchoolAsset,
+        equipmentItems,
+        equipmentLoans,
+        addEquipmentLoan,
+        updateEquipmentLoan,
+        deleteEquipmentLoan,
+        addEquipmentItem,
+        updateEquipmentItem,
+        teacherDailyTasks,
+        addTeacherDailyTask,
+        updateTeacherDailyTask,
+        toggleTaskCompleted,
+        deleteTeacherDailyTask,
+        teacherMeetings,
+        addTeacherMeeting,
+        updateTeacherMeeting,
+        deleteTeacherMeeting,
+        teachingResources,
+        addTeachingResource,
+        deleteTeachingResource,
+        getMonthlyBudgetSummaries,
         studentBadgeDefinitions,
         studentBadgeAssignments,
         assignBadgeToStudent,
@@ -3431,7 +4153,16 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isCloudSyncing,
         lastCloudSyncTime,
         syncAllToCloud,
-        pullAllFromCloud
+        pullAllFromCloud,
+        driveAutoSyncConfig,
+        updateDriveAutoSyncConfig,
+        driveSyncHistory,
+        isDriveSyncing,
+        syncMeetingToDrive,
+        syncAllMeetingsToDrive,
+        syncFinancialReportToDrive,
+        triggerDriveAutoSyncAll,
+        clearDriveSyncHistory
       }}
     >
       {children}

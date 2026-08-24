@@ -15,10 +15,19 @@ import {
   Sparkles,
   Lock,
   ExternalLink,
-  FolderSync
+  FolderSync,
+  FileText,
+  Coins,
+  CheckCircle2,
+  Calendar,
+  Layers,
+  Sliders,
+  Trash2,
+  Share2,
+  Check
 } from 'lucide-react';
 import { User } from 'firebase/auth';
-import { backupSchoolDataToDrive, listDriveFiles } from '../services/googleDrive';
+import { backupSchoolDataToDrive, PRIMARY_SCHOOL_DRIVE_FOLDER_ID } from '../services/googleDrive';
 import { isGoogleAuthenticated, loginWithGoogle } from '../services/googleAuth';
 
 interface GoogleDriveSyncModalProps {
@@ -35,6 +44,7 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
   onGoogleAuthClick
 }) => {
   const {
+    schoolProfile,
     students,
     teachers,
     classrooms,
@@ -43,86 +53,59 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
     attendanceRecords,
     calendarEvents,
     appUsers,
-    schoolProfile,
     households,
     libraryBooks,
     readingLogs,
+    teacherMeetings,
+    selectedAcademicYear,
+    driveAutoSyncConfig,
+    updateDriveAutoSyncConfig,
+    driveSyncHistory,
+    isDriveSyncing,
+    syncMeetingToDrive,
+    syncAllMeetingsToDrive,
+    syncFinancialReportToDrive,
+    triggerDriveAutoSyncAll,
+    clearDriveSyncHistory,
     showToast
   } = useSchool();
 
   const targetEmail = 'limsorn9@gmail.com';
-  const defaultFolderId = '1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g';
+  const defaultFolderId = driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
   const defaultFolderUrl = `https://drive.google.com/drive/folders/${defaultFolderId}?usp=sharing`;
 
-  const [folderId, setFolderId] = useState<string>(defaultFolderId);
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [lastSyncTime, setLastSyncTime] = useState<string>(
-    localStorage.getItem('last_gdrive_sync_time') || 'មិនទាន់បានធ្វើសមកាលកម្ម'
-  );
-  const [lastUploadedFileName, setLastUploadedFileName] = useState<string | null>(
-    localStorage.getItem('last_gdrive_file_name') || null
-  );
-  const [syncInterval, setSyncInterval] = useState<'realtime' | 'daily' | 'weekly'>('realtime');
+  const [activeTab, setActiveTab] = useState<'overview' | 'meetings' | 'finances' | 'history' | 'settings'>('overview');
+  const [folderIdInput, setFolderIdInput] = useState<string>(defaultFolderId);
   const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [singleSyncingId, setSingleSyncingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setIsConnected(isGoogleAuthenticated());
+      setFolderIdInput(driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID);
     }
-  }, [isOpen]);
+  }, [isOpen, driveAutoSyncConfig.folderId]);
 
   if (!isOpen) return null;
 
-  const handleTriggerDriveSync = async () => {
-    setIsSyncing(true);
+  const handleSaveFolderId = () => {
+    const trimmed = folderIdInput.trim() || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    updateDriveAutoSyncConfig({ folderId: trimmed });
+    showToast(`បានកំណត់ Folder ID: ${trimmed} សម្រាប់ Google Drive ជោគជ័យ!`, 'success');
+  };
+
+  const handleSyncMeeting = async (meetingId: string) => {
+    setSingleSyncingId(meetingId);
     try {
-      if (!isGoogleAuthenticated()) {
-        await loginWithGoogle();
-        setIsConnected(true);
-      }
-
-      const fullDatabasePayload = {
-        version: '2.0.0',
-        exportedAt: new Date().toISOString(),
-        syncedBy: targetEmail,
-        schoolProfile,
-        students,
-        teachers,
-        classrooms,
-        scores,
-        attendanceRecords,
-        calendarEvents,
-        budgetTransactions,
-        households,
-        libraryBooks,
-        readingLogs,
-        appUsers
-      };
-
-      const result = await backupSchoolDataToDrive(
-        fullDatabasePayload,
-        schoolProfile.nameKhmer || schoolProfile.nameLatin || 'សាលាបឋមសិក្សា',
-        folderId.trim() ? folderId.trim() : undefined
-      );
-
-      const currentTime = new Date().toLocaleString('km-KH');
-      setLastSyncTime(currentTime);
-      setLastUploadedFileName(result.name);
-      localStorage.setItem('last_gdrive_sync_time', currentTime);
-      localStorage.setItem('last_gdrive_file_name', result.name);
-
-      showToast(`បានធ្វើសមកាលកម្មទិន្នន័យទៅកាន់ Google Drive (${targetEmail}) ជោគជ័យ!`, 'success');
-    } catch (err: any) {
-      console.error('Drive sync error:', err);
-      showToast(`បរាជ័យក្នុងការ Sync ទៅ Google Drive: ${err.message || 'សូមព្យាយាមម្តងទៀត'}`, 'error');
+      await syncMeetingToDrive(meetingId);
     } finally {
-      setIsSyncing(false);
+      setSingleSyncingId(null);
     }
   };
 
   const handleDownloadFullDatabaseJson = () => {
     const fullBackup = {
-      version: '2.0.0',
+      version: '2.5.0',
       exportedAt: new Date().toISOString(),
       schoolProfile,
       students,
@@ -132,6 +115,7 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
       attendanceRecords,
       calendarEvents,
       budgetTransactions,
+      teacherMeetings,
       households,
       libraryBooks,
       readingLogs,
@@ -142,199 +126,592 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    const safeLatinName = (schoolProfile.nameLatin || 'Phnom_Pom').replace(/\s+/g, '_');
+    const safeLatinName = (schoolProfile.nameLatin || 'Phnom_Preuk').replace(/\s+/g, '_');
     link.download = `School_Database_Backup_${safeLatinName}_${new Date().toISOString().split('T')[0]}.json`;
     link.click();
     showToast('បានទាញយកទិន្នន័យបម្រុងទុកមូលដ្ឋានទិន្នន័យ (Full JSON Backup) ជោគជ័យ!');
   };
 
+  const unsyncedMeetingsCount = teacherMeetings.filter(m => !m.isSyncedToGoogleDrive).length;
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 no-print animate-fade-in">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full overflow-hidden flex flex-col">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-4xl w-full overflow-hidden flex flex-col max-h-[90vh]">
         {/* Modal Header */}
-        <div className="bg-gradient-to-r from-emerald-700 via-teal-700 to-blue-800 px-6 py-5 text-white flex items-center justify-between">
+        <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-blue-900 px-6 py-5 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-white/15 rounded-2xl backdrop-blur-sm">
               <HardDrive className="w-6 h-6 text-amber-300" />
             </div>
             <div>
-              <h3 className="font-bold text-lg font-moul">Google Drive Cloud Sync</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-lg font-moul">Google Drive Automated Synchronization</h3>
+                <span className="bg-emerald-500/30 text-emerald-200 border border-emerald-400/30 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                  Auto-Sync v2.5
+                </span>
+              </div>
               <p className="text-xs text-emerald-100 mt-0.5">
-                សមកាលកម្មទិន្នន័យសាលារៀនស្វ័យប្រវត្តិជាមួយ Google Drive
+                សមកាលកម្មស្វ័យប្រវត្តិកំណត់ហេតុកិច្ចប្រជុំគ្រូ និងរបាយការណ៍ហិរញ្ញវត្ថុទៅកាន់ Google Drive
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+            className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-6 space-y-6 text-xs">
-          {/* Target Account Status Banner */}
-          <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between">
+        {/* Modal Navigation Tabs */}
+        <div className="flex items-center gap-2 px-6 pt-3 border-b border-slate-200 bg-slate-50/80 shrink-0 overflow-x-auto text-xs">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`pb-3 px-3 font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+              activeTab === 'overview'
+                ? 'border-emerald-600 text-emerald-800'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <FolderSync className="w-4 h-4" />
+            <span>ទិដ្ឋភាពរួម & Auto-Sync</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('meetings')}
+            className={`pb-3 px-3 font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+              activeTab === 'meetings'
+                ? 'border-emerald-600 text-emerald-800'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <FileText className="w-4 h-4 text-purple-600" />
+            <span>កំណត់ត្រាការប្រជុំ ({teacherMeetings.length})</span>
+            {unsyncedMeetingsCount > 0 && (
+              <span className="bg-amber-100 text-amber-800 font-bold px-1.5 py-0.2 rounded-full text-[10px]">
+                {unsyncedMeetingsCount} ថ្មី
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('finances')}
+            className={`pb-3 px-3 font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+              activeTab === 'finances'
+                ? 'border-emerald-600 text-emerald-800'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Coins className="w-4 h-4 text-emerald-600" />
+            <span>របាយការណ៍ហិរញ្ញវត្ថុ ១២ ខែ</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`pb-3 px-3 font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+              activeTab === 'history'
+                ? 'border-emerald-600 text-emerald-800'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Clock className="w-4 h-4 text-blue-600" />
+            <span>ប្រវត្តិ Sync ({driveSyncHistory.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`pb-3 px-3 font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+              activeTab === 'settings'
+                ? 'border-emerald-600 text-emerald-800'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Sliders className="w-4 h-4 text-slate-600" />
+            <span>ការកំណត់ (Settings)</span>
+          </button>
+        </div>
+
+        {/* Modal Body with dynamic tabs */}
+        <div className="p-6 space-y-6 text-xs overflow-y-auto flex-1">
+          {/* Target Folder & Account Status Badge */}
+          <div className="bg-emerald-50/90 border border-emerald-200/90 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-700 text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
                 LS
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-800 text-sm">{schoolProfile.principalName || 'Lim Sorn'}</span>
-                  <span className="bg-emerald-200 text-emerald-900 font-bold text-[10px] px-2 py-0.5 rounded-full">
-                    ម្ចាស់គណនី Google Drive
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-bold text-slate-800 text-sm">គណនីម្ចាស់ Drive: {targetEmail}</span>
+                  <span className="bg-emerald-200 text-emerald-900 font-bold text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3 text-emerald-800" />
+                    <span>ភ្ជាប់រួចរាល់</span>
                   </span>
                 </div>
-                <p className="text-xs text-emerald-800 font-mono font-medium mt-0.5">{targetEmail}</p>
+                <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-emerald-900">
+                  <span>Folder ID:</span>
+                  <code className="font-mono bg-white px-2 py-0.5 rounded border border-emerald-300 font-bold text-slate-800">
+                    {defaultFolderId}
+                  </code>
+                </div>
               </div>
             </div>
 
-            <div className="text-right flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
               <a
                 href={defaultFolderUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-emerald-800 hover:text-emerald-950 font-bold bg-emerald-100/90 hover:bg-emerald-200 px-3 py-1.5 rounded-xl transition-colors"
+                className="inline-flex items-center gap-1.5 text-emerald-900 hover:text-emerald-950 font-bold bg-white hover:bg-emerald-100 border border-emerald-300 px-3.5 py-2 rounded-xl transition-all shadow-2xs"
               >
                 <FolderSync className="w-4 h-4 text-emerald-700" />
                 <span>បើកមើល Google Drive Folder</span>
-                <ExternalLink className="w-3 h-3 ml-0.5" />
+                <ExternalLink className="w-3.5 h-3.5 ml-0.5" />
               </a>
             </div>
           </div>
 
-          {/* Folder Target Input */}
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="font-bold text-slate-700 flex items-center gap-1.5">
-                <FolderSync className="w-4 h-4 text-blue-600" />
-                <span>លេខសម្គាល់ថត (Google Drive Target Folder ID)</span>
-              </label>
-              <span className="text-[10px] text-slate-500 font-mono">1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g</span>
-            </div>
-            <input
-              type="text"
-              value={folderId}
-              onChange={(e) => setFolderId(e.target.value)}
-              placeholder="បញ្ចូល Google Drive Folder ID..."
-              className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-            />
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              រាល់ការចុច Sync ទិន្នន័យ ឯកសារ JSON នៃមូលដ្ឋានទិន្នន័យទាំងមូលនឹងត្រូវបញ្ជូនទៅកាន់ថត Drive ខាងលើដោយផ្ទាល់។
-            </p>
-          </div>
+          {/* TAB 1: OVERVIEW & AUTO-SYNC */}
+          {activeTab === 'overview' && (
+            <div className="space-y-5 animate-fade-in">
+              {/* Primary Action Button */}
+              <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 text-white p-5 rounded-2xl shadow-lg border border-slate-800 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[11px] font-medium mb-1.5 border border-emerald-500/30">
+                      <Sparkles className="w-3 h-3 text-amber-300" />
+                      <span>ស្វ័យប្រវត្តិកម្ម Synchronization កញ្ចប់ឯកសារសំខាន់ៗ</span>
+                    </div>
+                    <h4 className="font-bold text-base text-amber-300">
+                      ធ្វើសមកាលកម្មឯកសារសំខាន់ៗទាំងអស់ (Full Auto-Sync)
+                    </h4>
+                    <p className="text-slate-300 text-[11px] mt-0.5 leading-relaxed max-w-xl">
+                      ប្រព័ន្ធនឹងបង្កើត HTML ផ្លូវការសម្រាប់កំណត់ហេតុការប្រជុំគ្រូទាំងអស់ របាយការណ៍ហិរញ្ញវត្ថុ ១២ ខែ និង Snapshot JSON រួចបង្ហោះផ្ទាល់ទៅក្នុង Folder ID: <code className="font-mono text-emerald-300">{defaultFolderId}</code>។
+                    </p>
+                  </div>
 
-          {/* Sync Trigger Card */}
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h4 className="font-bold text-slate-800 text-sm">សមកាលកម្មទិន្នន័យឥឡូវនេះ (Instant Sync)</h4>
-                <p className="text-slate-500 text-[11px] mt-0.5">
-                  ពេលវេលាសមកាលកម្មចុងក្រោយ៖ <span className="font-semibold text-slate-700 font-times">{lastSyncTime}</span>
-                </p>
-                {lastUploadedFileName && (
-                  <p className="text-emerald-700 text-[11px] font-mono mt-0.5 truncate max-w-sm">
-                    ✓ ឯកសារចុងក្រោយ៖ {lastUploadedFileName}
+                  <button
+                    onClick={triggerDriveAutoSyncAll}
+                    disabled={isDriveSyncing}
+                    className="flex items-center justify-center gap-2 px-5 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg transition-all disabled:opacity-50 cursor-pointer shrink-0 font-moul text-xs"
+                  >
+                    <RefreshCw className={`w-4 h-4 text-slate-950 ${isDriveSyncing ? 'animate-spin' : ''}`} />
+                    <span>{isDriveSyncing ? 'កំពុង Sync ទៅ Drive...' : 'Sync ឯកសារទាំងអស់ឥឡូវនេះ'}</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-white/10 text-xs">
+                  <div className="bg-white/10 rounded-xl p-3 backdrop-blur-xs">
+                    <span className="text-slate-400 text-[10px] block">កំណត់ត្រាកិច្ចប្រជុំគ្រូ</span>
+                    <span className="font-bold text-white text-sm">{teacherMeetings.length} កំណត់ត្រា</span>
+                    <p className="text-[10px] text-emerald-300 mt-0.5">
+                      ✓ {teacherMeetings.filter(m => m.isSyncedToGoogleDrive).length} បាន Sync រួច
+                    </p>
+                  </div>
+
+                  <div className="bg-white/10 rounded-xl p-3 backdrop-blur-xs">
+                    <span className="text-slate-400 text-[10px] block">របាយការណ៍ថវិកា ១២ ខែ</span>
+                    <span className="font-bold text-white text-sm">{budgetTransactions.length} ប្រតិបត្តិការ</span>
+                    <p className="text-[10px] text-emerald-300 mt-0.5">PB & SIG Budget Summaries</p>
+                  </div>
+
+                  <div className="bg-white/10 rounded-xl p-3 backdrop-blur-xs">
+                    <span className="text-slate-400 text-[10px] block">ពេលវេលា Auto-Sync ចុងក្រោយ</span>
+                    <span className="font-bold text-white text-sm font-times">
+                      {driveAutoSyncConfig.lastAutoSyncTime
+                        ? new Date(driveAutoSyncConfig.lastAutoSyncTime).toLocaleString('km-KH')
+                        : 'ទើបតែដំឡើង'}
+                    </span>
+                    <p className="text-[10px] text-purple-300 mt-0.5">ស្ថានភាព៖ ដំណើរការល្អ</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Individual Category Quick Actions */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 bg-purple-100 text-purple-700 rounded-xl">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h5 className="font-bold text-slate-800 text-sm">កំណត់ត្រាការប្រជុំគ្រូ (Meeting Minutes)</h5>
+                        <p className="text-slate-500 text-[11px]">បម្លែងជា HTML ឯកសាររដ្ឋបាលផ្លូវការ</p>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    បង្ហោះកំណត់ត្រាកិច្ចប្រជុំ សេចក្ដីសម្រេចចិត្ត និងបញ្ជីវត្តមានរបស់លោកគ្រូ-អ្នកគ្រូជាឯកសារ HTML ទៅ Google Drive។
                   </p>
+                  <button
+                    onClick={syncAllMeetingsToDrive}
+                    disabled={isDriveSyncing}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isDriveSyncing ? 'animate-spin' : ''}`} />
+                    <span>Sync កំណត់ហេតុទាំងអស់ ({teacherMeetings.length})</span>
+                  </button>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
+                        <Coins className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h5 className="font-bold text-slate-800 text-sm">របាយការណ៍ហិរញ្ញវត្ថុ (Financial Report)</h5>
+                        <p className="text-slate-500 text-[11px]">តារាងបូកសរុបចំណូល-ចំណាយ ១២ ខែ</p>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    បង្កើតរបាយការណ៍បូកសរុបថវិការដ្ឋ (PB), ថវិកាជំនួយអភិវឌ្ឍន៍សាលា (SIG) និងវិភាគទានសហគមន៍ រួចបង្ហោះទៅ Drive។
+                  </p>
+                  <button
+                    onClick={() => syncFinancialReportToDrive(selectedAcademicYear)}
+                    disabled={isDriveSyncing}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isDriveSyncing ? 'animate-spin' : ''}`} />
+                    <span>Sync របាយការណ៍ហិរញ្ញវត្ថុ {selectedAcademicYear}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* JSON Snapshot Backup Download */}
+              <div className="flex items-center justify-between p-4 bg-blue-50/70 rounded-2xl border border-blue-200">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 text-blue-700 rounded-xl">
+                    <FileCode className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-800">ទាញយកឯកសារមូលដ្ឋានទិន្នន័យ (Full Database JSON Backup)</p>
+                    <p className="text-[11px] text-slate-500">
+                      រក្សាទុក Snapshot ទិន្នន័យទាំងអស់ជា File Backup ក្រៅបណ្តាញក្នុងកុំព្យូទ័រ
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleDownloadFullDatabaseJson}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xs cursor-pointer transition-colors"
+                >
+                  <CloudDownload className="w-4 h-4" />
+                  <span>ទាញយក JSON</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: MEETINGS SYNC LIST */}
+          {activeTab === 'meetings' && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-slate-800 text-sm">បញ្ជីកំណត់ត្រាការប្រជុំគ្រូសម្រាប់ Sync ទៅ Google Drive</h4>
+                  <p className="text-slate-500 text-[11px]">
+                    ឯកសារនឹងត្រូវបម្លែងជា HTML ផ្លូវការដែលមានរចនាបថក្រសួងអប់រំ និងហត្ថលេខា
+                  </p>
+                </div>
+                <button
+                  onClick={syncAllMeetingsToDrive}
+                  disabled={isDriveSyncing}
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isDriveSyncing ? 'animate-spin' : ''}`} />
+                  <span>Sync ទាំងអស់ ({teacherMeetings.length})</span>
+                </button>
+              </div>
+
+              <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-2xs">
+                {teacherMeetings.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400">
+                    មិនទាន់មានកំណត់ត្រាកិច្ចប្រជុំនៅឡើយទេ។ សូមចូលទៅកាន់ទំព័រ «កំណត់ត្រាការប្រជុំគ្រូ» ដើម្បីបង្កើត។
+                  </div>
+                ) : (
+                  teacherMeetings.map((meeting) => {
+                    const isSynced = meeting.isSyncedToGoogleDrive;
+                    return (
+                      <div key={meeting.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-800 text-sm">{meeting.title}</span>
+                            {meeting.meetingCode && (
+                              <span className="text-[10px] font-mono px-2 py-0.5 bg-slate-100 text-slate-600 rounded">
+                                {meeting.meetingCode}
+                              </span>
+                            )}
+                            {isSynced ? (
+                              <span className="bg-emerald-100 text-emerald-800 font-bold text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <Check className="w-3 h-3 text-emerald-700" />
+                                <span>Drive Synced</span>
+                              </span>
+                            ) : (
+                              <span className="bg-amber-100 text-amber-800 font-bold text-[10px] px-2 py-0.5 rounded-full">
+                                មិនទាន់ Sync
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 text-slate-500 text-[11px]">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                              <span>កាលបរិច្ឆេទ៖ {meeting.meetingDate}</span>
+                            </span>
+                            <span>•</span>
+                            <span>ប្រធានអង្គប្រជុំ៖ {meeting.chairpersonName || 'លោក នាយកសាលា'}</span>
+                            {meeting.driveSyncedAt && (
+                              <>
+                                <span>•</span>
+                                <span className="text-emerald-700">Sync ចុងក្រោយ៖ {new Date(meeting.driveSyncedAt).toLocaleDateString('km-KH')}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {meeting.googleDriveWebViewLink && (
+                            <a
+                              href={meeting.googleDriveWebViewLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-2 text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 rounded-xl border border-emerald-200 transition-colors"
+                              title="បើកមើលក្នុង Google Drive"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          )}
+                          <button
+                            onClick={() => handleSyncMeeting(meeting.id)}
+                            disabled={singleSyncingId === meeting.id || isDriveSyncing}
+                            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-bold transition-colors cursor-pointer ${
+                              isSynced
+                                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                : 'bg-purple-600 hover:bg-purple-700 text-white'
+                            }`}
+                          >
+                            <RefreshCw className={`w-3.5 h-3.5 ${singleSyncingId === meeting.id ? 'animate-spin' : ''}`} />
+                            <span>{singleSyncingId === meeting.id ? 'កំពុង Sync...' : isSynced ? 'Sync ឡើងវិញ' : 'Sync ទៅ Drive'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: FINANCIAL REPORT SYNC */}
+          {activeTab === 'finances' && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-slate-800 text-sm">របាយការណ៍ហិរញ្ញវត្ថុ ១២ ខែ (PB, SIG & Community)</h4>
+                  <p className="text-slate-500 text-[11px]">
+                    ប្រព័ន្ធនឹងទាញយកទិន្នន័យចំណូល-ចំណាយ ១២ ខែ រៀបចំជាតារាងស្តង់ដារក្រសួង និងបង្កើតឯកសារ HTML ទៅកាន់ Folder: {defaultFolderId}
+                  </p>
+                </div>
+                <button
+                  onClick={() => syncFinancialReportToDrive(selectedAcademicYear)}
+                  disabled={isDriveSyncing}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isDriveSyncing ? 'animate-spin' : ''}`} />
+                  <span>Sync របាយការណ៍ហិរញ្ញវត្ថុឥឡូវនេះ</span>
+                </button>
+              </div>
+
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-700">ឆ្នាំសិក្សាគោលដៅ៖</span>
+                  <span className="font-mono font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-xl">
+                    {selectedAcademicYear}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                    <span className="text-slate-400 text-[10px] block">ចំនួនប្រតិបត្តិការសរុប</span>
+                    <span className="font-bold text-slate-800 text-base">{budgetTransactions.length} ប្រតិបត្តិការ</span>
+                  </div>
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                    <span className="text-slate-400 text-[10px] block">ទម្រង់ឯកសារបង្ហោះ</span>
+                    <span className="font-bold text-emerald-800 text-base">HTML ផ្លូវការ (MoEYS Style)</span>
+                  </div>
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                    <span className="text-slate-400 text-[10px] block">ទីតាំងរក្សាទុកលើ Cloud</span>
+                    <span className="font-bold text-blue-800 text-base truncate font-mono">Folder: {defaultFolderId}</span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 text-[11px] leading-relaxed">
+                  💡 <strong>ចំណាំ៖</strong> រាល់ពេលមានការកែប្រែប្រតិបត្តិការចំណូល-ចំណាយក្នុងប្រព័ន្ធ ប្រព័ន្ធនឹងធ្វើបច្ចុប្បន្នភាពរបាយការណ៍ហិរញ្ញវត្ថុនេះដោយស្វ័យប្រវត្តិ។
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: SYNC HISTORY & AUDIT LOGS */}
+          {activeTab === 'history' && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-slate-800 text-sm">ប្រវត្តិសមកាលកម្ម Google Drive (Sync Activity Log)</h4>
+                  <p className="text-slate-500 text-[11px]">
+                    កំណត់ត្រានៃរាល់ឯកសារដែលបានបញ្ជូនទៅកាន់ Google Drive Folder ID: {defaultFolderId}
+                  </p>
+                </div>
+                {driveSyncHistory.length > 0 && (
+                  <button
+                    onClick={clearDriveSyncHistory}
+                    className="flex items-center gap-1 text-slate-400 hover:text-rose-600 px-2.5 py-1 rounded-lg hover:bg-rose-50 text-[11px] transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>សម្អាតប្រវត្តិ</span>
+                  </button>
                 )}
               </div>
 
-              <button
-                onClick={handleTriggerDriveSync}
-                disabled={isSyncing}
-                className="flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-50 cursor-pointer"
-              >
-                <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                <span>{isSyncing ? 'កំពុងបញ្ជូនទៅ Drive...' : 'Sync ទៅ Google Drive ឥឡូវនេះ'}</span>
-              </button>
-            </div>
+              <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-2xs">
+                {driveSyncHistory.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400">
+                    មិនទាន់មានប្រវត្តិ Synchronization នៅឡើយទេ។
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {driveSyncHistory.map((item) => (
+                      <div key={item.id} className="p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-800 text-xs">{item.title}</span>
+                            <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded font-medium">
+                              {item.categoryLabelKhmer || item.category}
+                            </span>
+                            {item.status === 'success' ? (
+                              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3 text-emerald-700" />
+                                <span>ជោគជ័យ</span>
+                              </span>
+                            ) : (
+                              <span className="bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3 text-rose-700" />
+                                <span>បរាជ័យ</span>
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 text-slate-400 text-[10px] font-mono">
+                            <span>File: {item.fileName}</span>
+                            {item.fileSizeFormatted && <span>• Size: {item.fileSizeFormatted}</span>}
+                            <span>• {new Date(item.syncedAt).toLocaleString('km-KH')}</span>
+                          </div>
+                        </div>
 
-            {/* Sync Scope Summary */}
-            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 text-center">
-              <div className="bg-white p-2 rounded-xl border border-slate-100">
-                <span className="text-slate-400 block text-[10px]">សិស្ស & គ្រូ</span>
-                <span className="font-bold text-slate-800">{students.length} សិស្ស / {teachers.length} គ្រូ</span>
-              </div>
-              <div className="bg-white p-2 rounded-xl border border-slate-100">
-                <span className="text-slate-400 block text-[10px]">ពិន្ទុ & វត្តមាន</span>
-                <span className="font-bold text-slate-800">{scores.length} កំណត់ត្រា</span>
-              </div>
-              <div className="bg-white p-2 rounded-xl border border-slate-100">
-                <span className="text-slate-400 block text-[10px]">ជំរឿន & បណ្ណាល័យ</span>
-                <span className="font-bold text-slate-800">{households.length} ផ្ទះ / {libraryBooks.length} សៀវភៅ</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Sync Frequency Preference */}
-          <div className="space-y-2">
-            <label className="block font-bold text-slate-700">ជម្រើសប្រេកង់នៃការបម្រុងទុក (Backup Schedule)</label>
-            <div className="grid grid-cols-3 gap-3">
-              <button
-                type="button"
-                onClick={() => setSyncInterval('realtime')}
-                className={`p-3 rounded-2xl border text-center transition-all ${
-                  syncInterval === 'realtime'
-                    ? 'border-emerald-500 bg-emerald-50/70 text-emerald-900 font-bold'
-                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <span>ពេលមានការផ្លាស់ប្តូរ</span>
-                <span className="block text-[10px] text-slate-400 font-normal">Real-time / Instant</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSyncInterval('daily')}
-                className={`p-3 rounded-2xl border text-center transition-all ${
-                  syncInterval === 'daily'
-                    ? 'border-emerald-500 bg-emerald-50/70 text-emerald-900 font-bold'
-                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <span>រៀងរាល់ថ្ងៃ</span>
-                <span className="block text-[10px] text-slate-400 font-normal">Daily at 5:00 PM</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSyncInterval('weekly')}
-                className={`p-3 rounded-2xl border text-center transition-all ${
-                  syncInterval === 'weekly'
-                    ? 'border-emerald-500 bg-emerald-50/70 text-emerald-900 font-bold'
-                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <span>រៀងរាល់សប្តាហ៍</span>
-                <span className="block text-[10px] text-slate-400 font-normal">Every Friday</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Download Full Snapshot Backup */}
-          <div className="flex items-center justify-between p-3.5 bg-blue-50/60 rounded-2xl border border-blue-200">
-            <div className="flex items-center gap-2.5">
-              <FileCode className="w-5 h-5 text-blue-600" />
-              <div>
-                <p className="font-bold text-slate-800">ទាញយកឯកសារមូលដ្ឋានទិន្នន័យ (Full Database JSON)</p>
-                <p className="text-[11px] text-slate-500">រក្សាទុកជា File Backup ក្រៅបណ្តាញក្នុងកុំព្យូទ័រ</p>
+                        {item.driveWebViewLink && (
+                          <a
+                            href={item.driveWebViewLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl text-xs font-bold border border-emerald-200 transition-colors"
+                          >
+                            <span>បើកមើល</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
+          )}
 
-            <button
-              onClick={handleDownloadFullDatabaseJson}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm cursor-pointer"
-            >
-              <CloudDownload className="w-4 h-4" />
-              <span>ទាញយក JSON</span>
-            </button>
-          </div>
+          {/* TAB 5: SETTINGS */}
+          {activeTab === 'settings' && (
+            <div className="space-y-5 animate-fade-in">
+              {/* Folder ID Config */}
+              <div className="p-4.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <FolderSync className="w-4 h-4 text-emerald-700" />
+                    <span>កំណត់ Google Drive Target Folder ID</span>
+                  </label>
+                  <span className="text-[11px] text-slate-500 font-mono">Default: 1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={folderIdInput}
+                    onChange={(e) => setFolderIdInput(e.target.value)}
+                    placeholder="បញ្ចូល Google Drive Folder ID..."
+                    className="flex-1 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                  <button
+                    onClick={handleSaveFolderId}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors cursor-pointer"
+                  >
+                    រក្សាទុក
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  រាល់ការធ្វើសមកាលកម្មស្វ័យប្រវត្តិនឹងបញ្ជូនឯកសារ HTML និង JSON ទៅកាន់ថតនេះដោយផ្ទាល់។
+                </p>
+              </div>
+
+              {/* Auto Sync Toggle & Preferences */}
+              <div className="p-4.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                <h5 className="font-bold text-slate-800 text-sm">ជម្រើសឯកសារដែលត្រូវធ្វើសមកាលកម្មស្វ័យប្រវត្តិ</h5>
+                <div className="space-y-2.5">
+                  <label className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                    <div className="flex items-center gap-2.5">
+                      <FileText className="w-4 h-4 text-purple-600" />
+                      <span className="font-bold text-slate-800">កំណត់ត្រាការប្រជុំគ្រូ (Meeting Minutes HTML)</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={driveAutoSyncConfig.syncMeetings}
+                      onChange={(e) => updateDriveAutoSyncConfig({ syncMeetings: e.target.checked })}
+                      className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                    <div className="flex items-center gap-2.5">
+                      <Coins className="w-4 h-4 text-emerald-600" />
+                      <span className="font-bold text-slate-800">របាយការណ៍ហិរញ្ញវត្ថុ ១២ ខែ (Financial Reports HTML)</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={driveAutoSyncConfig.syncFinances}
+                      onChange={(e) => updateDriveAutoSyncConfig({ syncFinances: e.target.checked })}
+                      className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+                    <div className="flex items-center gap-2.5">
+                      <FileCode className="w-4 h-4 text-blue-600" />
+                      <span className="font-bold text-slate-800">មូលដ្ឋានទិន្នន័យទាំងមូល (Full JSON Snapshot)</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={driveAutoSyncConfig.syncFullBackup}
+                      onChange={(e) => updateDriveAutoSyncConfig({ syncFullBackup: e.target.checked })}
+                      className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Modal Footer */}
-        <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex items-center justify-end">
+        <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2 text-slate-500 text-xs">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span>Google Drive API v3 • OAuth2 Verified</span>
+          </div>
           <button
             type="button"
             onClick={onClose}
