@@ -449,9 +449,9 @@ interface SchoolContextType {
   updateDriveAutoSyncConfig: (config: Partial<DriveAutoSyncConfig>) => void;
   driveSyncHistory: DriveSyncHistoryItem[];
   isDriveSyncing: boolean;
-  syncMeetingToDrive: (meetingId: string) => Promise<void>;
-  syncAllMeetingsToDrive: () => Promise<{ success: number; failed: number }>;
-  syncFinancialReportToDrive: (academicYear?: string) => Promise<void>;
+  syncMeetingToDrive: (meetingOrId: string | TeacherMeetingRecord, folderIdOverride?: string) => Promise<void>;
+  syncAllMeetingsToDrive: (folderIdOverride?: string) => Promise<{ success: number; failed: number }>;
+  syncFinancialReportToDrive: (academicYear?: string, folderIdOverride?: string) => Promise<void>;
   triggerDriveAutoSyncAll: () => Promise<void>;
   clearDriveSyncHistory: () => void;
 }
@@ -1694,15 +1694,25 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setToastMessage({ text: 'បានសម្អាតប្រវត្តិ Sync Google Drive រួចរាល់', type: 'info' });
   };
 
-  const syncMeetingToDrive = async (meetingId: string) => {
-    const meeting = teacherMeetings.find(m => m.id === meetingId);
+  const syncMeetingToDrive = async (meetingOrId: string | TeacherMeetingRecord, folderIdOverride?: string) => {
+    let meeting: TeacherMeetingRecord | undefined;
+    let meetingId: string;
+
+    if (typeof meetingOrId === 'string') {
+      meetingId = meetingOrId;
+      meeting = teacherMeetings.find(m => m.id === meetingId);
+    } else {
+      meeting = meetingOrId;
+      meetingId = meetingOrId.id;
+    }
+
     if (!meeting) {
       setToastMessage({ text: 'រកមិនឃើញកំណត់ត្រាកិច្ចប្រជុំដែលត្រូវ Sync ឡើយ', type: 'error' });
       return;
     }
 
     setIsDriveSyncing(true);
-    const targetFolder = driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
     try {
       if (!isGoogleAuthenticated()) {
         await googleSignIn();
@@ -1770,11 +1780,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const syncAllMeetingsToDrive = async (): Promise<{ success: number; failed: number }> => {
+  const syncAllMeetingsToDrive = async (folderIdOverride?: string): Promise<{ success: number; failed: number }> => {
     setIsDriveSyncing(true);
     let successCount = 0;
     let failedCount = 0;
-    const targetFolder = driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
 
     try {
       if (!isGoogleAuthenticated()) {
@@ -1836,11 +1846,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return { success: successCount, failed: failedCount };
   };
 
-  const syncFinancialReportToDrive = async (academicYear?: string) => {
+  const syncFinancialReportToDrive = async (academicYear?: string, folderIdOverride?: string) => {
     setIsDriveSyncing(true);
     const targetYear = academicYear || selectedAcademicYear;
     const summaries = getMonthlyBudgetSummaries(targetYear);
-    const targetFolder = driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
 
     try {
       if (!isGoogleAuthenticated()) {

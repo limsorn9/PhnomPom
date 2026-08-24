@@ -41,9 +41,16 @@ import {
   KhmerKbachCorner,
   MoEYSRoyalHeader,
   SchoolOfficialStamp,
-  AngkorPageWatermark
+  AngkorPageWatermark,
+  MoEYSReportCardSignatures
 } from './AngkorMotif';
 import { ScoreTablePrintModal } from './ScoreTablePrintModal';
+import {
+  PrincipalSignatureQRParams,
+  PrincipalSignatureQRSlot,
+  generateUniqueSignatureCode
+} from '../utils/reportCardSignatureQR';
+import { printElement } from '../utils/printUtils';
 
 const MONTHS_LIST = [
   'តុលា',
@@ -1673,204 +1680,237 @@ export const ClassroomScores: React.FC = () => {
       )}
 
       {/* Individual Student Report Card & Academic Transcript Modal */}
-      {selectedStudentForReportCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[96vh] overflow-y-auto shadow-2xl border border-slate-200 flex flex-col">
-            {/* Modal Actions Bar (No Print) */}
-            <div className="p-3.5 sm:p-4 bg-slate-900 text-white flex items-center justify-between no-print sticky top-0 z-10">
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-400" />
-                <span className="font-bold text-xs sm:text-sm font-moul">
-                  ព្រឹត្តិបត្រពិន្ទុ & សៀវភៅតាមដានការសិក្សា - {selectedStudentForReportCard.nameKhmer}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => window.print()}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>បោះពុម្ព (Print Report)</span>
-                </button>
-                <button
-                  onClick={() => setSelectedStudentForReportCard(null)}
-                  className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+      {selectedStudentForReportCard && (() => {
+        const studentScoresList = scores.filter(
+          (s) =>
+            s.studentId === selectedStudentForReportCard.id &&
+            (!s.academicYear || s.academicYear === selectedAcademicYear)
+        );
+        const latestRec =
+          studentScoresList.find((s) => s.monthOrSemester === selectedMonth) ||
+          studentScoresList[studentScoresList.length - 1];
 
-            {/* Printable A4 Report Card Canvas */}
-            <div className="p-6 sm:p-10 text-slate-900 bg-white relative overflow-hidden font-battambang">
-              <AngkorPageWatermark opacity={0.035} />
+        const principalQRParams: PrincipalSignatureQRParams = {
+          studentId: selectedStudentForReportCard.id,
+          studentCode: selectedStudentForReportCard.code,
+          studentNameKhmer: selectedStudentForReportCard.nameKhmer,
+          studentNameLatin: selectedStudentForReportCard.nameLatin,
+          grade: selectedGrade,
+          section: selectedSection,
+          academicYear: selectedAcademicYear,
+          monthOrSemester: selectedMonth,
+          schoolCode: schoolProfile.schoolCode,
+          schoolNameKhmer: schoolProfile.nameKhmer,
+          principalName: schoolProfile.principalName,
+          issueDate: new Date().toISOString().split('T')[0],
+          averageScore: latestRec?.averageScore,
+          gradeLetter: latestRec?.gradeLetter,
+          rank: latestRec?.rank,
+          totalStudents: classStudents.length
+        };
 
-              {/* Department & Royal Header */}
-              <div className="flex justify-between items-start border-b border-slate-300 pb-4 mb-6 relative z-1">
-                <div className="space-y-0.5 text-xs sm:text-sm">
-                  <p className="font-semibold text-slate-800">ក្រសួងអប់រំ យុវជន និងកីឡា</p>
-                  <p className="font-semibold text-slate-700">មន្ទីរអប់រំ យុវជន និងកីឡា {schoolProfile.province}</p>
-                  <p className="font-semibold text-slate-700">ការិយាល័យអប់រំ {schoolProfile.district}</p>
-                  <p className="font-bold text-blue-900 font-moul text-sm sm:text-base pt-0.5">{schoolProfile.nameKhmer}</p>
-                  <p className="text-[11px] text-slate-500 font-times">លេខកូដសាលា: {schoolProfile.schoolCode}</p>
-                </div>
+        const handleDirectPrintReport = () => {
+          printElement('report-card-printable-area', {
+            pageTitle: `ព្រឹត្តិបត្រពិន្ទុ_${selectedStudentForReportCard.nameKhmer}_${selectedAcademicYear}`,
+            landscape: false
+          });
+        };
 
-                <div className="text-center">
-                  <MoEYSRoyalHeader />
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-150">
+            <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[96vh] overflow-y-auto shadow-2xl border border-slate-200 flex flex-col">
+              {/* Modal Actions Bar (No Print) */}
+              <div className="p-3.5 sm:p-4 bg-slate-900 text-white flex items-center justify-between no-print sticky top-0 z-10">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-blue-400" />
+                  <span className="font-bold text-xs sm:text-sm font-moul">
+                    ព្រឹត្តិបត្រពិន្ទុ & សៀវភៅតាមដានការសិក្សា - {selectedStudentForReportCard.nameKhmer}
+                  </span>
+                  <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono border border-emerald-500/30">
+                    QR Signature Ready
+                  </span>
                 </div>
-
-                <div className="w-16 h-20 border border-slate-300 rounded-md overflow-hidden bg-slate-100 flex items-center justify-center text-[10px] text-slate-400 text-center">
-                  {selectedStudentForReportCard.avatarUrl ? (
-                    <img
-                      src={selectedStudentForReportCard.avatarUrl}
-                      alt={selectedStudentForReportCard.nameKhmer}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span>រូបថត 4x6</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Document Title */}
-              <div className="text-center my-4 space-y-1 relative z-1">
-                <h1 className="font-moul text-lg sm:text-xl text-blue-950 underline decoration-2 underline-offset-8">
-                  ព្រឹត្តិបត្រពិន្ទុ និងសៀវភៅតាមដានការសិក្សា
-                </h1>
-                <p className="text-xs font-times text-slate-600 tracking-wider">
-                  STUDENT ACADEMIC REPORT & PROGRESS RECORD
-                </p>
-                <p className="text-xs font-bold text-slate-700 pt-1">
-                  ឆ្នាំសិក្សា {selectedAcademicYear} • ថ្នាក់ទី {selectedGrade}{selectedSection}
-                </p>
-              </div>
-
-              {/* Student Metadata Card */}
-              <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs sm:text-sm my-5 relative z-1">
-                <div>
-                  <span className="text-slate-500 text-xs block">គោត្តនាម-នាមសិស្ស</span>
-                  <strong className="font-bold text-slate-900 font-moul">{selectedStudentForReportCard.nameKhmer}</strong>
-                </div>
-                <div>
-                  <span className="text-slate-500 text-xs block">អក្សរឡាតាំង</span>
-                  <strong className="font-bold text-slate-800 font-times">{selectedStudentForReportCard.nameLatin || 'N/A'}</strong>
-                </div>
-                <div>
-                  <span className="text-slate-500 text-xs block">ភេទ & ថ្ងៃខែឆ្នាំកំណើត</span>
-                  <strong className="font-medium text-slate-800">
-                    {selectedStudentForReportCard.gender === 'F' ? 'ស្រី' : 'ប្រុស'} • <span className="font-times">{selectedStudentForReportCard.dob}</span>
-                  </strong>
-                </div>
-                <div>
-                  <span className="text-slate-500 text-xs block">អត្តលេខសិស្ស</span>
-                  <strong className="font-bold text-blue-800 font-times">{selectedStudentForReportCard.code}</strong>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleDirectPrintReport}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>បោះពុម្ព (Print Report)</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedStudentForReportCard(null)}
+                    className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
 
-              {/* Monthly Score Matrix for Selected Student */}
-              <div className="my-5 overflow-x-auto relative z-1">
-                <table className="w-full border-collapse border border-slate-400 text-xs">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-900 font-bold">
-                      <th className="border border-slate-400 py-2 px-2 text-center">ខែ/ឆមាស</th>
-                      <th className="border border-slate-400 py-2 px-2 text-center">ភាសាខ្មែរ (អាន)</th>
-                      <th className="border border-slate-400 py-2 px-2 text-center">ភាសាខ្មែរ (សរសេរ)</th>
-                      <th className="border border-slate-400 py-2 px-2 text-center">គណិតវិទ្យា</th>
-                      <th className="border border-slate-400 py-2 px-2 text-center">វិទ្យាសាស្ត្រ-សង្គម</th>
-                      <th className="border border-slate-400 py-2 px-2 text-center">សីលធម៌-ពលរដ្ឋ</th>
-                      <th className="border border-slate-400 py-2 px-2 text-center">សិល្បៈ-កាយ</th>
-                      <th className="border border-slate-400 py-2 px-2 text-center bg-blue-50 text-blue-900 font-moul">សរុប</th>
-                      <th className="border border-slate-400 py-2 px-2 text-center bg-emerald-50 text-emerald-900 font-moul">ម.ភាគ</th>
-                      <th className="border border-slate-400 py-2 px-2 text-center">ចំណាត់ថ្នាក់</th>
-                      <th className="border border-slate-400 py-2 px-2 text-center">និទ្ទេស</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {MONTHS_LIST.map((month) => {
-                      const rec = scores.find(
-                        (s) =>
-                          s.studentId === selectedStudentForReportCard.id &&
-                          s.monthOrSemester === month &&
-                          (!s.academicYear || s.academicYear === selectedAcademicYear)
-                      );
-                      const isSemester = month.includes('ឆមាស');
-                      return (
-                        <tr
-                          key={month}
-                          className={`text-center ${isSemester ? 'bg-amber-50/70 font-bold' : 'hover:bg-slate-50'}`}
-                        >
-                          <td className="border border-slate-400 py-1.5 px-2 font-semibold">{month}</td>
-                          <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.khmerReading : '-'}</td>
-                          <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.khmerWriting : '-'}</td>
-                          <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.mathematics : '-'}</td>
-                          <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.scienceSocial : '-'}</td>
-                          <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.moralCivics : '-'}</td>
-                          <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.artsPhysical : '-'}</td>
-                          <td className="border border-slate-400 py-1.5 px-2 font-times font-bold bg-blue-50/40 text-blue-900">
-                            {rec ? rec.totalScore : '-'}
-                          </td>
-                          <td className="border border-slate-400 py-1.5 px-2 font-times font-bold bg-emerald-50/40 text-emerald-800">
-                            {rec ? rec.averageScore : '-'}
-                          </td>
-                          <td className="border border-slate-400 py-1.5 px-2 font-semibold">
-                            {rec ? `${rec.rank}/${classStudents.length}` : '-'}
-                          </td>
-                          <td className="border border-slate-400 py-1.5 px-2 font-bold font-times">
-                            {rec ? rec.gradeLetter : '-'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              {/* Printable A4 Report Card Canvas */}
+              <div
+                id="report-card-printable-area"
+                className="report-card-print p-6 sm:p-10 text-slate-900 bg-white relative overflow-hidden font-battambang"
+              >
+                <AngkorPageWatermark opacity={0.035} />
 
-              {/* Behavior and Teacher Remarks */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-5 relative z-1 text-xs">
-                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
-                  <span className="font-bold text-slate-800 block">ការវាយតម្លៃអត្តចរិត និងវិន័យ (Conduct & Discipline)</span>
-                  <p className="text-slate-700 leading-relaxed">
-                    សិស្សមានវិន័យល្អ គោរពបទបញ្ជាផ្ទៃក្នុងសាលា ឧស្សាហ៍ព្យាយាម និងរួសរាយរាក់ទាក់ជាមួយមិត្តរួមថ្នាក់។
+                {/* Department & Royal Header */}
+                <div className="flex justify-between items-start border-b border-slate-300 pb-4 mb-6 relative z-1">
+                  <div className="space-y-0.5 text-xs sm:text-sm">
+                    <p className="font-semibold text-slate-800">ក្រសួងអប់រំ យុវជន និងកីឡា</p>
+                    <p className="font-semibold text-slate-700">មន្ទីរអប់រំ យុវជន និងកីឡា {schoolProfile.province}</p>
+                    <p className="font-semibold text-slate-700">ការិយាល័យអប់រំ {schoolProfile.district}</p>
+                    <p className="font-bold text-blue-900 font-moul text-sm sm:text-base pt-0.5">{schoolProfile.nameKhmer}</p>
+                    <p className="text-[11px] text-slate-500 font-times">លេខកូដសាលា: {schoolProfile.schoolCode}</p>
+                  </div>
+
+                  <div className="text-center">
+                    <MoEYSRoyalHeader />
+                  </div>
+
+                  <div className="w-16 h-20 border border-slate-300 rounded-md overflow-hidden bg-slate-100 flex items-center justify-center text-[10px] text-slate-400 text-center">
+                    {selectedStudentForReportCard.avatarUrl ? (
+                      <img
+                        src={selectedStudentForReportCard.avatarUrl}
+                        alt={selectedStudentForReportCard.nameKhmer}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>រូបថត 4x6</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Document Title */}
+                <div className="text-center my-4 space-y-1 relative z-1">
+                  <h1 className="font-moul text-lg sm:text-xl text-blue-950 underline decoration-2 underline-offset-8">
+                    ព្រឹត្តិបត្រពិន្ទុ និងសៀវភៅតាមដានការសិក្សា
+                  </h1>
+                  <p className="text-xs font-times text-slate-600 tracking-wider">
+                    STUDENT ACADEMIC REPORT & PROGRESS RECORD
                   </p>
-                </div>
-                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
-                  <span className="font-bold text-slate-800 block">យោបល់គ្រូបន្ទុកថ្នាក់ (Teacher Recommendations)</span>
-                  <p className="text-slate-700 leading-relaxed">
-                    ត្រូវបន្តខិតខំរៀនសូត្របន្ថែមលើមុខវិជ្ជាគណិតវិទ្យា និងអានអត្ថបទភាសាខ្មែរនៅផ្ទះឱ្យបានច្រើន។
-                  </p>
-                </div>
-              </div>
-
-              {/* Dual Signatures & MoEYS Red Stamp on Print */}
-              <div className="mt-8 pt-4 border-t border-slate-300 grid grid-cols-3 gap-4 text-center text-xs relative z-1">
-                <div>
-                  <p className="font-semibold text-slate-700">បានឃើញ និងយល់ព្រម</p>
-                  <p className="font-bold text-slate-900 font-moul mt-1">អាណាព្យាបាលសិស្ស</p>
-                  <div className="h-16" />
-                  <p className="font-bold text-slate-800">
-                    {selectedStudentForReportCard.guardianName || selectedStudentForReportCard.fatherName || '...............................'}
+                  <p className="text-xs font-bold text-slate-700 pt-1">
+                    ឆ្នាំសិក្សា {selectedAcademicYear} • ថ្នាក់ទី {selectedGrade}{selectedSection}
                   </p>
                 </div>
 
-                <div>
-                  <p className="font-semibold text-slate-700">ថ្ងៃទី {new Date().getDate()} ខែ {selectedMonth} ឆ្នាំ២០២៤</p>
-                  <p className="font-bold text-slate-900 font-moul mt-1">គ្រូបន្ទុកថ្នាក់</p>
-                  <div className="h-16" />
-                  <p className="font-bold text-slate-800">{homeroomTeacher?.nameKhmer || 'គ្រូបន្ទុកថ្នាក់'}</p>
+                {/* Student Metadata Card */}
+                <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs sm:text-sm my-5 relative z-1">
+                  <div>
+                    <span className="text-slate-500 text-xs block">គោត្តនាម-នាមសិស្ស</span>
+                    <strong className="font-bold text-slate-900 font-moul">{selectedStudentForReportCard.nameKhmer}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-xs block">អក្សរឡាតាំង</span>
+                    <strong className="font-bold text-slate-800 font-times">{selectedStudentForReportCard.nameLatin || 'N/A'}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-xs block">ភេទ & ថ្ងៃខែឆ្នាំកំណើត</span>
+                    <strong className="font-medium text-slate-800">
+                      {selectedStudentForReportCard.gender === 'F' ? 'ស្រី' : 'ប្រុស'} • <span className="font-times">{selectedStudentForReportCard.dob}</span>
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-xs block">អត្តលេខសិស្ស</span>
+                    <strong className="font-bold text-blue-800 font-times">{selectedStudentForReportCard.code}</strong>
+                  </div>
                 </div>
 
-                <div>
-                  <p className="font-semibold text-slate-700">បានឃើញ និងឯកភាព</p>
-                  <p className="font-bold text-slate-900 font-moul mt-1">នាយិកាសាលា</p>
-                  <div className="h-16" />
-                  <p className="font-bold font-moul text-blue-950">{schoolProfile.principalName}</p>
+                {/* Monthly Score Matrix for Selected Student */}
+                <div className="my-5 overflow-x-auto relative z-1">
+                  <table className="w-full border-collapse border border-slate-400 text-xs">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-900 font-bold">
+                        <th className="border border-slate-400 py-2 px-2 text-center">ខែ/ឆមាស</th>
+                        <th className="border border-slate-400 py-2 px-2 text-center">ភាសាខ្មែរ (អាន)</th>
+                        <th className="border border-slate-400 py-2 px-2 text-center">ភាសាខ្មែរ (សរសេរ)</th>
+                        <th className="border border-slate-400 py-2 px-2 text-center">គណិតវិទ្យា</th>
+                        <th className="border border-slate-400 py-2 px-2 text-center">វិទ្យាសាស្ត្រ-សង្គម</th>
+                        <th className="border border-slate-400 py-2 px-2 text-center">សីលធម៌-ពលរដ្ឋ</th>
+                        <th className="border border-slate-400 py-2 px-2 text-center">សិល្បៈ-កាយ</th>
+                        <th className="border border-slate-400 py-2 px-2 text-center bg-blue-50 text-blue-900 font-moul">សរុប</th>
+                        <th className="border border-slate-400 py-2 px-2 text-center bg-emerald-50 text-emerald-900 font-moul">ម.ភាគ</th>
+                        <th className="border border-slate-400 py-2 px-2 text-center">ចំណាត់ថ្នាក់</th>
+                        <th className="border border-slate-400 py-2 px-2 text-center">និទ្ទេស</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {MONTHS_LIST.map((month) => {
+                        const rec = scores.find(
+                          (s) =>
+                            s.studentId === selectedStudentForReportCard.id &&
+                            s.monthOrSemester === month &&
+                            (!s.academicYear || s.academicYear === selectedAcademicYear)
+                        );
+                        const isSemester = month.includes('ឆមាស');
+                        return (
+                          <tr
+                            key={month}
+                            className={`text-center ${isSemester ? 'bg-amber-50/70 font-bold' : 'hover:bg-slate-50'}`}
+                          >
+                            <td className="border border-slate-400 py-1.5 px-2 font-semibold">{month}</td>
+                            <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.khmerReading : '-'}</td>
+                            <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.khmerWriting : '-'}</td>
+                            <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.mathematics : '-'}</td>
+                            <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.scienceSocial : '-'}</td>
+                            <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.moralCivics : '-'}</td>
+                            <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.artsPhysical : '-'}</td>
+                            <td className="border border-slate-400 py-1.5 px-2 font-times font-bold bg-blue-50/40 text-blue-900">
+                              {rec ? rec.totalScore : '-'}
+                            </td>
+                            <td className="border border-slate-400 py-1.5 px-2 font-times font-bold bg-emerald-50/40 text-emerald-800">
+                              {rec ? rec.averageScore : '-'}
+                            </td>
+                            <td className="border border-slate-400 py-1.5 px-2 font-semibold">
+                              {rec ? `${rec.rank}/${classStudents.length}` : '-'}
+                            </td>
+                            <td className="border border-slate-400 py-1.5 px-2 font-bold font-times">
+                              {rec ? rec.gradeLetter : '-'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
+
+                {/* Behavior and Teacher Remarks */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-5 relative z-1 text-xs">
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                    <span className="font-bold text-slate-800 block">ការវាយតម្លៃអត្តចរិត និងវិន័យ (Conduct & Discipline)</span>
+                    <p className="text-slate-700 leading-relaxed">
+                      សិស្សមានវិន័យល្អ គោរពបទបញ្ជាផ្ទៃក្នុងសាលា ឧស្សាហ៍ព្យាយាម និងរួសរាយរាក់ទាក់ជាមួយមិត្តរួមថ្នាក់។
+                    </p>
+                  </div>
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                    <span className="font-bold text-slate-800 block">យោបល់គ្រូបន្ទុកថ្នាក់ (Teacher Recommendations)</span>
+                    <p className="text-slate-700 leading-relaxed">
+                      ត្រូវបន្តខិតខំរៀនសូត្របន្ថែមលើមុខវិជ្ជាគណិតវិទ្យា និងអានអត្ថបទភាសាខ្មែរនៅផ្ទះឱ្យបានច្រើន។
+                    </p>
+                  </div>
+                </div>
+
+                {/* Official 3-Column Signatures with Dedicated Principal Signature QR Code Slot */}
+                <MoEYSReportCardSignatures
+                  guardianName={
+                    selectedStudentForReportCard.guardianName ||
+                    selectedStudentForReportCard.fatherName ||
+                    '...............................'
+                  }
+                  teacherName={homeroomTeacher?.nameKhmer || 'គ្រូបន្ទុកថ្នាក់'}
+                  principalName={schoolProfile.principalName}
+                  schoolLocation={schoolProfile.province || 'បាត់ដំបង'}
+                  currentMonthName={selectedMonth}
+                  signatureQRParams={principalQRParams}
+                  showSignatureQR={true}
+                />
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
+
 
       {/* Honor Certificate Modal Preview with Authentic Angkor Motifs */}
       {selectedStudentForHonor && (

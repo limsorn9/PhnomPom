@@ -10,6 +10,7 @@ import { ParentMeetingsTab } from './homeroom/ParentMeetingsTab';
 import { HomeroomNotificationsTab } from './homeroom/HomeroomNotificationsTab';
 import { AtRiskStudentsTab } from './homeroom/AtRiskStudentsTab';
 import { DailyClassLogsTab } from './homeroom/DailyClassLogsTab';
+import { TeacherMeetingNotesTab } from './homeroom/TeacherMeetingNotesTab';
 import { ClassCommitteePrintModal } from './ClassCommitteePrintModal';
 import { ClassStudentStatisticsPriModal } from './ClassStudentStatisticsPriModal';
 import { StudentHealthBookletModal } from './StudentHealthBookletModal';
@@ -75,6 +76,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
     updateDailyClassLog,
     deleteDailyClassLog,
     toggleArchiveDailyClassLog,
+    teacherMeetings,
     currentUser,
     setActiveTab
   } = useSchool();
@@ -95,7 +97,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
   });
 
   // Current Active Sub-Tab
-  const [activeSubTab, setActiveSubTab] = useState<'my_class' | 'attendance' | 'grades' | 'at_risk' | 'class_logs' | 'lesson_plans' | 'parent_meetings' | 'notifications'>('my_class');
+  const [activeSubTab, setActiveSubTab] = useState<'my_class' | 'attendance' | 'grades' | 'at_risk' | 'class_logs' | 'lesson_plans' | 'parent_meetings' | 'teacher_meetings' | 'notifications'>('my_class');
 
   // Selected Student for Detail Modal
   const [selectedStudentDetail, setSelectedStudentDetail] = useState<Student | null>(null);
@@ -352,6 +354,24 @@ export const HomeroomTeacherDashboard: React.FC = () => {
           </span>
         </button>
 
+        {/* TEACHER MEETINGS & RESOLUTIONS TAB (SYNC TO GCAL & DRIVE) */}
+        <button
+          onClick={() => setActiveSubTab('teacher_meetings')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeSubTab === 'teacher_meetings'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-indigo-50'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>កំណត់ត្រាការប្រជុំគ្រូ (Teacher Meetings)</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] ${
+            activeSubTab === 'teacher_meetings' ? 'bg-indigo-800 text-white' : 'bg-indigo-100 text-indigo-800'
+          }`}>
+            {teacherMeetings.length}
+          </span>
+        </button>
+
         {/* NEW: NOTIFICATIONS & PARENT REQUESTS TAB */}
         <button
           onClick={() => setActiveSubTab('notifications')}
@@ -473,6 +493,15 @@ export const HomeroomTeacherDashboard: React.FC = () => {
           onUpdateMeeting={updateParentMeeting}
           onDeleteMeeting={deleteParentMeeting}
           onOpenClassCommitteePrint={() => setShowClassCommitteeModal(true)}
+        />
+      )}
+
+      {/* TEACHER MEETINGS AND RESOLUTIONS TAB WITH GOOGLE CALENDAR & DRIVE SYNC */}
+      {activeSubTab === 'teacher_meetings' && (
+        <TeacherMeetingNotesTab
+          selectedGrade={selectedGrade}
+          selectedSection={selectedSection}
+          isTeacherRole={currentUser?.role === 'teacher'}
         />
       )}
 

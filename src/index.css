@@ -981,8 +981,91 @@ html.dark .border-indigo-200 {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
+
+  /* -------------------------------------------------------------
+     Official MoEYS Report Card Print Layout (.report-card-print)
+     Ensures high contrast, crisp black and white printing
+     ------------------------------------------------------------- */
+  .report-card-print {
+    width: 100% !important;
+    max-width: 210mm !important;
+    margin: 0 auto !important;
+    padding: 6mm 8mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: 'Battambang', 'Kantumruy Pro', sans-serif !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .report-card-print table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  .report-card-print th,
+  .report-card-print td {
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+  }
+
+  .report-card-print thead th {
+    background-color: #f3f4f6 !important;
+    color: #000000 !important;
+    font-weight: bold !important;
+  }
+
+  /* Dedicated Principal Signature QR Code Slot in Black & White */
+  .report-card-print .principal-signature-qr-slot,
+  .principal-signature-qr-slot {
+    border: 1.5px solid #000000 !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .report-card-print .principal-signature-qr-slot img,
+  .report-card-print .principal-signature-qr-slot svg,
+  .principal-signature-qr-slot .qr-code-bw-img,
+  .qr-code-bw-img {
+    image-rendering: -moz-crisp-edges !important;
+    image-rendering: -webkit-optimize-contrast !important;
+    image-rendering: crisp-edges !important;
+    image-rendering: pixelated !important;
+    filter: contrast(200%) grayscale(100%) brightness(0%) invert(0) !important;
+    background-color: #ffffff !important;
+    border: none !important;
+  }
+
+  .report-card-print .principal-signature-qr-slot p,
+  .principal-signature-qr-slot p {
+    color: #000000 !important;
+    font-weight: 700 !important;
+  }
+
+  .report-card-print .signatures-container {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
 }
 
+/* Standalone Report Card Print Mode Utilities */
+.report-card-print {
+  color: #0f172a;
+}
 
+.report-card-print .principal-signature-qr-slot {
+  border: 1.5px solid #0f172a;
+  background-color: #ffffff;
+}
 
-
+.report-card-print .principal-signature-qr-slot .qr-code-bw-img {
+  image-rendering: pixelated;
+}

@@ -1,4 +1,11 @@
 import React from 'react';
+import {
+  PrincipalSignatureQRParams,
+  PrincipalSignatureQRSlot
+} from '../utils/reportCardSignatureQR';
+
+export type { PrincipalSignatureQRParams };
+export { PrincipalSignatureQRSlot };
 
 /**
  * Angkor Wat Vector Silhouette
@@ -342,6 +349,8 @@ export const MoEYSOfficialDualSignatures: React.FC<{
   lunarDate?: string;
   solarDate?: string;
   showStampPlaceholder?: boolean;
+  signatureQRParams?: PrincipalSignatureQRParams;
+  showPrincipalQR?: boolean;
   className?: string;
 }> = ({
   schoolLocation = 'ភ្នំពេញ',
@@ -354,6 +363,8 @@ export const MoEYSOfficialDualSignatures: React.FC<{
   lunarDate,
   solarDate,
   showStampPlaceholder = true,
+  signatureQRParams,
+  showPrincipalQR = false,
   className = ''
 }) => {
   const formattedLunar = lunarDate || getKhmerLunarDate();
@@ -368,7 +379,7 @@ export const MoEYSOfficialDualSignatures: React.FC<{
 
   return (
     <div className={`w-full flex justify-between items-start text-xs font-battambang leading-relaxed pt-6 select-none ${className}`}>
-      {/* LEFT: Approving Authority / School Principal */}
+      {/* LEFT: Approving Authority / School Principal with Dedicated Signature QR Slot */}
       <div className="text-center w-72 space-y-1">
         <p className="font-moul text-blue-700 text-xs sm:text-sm font-bold tracking-wide">
           {reviewerTitle}
@@ -377,10 +388,20 @@ export const MoEYSOfficialDualSignatures: React.FC<{
           {principalTitle}
         </p>
 
-        {/* Circular Stamp Placement Area */}
-        <div className="h-28 flex items-center justify-center my-1 relative">
+        {/* Circular Stamp Placement & Signature QR Code Area */}
+        <div className="min-h-28 flex items-center justify-center gap-2 my-1 relative">
           {showStampPlaceholder && (
             <SchoolStampCirclePlaceholder label="ទីតាំងបោះត្រា" />
+          )}
+
+          {showPrincipalQR && signatureQRParams && (
+            <PrincipalSignatureQRSlot
+              params={signatureQRParams}
+              size={68}
+              showBorder={true}
+              showVerificationText={true}
+              className="z-10 shadow-xs"
+            />
           )}
         </div>
 
@@ -407,7 +428,7 @@ export const MoEYSOfficialDualSignatures: React.FC<{
         </p>
 
         {/* Manual Signature Blank Space */}
-        <div className="h-28 flex items-center justify-center">
+        <div className="min-h-28 flex items-center justify-center">
           <span className="text-slate-300 italic text-[11px]"></span>
         </div>
 
@@ -419,5 +440,99 @@ export const MoEYSOfficialDualSignatures: React.FC<{
     </div>
   );
 };
+
+/**
+ * Standard MoEYS 3-Column Report Card Signatures (Guardian, Homeroom Teacher, Principal)
+ * Includes a dedicated slot for the unique Principal Signature QR Code in pure Black & White for printing.
+ */
+export const MoEYSReportCardSignatures: React.FC<{
+  guardianName?: string;
+  teacherName?: string;
+  principalName?: string;
+  schoolLocation?: string;
+  currentMonthName?: string;
+  signatureQRParams?: PrincipalSignatureQRParams;
+  showSignatureQR?: boolean;
+  className?: string;
+}> = ({
+  guardianName = '...............................',
+  teacherName = 'គ្រូបន្ទុកថ្នាក់',
+  principalName = 'នាយកសាលា',
+  schoolLocation = 'បាត់ដំបង',
+  currentMonthName = 'មករា',
+  signatureQRParams,
+  showSignatureQR = true,
+  className = ''
+}) => {
+  const day = new Date().getDate();
+  const year = new Date().getFullYear();
+
+  return (
+    <div
+      className={`signatures-container mt-6 pt-4 border-t border-slate-300 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center text-xs relative z-1 ${className}`}
+    >
+      {/* 1. Parent / Guardian Column */}
+      <div className="flex flex-col justify-between items-center space-y-1">
+        <div>
+          <p className="font-semibold text-slate-700">បានឃើញ និងយល់ព្រម</p>
+          <p className="font-bold text-slate-900 font-moul mt-1">អាណាព្យាបាលសិស្ស</p>
+        </div>
+        <div className="h-16 flex items-center justify-center text-slate-400 italic text-[11px]">
+          (ហត្ថលេខា ឬស្នាមមេដៃ)
+        </div>
+        <p className="font-bold text-slate-800 border-t border-dotted border-slate-400 pt-1 px-4">
+          {guardianName}
+        </p>
+      </div>
+
+      {/* 2. Homeroom Teacher Column */}
+      <div className="flex flex-col justify-between items-center space-y-1">
+        <div>
+          <p className="font-semibold text-slate-700">
+            {schoolLocation}, ថ្ងៃទី {day} ខែ {currentMonthName} ឆ្នាំ{year}
+          </p>
+          <p className="font-bold text-slate-900 font-moul mt-1">គ្រូបន្ទុកថ្នាក់</p>
+        </div>
+        <div className="h-16 flex items-center justify-center text-slate-400 italic text-[11px]">
+          (ហត្ថលេខា)
+        </div>
+        <p className="font-bold text-slate-800 border-t border-dotted border-slate-400 pt-1 px-4">
+          {teacherName}
+        </p>
+      </div>
+
+      {/* 3. Principal / Director Column with Dedicated Black & White QR Slot */}
+      <div className="flex flex-col justify-between items-center space-y-1">
+        <div>
+          <p className="font-semibold text-slate-700">បានឃើញ និងឯកភាព</p>
+          <p className="font-bold text-blue-950 font-moul mt-1">នាយកសាលា</p>
+        </div>
+
+        {/* Dedicated QR Code Slot for Principal Signature & Stamp */}
+        <div className="min-h-20 py-1 flex items-center justify-center gap-2">
+          {showSignatureQR && signatureQRParams ? (
+            <div className="flex items-center justify-center">
+              <PrincipalSignatureQRSlot
+                params={signatureQRParams}
+                size={74}
+                showBorder={true}
+                showVerificationText={true}
+              />
+            </div>
+          ) : (
+            <div className="w-20 h-20 border border-dashed border-slate-400 rounded flex items-center justify-center text-[9px] text-slate-400">
+              (ត្រា និងហត្ថលេខា)
+            </div>
+          )}
+        </div>
+
+        <p className="font-bold font-moul text-blue-950 pt-1">
+          {principalName}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 
 

@@ -262,12 +262,15 @@ export const fetchGoogleCalendarEvents = async (
   }));
 };
 
+export const PRIMARY_SCHOOL_DRIVE_FOLDER_ID = '1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g';
+
 /**
  * Creates/Syncs a Teacher Meeting with full resolutions & agenda to Google Calendar
  */
 export const createTeacherMeetingGoogleCalendarEvent = async (
   meeting: TeacherMeetingRecord,
-  schoolProfile: SchoolProfile
+  schoolProfile: SchoolProfile,
+  driveFolderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
 ): Promise<{ success: boolean; eventId?: string; htmlLink?: string; error?: string }> => {
   const token = await getAccessToken();
   if (!token) {
@@ -288,7 +291,9 @@ export const createTeacherMeetingGoogleCalendarEvent = async (
 
   const attendeesText = `\n\n👥 វត្តមាន៖ ${meeting.totalPresent}/${meeting.totalInvited} នាក់ | ប្រធានអង្គប្រជុំ៖ ${meeting.chairpersonName} | លេខា៖ ${meeting.secretaryName}`;
 
-  const description = `🏫 សាលាបឋមសិក្សា៖ ${schoolProfile.nameKhmer}\n🏷️ ប្រភេទកិច្ចប្រជុំ៖ ${meeting.meetingType === 'monthly' ? 'កិច្ចប្រជុំប្រចាំខែ' : meeting.meetingType === 'pedagogical' ? 'កិច្ចប្រជុំបច្ចេកទេស/គរុកោសល្យ' : 'កិច្ចប្រជុំទូទៅ'}\n⏰ ពេលវេលា៖ ${meeting.meetingTime}\n📍 ទីកន្លែង៖ ${meeting.location}${attendeesText}${agendaText}\n\n📝 សេចក្តីសង្ខេបខ្លឹមសារ៖\n${meeting.discussionSummary || 'គ្មាន'}${resolutionsText}${actionItemsText}`;
+  const driveFolderText = `\n\n📁 ថតឯកសារ Google Drive (Folder ID: ${driveFolderId}):\nhttps://drive.google.com/drive/folders/${driveFolderId}`;
+
+  const description = `🏫 សាលាបឋមសិក្សា៖ ${schoolProfile.nameKhmer}\n🏷️ ប្រភេទកិច្ចប្រជុំ៖ ${meeting.meetingType === 'monthly' ? 'កិច្ចប្រជុំប្រចាំខែ' : meeting.meetingType === 'pedagogical' ? 'កិច្ចប្រជុំបច្ចេកទេស/គរុកោសល្យ' : 'កិច្ចប្រជុំទូទៅ'}\n⏰ ពេលវេលា៖ ${meeting.meetingTime}\n📍 ទីកន្លែង៖ ${meeting.location}${attendeesText}${agendaText}\n\n📝 សេចក្តីសង្ខេបខ្លឹមសារ៖\n${meeting.discussionSummary || 'គ្មាន'}${resolutionsText}${actionItemsText}${driveFolderText}`;
 
   // Next day for all-day or specific date
   const startDateObj = new Date(meeting.meetingDate);
