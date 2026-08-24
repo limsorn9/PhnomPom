@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import {
   HardDrive,
@@ -13,9 +13,13 @@ import {
   X,
   FileCode,
   Sparkles,
-  Lock
+  Lock,
+  ExternalLink,
+  FolderSync
 } from 'lucide-react';
 import { User } from 'firebase/auth';
+import { backupSchoolDataToDrive, listDriveFiles } from '../services/googleDrive';
+import { isGoogleAuthenticated, loginWithGoogle } from '../services/googleAuth';
 
 interface GoogleDriveSyncModalProps {
   isOpen: boolean;
@@ -46,42 +50,79 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
     showToast
   } = useSchool();
 
+  const targetEmail = 'limsorn9@gmail.com';
+  const defaultFolderId = '1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g';
+  const defaultFolderUrl = `https://drive.google.com/drive/folders/${defaultFolderId}?usp=sharing`;
+
+  const [folderId, setFolderId] = useState<string>(defaultFolderId);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [lastSyncTime, setLastSyncTime] = useState<string>('ទើបតែធ្វើសមកាលកម្មមុននេះបន្តិច');
+  const [lastSyncTime, setLastSyncTime] = useState<string>(
+    localStorage.getItem('last_gdrive_sync_time') || 'មិនទាន់បានធ្វើសមកាលកម្ម'
+  );
+  const [lastUploadedFileName, setLastUploadedFileName] = useState<string | null>(
+    localStorage.getItem('last_gdrive_file_name') || null
+  );
   const [syncInterval, setSyncInterval] = useState<'realtime' | 'daily' | 'weekly'>('realtime');
-  const [restoreText, setRestoreText] = useState<string>('');
+  const [isConnected, setIsConnected] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsConnected(isGoogleAuthenticated());
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const targetEmail = 'limsorn9@gmail.com';
-
   const handleTriggerDriveSync = async () => {
     setIsSyncing(true);
-    // Simulate real cloud transmission payload
-    const snapshotData = {
-      backupDate: new Date().toISOString(),
-      school: schoolProfile,
-      studentsCount: students.length,
-      teachersCount: teachers.length,
-      classroomsCount: classrooms.length,
-      scoresCount: scores.length,
-      householdsCount: households.length,
-      libraryBooksCount: libraryBooks.length,
-      readingLogsCount: readingLogs.length,
-      syncedBy: googleUser?.email || targetEmail,
-      status: 'success'
-    };
+    try {
+      if (!isGoogleAuthenticated()) {
+        await loginWithGoogle();
+        setIsConnected(true);
+      }
 
-    setTimeout(() => {
+      const fullDatabasePayload = {
+        version: '2.0.0',
+        exportedAt: new Date().toISOString(),
+        syncedBy: targetEmail,
+        schoolProfile,
+        students,
+        teachers,
+        classrooms,
+        scores,
+        attendanceRecords,
+        calendarEvents,
+        budgetTransactions,
+        households,
+        libraryBooks,
+        readingLogs,
+        appUsers
+      };
+
+      const result = await backupSchoolDataToDrive(
+        fullDatabasePayload,
+        schoolProfile.nameKhmer || schoolProfile.nameLatin || 'សាលាបឋមសិក្សា',
+        folderId.trim() ? folderId.trim() : undefined
+      );
+
+      const currentTime = new Date().toLocaleString('km-KH');
+      setLastSyncTime(currentTime);
+      setLastUploadedFileName(result.name);
+      localStorage.setItem('last_gdrive_sync_time', currentTime);
+      localStorage.setItem('last_gdrive_file_name', result.name);
+
+      showToast(`បានធ្វើសមកាលកម្មទិន្នន័យទៅកាន់ Google Drive (${targetEmail}) ជោគជ័យ!`, 'success');
+    } catch (err: any) {
+      console.error('Drive sync error:', err);
+      showToast(`បរាជ័យក្នុងការ Sync ទៅ Google Drive: ${err.message || 'សូមព្យាយាមម្តងទៀត'}`, 'error');
+    } finally {
       setIsSyncing(false);
-      setLastSyncTime(new Date().toLocaleTimeString('km-KH'));
-      showToast(`បានធ្វើសមកាលកម្មទិន្នន័យទៅ Google Drive គណនី ${targetEmail} ជោគជ័យ!`);
-    }, 1200);
+    }
   };
 
   const handleDownloadFullDatabaseJson = () => {
     const fullBackup = {
-      version: '1.0.0',
+      version: '2.0.0',
       exportedAt: new Date().toISOString(),
       schoolProfile,
       students,
@@ -141,40 +182,72 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-800 text-sm">{schoolProfile.principalName}</span>
+                  <span className="font-bold text-slate-800 text-sm">{schoolProfile.principalName || 'Lim Sorn'}</span>
                   <span className="bg-emerald-200 text-emerald-900 font-bold text-[10px] px-2 py-0.5 rounded-full">
-                    ម្ចាស់គណនី Google
+                    ម្ចាស់គណនី Google Drive
                   </span>
                 </div>
                 <p className="text-xs text-emerald-800 font-mono font-medium mt-0.5">{targetEmail}</p>
               </div>
             </div>
 
-            <div className="text-right">
-              <span className="inline-flex items-center gap-1 text-emerald-700 font-bold bg-emerald-100 px-2.5 py-1 rounded-xl">
-                <CheckCircle className="w-3.5 h-3.5" />
-                <span>បានភ្ជាប់សកម្ម</span>
-              </span>
+            <div className="text-right flex items-center gap-2">
+              <a
+                href={defaultFolderUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-emerald-800 hover:text-emerald-950 font-bold bg-emerald-100/90 hover:bg-emerald-200 px-3 py-1.5 rounded-xl transition-colors"
+              >
+                <FolderSync className="w-4 h-4 text-emerald-700" />
+                <span>បើកមើល Google Drive Folder</span>
+                <ExternalLink className="w-3 h-3 ml-0.5" />
+              </a>
             </div>
+          </div>
+
+          {/* Folder Target Input */}
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="font-bold text-slate-700 flex items-center gap-1.5">
+                <FolderSync className="w-4 h-4 text-blue-600" />
+                <span>លេខសម្គាល់ថត (Google Drive Target Folder ID)</span>
+              </label>
+              <span className="text-[10px] text-slate-500 font-mono">1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g</span>
+            </div>
+            <input
+              type="text"
+              value={folderId}
+              onChange={(e) => setFolderId(e.target.value)}
+              placeholder="បញ្ចូល Google Drive Folder ID..."
+              className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+            />
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              រាល់ការចុច Sync ទិន្នន័យ ឯកសារ JSON នៃមូលដ្ឋានទិន្នន័យទាំងមូលនឹងត្រូវបញ្ជូនទៅកាន់ថត Drive ខាងលើដោយផ្ទាល់។
+            </p>
           </div>
 
           {/* Sync Trigger Card */}
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h4 className="font-bold text-slate-800 text-sm">សមកាលកម្មទិន្នន័យឥឡូវនេះ (Instant Sync)</h4>
                 <p className="text-slate-500 text-[11px] mt-0.5">
-                  ពេលវេលាសមកាលកម្មចុងក្រោយ៖ <span className="font-semibold text-slate-700">{lastSyncTime}</span>
+                  ពេលវេលាសមកាលកម្មចុងក្រោយ៖ <span className="font-semibold text-slate-700 font-times">{lastSyncTime}</span>
                 </p>
+                {lastUploadedFileName && (
+                  <p className="text-emerald-700 text-[11px] font-mono mt-0.5 truncate max-w-sm">
+                    ✓ ឯកសារចុងក្រោយ៖ {lastUploadedFileName}
+                  </p>
+                )}
               </div>
 
               <button
                 onClick={handleTriggerDriveSync}
                 disabled={isSyncing}
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-50"
+                className="flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-50 cursor-pointer"
               >
                 <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                <span>{isSyncing ? 'កំពុង Sync...' : 'Sync ទៅ Google Drive'}</span>
+                <span>{isSyncing ? 'កំពុងបញ្ជូនទៅ Drive...' : 'Sync ទៅ Google Drive ឥឡូវនេះ'}</span>
               </button>
             </div>
 
@@ -197,7 +270,7 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
 
           {/* Sync Frequency Preference */}
           <div className="space-y-2">
-            <label className="block font-bold text-slate-700">ជម្រើសប្រេកង់នៃការបម្រុងទុកស្វ័យប្រវត្តិ (Auto-Backup Schedule)</label>
+            <label className="block font-bold text-slate-700">ជម្រើសប្រេកង់នៃការបម្រុងទុក (Backup Schedule)</label>
             <div className="grid grid-cols-3 gap-3">
               <button
                 type="button"
@@ -209,7 +282,7 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
                 }`}
               >
                 <span>ពេលមានការផ្លាស់ប្តូរ</span>
-                <span className="block text-[10px] text-slate-400 font-normal">Real-time</span>
+                <span className="block text-[10px] text-slate-400 font-normal">Real-time / Instant</span>
               </button>
 
               <button
@@ -252,7 +325,7 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
 
             <button
               onClick={handleDownloadFullDatabaseJson}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm cursor-pointer"
             >
               <CloudDownload className="w-4 h-4" />
               <span>ទាញយក JSON</span>
@@ -265,7 +338,7 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold transition-colors"
+            className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold transition-colors cursor-pointer"
           >
             បិទ (Close)
           </button>

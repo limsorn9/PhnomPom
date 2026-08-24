@@ -96,6 +96,20 @@ export interface AuthState {
 }
 
 /**
+ * Returns whether user is currently authenticated with valid in-memory token
+ */
+export const isGoogleAuthenticated = (): boolean => {
+  return !!cachedAccessToken;
+};
+
+/**
+ * Convenience method to trigger Google login and return credentials
+ */
+export const loginWithGoogle = async (): Promise<{ user: User; accessToken: string } | null> => {
+  return googleSignIn();
+};
+
+/**
  * Translates Firebase Auth error codes and exceptions into user-friendly Khmer error messages
  */
 export const getFriendlyAuthErrorMessage = (error: any): string => {

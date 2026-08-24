@@ -181,9 +181,13 @@ export const deleteDriveItem = async (fileId: string): Promise<void> => {
 /**
  * Backup full school database to Google Drive as JSON
  */
-export const backupSchoolDataToDrive = async (schoolData: any, schoolName: string): Promise<DriveItem> => {
+export const backupSchoolDataToDrive = async (
+  schoolData: any,
+  schoolName: string,
+  targetFolderId?: string
+): Promise<DriveItem> => {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const fileName = `បម្រុងទុកទិន្នន័យ_${schoolName}_${timestamp}.json`;
+  const fileName = `បម្រុងទុកទិន្នន័យ_${schoolName.replace(/\s+/g, '_')}_${timestamp}.json`;
   const jsonContent = JSON.stringify(schoolData, null, 2);
   const blob = new Blob([jsonContent], { type: 'application/json' });
 
@@ -191,7 +195,7 @@ export const backupSchoolDataToDrive = async (schoolData: any, schoolName: strin
     blob,
     fileName,
     'application/json',
-    undefined,
+    targetFolderId,
     `ឯកសារបម្រុងទុកទិន្នន័យសាលារៀន ${schoolName} កាលបរិច្ឆេទ ${new Date().toLocaleDateString('km-KH')}`
   );
 };
