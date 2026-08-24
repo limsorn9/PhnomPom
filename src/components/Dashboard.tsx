@@ -2,6 +2,8 @@ import React from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { RecentActivityDashboard } from './RecentActivityDashboard';
 import { TeacherDailyAgendaPanel } from './TeacherDailyAgendaPanel';
+import { SchoolActivityFeed } from './SchoolActivityFeed';
+import { TeacherDailyTasks } from './TeacherDailyTasks';
 import {
   Users,
   GraduationCap,
@@ -479,6 +481,12 @@ export const Dashboard: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Teacher Daily Tasks - Priority Sorted with Deadlines & Urgent Notifications */}
+      <TeacherDailyTasks />
+
+      {/* Real-time School Activity Feed (Registrations, Budget, Uploads) */}
+      <SchoolActivityFeed maxItems={8} />
 
       {/* Teacher Daily Agenda & Google Calendar Reminders Widget */}
       <TeacherDailyAgendaPanel />

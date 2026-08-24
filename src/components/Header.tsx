@@ -51,6 +51,7 @@ import {
 import { NotificationsModal } from './NotificationsModal';
 import { OfflineSyncStatusBadge } from './OfflineSyncStatusBadge';
 import { InactivityTimeoutCountdown } from './InactivityTimeoutCountdown';
+import { ThemeToggleSwitch } from './common/ThemeToggleSwitch';
 
 interface HeaderProps {
   onToggleMobileSidebar: () => void;
@@ -469,19 +470,10 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
-          {/* Dark Mode Theme Toggle */}
-          <button
-            type="button"
-            onClick={toggleDarkMode}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors border border-slate-200 dark:border-slate-700 shadow-xs active:scale-95"
-            title={isDarkMode ? (language === 'en' ? 'Switch to Light Mode' : 'ប្តូរទៅពន្លឺថ្ងៃ (Light Mode)') : (language === 'en' ? 'Switch to Night / Dark Mode' : 'ប្តូរទៅផ្ទៃងងឹត (Night / Dark Mode)')}
-          >
-            {isDarkMode ? (
-              <Sun className="w-4 h-4 text-amber-400" />
-            ) : (
-              <Moon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-            )}
-          </button>
+          {/* Dark / Light Mode Theme Toggle Switch */}
+          <div className="flex items-center px-1">
+            <ThemeToggleSwitch showLabel={false} size="md" />
+          </div>
 
           {/* Notifications Bell */}
           <button

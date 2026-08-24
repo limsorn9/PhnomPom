@@ -44,6 +44,7 @@ import {
   Users2
 } from 'lucide-react';
 import { User } from 'firebase/auth';
+import { ThemeToggleSwitch } from './common/ThemeToggleSwitch';
 
 interface SidebarProps {
   isMobileOpen: boolean;
@@ -622,6 +623,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <HardDrive className="w-4 h-4" />
           </button>
         )}
+
+        {/* Dark Mode Theme Toggle in Sidebar */}
+        <div className={`flex items-center py-1.5 px-3 rounded-xl bg-slate-950/60 border border-slate-800/80 ${
+          isCollapsed ? 'justify-center px-1' : 'justify-between'
+        }`}>
+          {!isCollapsed && (
+            <span className="text-[11px] font-medium text-slate-400">
+              {language === 'en' ? 'Theme Mode' : 'ទម្រង់ផ្ទៃ (Theme)'}
+            </span>
+          )}
+          <ThemeToggleSwitch showLabel={false} size={isCollapsed ? 'sm' : 'md'} />
+        </div>
 
         {/* Settings button */}
         {canAccessTab('settings') && (
