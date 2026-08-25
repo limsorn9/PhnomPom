@@ -33,6 +33,32 @@ import {
   TeachingResourceFile
 } from '../types';
 
+export const toKhmerNum = (num: number) => {
+  const map = ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'];
+  return num.toString().split('').map(d => map[Number(d)] ?? d).join('');
+};
+
+export const getCurrentAcademicYear = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1; // 1-12
+  const startYear = (month >= 11) ? year : (year - 1);
+  const endYear = startYear + 1;
+  return `${toKhmerNum(startYear)} - ${toKhmerNum(endYear)}`;
+};
+
+export const getDynamicAcademicYears = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const currentEndYear = (month >= 11) ? (year + 1) : year;
+  const years: string[] = [];
+  for (let y = 2016; y < currentEndYear; y++) {
+    years.push(`${toKhmerNum(y)} - ${toKhmerNum(y + 1)}`);
+  }
+  return years;
+};
+
 export const initialSchoolProfile: SchoolProfile = {
   nameKhmer: 'សាលាបឋមសិក្សាភ្នំពុំ',
   nameLatin: 'Phnom Pom Primary School',
@@ -44,7 +70,7 @@ export const initialSchoolProfile: SchoolProfile = {
   principalName: 'លោក លីម សន',
   principalPhone: '087 99 19 77',
   deputyPrincipalName: 'លោក ឈិន សុផល',
-  academicYear: '២០២៤ - ២០២៥',
+  academicYear: getCurrentAcademicYear(),
   establishedYear: '២០០៥',
   cluster: 'កម្រងសាលាបឋមសិក្សាភ្នំព្រឹក',
   email: 'phnompom.primary@moeys.gov.kh',
@@ -70,205 +96,14 @@ export const initialTeachers: Teacher[] = [
     status: 'active',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     schedule: [
-      { day: 'ចន្ទ', subject: 'ប្រជុំគណៈគ្រប់គ្រង & ផែនការសាលា', timeSlot: '07:30 - 08:30', gradeClass: 'រដ្ឋបាល' },
-      { day: 'ព្រហស្បតិ៍', subject: 'ចុះពិនិត្យការបង្រៀន & ថ្នាក់រៀន', timeSlot: '08:30 - 10:00', gradeClass: 'ថ្នាក់ទី៦ក' }
-    ]
-  },
-  {
-    id: 't-2',
-    staffCode: 'MOEYS-108234',
-    nameKhmer: 'លោក ចាន់ វុទ្ធី',
-    nameLatin: 'Chan Vuthy',
-    gender: 'M',
-    dob: '1982-08-20',
-    phone: '017 890 123',
-    email: 'vuthy.chan@moeys.gov.kh',
-    qualification: 'បរិញ្ញាបត្រគរុកោសល្យ',
-    role: 'នាយករង & គ្រូថ្នាក់ទី៦ក',
-    assignedGrade: 6,
-    assignedSection: 'ក',
-    yearsOfService: 19,
-    startDate: '2005-10-01',
-    status: 'active',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    schedule: [
-      { day: 'ចន្ទ', subject: 'ភាសាខ្មែរ', timeSlot: '07:30 - 09:00', gradeClass: '៦ក' },
-      { day: 'ចន្ទ', subject: 'គណិតវិទ្យា', timeSlot: '09:30 - 10:30', gradeClass: '៦ក' },
-      { day: 'អង្គារ', subject: 'វិទ្យាសាស្ត្រ', timeSlot: '07:30 - 09:00', gradeClass: '៦ក' }
-    ]
-  },
-  {
-    id: 't-3',
-    staffCode: 'MOEYS-112045',
-    nameKhmer: 'អ្នកគ្រូ ស៊ឹម ស្រីមុំ',
-    nameLatin: 'Sim Sreymom',
-    gender: 'F',
-    dob: '1988-11-12',
-    phone: '092 445 566',
-    email: 'sreymom.sim@moeys.gov.kh',
-    qualification: 'គរុកោសល្យ ១២+២',
-    role: 'គ្រូបន្ទុកថ្នាក់ទី១ក',
-    assignedGrade: 1,
-    assignedSection: 'ក',
-    yearsOfService: 14,
-    startDate: '2010-10-01',
-    status: 'active',
-    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-    schedule: [
-      { day: 'ចន្ទ', subject: 'ភាសាខ្មែរ (អំណាន)', timeSlot: '07:30 - 08:30', gradeClass: '១ក' },
-      { day: 'ចន្ទ', subject: 'គណិតវិទ្យា', timeSlot: '08:45 - 09:30', gradeClass: '១ក' },
-      { day: 'ពុធ', subject: 'គំនូរ និងចម្រៀង', timeSlot: '09:30 - 10:30', gradeClass: '១ក' }
-    ]
-  },
-  {
-    id: 't-4',
-    staffCode: 'MOEYS-115890',
-    nameKhmer: 'អ្នកគ្រូ ហេង រចនា',
-    nameLatin: 'Heng Rachana',
-    gender: 'F',
-    dob: '1990-03-25',
-    phone: '089 778 899',
-    email: 'rachana.heng@moeys.gov.kh',
-    qualification: 'បរិញ្ញាបត្រអក្សរសាស្ត្រខ្មែរ',
-    role: 'គ្រូបន្ទុកថ្នាក់ទី២ក',
-    assignedGrade: 2,
-    assignedSection: 'ក',
-    yearsOfService: 11,
-    startDate: '2013-10-01',
-    status: 'active',
-    avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
-    schedule: [
-      { day: 'ចន្ទ', subject: 'ភាសាខ្មែរ', timeSlot: '07:30 - 09:00', gradeClass: '២ក' },
-      { day: 'អង្គារ', subject: 'គណិតវិទ្យា', timeSlot: '07:30 - 08:30', gradeClass: '២ក' }
-    ]
-  },
-  {
-    id: 't-5',
-    staffCode: 'MOEYS-117342',
-    nameKhmer: 'លោក គង់ សម្បត្តិ',
-    nameLatin: 'Kong Sambath',
-    gender: 'M',
-    dob: '1986-06-18',
-    phone: '070 234 567',
-    email: 'sambath.kong@moeys.gov.kh',
-    qualification: 'គរុកោសល្យ ១២+២',
-    role: 'គ្រូបន្ទុកថ្នាក់ទី៣ក',
-    assignedGrade: 3,
-    assignedSection: 'ក',
-    yearsOfService: 15,
-    startDate: '2009-10-01',
-    status: 'active',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    schedule: [
-      { day: 'ចន្ទ', subject: 'ភាសាខ្មែរ', timeSlot: '07:30 - 09:00', gradeClass: '៣ក' },
-      { day: 'ពុធ', subject: 'សិក្សាសង្គម', timeSlot: '08:30 - 09:30', gradeClass: '៣ក' }
-    ]
-  },
-  {
-    id: 't-6',
-    staffCode: 'MOEYS-119420',
-    nameKhmer: 'អ្នកគ្រូ កែវ សុគន្ធា',
-    nameLatin: 'Keo Sokunthea',
-    gender: 'F',
-    dob: '1992-09-05',
-    phone: '096 333 444',
-    email: 'sokunthea.keo@moeys.gov.kh',
-    qualification: 'បរិញ្ញាបត្រវិទ្យាសាស្ត្រអប់រំ',
-    role: 'គ្រូបន្ទុកថ្នាក់ទី៤ក',
-    assignedGrade: 4,
-    assignedSection: 'ក',
-    yearsOfService: 8,
-    startDate: '2016-10-01',
-    status: 'active',
-    avatarUrl: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150&auto=format&fit=crop&q=80',
-    schedule: [
-      { day: 'ចន្ទ', subject: 'វិទ្យាសាស្ត្រ', timeSlot: '07:30 - 08:30', gradeClass: '៤ក' },
-      { day: 'អង្គារ', subject: 'គណិតវិទ្យា', timeSlot: '08:30 - 09:30', gradeClass: '៤ក' }
-    ]
-  },
-  {
-    id: 't-7',
-    staffCode: 'MOEYS-120551',
-    nameKhmer: 'លោក ស៊ុន ដារ៉ា',
-    nameLatin: 'Sun Dara',
-    gender: 'M',
-    dob: '1989-12-30',
-    phone: '015 678 901',
-    email: 'dara.sun@moeys.gov.kh',
-    qualification: 'បរិញ្ញាបត្រគរុកោសល្យ',
-    role: 'គ្រូបន្ទុកថ្នាក់ទី៥ក',
-    assignedGrade: 5,
-    assignedSection: 'ក',
-    yearsOfService: 12,
-    startDate: '2012-10-01',
-    status: 'active',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    schedule: [
-      { day: 'ចន្ទ', subject: 'គណិតវិទ្យា', timeSlot: '07:30 - 09:00', gradeClass: '៥ក' },
-      { day: 'ព្រហស្បតិ៍', subject: 'ភាសាខ្មែរ', timeSlot: '08:30 - 10:00', gradeClass: '៥ក' }
-    ]
-  },
-  {
-    id: 't-8',
-    staffCode: 'MOEYS-122119',
-    nameKhmer: 'អ្នកគ្រូ ពេជ្រ ធីតា',
-    nameLatin: 'Pich Thida',
-    gender: 'F',
-    dob: '1995-02-14',
-    phone: '088 990 011',
-    email: 'thida.pich@moeys.gov.kh',
-    qualification: 'បរិញ្ញាបត្រ បណ្ណារក្ស និងព័ត៌មានវិទ្យា',
-    role: 'បណ្ណារក្ស & រដ្ឋបាល',
-    yearsOfService: 6,
-    startDate: '2018-10-01',
-    status: 'active',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    schedule: [
-      { day: 'ចន្ទ', subject: 'គ្រប់គ្រងម៉ោងអានសៀវភៅ', timeSlot: '08:00 - 10:30', gradeClass: 'បណ្ណាល័យ' }
+      { day: 'ចន្ទ', subject: 'ប្រជុំគណៈគ្រប់គ្រង & ផែនការសាលា', timeSlot: '07:30 - 08:30', gradeClass: 'រដ្ឋបាល' }
     ]
   }
 ];
 
-export const initialClassrooms: Classroom[] = [
-  { id: 'c-1', grade: 1, section: 'ក', roomNumber: 'A101', homeroomTeacherId: 't-3', homeroomTeacherName: 'អ្នកគ្រូ ស៊ឹម ស្រីមុំ', academicYear: '២០២៤ - ២០២៥', capacity: 35 },
-  { id: 'c-2', grade: 2, section: 'ក', roomNumber: 'A102', homeroomTeacherId: 't-4', homeroomTeacherName: 'អ្នកគ្រូ ហេង រចនា', academicYear: '២០២៤ - ២០២៥', capacity: 35 },
-  { id: 'c-3', grade: 3, section: 'ក', roomNumber: 'A103', homeroomTeacherId: 't-5', homeroomTeacherName: 'លោក គង់ សម្បត្តិ', academicYear: '២០២៤ - ២០២៥', capacity: 35 },
-  { id: 'c-4', grade: 4, section: 'ក', roomNumber: 'B201', homeroomTeacherId: 't-6', homeroomTeacherName: 'អ្នកគ្រូ កែវ សុគន្ធា', academicYear: '២០២៤ - ២០២៥', capacity: 35 },
-  { id: 'c-5', grade: 5, section: 'ក', roomNumber: 'B202', homeroomTeacherId: 't-7', homeroomTeacherName: 'លោក ស៊ុន ដារ៉ា', academicYear: '២០២៤ - ២០២៥', capacity: 35 },
-  { id: 'c-6', grade: 6, section: 'ក', roomNumber: 'B203', homeroomTeacherId: 't-2', homeroomTeacherName: 'លោក ចាន់ វុទ្ធី', academicYear: '២០២៤ - ២០២៥', capacity: 35 }
-];
+export const initialClassrooms: Classroom[] = [];
 
 export const initialStudents: Student[] = [
-  {
-    id: 's-1',
-    code: 'STU-2024-001',
-    nameKhmer: 'ចាន់ ពិសិដ្ឋ',
-    nameLatin: 'Chan Piseth',
-    gender: 'M',
-    dob: '2012-05-14',
-    pob: 'រាជធានីភ្នំពេញ',
-    grade: 6,
-    section: 'ក',
-    guardianName: 'ចាន់ សុខុម',
-    guardianRelationship: 'ឪពុក',
-    guardianPhone: '012 998 877',
-    guardianOccupation: 'មន្ត្រីរាជការ',
-    address: 'ផ្ទះលេខ ៤៥ ផ្លូវ ១៩ សង្កាត់វត្តភ្នំ ខណ្ឌដូនពេញ',
-    admissionDate: '2018-10-01',
-    status: 'active',
-    avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
-    health: {
-      heightCm: 142,
-      weightKg: 35,
-      bmi: 17.4,
-      nutritionStatus: 'normal',
-      vaccinated: true,
-      bloodType: 'O+',
-      notes: 'សុខភាពមាំមួនល្អ',
-      lastCheckedDate: '2024-10-15'
-    },
-    attendance: { present: 96, absentWithPermission: 2, absentWithoutPermission: 0, totalDays: 98 }
-  },
   {
     id: 's-2',
     code: 'STU-2024-002',
@@ -601,320 +436,11 @@ export const initialStudents: Student[] = [
   }
 ];
 
-export const initialScores: StudentScoreRecord[] = [
-  {
-    id: 'sc-1',
-    studentId: 's-1',
-    studentCode: 'STU-2024-001',
-    studentNameKhmer: 'ចាន់ ពិសិដ្ឋ',
-    gender: 'M',
-    grade: 6,
-    section: 'ក',
-    monthOrSemester: 'មករា',
-    academicYear: '២០២៤ - ២០២៥',
-    scores: {
-      khmerReading: 9.5,
-      khmerWriting: 9.0,
-      mathematics: 9.5,
-      scienceSocial: 9.0,
-      moralCivics: 9.5,
-      artsPhysical: 9.0
-    },
-    totalScore: 55.5,
-    averageScore: 9.25,
-    rank: 1,
-    gradeLetter: 'A',
-    resultStatus: 'ជាប់',
-    remarks: 'សិស្សឆ្នើម ពូកែគណិតវិទ្យា និងភាសាខ្មែរ'
-  },
-  {
-    id: 'sc-2',
-    studentId: 's-2',
-    studentCode: 'STU-2024-002',
-    studentNameKhmer: 'សុខ ស្រីនិច',
-    gender: 'F',
-    grade: 6,
-    section: 'ក',
-    monthOrSemester: 'មករា',
-    academicYear: '២០២៤ - ២០២៥',
-    scores: {
-      khmerReading: 9.5,
-      khmerWriting: 9.5,
-      mathematics: 8.5,
-      scienceSocial: 9.5,
-      moralCivics: 9.0,
-      artsPhysical: 9.0
-    },
-    totalScore: 55.0,
-    averageScore: 9.17,
-    rank: 2,
-    gradeLetter: 'A',
-    resultStatus: 'ជាប់',
-    remarks: 'អក្សរស្អាត សំណេរល្អ និងមានវិន័យខ្ពស់'
-  },
-  {
-    id: 'sc-3',
-    studentId: 's-3',
-    studentCode: 'STU-2024-003',
-    studentNameKhmer: 'ហេង វណ្ណា',
-    gender: 'M',
-    grade: 5,
-    section: 'ក',
-    monthOrSemester: 'មករា',
-    academicYear: '២០២៤ - ២០២៥',
-    scores: {
-      khmerReading: 7.5,
-      khmerWriting: 7.0,
-      mathematics: 8.0,
-      scienceSocial: 7.5,
-      moralCivics: 8.5,
-      artsPhysical: 8.0
-    },
-    totalScore: 46.5,
-    averageScore: 7.75,
-    rank: 2,
-    gradeLetter: 'B',
-    resultStatus: 'ជាប់',
-    remarks: 'ខិតខំប្រឹងប្រែងបន្ថែមលើសំណេរ'
-  },
-  {
-    id: 'sc-4',
-    studentId: 's-4',
-    studentCode: 'STU-2024-004',
-    studentNameKhmer: 'កែវ សុជាតា',
-    gender: 'F',
-    grade: 5,
-    section: 'ក',
-    monthOrSemester: 'មករា',
-    academicYear: '២០២៤ - ២០២៥',
-    scores: {
-      khmerReading: 9.0,
-      khmerWriting: 8.5,
-      mathematics: 9.0,
-      scienceSocial: 9.0,
-      moralCivics: 9.5,
-      artsPhysical: 9.0
-    },
-    totalScore: 54.0,
-    averageScore: 9.00,
-    rank: 1,
-    gradeLetter: 'A',
-    resultStatus: 'ជាប់',
-    remarks: 'ការសិក្សាល្អប្រសើរគ្រប់មុខវិជ្ជា'
-  },
-  {
-    id: 'sc-5',
-    studentId: 's-5',
-    studentCode: 'STU-2024-005',
-    studentNameKhmer: 'លី រតនា',
-    gender: 'M',
-    grade: 4,
-    section: 'ក',
-    monthOrSemester: 'មករា',
-    academicYear: '២០២៤ - ២០២៥',
-    scores: {
-      khmerReading: 8.5,
-      khmerWriting: 8.0,
-      mathematics: 9.5,
-      scienceSocial: 8.5,
-      moralCivics: 9.0,
-      artsPhysical: 9.5
-    },
-    totalScore: 53.0,
-    averageScore: 8.83,
-    rank: 1,
-    gradeLetter: 'A',
-    resultStatus: 'ជាប់',
-    remarks: 'ឆ្លាតវៃ និងចូលរួមសកម្មភាពកីឡាបានល្អ'
-  },
-  {
-    id: 'sc-6',
-    studentId: 's-6',
-    studentCode: 'STU-2024-006',
-    studentNameKhmer: 'ឈុន មុន្នីរ័ត្ន',
-    gender: 'F',
-    grade: 4,
-    section: 'ក',
-    monthOrSemester: 'មករា',
-    academicYear: '២០២៤ - ២០២៥',
-    scores: {
-      khmerReading: 9.0,
-      khmerWriting: 8.5,
-      mathematics: 8.0,
-      scienceSocial: 8.5,
-      moralCivics: 9.0,
-      artsPhysical: 8.5
-    },
-    totalScore: 51.5,
-    averageScore: 8.58,
-    rank: 2,
-    gradeLetter: 'A',
-    resultStatus: 'ជាប់',
-    remarks: 'រៀបរយ និងស្លូតបូត'
-  },
-  {
-    id: 'sc-7',
-    studentId: 's-7',
-    studentCode: 'STU-2024-007',
-    studentNameKhmer: 'វ៉ាន់ សិរីវឌ្ឍន៍',
-    gender: 'M',
-    grade: 3,
-    section: 'ក',
-    monthOrSemester: 'មករា',
-    academicYear: '២០២៤ - ២០២៥',
-    scores: {
-      khmerReading: 8.0,
-      khmerWriting: 7.5,
-      mathematics: 8.5,
-      scienceSocial: 8.0,
-      moralCivics: 8.5,
-      artsPhysical: 8.0
-    },
-    totalScore: 48.5,
-    averageScore: 8.08,
-    rank: 1,
-    gradeLetter: 'B',
-    resultStatus: 'ជាប់',
-    remarks: 'មានការរីកចម្រើនលើការគិតលេខរហ័ស'
-  },
-  {
-    id: 'sc-8',
-    studentId: 's-8',
-    studentCode: 'STU-2024-008',
-    studentNameKhmer: 'ទិត្យ ស្រីពៅ',
-    gender: 'F',
-    grade: 3,
-    section: 'ក',
-    monthOrSemester: 'មករា',
-    academicYear: '២០២៤ - ២០២៥',
-    scores: {
-      khmerReading: 7.5,
-      khmerWriting: 8.0,
-      mathematics: 7.0,
-      scienceSocial: 7.5,
-      moralCivics: 9.0,
-      artsPhysical: 8.5
-    },
-    totalScore: 47.5,
-    averageScore: 7.92,
-    rank: 2,
-    gradeLetter: 'B',
-    resultStatus: 'ជាប់',
-    remarks: 'ឧស្សាហ៍ព្យាយាម យកចិត្តទុកដាក់'
-  }
-];
+export const initialScores: StudentScoreRecord[] = [];
 
-export const initialBudgetTransactions: BudgetTransaction[] = [
-  {
-    id: 'tx-1',
-    title: 'ថវិកាកម្មវិធីរដ្ឋ (PB) ឆមាសទី១ ឆ្នាំ២០២៤',
-    type: 'income',
-    source: 'ថវិការដ្ឋ (PB)',
-    category: 'ថវិកាដំណើរការសាលារៀន',
-    amountRiel: 45000000,
-    amountUsd: 11000,
-    date: '2024-01-10',
-    referenceCode: 'MOEYS-PB-2024-01',
-    recordedBy: 'អ្នកគ្រូ ពេជ្រ ធីតា (គណនេយ្យ)',
-    description: 'ថវិកាគាំទ្រដំណើរការបង្រៀននិងរៀនប្រចាំឆមាសទី១',
-    status: 'approved'
-  },
-  {
-    id: 'tx-2',
-    title: 'មូលនិធិកែលម្អសាលារៀន (SIG)',
-    type: 'income',
-    source: 'មូលនិធិកែលម្អសាលា (SIG)',
-    category: 'អភិវឌ្ឍន៍ហេដ្ឋារចនាសម្ព័ន្ធ',
-    amountRiel: 20000000,
-    amountUsd: 4900,
-    date: '2024-01-20',
-    referenceCode: 'SIG-FUND-2024-A',
-    recordedBy: 'លោក ចាន់ វុទ្ធី (នាយករង)',
-    description: 'មូលនិធិសម្រាប់ជួសជុលបន្ទប់ទឹក និងលាបថ្នាំអគារ A',
-    status: 'approved'
-  },
-  {
-    id: 'tx-3',
-    title: 'វិភាគទានសមាគមមាតាបិតា និងសហគមន៍',
-    type: 'income',
-    source: 'សហគមន៍/សមាគមមាតាបិតា',
-    category: 'ជំនួយសហគមន៍',
-    amountRiel: 8500000,
-    amountUsd: 2073,
-    date: '2024-02-05',
-    referenceCode: 'PTA-DONATION-02',
-    recordedBy: 'លោកស្រី ម៉ៅ សុផានី (នាយិកា)',
-    description: 'ថវិកាបរិច្ចាគទិញកង្ហារ និងតុបតែងបណ្ណាល័យបៃតង',
-    status: 'approved'
-  },
-  {
-    id: 'tx-4',
-    title: 'ទិញសម្ភារៈឧបទេស និងសៀវភៅពុម្ពបន្ថែម',
-    type: 'expense',
-    source: 'ថវិការដ្ឋ (PB)',
-    category: 'សម្ភារៈឧបទេស',
-    amountRiel: 6200000,
-    amountUsd: 1512,
-    date: '2024-02-12',
-    referenceCode: 'EXP-PB-024',
-    recordedBy: 'អ្នកគ្រូ ពេជ្រ ធីតា',
-    description: 'ទិញសម្ភារៈបង្រៀនរូបភាព បន្ទះអក្សរ និងសៀវភៅគំនូរថ្នាក់ទី១-ទី៣',
-    status: 'approved'
-  },
-  {
-    id: 'tx-5',
-    title: 'ជួសជុលដំបូល និងបន្ទប់អនាម័យសិស្ស',
-    type: 'expense',
-    source: 'មូលនិធិកែលម្អសាលា (SIG)',
-    category: 'ជួសជុលអគារ',
-    amountRiel: 8400000,
-    amountUsd: 2048,
-    date: '2024-02-28',
-    referenceCode: 'EXP-SIG-088',
-    recordedBy: 'លោក ចាន់ វុទ្ធី',
-    description: 'ជួសជុលដំបូលធ្លាយ និងប្រព័ន្ធទឹកស្អាតលាងដៃសិស្ស',
-    status: 'approved'
-  },
-  {
-    id: 'tx-6',
-    title: 'រៀបចំពិធីទិវាកុមារ និងប្រឡងសិស្សពូកែ',
-    type: 'expense',
-    source: 'សហគមន៍/សមាគមមាតាបិតា',
-    category: 'សកម្មភាពសិស្ស',
-    amountRiel: 2500000,
-    amountUsd: 610,
-    date: '2024-03-01',
-    referenceCode: 'EXP-PTA-015',
-    recordedBy: 'អ្នកគ្រូ ស៊ឹម ស្រីមុំ',
-    description: 'ទិញរង្វាន់សៀវភៅ ប៊ិក និងប័ណ្ណសរសើរជូនសិស្សជ័យលាភី',
-    status: 'approved'
-  },
-  {
-    id: 'tx-7',
-    title: 'ជំនួយបំពាក់កុំព្យូទ័រ និងបច្ចេកវិទ្យាពីអង្គការដៃគូ',
-    type: 'income',
-    source: 'ដៃគូអភិវឌ្ឍន៍/NGO',
-    category: 'បច្ចេកវិទ្យាអប់រំ',
-    amountRiel: 16000000,
-    amountUsd: 3900,
-    date: '2024-03-15',
-    referenceCode: 'NGO-EDU-2024-K',
-    recordedBy: 'អ្នកគ្រូ ពេជ្រ ធីតា',
-    description: 'កុំព្យូទ័រ ៣ គ្រឿង និងម៉ាស៊ីនព្រីន Smart Classroom',
-    status: 'approved'
-  }
-];
+export const initialBudgetTransactions: BudgetTransaction[] = [];
 
-export const initialAttendanceRecords: DailyAttendanceRecord[] = [
-  { id: 'att-1', date: '2024-03-20', grade: 6, section: 'ក', studentId: 's-1', studentNameKhmer: 'ចាន់ ពិសិដ្ឋ', status: 'present', session: 'morning' },
-  { id: 'att-2', date: '2024-03-20', grade: 6, section: 'ក', studentId: 's-2', studentNameKhmer: 'សុខ ស្រីនិច', status: 'present', session: 'morning' },
-  { id: 'att-3', date: '2024-03-20', grade: 5, section: 'ក', studentId: 's-3', studentNameKhmer: 'ហេង វណ្ណា', status: 'permission', session: 'morning', notes: 'ឈឺផ្តាសាយ' },
-  { id: 'att-4', date: '2024-03-20', grade: 5, section: 'ក', studentId: 's-4', studentNameKhmer: 'កែវ សុជាតា', status: 'present', session: 'morning' },
-  { id: 'att-5', date: '2024-03-20', grade: 4, section: 'ក', studentId: 's-5', studentNameKhmer: 'លី រតនា', status: 'present', session: 'morning' },
-  { id: 'att-6', date: '2024-03-20', grade: 4, section: 'ក', studentId: 's-6', studentNameKhmer: 'ឈុន មុន្នីរ័ត្ន', status: 'present', session: 'morning' },
-  { id: 'att-7', date: '2024-03-20', grade: 3, section: 'ក', studentId: 's-7', studentNameKhmer: 'វ៉ាន់ សិរីវឌ្ឍន៍', status: 'present', session: 'morning' },
-  { id: 'att-8', date: '2024-03-20', grade: 3, section: 'ក', studentId: 's-8', studentNameKhmer: 'ទិត្យ ស្រីពៅ', status: 'present', session: 'morning' }
-];
+export const initialAttendanceRecords: DailyAttendanceRecord[] = [];
 
 export const initialCalendarEvents: AcademicCalendarEvent[] = [
   {
@@ -1070,96 +596,6 @@ export const initialUsers = [
     staffCode: 'MOEYS-104921',
     createdAt: '2024-01-01',
     status: 'active' as const
-  },
-  {
-    id: 'u-2',
-    username: 'secretary',
-    email: 'secretary@moeys.gov.kh',
-    password: 'password123',
-    nameKhmer: 'កញ្ញា ម៉ៅ សុខា',
-    nameLatin: 'Mao Sokha',
-    role: 'secretary' as const,
-    phone: '012 456 789',
-    staffCode: 'MOEYS-109845',
-    createdBy: 'u-1',
-    createdAt: '2024-01-05',
-    status: 'active' as const
-  },
-  {
-    id: 'u-3',
-    username: 'librarian',
-    email: 'librarian@moeys.gov.kh',
-    password: 'password123',
-    nameKhmer: 'លោក គឹម សុជាតិ',
-    nameLatin: 'Kim Socheat',
-    role: 'librarian' as const,
-    phone: '016 789 012',
-    staffCode: 'MOEYS-109988',
-    createdBy: 'u-1',
-    createdAt: '2024-01-08',
-    status: 'active' as const
-  },
-  {
-    id: 'u-4',
-    username: 'vuthy.chan',
-    email: 'vuthy.chan@moeys.gov.kh',
-    password: 'password123',
-    nameKhmer: 'លោក ចាន់ វុទ្ធី',
-    nameLatin: 'Chan Vuthy',
-    role: 'teacher' as const,
-    phone: '017 890 123',
-    staffCode: 'MOEYS-108234',
-    assignedGrade: 6,
-    assignedSection: 'ក',
-    createdAt: '2024-01-02',
-    status: 'active' as const
-  },
-  {
-    id: 'u-5',
-    username: 'sophea.sim',
-    email: 'sophea.sim@moeys.gov.kh',
-    password: 'password123',
-    nameKhmer: 'អ្នកគ្រូ ស៊ឹម សុភា',
-    nameLatin: 'Sim Sophea',
-    role: 'teacher' as const,
-    phone: '012 345 678',
-    staffCode: 'MOEYS-104922',
-    assignedGrade: 1,
-    assignedSection: 'ក',
-    createdAt: '2024-01-03',
-    status: 'active' as const
-  },
-  {
-    id: 'u-6',
-    username: 'STU-2024-001',
-    email: 'sok.dara@student.moeys.gov.kh',
-    password: 'password123',
-    nameKhmer: 'សុខ តារា',
-    nameLatin: 'Sok Dara',
-    role: 'student' as const,
-    studentId: 'stu-1',
-    studentCode: 'STU-2024-001',
-    assignedGrade: 6,
-    assignedSection: 'ក',
-    createdBy: 'u-4',
-    createdAt: '2024-01-10',
-    status: 'active' as const
-  },
-  {
-    id: 'u-7',
-    username: 'STU-2024-002',
-    email: 'chan.bopha@student.moeys.gov.kh',
-    password: 'password123',
-    nameKhmer: 'ចាន់ បុប្ផា',
-    nameLatin: 'Chan Bopha',
-    role: 'student' as const,
-    studentId: 'stu-2',
-    studentCode: 'STU-2024-002',
-    assignedGrade: 6,
-    assignedSection: 'ក',
-    createdBy: 'u-4',
-    createdAt: '2024-01-10',
-    status: 'active' as const
   }
 ];
 
@@ -1275,13 +711,7 @@ export const initialTransfers: StudentTransferRecord[] = [
   }
 ];
 
-export const initialAcademicYears: string[] = [
-  '២០២១ - ២០២២',
-  '២០២២ - ២០២៣',
-  '២០២៣ - ២០២៤',
-  '២០២៤ - ២០២៥',
-  '២០២៥ - ២០២៦'
-];
+export const initialAcademicYears: string[] = getDynamicAcademicYears();
 
 export const initialExamSubjects: ExamSubject[] = [
   { id: 'sub-1', code: 'listening', nameKhmer: 'សមត្ថភាពស្តាប់', nameLatin: 'Listening Ability', category: 'khmer', maxScore: 10, weight: 1, isDefault: true },

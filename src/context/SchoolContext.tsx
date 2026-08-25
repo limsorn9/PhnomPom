@@ -48,7 +48,8 @@ import {
   TeachingResourceFile,
   MonthlyBudgetSummary,
   DriveAutoSyncConfig,
-  DriveSyncHistoryItem
+  DriveSyncHistoryItem,
+  QRScanVerificationLog
 } from '../types';
 import { getTranslation, AppLanguage } from '../utils/translations';
 import { googleSignIn, isGoogleAuthenticated } from '../services/googleAuth';
@@ -97,6 +98,8 @@ import {
   initialNotifications,
   initialTransfers,
   initialAcademicYears,
+  getCurrentAcademicYear,
+  getDynamicAcademicYears,
   initialExamSubjects,
   initialProfileEditRequests,
   initialCatchmentVillages,
@@ -302,6 +305,12 @@ interface SchoolContextType {
   printSettings: PrintSettings;
   setPrintSettings: React.Dispatch<React.SetStateAction<PrintSettings>>;
 
+  // QR Scan Verification Audit Logs (ប្រវត្តិស្កេនផ្ទៀងផ្ទាត់ QR ហត្ថលេខាឌីជីថល)
+  qrScanVerificationLogs: QRScanVerificationLog[];
+  addQRScanVerificationLog: (log: Omit<QRScanVerificationLog, 'id' | 'scannedAt'> & { scannedAt?: string }) => void;
+  deleteQRScanVerificationLog: (id: string) => void;
+  clearQRScanVerificationLogs: () => void;
+
   // Student Monthly Feedback / Comments to Teachers
   studentFeedbacks: StudentMonthlyFeedback[];
   addStudentFeedback: (feedback: Omit<StudentMonthlyFeedback, 'id' | 'createdAt'>) => void;
@@ -458,7 +467,7 @@ interface SchoolContextType {
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = 'phnom_pom_primary_school_v1';
+const LOCAL_STORAGE_KEY = 'phnom_pom_primary_school_v2';
 
 export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
@@ -575,11 +584,20 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Academic Years State
   const [academicYears, setAcademicYears] = useState<string[]>(() => {
     const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_academic_years`);
-    return saved ? JSON.parse(saved) : initialAcademicYears;
+    const dyn = getDynamicAcademicYears();
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return Array.from(new Set([...dyn, ...parsed]));
+      } catch {
+        return dyn;
+      }
+    }
+    return dyn;
   });
 
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>(() => {
-    return '២០២៤ - ២០២៥';
+    return getCurrentAcademicYear();
   });
 
   // Language State ('km' | 'en')
@@ -645,18 +663,188 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Universal Print Settings State
   const [printSettings, setPrintSettings] = useState<PrintSettings>(() => {
     const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_print_settings`);
-    return saved
-      ? JSON.parse(saved)
-      : {
-          showRoundStamp: true,
-          showDirectorSignature: true,
-          showDirectorRedName: true,
-          showRoyalHeader: true,
-          showWatermark: true,
-          paperSize: 'A4',
-          orientation: 'portrait'
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return {
+          showRoundStamp: parsed.showRoundStamp ?? true,
+          showDirectorSignature: parsed.showDirectorSignature ?? true,
+          showDirectorRedName: parsed.showDirectorRedName ?? true,
+          showRoyalHeader: parsed.showRoyalHeader ?? true,
+          showWatermark: parsed.showWatermark ?? true,
+          showPrincipalSignatureQR: parsed.showPrincipalSignatureQR ?? true,
+          signatureQRStyle: parsed.signatureQRStyle || 'classic_square',
+          signatureExpiryDays: parsed.signatureExpiryDays || 90,
+          includeRoundStamp: parsed.includeRoundStamp ?? true,
+          includeDirectorSignature: parsed.includeDirectorSignature ?? true,
+          redDirectorName: parsed.redDirectorName ?? true,
+          paperSize: parsed.paperSize || 'A4',
+          orientation: parsed.orientation || 'portrait'
         };
+      } catch {
+        // fallback
+      }
+    }
+    return {
+      includeRoundStamp: true,
+      includeDirectorSignature: true,
+      redDirectorName: true,
+      showRoundStamp: true,
+      showDirectorSignature: true,
+      showDirectorRedName: true,
+      showRoyalHeader: true,
+      showWatermark: true,
+      showPrincipalSignatureQR: true,
+      signatureQRStyle: 'classic_square',
+      signatureExpiryDays: 90,
+      paperSize: 'A4',
+      orientation: 'portrait'
+    };
   });
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_print_settings`, JSON.stringify(printSettings));
+  }, [printSettings]);
+
+  // QR Scan Verification Audit Logs State (ប្រវត្តិស្កេនផ្ទៀងផ្ទាត់ QR ហត្ថលេខាឌីជីថល)
+  const [qrScanVerificationLogs, setQrScanVerificationLogs] = useState<QRScanVerificationLog[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_qr_verification_logs`);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        // fallback
+      }
+    }
+    const todayStr = new Date().toISOString();
+    const pastDateStr = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    const olderDateStr = new Date(Date.now() - 105 * 24 * 60 * 60 * 1000).toISOString();
+    const expiredIssueDate = new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const expiredAtDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    return [
+      {
+        id: 'scan-log-1',
+        scannedAt: todayStr,
+        signatureRef: 'MOEYS-SIG-2026-6A-STU001-A48F',
+        studentId: 'st-1',
+        studentCode: 'STU001',
+        studentNameKhmer: 'សុខ សុវណ្ណារ៉ា',
+        studentNameLatin: 'Sok Sovannara',
+        grade: 6,
+        section: 'ក',
+        academicYear: '២០២៦ - ២០២៧',
+        monthOrSemester: 'មករា',
+        schoolCode: '001',
+        schoolNameKhmer: 'សាលាបឋមសិក្សាភ្នំព្រឹក',
+        principalName: 'សួន វិបុល',
+        issueDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        expiresAt: new Date(Date.now() + 80 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        verificationStatus: 'valid',
+        statusReason: 'ហត្ថលេខាឌីជីថល និងត្រានាយកសាលាមានសុពលភាពត្រឹមត្រូវតាមស្ដង់ដារ MoEYS',
+        deviceInfo: {
+          deviceType: 'mobile',
+          os: 'iOS 17.4',
+          browser: 'Safari Mobile',
+          userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15'
+        },
+        verifierName: 'លោកនាយកសាលា',
+        verifierRole: 'នាយកសាលា',
+        scanMethod: 'webcam_scanner',
+        averageScore: 9.25,
+        rank: 1,
+        totalStudents: 28
+      },
+      {
+        id: 'scan-log-2',
+        scannedAt: pastDateStr,
+        signatureRef: 'MOEYS-SIG-2026-6A-STU002-B71C',
+        studentId: 'st-2',
+        studentCode: 'STU002',
+        studentNameKhmer: 'ចាន់ ធីតា',
+        studentNameLatin: 'Chan Thida',
+        grade: 6,
+        section: 'ក',
+        academicYear: '២០២៦ - ២០២៧',
+        monthOrSemester: 'មករា',
+        schoolCode: '001',
+        schoolNameKhmer: 'សាលាបឋមសិក្សាភ្នំព្រឹក',
+        principalName: 'សួន វិបុល',
+        issueDate: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        expiresAt: new Date(Date.now() + 78 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        verificationStatus: 'valid',
+        statusReason: 'ហត្ថលេខាឌីជីថល និងត្រានាយកសាលាមានសុពលភាពត្រឹមត្រូវតាមស្ដង់ដារ MoEYS',
+        deviceInfo: {
+          deviceType: 'desktop',
+          os: 'Windows 11',
+          browser: 'Chrome 122.0',
+          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0.0.0'
+        },
+        verifierName: 'លោកស្រី ម៉ៅ សុផល (អធិការអប់រំ)',
+        verifierRole: 'អធិការកិច្ចមន្ទីរអប់រំ',
+        scanMethod: 'file_upload',
+        averageScore: 8.85,
+        rank: 2,
+        totalStudents: 28
+      },
+      {
+        id: 'scan-log-3',
+        scannedAt: olderDateStr,
+        signatureRef: 'MOEYS-SIG-2025-5B-STU089-9E2A',
+        studentId: 'st-3',
+        studentCode: 'STU089',
+        studentNameKhmer: 'កែវ វិចិត្រ',
+        studentNameLatin: 'Keo Vichet',
+        grade: 5,
+        section: 'ខ',
+        academicYear: '២០២៤ - ២០២៥',
+        monthOrSemester: 'ឆមាសទី១',
+        schoolCode: '001',
+        schoolNameKhmer: 'សាលាបឋមសិក្សាភ្នំព្រឹក',
+        principalName: 'សួន វិបុល',
+        issueDate: expiredIssueDate,
+        expiresAt: expiredAtDate,
+        verificationStatus: 'expired',
+        statusReason: `QR Code ហត្ថលេខានាយកបានផុតកំណត់សុពលភាពតាំងពីថ្ងៃទី ${expiredAtDate} (៣០ ថ្ងៃមុន)។ សូមស្នើសុំបង្កើតព្រឹត្តិបត្រពិន្ទុថ្មីដើម្បីធានាសុវត្ថិភាព។`,
+        deviceInfo: {
+          deviceType: 'tablet',
+          os: 'iPadOS 16.5',
+          browser: 'Safari',
+          userAgent: 'Mozilla/5.0 (iPad; CPU OS 16_5 like Mac OS X)'
+        },
+        verifierName: 'អាណាព្យាបាលសិស្ស / ការិយាល័យអប់រំស្រុក',
+        verifierRole: 'អាណាព្យាបាល',
+        scanMethod: 'webcam_scanner',
+        averageScore: 7.95,
+        rank: 5,
+        totalStudents: 30
+      }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_qr_verification_logs`, JSON.stringify(qrScanVerificationLogs));
+  }, [qrScanVerificationLogs]);
+
+  const addQRScanVerificationLog = (log: Omit<QRScanVerificationLog, 'id' | 'scannedAt'> & { scannedAt?: string }) => {
+    const newLog: QRScanVerificationLog = {
+      ...log,
+      id: `scan-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      scannedAt: log.scannedAt || new Date().toISOString()
+    };
+    setQrScanVerificationLogs(prev => [newLog, ...prev].slice(0, 500));
+  };
+
+  const deleteQRScanVerificationLog = (id: string) => {
+    setQrScanVerificationLogs(prev => prev.filter(l => l.id !== id));
+    setToastMessage({ text: 'បានលុបកំណត់ត្រាស្កេនរួចរាល់', type: 'info' });
+  };
+
+  const clearQRScanVerificationLogs = () => {
+    setQrScanVerificationLogs([]);
+    localStorage.removeItem(`${LOCAL_STORAGE_KEY}_qr_verification_logs`);
+    setToastMessage({ text: 'បានសម្អាតប្រវត្តិស្កេន QR ទាំងអស់រួចរាល់', type: 'info' });
+  };
 
   // Student Monthly Feedbacks State
   const [studentFeedbacks, setStudentFeedbacks] = useState<StudentMonthlyFeedback[]>(() => {
@@ -4070,6 +4258,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         deleteReadingLog,
         printSettings,
         setPrintSettings,
+        qrScanVerificationLogs,
+        addQRScanVerificationLog,
+        deleteQRScanVerificationLog,
+        clearQRScanVerificationLogs,
         studentFeedbacks,
         addStudentFeedback,
         replyStudentFeedback,

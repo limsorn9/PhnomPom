@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import QRCode from 'qrcode';
 import { useSchool } from '../context/SchoolContext';
 import { Student, Gender, LivingCondition, AcademicHistoryStatus, OrphanStatus } from '../types';
 import { exportStudentsToGoogleSheets } from '../services/googleSheets';
@@ -90,6 +91,28 @@ export const StudentManagement: React.FC = () => {
   const [localSearch, setLocalSearch] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStudentForView, setSelectedStudentForView] = useState<Student | null>(null);
+
+  // Generate QR Code when viewing a student
+  useEffect(() => {
+    if (selectedStudentForView) {
+      setTimeout(() => {
+        const canvas = document.getElementById(`student-qr-canvas-${selectedStudentForView.id}`) as HTMLCanvasElement;
+        if (canvas) {
+          const qrData = JSON.stringify({
+            id: selectedStudentForView.id,
+            code: selectedStudentForView.code,
+            name: selectedStudentForView.nameKhmer,
+            grade: `${selectedStudentForView.grade}${selectedStudentForView.section}`,
+            school: schoolProfile.nameKhmer,
+            phone: selectedStudentForView.phone || selectedStudentForView.guardianPhone || 'N/A'
+          });
+          QRCode.toCanvas(canvas, qrData, { width: 112, margin: 1 }, (error) => {
+            if (error) console.error('QR generation error:', error);
+          });
+        }
+      }, 100);
+    }
+  }, [selectedStudentForView]);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isExportingSheets, setIsExportingSheets] = useState(false);
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
@@ -1435,6 +1458,29 @@ export const StudentManagement: React.FC = () => {
                   <div className="col-span-2">
                     <span className="text-slate-500 block text-xs">សម្គាល់សុខភាព</span>
                     <strong className="text-slate-800">{selectedStudentForView.health.notes || 'គ្មាន'}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Student Identity Card QR Code Generator Section */}
+              <div className="border-t border-slate-200 pt-4">
+                <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-4 rounded-2xl text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md">
+                  <div className="space-y-1 text-center sm:text-left">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/30 text-blue-200 text-[11px] font-bold">
+                      <QrCode className="w-3.5 h-3.5" />
+                      <span>អត្តសញ្ញាណប័ណ្ណសិស្សឌីជីថល (Student ID Card QR)</span>
+                    </div>
+                    <h4 className="font-bold font-moul text-sm sm:text-base">{selectedStudentForView.nameKhmer}</h4>
+                    <p className="text-xs text-blue-100">
+                      អត្តលេខសិស្ស៖ <span className="font-times font-bold">{selectedStudentForView.code}</span> • ថ្នាក់ទី {selectedStudentForView.grade}{selectedStudentForView.section}
+                    </p>
+                    <p className="text-[11px] text-slate-300">
+                      សាលា៖ {schoolProfile.nameKhmer}
+                    </p>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl shadow-md flex flex-col items-center gap-2">
+                    <canvas id={`student-qr-canvas-${selectedStudentForView.id}`} className="w-28 h-28" />
+                    <span className="text-[10px] text-slate-700 font-bold font-moul">ស្កេនពិនិត្យព័ត៌មាន</span>
                   </div>
                 </div>
               </div>

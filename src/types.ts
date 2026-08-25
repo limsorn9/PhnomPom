@@ -158,8 +158,10 @@ export interface Teacher {
   trainingCohort?: string; // វគ្គសិក្សា
   certificateDate?: string; // ថ្ងៃខែទទួលបាន
   schoolCode?: string; // លេខកូដសាលា
-  assignedGrade?: number; // ថ្នាក់បង្រៀន
-  assignedSection?: string; // បន្ទប់
+  assignedGrade?: number; // ថ្នាក់បង្រៀនទី១
+  assignedSection?: string; // បន្ទប់ទី១
+  assignedGrade2?: number; // ថ្នាក់បង្រៀនទី២ (បើមាន)
+  assignedSection2?: string; // បន្ទប់ទី២ (បើមាន)
   teachingShift?: string; // វេនបង្រៀន (ព្រឹក / រសៀល / ពេញមួយថ្ងៃ)
   totalClassesTaught?: number; // ថ្នាក់សរុប
   totalStudentsFemaleTaught?: number; // ស្រី (ស្ថិតិសិស្សស្រីបង្រៀន)
@@ -405,6 +407,8 @@ export interface SchoolProfile {
   cluster: string;
   email: string;
   logoUrl?: string;
+  principalSignatureUrl?: string; // Digital signature image file URL or data URL
+  principalStampUrl?: string; // Official stamp image file URL
   mapUrl?: string;
   facebookPage?: string;
   gradingScaleType?: GradingScaleType; // 'khmer_term' (ល្អណាស់, ល្អ, ល្អបង្គួរ...) vs 'letter' (A, B, C...)
@@ -922,6 +926,42 @@ export interface LibraryReadingLog {
   teacherLibrarianSign?: string;
 }
 
+export type SignatureQRStyle = 'classic_square' | 'rounded_modern' | 'dot_pattern' | 'framed_seal' | 'bordered_moeys';
+
+export interface QRScanVerificationLog {
+  id: string;
+  scannedAt: string; // ISO string
+  signatureRef: string;
+  studentId?: string;
+  studentCode: string;
+  studentNameKhmer: string;
+  studentNameLatin?: string;
+  grade: number;
+  section: string;
+  academicYear: string;
+  monthOrSemester?: string;
+  schoolCode: string;
+  schoolNameKhmer: string;
+  principalName: string;
+  issueDate?: string;
+  expiresAt?: string;
+  verificationStatus: 'valid' | 'expired' | 'invalid' | 'tampered';
+  statusReason?: string;
+  deviceInfo: {
+    deviceType: 'mobile' | 'desktop' | 'tablet' | 'scanner';
+    os?: string;
+    browser?: string;
+    userAgent?: string;
+    ipOrLocationHint?: string;
+  };
+  verifierName?: string;
+  verifierRole?: string;
+  scanMethod: 'webcam_scanner' | 'file_upload' | 'manual_input' | 'direct_url';
+  averageScore?: number;
+  rank?: number;
+  totalStudents?: number;
+}
+
 export interface PrintSettings {
   includeRoundStamp: boolean; // ត្រាមូលសាលា
   includeDirectorSignature: boolean; // ហត្ថលេខានាយក
@@ -929,7 +969,14 @@ export interface PrintSettings {
   showRoundStamp?: boolean;
   showDirectorSignature?: boolean;
   showDirectorRedName?: boolean;
+  showRoyalHeader?: boolean;
   showWatermark?: boolean;
+  showPrincipalSignatureQR?: boolean; // បង្ហាញ QR Code ហត្ថលេខាឌីជីថលរបស់នាយកសាលា
+  includePrincipalSignatureQR?: boolean;
+  signatureQRStyle?: SignatureQRStyle; // រចនាប័ទ្ម QR Code ហត្ថលេខាឌីជីថល (ការ៉េ, ជ្រុងមូល, គ្រាប់ចុច, ត្រាសុវត្ថិភាព)
+  signatureExpiryDays?: number; // ចំនួនថ្ងៃសុពលភាព QR Code ហត្ថលេខា (ឧ. ៣០, ៦០, ៩០, ១៨០, ៣៦៥ ថ្ងៃ)
+  paperSize?: 'A4' | 'A5' | 'Letter';
+  orientation?: 'portrait' | 'landscape';
 }
 
 export interface GoogleUserInfo {

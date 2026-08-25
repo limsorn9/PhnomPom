@@ -39,6 +39,7 @@ import { StudentHealthReportPdfModal } from './StudentHealthReportPdfModal';
 import { ClassStudentStatisticsPriModal } from './ClassStudentStatisticsPriModal';
 import { BulkDataImportExportModal } from './BulkDataImportExportModal';
 import { QuickCareObservationModal } from './QuickCareObservationModal';
+import { D3CalendarHeatmap } from './D3CalendarHeatmap';
 
 export const HealthAttendance: React.FC = () => {
   const {
@@ -173,7 +174,30 @@ export const HealthAttendance: React.FC = () => {
     };
   }>({});
 
-  // Initialize status from stored records or default to present
+  // Background check for students absent > 3 consecutive days
+  const consecutiveAbsentStudents = React.useMemo(() => {
+    const results: { student: Student; consecutiveDays: number }[] = [];
+    classStudents.forEach(stu => {
+      const stuRecords = (attendanceRecords || [])
+        .filter(r => r.studentId === stu.id)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      let count = 0;
+      for (const rec of stuRecords) {
+        if (rec.status === 'absent') {
+          count++;
+        } else {
+          break;
+        }
+      }
+
+      if (count >= 3) {
+        results.push({ student: stu, consecutiveDays: count });
+      }
+    });
+    return results;
+  }, [students, attendanceRecords, selectedGrade, selectedSection]);
+
   React.useEffect(() => {
     const existing = attendanceRecords.filter(
       r =>
@@ -550,6 +574,28 @@ export const HealthAttendance: React.FC = () => {
       {activeSubTab === 'attendance' ? (
         /* Attendance Tracking Section */
         <div className="space-y-6 animate-fade-in">
+          {/* Background Check Notification: Students absent > 3 consecutive days */}
+          {consecutiveAbsentStudents.length > 0 && (
+            <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 shadow-sm flex items-start gap-3 text-amber-900 animate-pulse">
+              <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 space-y-1">
+                <h4 className="font-bold text-xs sm:text-sm font-moul">
+                  ⚠️ ការជូនដំណឹងដល់គ្រូបន្ទុកថ្នាក់៖ មានសិស្សអវត្តមានជាប់ៗគ្នាលើសពី ៣ថ្ងៃ
+                </h4>
+                <p className="text-xs text-amber-800">
+                  ប្រព័ន្ធបានរកឃើញសិស្សចំនួន <strong className="underline">{consecutiveAbsentStudents.length} នាក់</strong> ដែលអវត្តមានជាប់ៗគ្នាលើសពី ៣ថ្ងៃក្នុងថ្នាក់ទី {selectedGrade}{selectedSection}៖
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {consecutiveAbsentStudents.map((item, idx) => (
+                    <span key={idx} className="px-2.5 py-1 bg-amber-200/80 text-amber-900 text-xs font-bold rounded-lg border border-amber-300 shadow-2xs">
+                      {item.student.nameKhmer} ({item.consecutiveDays} ថ្ងៃជាប់គ្នា)
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Controls and Selectors */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div>
@@ -1223,6 +1269,17 @@ export const HealthAttendance: React.FC = () => {
       ) : activeSubTab === 'trends' ? (
         /* Dedicated Monthly Attendance & Health Growth Trends Visualization Section */
         <div className="space-y-6 animate-fade-in">
+          {/* D3 Calendar Heatmap for Daily Attendance Percentages over Academic Year */}
+          <D3CalendarHeatmap
+            grade={selectedGrade}
+            section={selectedSection}
+            onSelectDate={(dateStr, rate) => {
+              setSelectedDate(dateStr);
+              setActiveSubTab('attendance');
+              showToast(`បានជ្រើសរើសថ្ងៃទី ${dateStr} (អត្រាវត្តមាន ${rate}%) មកកាន់តារាងវត្តមាន`, 'info');
+            }}
+          />
+
           {/* D3.js School-Wide Health & Epidemiology Trends Overview Panel */}
           <SchoolHealthEpidemiologyD3Panel
             students={students}

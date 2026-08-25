@@ -574,6 +574,26 @@ export const TeacherDailyAgendaPanel: React.FC<TeacherDailyAgendaPanelProps> = (
           </div>
         </div>
       )}
+
+      {/* Floating Action Button (FAB) for Quick Meeting Minute Logging */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <button
+          onClick={() => {
+            setFormData({
+              ...initialForm,
+              category: 'meeting',
+              title: 'កត់ត្រាកំណត់ហេតុប្រជុំរដ្ឋបាលសាលា',
+              description: 'កំណត់ហេតុប្រជុំគរុកោសល្យ និងការងាររដ្ឋបាលប្រចាំថ្ងៃ'
+            });
+            setIsAddModalOpen(true);
+          }}
+          className="flex items-center gap-2 px-5 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 border-2 border-white/30"
+          title="កត់ត្រាកំណត់ហេតុប្រជុំរហ័ស (Quick Meeting Minute)"
+        >
+          <BookOpen className="w-5 h-5 text-amber-300 animate-bounce" />
+          <span className="text-xs sm:text-sm font-moul">កត់ត្រាកំណត់ហេតុប្រជុំ</span>
+        </button>
+      </div>
     </div>
   );
 };

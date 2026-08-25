@@ -138,6 +138,7 @@ export const RecentActivityDashboard: React.FC<RecentActivityDashboardProps> = (
   const [isDiffSelectMode, setIsDiffSelectMode] = useState(false);
   const [selectedDiffIds, setSelectedDiffIds] = useState<string[]>([]);
   const [showAnomaliesOnly, setShowAnomaliesOnly] = useState(false);
+  const [showReportCardOnly, setShowReportCardOnly] = useState(false);
   const [localToast, setLocalToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
 
   // Keyboard Navigation, Bulk Selection & Shortcuts
@@ -226,6 +227,7 @@ export const RecentActivityDashboard: React.FC<RecentActivityDashboardProps> = (
     const teacherEvents = enrichedLogs.filter(a => a.domain === 'teacher').length;
     const financeEvents = enrichedLogs.filter(a => a.domain === 'finance').length;
     const academicEvents = enrichedLogs.filter(a => a.domain === 'academic').length;
+    const reportCardEvents = enrichedLogs.filter(a => a.tags?.includes('report_card') || a.tags?.includes('principal_qr_signature') || a.title?.includes('ព្រឹត្តិបត្រពិន្ទុ')).length;
 
     const totalMoneyFlow = enrichedLogs
       .filter(a => a.domain === 'finance' && a.financialAmountRiel)
@@ -237,6 +239,7 @@ export const RecentActivityDashboard: React.FC<RecentActivityDashboardProps> = (
       teacherEvents,
       financeEvents,
       academicEvents,
+      reportCardEvents,
       totalMoneyFlow
     };
   }, [enrichedLogs]);
@@ -265,6 +268,12 @@ export const RecentActivityDashboard: React.FC<RecentActivityDashboardProps> = (
       // High Risk Only filter
       if (showHighRiskOnly && !log.isHighRisk) {
         return false;
+      }
+
+      // Report Card & QR Signature Only filter
+      if (showReportCardOnly) {
+        const isReportCard = log.tags?.includes('report_card') || log.tags?.includes('principal_qr_signature') || log.title?.includes('ព្រឹត្តិបត្រពិន្ទុ');
+        if (!isReportCard) return false;
       }
 
       // Domain filter
@@ -296,7 +305,8 @@ export const RecentActivityDashboard: React.FC<RecentActivityDashboardProps> = (
         const matchActor = log.actorName?.toLowerCase().includes(query);
         const matchCode = log.entityCode?.toLowerCase().includes(query);
         const matchCategory = log.financialCategory?.toLowerCase().includes(query);
-        if (!matchTitle && !matchDesc && !matchEntity && !matchActor && !matchCode && !matchCategory) {
+        const matchTags = log.tags?.some(tag => tag.toLowerCase().includes(query));
+        if (!matchTitle && !matchDesc && !matchEntity && !matchActor && !matchCode && !matchCategory && !matchTags) {
           return false;
         }
       }
@@ -797,6 +807,22 @@ export const RecentActivityDashboard: React.FC<RecentActivityDashboardProps> = (
             </button>
 
             <button
+              id="activity-email-principal-btn"
+              onClick={() => {
+                const summaryText = `របាយការណ៍សកម្មភាពប្រចាំសប្តាហ៍ (${schoolProfile.nameKhmer})\n- សកម្មភាពសរុប: ${metrics.total} កំណត់ត្រា\n- សិស្ស: ${metrics.studentEvents} | គ្រូ: ${metrics.teacherEvents} | ហិរញ្ញវត្ថុ: ${metrics.financeEvents}\n- ទឹកប្រាក់សរុប: ${metrics.totalMoneyFlow.toLocaleString()} រៀល\n- បញ្ជូនជូន: ${schoolProfile.principalName} (នាយកសាលា)`;
+                const subject = encodeURIComponent(`របាយការណ៍សកម្មភាពសាលាប្រចាំសប្តាហ៍ - ${schoolProfile.nameKhmer}`);
+                const body = encodeURIComponent(summaryText);
+                window.open(`mailto:principal@school.edu.kh?subject=${subject}&body=${body}`, '_blank');
+                showToast(`បានត្រៀមសារអ៊ីម៉ែលផ្ញើជូនលោកនាយក (${schoolProfile.principalName}) ដោយជោគជ័យ!`, 'success');
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow transition-transform active:scale-95 cursor-pointer"
+              title="សង្ខេបសកម្មភាពប្រចាំសប្តាហ៍ និងផ្ញើជូននាយកសាលាភ្លាមៗតាមអ៊ីម៉ែល (1-Click Email)"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span>អ៊ីម៉ែលរបាយការណ៍សប្តាហ៍</span>
+            </button>
+
+            <button
               id="activity-manual-log-btn"
               onClick={() => setIsManualLogModalOpen(true)}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow transition-transform active:scale-95 cursor-pointer"
@@ -1006,6 +1032,23 @@ export const RecentActivityDashboard: React.FC<RecentActivityDashboardProps> = (
                 <FileSpreadsheet className="w-3.5 h-3.5" />
                 <span>ពិន្ទុ & លទ្ធផល ({metrics.academicEvents})</span>
               </button>
+
+              {/* Report Card & QR Signatures Quick Toggle Tab */}
+              {metrics.reportCardEvents > 0 && (
+                <button
+                  id="activity-report-cards-filter-btn"
+                  onClick={() => setShowReportCardOnly(!showReportCardOnly)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
+                    showReportCardOnly
+                      ? 'bg-blue-700 text-white shadow-sm ring-2 ring-blue-300'
+                      : 'text-blue-700 hover:bg-blue-100/80 bg-blue-50/50'
+                  }`}
+                  title="បង្ហាញតែកំណត់ត្រាព្រឹត្តិបត្រពិន្ទុ & QR ហត្ថលេខានាយក"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>ព្រឹត្តិបត្រពិន្ទុ & QR ({metrics.reportCardEvents})</span>
+                </button>
+              )}
               
               {/* Anomalies Quick Toggle Tab */}
               {totalAnomaliesCount > 0 && (

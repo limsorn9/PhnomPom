@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import jsQR from 'jsqr';
-import { Student, DailyAttendanceRecord } from '../types';
+import { Student, DailyAttendanceRecord, QRScanVerificationLog } from '../types';
 import { useSchool } from '../context/SchoolContext';
 import { cacheStudentProgressReport } from '../services/offlineSyncService';
+import { parseAndVerifyPrincipalSignatureQR } from '../utils/reportCardSignatureQR';
 import {
   Camera,
   X,
@@ -19,7 +20,11 @@ import {
   Phone,
   Eye,
   ShieldCheck,
-  Check
+  Check,
+  FileCheck,
+  AlertTriangle,
+  QrCode,
+  Laptop
 } from 'lucide-react';
 
 interface WebcamQRScannerModalProps {
@@ -46,7 +51,8 @@ export const WebcamQRScannerModal: React.FC<WebcamQRScannerModalProps> = ({
     addActivityLog,
     currentUser,
     getStudentBadges,
-    getStudentTotalPoints
+    getStudentTotalPoints,
+    addQRScanVerificationLog
   } = useSchool();
 
   // Video & Stream State
@@ -65,6 +71,12 @@ export const WebcamQRScannerModal: React.FC<WebcamQRScannerModalProps> = ({
   const [isScanning, setIsScanning] = useState(true);
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
   const [currentScannedStudent, setCurrentScannedStudent] = useState<Student | null>(null);
+  const [signatureVerificationResult, setSignatureVerificationResult] = useState<{
+    log: Omit<QRScanVerificationLog, 'id' | 'scannedAt'>;
+    isExpired: boolean;
+    isValid: boolean;
+    rawPayload?: any;
+  } | null>(null);
   const [scanCooldown, setScanCooldown] = useState(false);
   const [recentScans, setRecentScans] = useState<ScannedHistoryItem[]>([]);
 
@@ -224,6 +236,50 @@ export const WebcamQRScannerModal: React.FC<WebcamQRScannerModalProps> = ({
       if (code && code.data && !scanCooldown) {
         const raw = code.data.trim();
 
+        // Check if raw is a Principal Digital Signature QR
+        const isSigPayload =
+          raw.includes('MOEYS-SIG-') ||
+          raw.includes('report_card_signature') ||
+          raw.includes('principalSignature') ||
+          raw.includes('sigRef') ||
+          raw.includes('moeys_sig');
+
+        if (isSigPayload) {
+          const verification = parseAndVerifyPrincipalSignatureQR(raw, students, schoolProfile);
+          addQRScanVerificationLog({
+            ...verification.logEntry,
+            verifierName: currentUser?.nameKhmer || 'អ្នកប្រើប្រាស់បច្ចុប្បន្ន',
+            verifierRole: currentUser?.role === 'director' ? 'នាយកសាលា' : 'គ្រូបង្រៀន/បុគ្គលិក',
+            scanMethod: 'webcam_scanner'
+          });
+
+          setSignatureVerificationResult({
+            log: verification.logEntry,
+            isExpired: verification.isExpired,
+            isValid: verification.isValid,
+            rawPayload: verification.payload
+          });
+
+          if (verification.student) {
+            setCurrentScannedStudent(verification.student);
+          }
+
+          if (verification.isValid) {
+            playBeep(true);
+            showToast(`QR ហត្ថលេខានាយកមានសុពលភាពត្រឹមត្រូវ (${verification.logEntry.studentNameKhmer})`, 'success');
+          } else if (verification.isExpired) {
+            playBeep(false);
+            showToast(`ការព្រមាន៖ QR ហត្ថលេខានេះបានផុតកំណត់សុពលភាពហើយ!`, 'error');
+          } else {
+            playBeep(false);
+            showToast(`ការព្រមាន៖ QR ហត្ថលេខាមិនត្រឹមត្រូវ ឬមានការកែប្រែទិន្នន័យ!`, 'error');
+          }
+
+          setScanCooldown(true);
+          setTimeout(() => setScanCooldown(false), 2500);
+          return;
+        }
+
         // 1. Try to find student by direct code (e.g. STU-2024-001 or 101)
         let found = students.find(
           s => s.code.toLowerCase() === raw.toLowerCase() || s.id === raw
@@ -257,7 +313,7 @@ export const WebcamQRScannerModal: React.FC<WebcamQRScannerModalProps> = ({
     }
 
     animationFrameRef.current = requestAnimationFrame(scanLoop);
-  }, [isScanning, scanCooldown, students, handleStudentFound, playBeep, showToast]);
+  }, [isScanning, scanCooldown, students, schoolProfile, currentUser, addQRScanVerificationLog, handleStudentFound, playBeep, showToast]);
 
   // Lifecycle
   useEffect(() => {
@@ -448,8 +504,119 @@ export const WebcamQRScannerModal: React.FC<WebcamQRScannerModalProps> = ({
             </div>
           </div>
 
-          {/* Right Column: Scanned Student Details & Session History */}
+          {/* Right Column: Scanned Student Details, Digital Signature Seal, & Session History */}
           <div className="lg:col-span-5 space-y-4">
+            {/* Digital Signature QR Verification Box */}
+            {signatureVerificationResult && (
+              <div
+                className={`rounded-3xl p-5 border-2 shadow-lg relative overflow-hidden ${
+                  signatureVerificationResult.isValid
+                    ? 'bg-gradient-to-b from-emerald-50/90 to-white border-emerald-300 shadow-emerald-500/10'
+                    : signatureVerificationResult.isExpired
+                    ? 'bg-gradient-to-b from-amber-50/90 to-white border-amber-300 shadow-amber-500/10'
+                    : 'bg-gradient-to-b from-rose-50/90 to-white border-rose-300 shadow-rose-500/10'
+                }`}
+              >
+                <div className="flex items-center justify-between border-b border-slate-200/80 pb-3 mb-3">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                        signatureVerificationResult.isValid
+                          ? 'bg-emerald-600 text-white'
+                          : signatureVerificationResult.isExpired
+                          ? 'bg-amber-600 text-white'
+                          : 'bg-rose-600 text-white'
+                      }`}
+                    >
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold font-moul text-xs text-slate-900">
+                        ផ្ទៀងផ្ទាត់ហត្ថលេខាឌីជីថល
+                      </h4>
+                      <p className="text-[10px] text-slate-500 font-times">
+                        {signatureVerificationResult.log.signatureRef}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 ${
+                      signatureVerificationResult.isValid
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : signatureVerificationResult.isExpired
+                        ? 'bg-amber-100 text-amber-800 border border-amber-300 animate-pulse'
+                        : 'bg-rose-100 text-rose-800 border border-rose-300'
+                    }`}
+                  >
+                    {signatureVerificationResult.isValid ? (
+                      <>
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        សុពលភាពត្រឹមត្រូវ
+                      </>
+                    ) : signatureVerificationResult.isExpired ? (
+                      <>
+                        <AlertTriangle className="w-3 h-3 text-amber-600" />
+                        ផុតកំណត់សុពលភាព
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-3 h-3 text-rose-600" />
+                        មិនត្រឹមត្រូវ / ក្លែងបន្លំ
+                      </>
+                    )}
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-700 leading-relaxed bg-white/80 p-2.5 rounded-2xl border border-slate-200/60 mb-3">
+                  {signatureVerificationResult.log.statusReason}
+                </p>
+
+                <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50/80 p-3 rounded-2xl border border-slate-100">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">នាយកសាលាចុះហត្ថលេខា៖</span>
+                    <span className="font-bold text-slate-800">{signatureVerificationResult.log.principalName}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">ថ្ងៃចេញ / ថ្ងៃផុតកំណត់៖</span>
+                    <span className="font-bold text-slate-800 text-[11px]">
+                      {signatureVerificationResult.log.issueDate} ➔{' '}
+                      <span className={signatureVerificationResult.isExpired ? 'text-rose-600 font-black' : 'text-emerald-700'}>
+                        {signatureVerificationResult.log.expiresAt}
+                      </span>
+                    </span>
+                  </div>
+                  {signatureVerificationResult.log.averageScore !== undefined && (
+                    <div>
+                      <span className="text-[10px] text-slate-400 block">ពិន្ទុមធ្យមភាគ / ចំណាត់ថ្នាក់៖</span>
+                      <span className="font-bold text-indigo-700">
+                        {signatureVerificationResult.log.averageScore.toFixed(2)} ពិន្ទុ (លេខ {signatureVerificationResult.log.rank || '-'})
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">ឧបករណ៍ស្កេន៖</span>
+                    <span className="font-semibold text-slate-600 text-[11px] flex items-center gap-1">
+                      <Laptop className="w-3 h-3 text-slate-400" />
+                      {signatureVerificationResult.log.deviceInfo.deviceType} ({signatureVerificationResult.log.deviceInfo.browser})
+                    </span>
+                  </div>
+                </div>
+
+                {signatureVerificationResult.isExpired && (
+                  <div className="mt-3 p-3 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">តម្រូវការបង្កើតឯកសារឡើងវិញ៖</span>
+                      <p className="text-[11px] text-amber-800 mt-0.5">
+                        ព្រឹត្តិបត្រពិន្ទុចាស់នេះបានផុតកំណត់ដើម្បីការពារសុវត្ថិភាព។ សូមចូលទៅកាន់ទំព័រ «ព្រឹត្តិបត្រពិន្ទុ & QR» ដើម្បីជ្រើសរើសសិស្ស និងបោះពុម្ពជាថ្មីជាមួយនឹងកាលបរិច្ឆេទសុពលភាពថ្មី។
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Live Student Profile Card */}
             {currentScannedStudent ? (
               <div className="bg-white rounded-3xl p-5 border-2 border-indigo-200 shadow-lg relative overflow-hidden">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSchool } from '../context/SchoolContext';
+import { getDynamicAcademicYears, getCurrentAcademicYear } from '../data/initialData';
 import {
   FileCode2,
   Download,
@@ -34,6 +35,12 @@ export const StandaloneHtmlExportModal: React.FC<StandaloneHtmlExportModalProps>
       appUsers,
       transfers
     }).replace(/</g, '\\u003c');
+
+    const dynYears = getDynamicAcademicYears();
+    const curYear = getCurrentAcademicYear();
+    const yearOptionsHtml = [...dynYears].reverse().map(yr => `
+      <option value="${yr}" ${yr === curYear ? 'selected' : ''}>${yr}</option>
+    `).join('');
 
     return `<!DOCTYPE html>
 <html lang="km" class="light">
@@ -109,11 +116,7 @@ export const StandaloneHtmlExportModal: React.FC<StandaloneHtmlExportModalProps>
 
           <!-- Academic Year -->
           <select id="year-select" onchange="switchYear(this.value)" class="bg-blue-950 text-slate-200 text-xs font-bold rounded-lg px-2 py-1 border border-blue-700 focus:outline-none">
-            <option value="2025-2026">២០២៥-២០២៦</option>
-            <option value="2024-2025" selected>២០២៤-២០២៥</option>
-            <option value="2023-2024">២០២៣-២០២៤</option>
-            <option value="2022-2023">២០២២-២០២៣</option>
-            <option value="2021-2022">២០២១-២០២២</option>
+            ${yearOptionsHtml}
           </select>
 
           <!-- Language Switcher -->

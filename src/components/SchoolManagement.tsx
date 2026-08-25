@@ -44,10 +44,115 @@ export const SchoolManagement: React.FC = () => {
     deleteSchoolAsset,
     schoolProfile,
     showToast,
-    selectedAcademicYear
+    selectedAcademicYear,
+    students,
+    teachers,
+    classrooms,
+    scores,
+    budgetTransactions,
+    attendanceRecords,
+    appUsers
   } = useSchool();
 
-  const [activeSubTab, setActiveSubTab] = useState<'standards' | 'strategic_plan' | 'assets'>('standards');
+  const [activeSubTab, setActiveSubTab] = useState<'standards' | 'strategic_plan' | 'assets' | 'backup'>('standards');
+
+  // Export & Backup Handlers
+  const handleDownloadJsonBackup = () => {
+    const backupData = {
+      exportDate: new Date().toISOString(),
+      schoolProfile,
+      students,
+      teachers,
+      classrooms,
+      scores,
+      budgetTransactions,
+      attendanceRecords,
+      schoolAssets,
+      schoolStrategicPlans,
+      modelSchoolStandards,
+      appUsers
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `school_complete_backup_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    showToast('បានទាញយកទិន្នន័យបម្រុងទុក (JSON Backup) ជោគជ័យ!');
+  };
+
+  const handleExportStudentsCsv = () => {
+    const headers = ['ID', 'Student Code', 'Name (Khmer)', 'Gender', 'Grade', 'Section', 'Guardian Phone', 'Address'];
+    const rows = students.map(s => [
+      s.id,
+      s.studentCode || '',
+      `"${s.nameKhmer || ''}"`,
+      s.gender || '',
+      s.grade || '',
+      s.section || '',
+      `"${s.guardianPhone || ''}"`,
+      `"${s.address || ''}"`
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `students_records_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast('បានទាញយកបញ្ជីសិស្សជា CSV ជោគជ័យ!');
+  };
+
+  const handleExportTeachersCsv = () => {
+    const headers = ['ID', 'Staff Code', 'Name (Khmer)', 'Name (Latin)', 'Gender', 'Phone', 'Email', 'Assigned Grade', 'Assigned Section'];
+    const rows = teachers.map(t => [
+      t.id,
+      t.staffCode || '',
+      `"${t.nameKhmer || ''}"`,
+      `"${t.nameLatin || ''}"`,
+      t.gender || '',
+      `"${t.phone || ''}"`,
+      t.email || '',
+      t.assignedGrade || '',
+      t.assignedSection || ''
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `teachers_records_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast('បានទាញយកបញ្ជីគ្រូបង្រៀនជា CSV ជោគជ័យ!');
+  };
+
+  const handleExportBudgetCsv = () => {
+    const headers = ['ID', 'Title', 'Type', 'Source', 'Category', 'Amount (Riel)', 'Amount (USD)', 'Date', 'Reference Code', 'Status'];
+    const rows = budgetTransactions.map(tx => [
+      tx.id,
+      `"${tx.title || ''}"`,
+      tx.type,
+      `"${tx.source || ''}"`,
+      `"${tx.category || ''}"`,
+      tx.amountRiel || 0,
+      tx.amountUsd || 0,
+      tx.date || '',
+      tx.referenceCode || '',
+      tx.status || ''
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `budget_transactions_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast('បានទាញយកបញ្ជីថវិកាជា CSV ជោគជ័យ!');
+  };
 
   // Standards State
   const [expandedStandard, setExpandedStandard] = useState<number | null>(1);
@@ -318,8 +423,102 @@ export const SchoolManagement: React.FC = () => {
             <Package className="w-4 h-4" />
             <span>សារពើភ័ណ្ឌ & ទ្រព្យសម្បត្តិសាលា ({schoolAssets.length})</span>
           </button>
+          <button
+            onClick={() => setActiveSubTab('backup')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${
+              activeSubTab === 'backup'
+                ? 'bg-amber-600 text-white shadow-sm shadow-amber-200'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>ទិន្នន័យបម្រុងទុក និងសុវត្ថិភាព (Data Export & Safety)</span>
+          </button>
         </div>
       </div>
+
+      {/* TAB 4: DATA EXPORT & SAFETY */}
+      {activeSubTab === 'backup' && (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white rounded-3xl p-6 shadow-lg">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div>
+                <span className="px-3 py-1 bg-emerald-500 text-white font-bold rounded-full text-xs uppercase tracking-wider flex items-center gap-1 inline-flex">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Data Export & Safety Hub</span>
+                </span>
+                <h2 className="text-xl font-bold font-moul mt-2">
+                  ការគ្រប់គ្រងទិន្នន័យបម្រុងទុក និងសុវត្ថិភាពសាលារៀន
+                </h2>
+                <p className="text-slate-300 text-xs mt-1 max-w-2xl">
+                  អនុញ្ញាតឱ្យនាយកសាលាទាញយកទិន្នន័យបម្រុងទុកពេញលេញ (JSON Backup) និងរបាយការណ៍ជាឯកសារ CSV សម្រាប់រក្សាទុកដោយសុវត្ថិភាព។
+                </p>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 text-center border border-white/20 min-w-[200px]">
+                <div className="text-2xl font-extrabold text-amber-300">{students.length} សិស្ស | {teachers.length} គ្រូ</div>
+                <div className="text-xs text-slate-200 mt-0.5">ទិន្នន័យសរុបក្នុងប្រព័ន្ធ</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Complete JSON Backup Card */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
+              <div>
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 font-bold">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 font-moul">ទាញយកទិន្នន័យបម្រុងទុកពេញលេញ (Complete JSON Backup)</h3>
+                <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                  ទាញយកទិន្នន័យទាំងមូលរបស់សាលា រួមមាន ព័ត៌មានសាលា បញ្ជីសិស្ស គ្រូបង្រៀន បន្ទប់រៀន ពិន្ទុ ថវិកា វត្តមាន និងផែនការយុទ្ធសាស្ត្រក្នុងឯកសារ JSON តែមួយ។
+                </p>
+              </div>
+              <button
+                onClick={handleDownloadJsonBackup}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>ទាញយក JSON Backup ពេញលេញ</span>
+              </button>
+            </div>
+
+            {/* CSV Data Exports Card */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
+              <div>
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4 font-bold">
+                  <Package className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 font-moul">ទាញយកទិន្នន័យឯកសារ CSV (Spreadsheet Export)</h3>
+                <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                  ទាញយកបញ្ជីជាក់លាក់ជាទម្រង់ CSV ដើម្បីបើកមើល និងកែច្នៃក្នុង Microsoft Excel ឬ Google Sheets។
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2">
+                <button
+                  onClick={handleExportStudentsCsv}
+                  className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <span>សិស្ស ({students.length})</span>
+                </button>
+                <button
+                  onClick={handleExportTeachersCsv}
+                  className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <span>គ្រូ ({teachers.length})</span>
+                </button>
+                <button
+                  onClick={handleExportBudgetCsv}
+                  className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <span>ថវិកា ({budgetTransactions.length})</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TAB 1: 5 STANDARDS OF MODEL PRIMARY SCHOOL (MoEYS) */}
       {activeSubTab === 'standards' && (

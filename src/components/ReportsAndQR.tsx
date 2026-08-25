@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSchool } from '../context/SchoolContext';
-import { Student, Teacher } from '../types';
+import { Student, Teacher, SignatureQRStyle, QRScanVerificationLog } from '../types';
 import {
   FileSpreadsheet,
   Printer,
@@ -32,12 +32,39 @@ import {
   Check,
   Filter,
   CheckSquare,
+  Square,
   Camera,
-  ScanLine
+  ScanLine,
+  ToggleLeft,
+  ToggleRight,
+  Stamp,
+  Clock,
+  RefreshCw,
+  AlertTriangle,
+  AlertCircle,
+  Info,
+  Laptop,
+  Smartphone,
+  History,
+  FileStack,
+  Trash2,
+  RotateCcw,
+  CheckCheck,
+  UserCheck,
+  ShieldAlert
 } from 'lucide-react';
 import { printElement, downloadElementAsPdf } from '../utils/printUtils';
 import { WebcamQRScannerModal } from './WebcamQRScannerModal';
 import { ExportStudentIdBadgeModal } from './ExportStudentIdBadgeModal';
+import {
+  PrincipalSignatureQRSlot,
+  PrincipalSignaturePlaceholderGraphic,
+  generateUniqueSignatureCode,
+  calculateSignatureExpiry,
+  isSignatureExpired,
+  PrincipalSignatureQRParams
+} from '../utils/reportCardSignatureQR';
+import { MoEYSReportCardSignatures, AngkorPageWatermark, MoEYSRoyalHeader } from './AngkorMotif';
 
 export const ReportsAndQR: React.FC = () => {
   const {
@@ -53,11 +80,18 @@ export const ReportsAndQR: React.FC = () => {
     showToast,
     switchUserRole,
     gradingScaleType,
-    getFormattedGrade
+    getFormattedGrade,
+    printSettings,
+    setPrintSettings,
+    addActivityLog,
+    currentUser,
+    qrScanVerificationLogs = [],
+    deleteQRScanVerificationLog,
+    clearQRScanVerificationLogs
   } = useSchool();
 
   const [activeReportType, setActiveReportType] = useState<
-    'census' | 'score_sheet' | 'finance' | 'student_qr_cards' | 'student_qr_grid' | 'staff_qr_cards' | 'school_profile'
+    'census' | 'score_sheet' | 'finance' | 'student_qr_cards' | 'student_qr_grid' | 'staff_qr_cards' | 'school_profile' | 'report_cards' | 'scan_history'
   >('census');
 
   const [selectedGrade, setSelectedGrade] = useState<number>(6);
@@ -69,10 +103,46 @@ export const ReportsAndQR: React.FC = () => {
   const [batchGradeFilter, setBatchGradeFilter] = useState<string>('all');
   const [batchSearchQuery, setBatchSearchQuery] = useState<string>('');
 
+  // Report Card Mode: Single Student vs Batch Concatenated PDF
+  const [reportCardMode, setReportCardMode] = useState<'single' | 'batch_concatenated'>('single');
+  const [selectedBatchReportCardStudentIds, setSelectedBatchReportCardStudentIds] = useState<string[]>([]);
+  const [batchReportCardGradeFilter, setBatchReportCardGradeFilter] = useState<string>('all');
+  const [batchReportCardSectionFilter, setBatchReportCardSectionFilter] = useState<string>('all');
+  const [batchReportCardSearch, setBatchReportCardSearch] = useState<string>('');
+  
+  // Custom renewal timestamp map for re-generating expired signature QR codes
+  const [signatureRenewalTimestamps, setSignatureRenewalTimestamps] = useState<Record<string, string>>({});
+
+  // Scan History Filter & Search
+  const [scanHistoryStatusFilter, setScanHistoryStatusFilter] = useState<'all' | 'valid' | 'expired' | 'tampered' | 'invalid'>('all');
+  const [scanHistorySearch, setScanHistorySearch] = useState<string>('');
+
   // Filter students for active class
   const classStudents = students.filter(
     s => s.grade === selectedGrade && s.section === selectedSection
   );
+
+  // Filter students for batch report cards
+  const filteredBatchReportCardStudents = students.filter(st => {
+    if (batchReportCardGradeFilter !== 'all') {
+      if (st.grade !== Number(batchReportCardGradeFilter)) return false;
+    }
+    if (batchReportCardSectionFilter !== 'all') {
+      if (st.section !== batchReportCardSectionFilter) return false;
+    }
+    if (batchReportCardSearch.trim()) {
+      const q = batchReportCardSearch.toLowerCase().trim();
+      const matchName = st.nameKhmer.toLowerCase().includes(q) || (st.nameLatin && st.nameLatin.toLowerCase().includes(q));
+      const matchCode = st.code.toLowerCase().includes(q);
+      if (!matchName && !matchCode) return false;
+    }
+    return true;
+  });
+
+  // Students to render in concatenated report cards PDF
+  const studentsForConcatenatedReportCards = selectedBatchReportCardStudentIds.length > 0
+    ? students.filter(st => selectedBatchReportCardStudentIds.includes(st.id))
+    : (classStudents.length > 0 ? classStudents : students.slice(0, 10));
 
   // Filter students for batch QR code grid
   const filteredBatchStudents = students.filter(st => {
@@ -104,6 +174,51 @@ export const ReportsAndQR: React.FC = () => {
   const [isWebcamScannerOpen, setIsWebcamScannerOpen] = useState(false);
   const [isSingleIdBadgeModalOpen, setIsSingleIdBadgeModalOpen] = useState(false);
   const [selectedStudentForBadgeId, setSelectedStudentForBadgeId] = useState<string | undefined>(undefined);
+  const [selectedStudentForReportCard, setSelectedStudentForReportCard] = useState<Student | null>(null);
+
+  const logReportCardGenerationOrPrint = (student: Student, action: 'generated' | 'printed' | 'exported_pdf') => {
+    if (!addActivityLog) return;
+    const actionText = action === 'printed' ? 'បោះពុម្ព' : (action === 'exported_pdf' ? 'ទាញយកជា PDF' : 'បង្កើត/ពិនិត្យមើល');
+    const signatureCode = generateUniqueSignatureCode({
+      studentId: student.id,
+      studentCode: student.code,
+      studentNameKhmer: student.nameKhmer,
+      grade: student.grade,
+      section: student.section,
+      academicYear: schoolProfile.academicYear,
+      monthOrSemester: selectedMonth,
+      schoolCode: schoolProfile.schoolCode,
+      schoolNameKhmer: schoolProfile.nameKhmer,
+      principalName: schoolProfile.principalName
+    });
+
+    addActivityLog({
+      domain: 'academic',
+      actionType: 'document',
+      title: `${actionText}ព្រឹត្តិបត្រពិន្ទុជាមួយ QR ហត្ថលេខាឌីជីថល`,
+      description: `បាន${actionText}ព្រឹត្តិបត្រពិន្ទុផ្លូវការភ្ជាប់ QR Code ហត្ថលេខាឌីជីថលនាយកសាលា (${signatureCode}) សម្រាប់សិស្ស «${student.nameKhmer}» (អត្តលេខ: ${student.code}) ថ្នាក់ទី ${student.grade}${student.section}`,
+      entityId: student.id,
+      entityCode: student.code,
+      entityName: student.nameKhmer,
+      actorName: currentUser?.nameKhmer || 'លោកនាយកសាលា',
+      actorRole: currentUser?.role || 'principal',
+      targetTab: 'reports_qr',
+      tags: ['report_card', 'principal_qr_signature', 'moeys_verification', action],
+      details: {
+        studentId: student.id,
+        studentName: student.nameKhmer,
+        studentCode: student.code,
+        grade: student.grade,
+        section: student.section,
+        monthOrSemester: selectedMonth,
+        academicYear: schoolProfile.academicYear,
+        signatureCode,
+        action,
+        hasPrincipalSignatureQR: printSettings?.showPrincipalSignatureQR !== false,
+        timestamp: new Date().toISOString()
+      }
+    });
+  };
 
   const getReportTitle = () => {
     switch (activeReportType) {
@@ -114,6 +229,7 @@ export const ReportsAndQR: React.FC = () => {
       case 'student_qr_grid': return `តារាងក្រឡា_QR_Code_សិស្ស_${schoolProfile.academicYear}`;
       case 'staff_qr_cards': return `ប័ណ្ណសម្គាល់បុគ្គលិក_${schoolProfile.academicYear}`;
       case 'school_profile': return `កម្រងប្រវត្តិរូបសាលារៀន_${schoolProfile.nameLatin || 'School_Profile'}_${schoolProfile.academicYear}`;
+      case 'report_cards': return `ព្រឹត្តិបត្រពិន្ទុ_សិស្ស_${schoolProfile.academicYear}`;
       default: return 'របាយការណ៍_MoEYS';
     }
   };
@@ -440,13 +556,183 @@ export const ReportsAndQR: React.FC = () => {
           </button>
 
           <button
+            id="tab-report-cards-signature-qr-btn"
+            onClick={() => {
+              setActiveReportType('report_cards');
+              const st = selectedStudentForReportCard || classStudents[0] || students[0];
+              if (st) {
+                setSelectedStudentForReportCard(st);
+                logReportCardGenerationOrPrint(st, 'generated');
+              }
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeReportType === 'report_cards'
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm ring-2 ring-emerald-500/40'
+                : 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100 border border-emerald-200'
+            }`}
+          >
+            <Award className="w-3.5 h-3.5" />
+            <span>៨. ព្រឹត្តិបត្រពិន្ទុ & QR ហត្ថលេខាឌីជីថល (Report Cards)</span>
+          </button>
+
+          <button
             id="tab-webcam-qr-scanner-btn"
             onClick={() => setIsWebcamScannerOpen(true)}
-            className="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-xs hover:from-indigo-600 hover:to-blue-700"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-xs hover:from-indigo-600 hover:to-blue-700 cursor-pointer"
           >
             <Camera className="w-3.5 h-3.5 animate-pulse" />
-            <span>៨. ស្កេន QR តាម Webcam (Live Scanner)</span>
+            <span>៩. ស្កេន QR តាម Webcam (Live Scanner)</span>
           </button>
+
+          <button
+            id="tab-scan-verification-history-btn"
+            onClick={() => setActiveReportType('scan_history')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeReportType === 'scan_history'
+                ? 'bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white shadow-sm ring-2 ring-indigo-500/40'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+            }`}
+          >
+            <History className="w-3.5 h-3.5 text-indigo-500" />
+            <span>១០. ប្រវត្តិស្កេនផ្ទៀងផ្ទាត់ QR ({qrScanVerificationLogs.length})</span>
+          </button>
+        </div>
+
+        {/* User-Controlled Print & QR Signature Settings Control Panel (no-print) */}
+        <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0" />
+            <div>
+              <span className="font-bold text-slate-800 block">
+                ការកំណត់ហត្ថលេខា & QR Code លើឯកសារបោះពុម្ព (Print & Signature Security Settings):
+              </span>
+              <span className="text-[11px] text-slate-500">
+                កែប្រែម៉ូត QR, កាលបរិច្ឆេទផុតកំណត់ស្វ័យប្រវត្តិ និងសុវត្ថិភាពហត្ថលេខាឌីជីថលនាយកសាលា
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* QR Code Style Selector */}
+            <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+              <QrCode className="w-3.5 h-3.5 text-indigo-600" />
+              <span className="text-slate-500 font-medium text-[11px]">ម៉ូត QR:</span>
+              <select
+                id="signature-qr-style-select"
+                value={printSettings?.signatureQRStyle || 'rounded_modern'}
+                onChange={(e) => {
+                  const newStyle = e.target.value as SignatureQRStyle;
+                  setPrintSettings(prev => ({
+                    ...prev,
+                    signatureQRStyle: newStyle
+                  }));
+                  showToast(
+                    `បានប្តូរម៉ូត QR ហត្ថលេខាឌីជីថលទៅជា៖ ${
+                      newStyle === 'classic_square'
+                        ? 'ការ៉េស្តង់ដារ (Classic Square)'
+                        : newStyle === 'rounded_modern'
+                        ? 'ជ្រុងមូលទំនើប (Rounded Modern)'
+                        : newStyle === 'dot_pattern'
+                        ? 'លំនាំចំណុចមូល (Dot Pattern)'
+                        : newStyle === 'framed_seal'
+                        ? 'ស៊ុមត្រាសុវត្ថិភាព (Security Seal)'
+                        : 'ស៊ុមត្រាក្រសួង MoEYS'
+                    }`
+                  );
+                }}
+                className="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer"
+              >
+                <option value="classic_square">ការ៉េស្តង់ដារ (Square)</option>
+                <option value="rounded_modern">ជ្រុងមូលទំនើប (Rounded)</option>
+                <option value="dot_pattern">លំនាំចំណុចមូល (Dots)</option>
+                <option value="framed_seal">ស៊ុមត្រាសុវត្ថិភាព (Seal)</option>
+                <option value="bordered_moeys">ស៊ុមត្រាក្រសួង (MoEYS)</option>
+              </select>
+            </div>
+
+            {/* Signature Expiry Duration Selector */}
+            <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+              <Clock className="w-3.5 h-3.5 text-amber-600" />
+              <span className="text-slate-500 font-medium text-[11px]">សុពលភាព QR:</span>
+              <select
+                id="signature-expiry-days-select"
+                value={printSettings?.signatureExpiryDays || 90}
+                onChange={(e) => {
+                  const days = Number(e.target.value);
+                  setPrintSettings(prev => ({
+                    ...prev,
+                    signatureExpiryDays: days
+                  }));
+                  showToast(`បានកំណត់សុពលភាព QR Code ហត្ថលេខានាយកសាលា៖ ${days} ថ្ងៃ`);
+                }}
+                className="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer"
+              >
+                <option value={30}>៣០ ថ្ងៃ (១ ខែ)</option>
+                <option value={60}>៦០ ថ្ងៃ (២ ខែ)</option>
+                <option value={90}>៩០ ថ្ងៃ (៣ ខែ - ត្រីមាស)</option>
+                <option value={180}>១៨០ ថ្ងៃ (៦ ខែ - ឆមាស)</option>
+                <option value={365}>៣៦៥ ថ្ងៃ (១ ឆ្នាំ)</option>
+              </select>
+            </div>
+
+            {/* Toggle Principal Signature QR Visibility */}
+            <button
+              id="toggle-principal-signature-qr-btn"
+              type="button"
+              onClick={() => {
+                const nextVal = !printSettings?.showPrincipalSignatureQR;
+                setPrintSettings(prev => ({
+                  ...prev,
+                  showPrincipalSignatureQR: nextVal
+                }));
+                showToast(
+                  nextVal
+                    ? 'បានបើកបង្ហាញ QR Code ហត្ថលេខាឌីជីថលនាយកសាលាលើព្រឹត្តិបត្រពិន្ទុ និងឯកសារផ្លូវការ'
+                    : 'បានបិទការបង្ហាញ QR Code ហត្ថលេខាឌីជីថលលើឯកសារបោះពុម្ព',
+                  'info'
+                );
+              }}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                printSettings?.showPrincipalSignatureQR !== false
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-800 shadow-2xs'
+                  : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200'
+              }`}
+              title="បិទ/បើក ការបង្ហាញ QR Code ហត្ថលេខាឌីជីថលរបស់នាយកសាលាលើព្រឹត្តិបត្រពិន្ទុ និងឯកសារផ្លូវការ"
+            >
+              {printSettings?.showPrincipalSignatureQR !== false ? (
+                <>
+                  <ToggleRight className="w-4 h-4 text-emerald-600" />
+                  <span>QR ហត្ថលេខា: <strong>បើក</strong></span>
+                </>
+              ) : (
+                <>
+                  <ToggleLeft className="w-4 h-4 text-slate-400" />
+                  <span>QR ហត្ថលេខា: <strong>បិទ</strong></span>
+                </>
+              )}
+            </button>
+
+            {/* Stamp visibility toggle */}
+            <button
+              id="toggle-round-stamp-btn"
+              type="button"
+              onClick={() => {
+                const nextVal = !printSettings?.showRoundStamp;
+                setPrintSettings(prev => ({
+                  ...prev,
+                  showRoundStamp: nextVal
+                }));
+              }}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[11px] font-medium transition-all cursor-pointer ${
+                printSettings?.showRoundStamp !== false
+                  ? 'bg-blue-50 border-blue-200 text-blue-800'
+                  : 'bg-slate-100 border-slate-200 text-slate-600'
+              }`}
+            >
+              <Stamp className="w-3.5 h-3.5" />
+              <span>ត្រាមូល: {printSettings?.showRoundStamp !== false ? 'បើក' : 'បិទ'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1407,22 +1693,1128 @@ export const ReportsAndQR: React.FC = () => {
           </div>
         )}
 
-        {/* Official Signature Footer */}
-        <div className="flex justify-between items-end mt-12 pt-6 border-t border-slate-300 text-xs">
-          <div className="text-center">
-            <p>បានពិនិត្យ និងឯកភាព</p>
-            <p className="font-bold text-slate-800 mt-1">ប្រធានការិយាល័យអប់រំ ក្រុង/ស្រុក</p>
-            <div className="h-16" />
-            <p className="text-slate-400">................................................</p>
-          </div>
+        {/* 8. Student Report Cards with Principal's Digital Signature QR Code (Single & Batch Concatenated PDF) */}
+        {activeReportType === 'report_cards' && (
+          <div className="space-y-6">
+            {/* Mode Selector & Control Panel (no-print) */}
+            <div className="no-print bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-3.5">
+                <div>
+                  <h4 className="text-sm font-bold font-moul text-slate-900 flex items-center gap-2">
+                    <Award className="w-4 h-4 text-emerald-600" />
+                    <span>ការបង្កើត និងបោះពុម្ពព្រឹត្តិបត្រពិន្ទុផ្លូវការ MoEYS</span>
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    គាំទ្រការបោះពុម្ពព្រឹត្តិបត្រសិស្សម្នាក់ៗ ឬជ្រើសរើសសិស្សច្រើននាក់ដើម្បីទាញយកជាឯកសារ PDF រួមតែមួយ (Concatenated PDF)
+                  </p>
+                </div>
 
-          <div className="text-center">
-            <p>{schoolProfile.district}, ថ្ងៃទី {new Date().getDate()} ខែ {new Date().getMonth() + 1} ឆ្នាំ២០២៤</p>
-            <p className="font-bold font-moul text-slate-900 mt-1">នាយិកាសាលា</p>
-            <div className="h-16" />
-            <p className="font-bold text-slate-900">{schoolProfile.principalName}</p>
+                {/* Mode Toggle Buttons */}
+                <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-slate-200 shadow-2xs self-start md:self-auto">
+                  <button
+                    id="mode-single-report-card-btn"
+                    type="button"
+                    onClick={() => setReportCardMode('single')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      reportCardMode === 'single'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span>សិស្សម្នាក់ៗ (Single)</span>
+                  </button>
+
+                  <button
+                    id="mode-batch-report-card-btn"
+                    type="button"
+                    onClick={() => setReportCardMode('batch_concatenated')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      reportCardMode === 'batch_concatenated'
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>បោះពុម្ពរួមជាក្រុម (Batch PDF)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Controls for Single Student Mode */}
+              {reportCardMode === 'single' && (
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="text-xs font-bold text-slate-700">ជ្រើសរើសសិស្ស៖</label>
+                    <select
+                      id="select-report-card-student"
+                      value={selectedStudentForReportCard?.id || (classStudents[0]?.id || '')}
+                      onChange={(e) => {
+                        const st = students.find(s => s.id === e.target.value) || null;
+                        setSelectedStudentForReportCard(st);
+                        if (st) {
+                          logReportCardGenerationOrPrint(st, 'generated');
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800 shadow-xs focus:ring-2 focus:ring-emerald-500 cursor-pointer min-w-[220px]"
+                    >
+                      {classStudents.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.nameKhmer} ({s.code}) - {s.gender === 'F' ? 'ស្រី' : 'ប្រុស'} - ថ្នាក់ទី {s.grade}{s.section}
+                        </option>
+                      ))}
+                      {classStudents.length === 0 && students.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.nameKhmer} ({s.code}) - ថ្នាក់ទី {s.grade}{s.section}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Signature Expiry & Renewal Quick Indicator */}
+                    {(() => {
+                      const curSt = selectedStudentForReportCard || classStudents[0] || students[0];
+                      if (!curSt) return null;
+                      const customTs = signatureRenewalTimestamps[curSt.id];
+                      const expiryDays = printSettings?.signatureExpiryDays || 90;
+                      const expiryDate = calculateSignatureExpiry(customTs || undefined, expiryDays);
+                      const isExpired = customTs ? isSignatureExpired(customTs, expiryDays) : false;
+
+                      return (
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 ${
+                              isExpired
+                                ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            }`}
+                          >
+                            <Clock className="w-3 h-3" />
+                            <span>
+                              {isExpired ? 'QR ផុតកំណត់' : `សុពលភាព QR: ${expiryDays} ថ្ងៃ (ដល់ ${new Date(expiryDate).toLocaleDateString('km-KH')})`}
+                            </span>
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nowIso = new Date().toISOString();
+                              setSignatureRenewalTimestamps(prev => ({
+                                ...prev,
+                                [curSt.id]: nowIso
+                              }));
+                              showToast(`បានបង្កើត និងធ្វើបច្ចុប្បន្នភាព QR ហត្ថលេខាឌីជីថលថ្មីសម្រាប់ «${curSt.nameKhmer}» ជោគជ័យ!`);
+                              logReportCardGenerationOrPrint(curSt, 'generated');
+                            }}
+                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                            title="ចុចដើម្បីបង្កើត QR Code ហត្ថលេខាឌីជីថលឡើងវិញភ្លាមៗ (Refresh & Extend Security Period)"
+                          >
+                            <RefreshCw className="w-3 h-3 text-amber-700" />
+                            <span>បង្កើតហត្ថលេខាឡើងវិញ</span>
+                          </button>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      id="print-single-report-card-btn"
+                      onClick={() => {
+                        const currentSt = selectedStudentForReportCard || classStudents[0] || students[0];
+                        if (currentSt) {
+                          logReportCardGenerationOrPrint(currentSt, 'printed');
+                        }
+                        handlePrint();
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      <span>បោះពុម្ពព្រឹត្តិបត្រពិន្ទុ</span>
+                    </button>
+
+                    <button
+                      id="download-single-report-card-pdf-btn"
+                      onClick={() => {
+                        const currentSt = selectedStudentForReportCard || classStudents[0] || students[0];
+                        if (currentSt) {
+                          logReportCardGenerationOrPrint(currentSt, 'exported_pdf');
+                        }
+                        handleDownloadPdf(`ព្រឹត្តិបត្រពិន្ទុ_${selectedStudentForReportCard?.nameKhmer || 'សិស្ស'}_${selectedMonth}`);
+                      }}
+                      disabled={isExportingPdf}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer transition-all"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>{isExportingPdf ? 'កំពុងបង្កើត...' : 'ទាញយក PDF'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Controls for Batch Concatenated PDF Mode */}
+              {reportCardMode === 'batch_concatenated' && (
+                <div className="space-y-4">
+                  {/* Filter & Selection Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200">
+                    <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                      {/* Grade Filter */}
+                      <div className="flex items-center gap-1">
+                        <span className="font-bold text-slate-700">ថ្នាក់៖</span>
+                        <select
+                          value={batchReportCardGradeFilter}
+                          onChange={(e) => setBatchReportCardGradeFilter(e.target.value)}
+                          className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none"
+                        >
+                          <option value="all">ទាំងអស់ (គ្រប់កម្រិត)</option>
+                          {[1, 2, 3, 4, 5, 6].map(g => (
+                            <option key={g} value={g}>ថ្នាក់ទី {g}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Section Filter */}
+                      <div className="flex items-center gap-1">
+                        <span className="font-bold text-slate-700">បន្ទប់៖</span>
+                        <select
+                          value={batchReportCardSectionFilter}
+                          onChange={(e) => setBatchReportCardSectionFilter(e.target.value)}
+                          className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none"
+                        >
+                          <option value="all">ទាំងអស់</option>
+                          {['ក', 'ខ', 'គ', 'ឃ'].map(sec => (
+                            <option key={sec} value={sec}>បន្ទប់ {sec}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Search Bar */}
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={batchReportCardSearch}
+                          onChange={(e) => setBatchReportCardSearch(e.target.value)}
+                          placeholder="ស្វែងរកតាមឈ្មោះ/អត្តលេខ..."
+                          className="pl-8 pr-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs w-44 focus:w-56 focus:bg-white transition-all focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Bulk Selection Actions */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const allFilteredIds = filteredBatchReportCardStudents.map(s => s.id);
+                          setSelectedBatchReportCardStudentIds(allFilteredIds);
+                          showToast(`បានជ្រើសរើសសិស្សទាំងអស់ (${allFilteredIds.length} នាក់)`);
+                        }}
+                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                      >
+                        ជ្រើសទាំងអស់ ({filteredBatchReportCardStudents.length})
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedBatchReportCardStudentIds([]);
+                          showToast('បានលុបការជ្រើសរើសទាំងអស់');
+                        }}
+                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                      >
+                        ដោះលែងទាំងអស់
+                      </button>
+
+                      <span className="px-3 py-1 bg-indigo-100 text-indigo-900 font-bold rounded-lg text-xs">
+                        បានជ្រើសរើស៖ {selectedBatchReportCardStudentIds.length > 0 ? selectedBatchReportCardStudentIds.length : `${studentsForConcatenatedReportCards.length} (ថ្នាក់បច្ចុប្បន្ន)`} នាក់
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Student Multi-Select Checkbox Chips */}
+                  <div className="bg-white p-3 rounded-xl border border-slate-200 max-h-48 overflow-y-auto">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                      {filteredBatchReportCardStudents.map((st) => {
+                        const isSelected = selectedBatchReportCardStudentIds.includes(st.id);
+                        return (
+                          <button
+                            key={st.id}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedBatchReportCardStudentIds(prev => prev.filter(id => id !== st.id));
+                              } else {
+                                setSelectedBatchReportCardStudentIds(prev => [...prev, st.id]);
+                              }
+                            }}
+                            className={`flex items-center gap-1.5 p-2 rounded-lg border text-left text-xs transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-indigo-50 border-indigo-400 text-indigo-950 font-bold shadow-2xs'
+                                : 'bg-slate-50/70 border-slate-200 text-slate-700 hover:bg-slate-100'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {}} // Handled by button onClick
+                              className="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 pointer-events-none"
+                            />
+                            <div className="truncate">
+                              <p className="truncate">{st.nameKhmer}</p>
+                              <span className="text-[10px] text-slate-500 font-normal">ថ្នាក់ {st.grade}{st.section} • {st.code}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Batch Action Buttons */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                    <div className="text-xs text-slate-600 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>
+                        ព្រឹត្តិបត្រនីមួយៗនឹងត្រូវបំបែកទំព័រ (Page Break) ដោយស្វ័យប្រវត្តិកាលណាអ្នកបោះពុម្ព ឬទាញយកជា PDF រួម
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        id="print-batch-report-cards-btn"
+                        onClick={() => {
+                          studentsForConcatenatedReportCards.forEach(st => {
+                            logReportCardGenerationOrPrint(st, 'printed');
+                          });
+                          handlePrint();
+                        }}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>បោះពុម្ពព្រឹត្តិបត្ររួម ({studentsForConcatenatedReportCards.length} សន្លឹក)</span>
+                      </button>
+
+                      <button
+                        id="download-batch-concatenated-pdf-btn"
+                        onClick={() => {
+                          studentsForConcatenatedReportCards.forEach(st => {
+                            logReportCardGenerationOrPrint(st, 'exported_pdf');
+                          });
+                          handleDownloadPdf(`កម្រងព្រឹត្តិបត្រពិន្ទុរួម_ថ្នាក់ទី${selectedGrade}${selectedSection}_${studentsForConcatenatedReportCards.length}នាក់`);
+                        }}
+                        disabled={isExportingPdf}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-teal-600 to-emerald-700 hover:from-teal-500 hover:to-emerald-600 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>{isExportingPdf ? 'កំពុងបង្កើត...' : `ទាញយក PDF រួម (${studentsForConcatenatedReportCards.length} សន្លឹក)`}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Document Render Area (Supports Single or Concatenated Multi-Student Flow) */}
+            {reportCardMode === 'single' ? (
+              /* Single Student Document */
+              (() => {
+                const currentSt = selectedStudentForReportCard || classStudents[0] || students[0];
+                if (!currentSt) {
+                  return (
+                    <div className="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200">
+                      <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm font-semibold">មិនមានទិន្នន័យសិស្សក្នុងថ្នាក់នេះទេ</p>
+                    </div>
+                  );
+                }
+
+                const stScore = activeScores.find(s => s.studentId === currentSt.id);
+                const subjects = stScore?.subjects || {};
+                const average = stScore?.average || 0;
+                const total = stScore?.totalScore || 0;
+                const rank = stScore?.rank || 1;
+                const teacherName = teachers.find(t => t.assignedGrade === currentSt.grade)?.nameKhmer || 'គ្រូបន្ទុកថ្នាក់';
+
+                const customTs = signatureRenewalTimestamps[currentSt.id];
+                const expiryDays = printSettings?.signatureExpiryDays || 90;
+                const expiryDate = calculateSignatureExpiry(customTs || undefined, expiryDays);
+
+                const qrSignatureParams: PrincipalSignatureQRParams = {
+                  studentId: currentSt.id,
+                  studentCode: currentSt.code,
+                  studentNameKhmer: currentSt.nameKhmer,
+                  studentNameLatin: currentSt.nameLatin,
+                  grade: currentSt.grade,
+                  section: currentSt.section,
+                  academicYear: schoolProfile.academicYear,
+                  monthOrSemester: selectedMonth,
+                  schoolCode: schoolProfile.schoolCode,
+                  schoolNameKhmer: schoolProfile.nameKhmer,
+                  principalName: schoolProfile.principalName,
+                  averageScore: average,
+                  rank: rank,
+                  totalStudents: classStudents.length || students.length,
+                  signatureImageUrl: schoolProfile.principalSignatureUrl,
+                  customCreatedAt: customTs,
+                  expiryDate: expiryDate
+                };
+
+                return (
+                  <div className="border-2 border-slate-800 p-6 sm:p-8 rounded-2xl bg-white space-y-6 relative overflow-hidden shadow-sm">
+                    {/* Angkor Watermark */}
+                    <AngkorPageWatermark opacity={0.03} />
+
+                    {/* Header */}
+                    <div className="text-center space-y-1 relative z-1">
+                      <p className="font-moul text-blue-950 text-sm sm:text-base">ព្រះរាជាណាចក្រកម្ពុជា</p>
+                      <p className="font-moul text-blue-950 text-xs sm:text-sm">ជាតិ សាសនា ព្រះមហាក្សត្រ</p>
+                      <div className="w-24 h-0.5 bg-blue-900 mx-auto my-2 opacity-60"></div>
+                      <h3 className="text-base sm:text-lg font-bold font-moul text-blue-900 pt-1">
+                        ព្រឹត្តិបត្រពិន្ទុសិស្សប្រចាំខែ {selectedMonth}
+                      </h3>
+                      <p className="text-xs text-slate-600 font-medium">
+                        ឆ្នាំសិក្សា {schoolProfile.academicYear} • {schoolProfile.nameKhmer}
+                      </p>
+                    </div>
+
+                    {/* Student Identity Card Box */}
+                    <div className="bg-slate-50/90 border border-slate-300 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs relative z-1">
+                      <div className="flex items-center gap-4">
+                        {currentSt.photoUrl ? (
+                          <img
+                            src={currentSt.photoUrl}
+                            alt={currentSt.nameKhmer}
+                            referrerPolicy="no-referrer"
+                            className="w-16 h-20 object-cover rounded-lg border-2 border-slate-300 shadow-2xs"
+                          />
+                        ) : (
+                          <div className="w-16 h-20 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 bg-white">
+                            <Users className="w-6 h-6 mb-1" />
+                            <span className="text-[9px]">រូបថត</span>
+                          </div>
+                        )}
+
+                        <div className="space-y-1">
+                          <p className="text-sm font-bold font-moul text-blue-950">
+                            {currentSt.nameKhmer}
+                          </p>
+                          <p className="font-mono text-slate-600 text-xs uppercase font-semibold">
+                            {currentSt.nameLatin || 'STUDENT'}
+                          </p>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-slate-700 text-[11px] pt-1">
+                            <span>អត្តលេខ៖ <strong className="font-mono">{currentSt.code}</strong></span>
+                            <span>ភេទ៖ <strong>{currentSt.gender === 'F' ? 'ស្រី' : 'ប្រុស'}</strong></span>
+                            <span>ថ្ងៃកំណើត៖ <strong>{currentSt.dob || '---'}</strong></span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right sm:border-l sm:border-slate-300 sm:pl-6 space-y-1">
+                        <p className="text-slate-600">ថ្នាក់ទី៖ <strong className="font-mono text-blue-900 text-sm">{currentSt.grade}{currentSt.section}</strong></p>
+                        <p className="text-slate-600">គ្រូបន្ទុក៖ <strong className="text-slate-900">{teacherName}</strong></p>
+                        <div className="inline-block bg-blue-900 text-white px-3 py-1 rounded-full text-xs font-bold font-mono mt-1">
+                          ចំណាត់ថ្នាក់ទី {rank} / {classStudents.length || students.length}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Academic Scores Breakdown Table */}
+                    <div className="overflow-x-auto relative z-1">
+                      <table className="w-full text-center border-collapse border border-slate-400 text-xs">
+                        <thead>
+                          <tr className="bg-slate-100 text-slate-800 font-bold">
+                            <th className="border border-slate-400 p-2 text-left w-12">ល.រ</th>
+                            <th className="border border-slate-400 p-2 text-left">មុខវិជ្ជា / សមត្ថភាពសិក្សា</th>
+                            <th className="border border-slate-400 p-2 w-24">ពិន្ទុពេញ</th>
+                            <th className="border border-slate-400 p-2 w-28">ពិន្ទុទទួលបាន</th>
+                            <th className="border border-slate-400 p-2 w-28">និទ្ទេស</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="border border-slate-300 p-2 font-mono">១</td>
+                            <td className="border border-slate-300 p-2 text-left font-semibold">ភាសាខ្មែរ (អំណាន សំណេរ ស្តាប់ និយាយ)</td>
+                            <td className="border border-slate-300 p-2 font-mono">១០.០</td>
+                            <td className="border border-slate-300 p-2 font-mono font-bold text-blue-900">
+                              {subjects.khmerReading !== undefined ? (Number(subjects.khmerReading) + Number(subjects.khmerWriting || 0)) / 2 : (subjects.reading || 8.0)}
+                            </td>
+                            <td className="border border-slate-300 p-2 font-bold text-emerald-700">ល្អ</td>
+                          </tr>
+                          <tr>
+                            <td className="border border-slate-300 p-2 font-mono">២</td>
+                            <td className="border border-slate-300 p-2 text-left font-semibold">គណិតវិទ្យា (ចំនួន រង្វាស់រង្វាល់ ធរណីមាត្រ)</td>
+                            <td className="border border-slate-300 p-2 font-mono">១០.០</td>
+                            <td className="border border-slate-300 p-2 font-mono font-bold text-blue-900">
+                              {subjects.mathematics !== undefined ? subjects.mathematics : (subjects.numbers || 8.5)}
+                            </td>
+                            <td className="border border-slate-300 p-2 font-bold text-emerald-700">ល្អ</td>
+                          </tr>
+                          <tr>
+                            <td className="border border-slate-300 p-2 font-mono">៣</td>
+                            <td className="border border-slate-300 p-2 text-left font-semibold">វិទ្យាសាស្ត្រ និងការសិក្សាសង្គម</td>
+                            <td className="border border-slate-300 p-2 font-mono">១០.០</td>
+                            <td className="border border-slate-300 p-2 font-mono font-bold text-blue-900">
+                              {subjects.scienceSocial !== undefined ? subjects.scienceSocial : (subjects.science || 7.5)}
+                            </td>
+                            <td className="border border-slate-300 p-2 font-bold text-blue-700">ល្អបង្គួរ</td>
+                          </tr>
+                          <tr>
+                            <td className="border border-slate-300 p-2 font-mono">៤</td>
+                            <td className="border border-slate-300 p-2 text-left font-semibold">សីលធម៌-ពលរដ្ឋវិជ្ជា និងបំណិនជីវិត</td>
+                            <td className="border border-slate-300 p-2 font-mono">១០.០</td>
+                            <td className="border border-slate-300 p-2 font-mono font-bold text-blue-900">
+                              {subjects.moralCivics || 9.0}
+                            </td>
+                            <td className="border border-slate-300 p-2 font-bold text-emerald-700">ល្អណាស់</td>
+                          </tr>
+                          <tr>
+                            <td className="border border-slate-300 p-2 font-mono">៥</td>
+                            <td className="border border-slate-300 p-2 text-left font-semibold">អប់រំកាយ សុខភាព និងសិល្បៈ</td>
+                            <td className="border border-slate-300 p-2 font-mono">១០.០</td>
+                            <td className="border border-slate-300 p-2 font-mono font-bold text-blue-900">
+                              {subjects.physicalHealth || 8.5}
+                            </td>
+                            <td className="border border-slate-300 p-2 font-bold text-emerald-700">ល្អ</td>
+                          </tr>
+                          <tr className="bg-slate-100/80 font-bold">
+                            <td colSpan={2} className="border border-slate-400 p-2 text-right">សរុបពិន្ទុ និងមធ្យមភាគ៖</td>
+                            <td className="border border-slate-400 p-2 font-mono">៥០.០</td>
+                            <td className="border border-slate-400 p-2 font-mono text-indigo-950 font-bold text-sm">
+                              {total > 0 ? total.toFixed(1) : '41.5'} (ម.ភាគ: {average > 0 ? average.toFixed(2) : '8.30'})
+                            </td>
+                            <td className="border border-slate-400 p-2 font-bold text-blue-950 font-moul">
+                              {getFormattedGrade(average || 8.3)}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* MoEYS Official 3-Column Signatures with Dedicated QR Slot */}
+                    <div className="relative z-1 pt-2">
+                      <MoEYSReportCardSignatures
+                        guardianName={currentSt.guardianName || '...............................'}
+                        teacherName={teacherName}
+                        principalName={schoolProfile.principalName}
+                        schoolLocation={schoolProfile.district || schoolProfile.province}
+                        currentMonthName={selectedMonth}
+                        signatureQRParams={qrSignatureParams}
+                        showSignatureQR={printSettings?.showPrincipalSignatureQR !== false}
+                        signatureQRStyle={printSettings?.signatureQRStyle || 'rounded_modern'}
+                      />
+                    </div>
+                  </div>
+                );
+              })()
+            ) : (
+              /* Concatenated Batch Report Cards List (Printed as consecutive A4 pages) */
+              <div className="batch-report-cards-container space-y-10 print:space-y-0">
+                {studentsForConcatenatedReportCards.map((st, index) => {
+                  const stScore = scores.find(
+                    s => s.studentId === st.id && s.monthOrSemester === selectedMonth
+                  ) || scores.find(s => s.studentId === st.id);
+
+                  const subjects = stScore?.subjects || {};
+                  const average = stScore?.average || 8.25;
+                  const total = stScore?.totalScore || 41.25;
+                  const rank = stScore?.rank || (index + 1);
+                  const teacherName = teachers.find(t => t.assignedGrade === st.grade)?.nameKhmer || 'គ្រូបន្ទុកថ្នាក់';
+
+                  const customTs = signatureRenewalTimestamps[st.id];
+                  const expiryDays = printSettings?.signatureExpiryDays || 90;
+                  const expiryDate = calculateSignatureExpiry(customTs || undefined, expiryDays);
+
+                  const qrSignatureParams: PrincipalSignatureQRParams = {
+                    studentId: st.id,
+                    studentCode: st.code,
+                    studentNameKhmer: st.nameKhmer,
+                    studentNameLatin: st.nameLatin,
+                    grade: st.grade,
+                    section: st.section,
+                    academicYear: schoolProfile.academicYear,
+                    monthOrSemester: selectedMonth,
+                    schoolCode: schoolProfile.schoolCode,
+                    schoolNameKhmer: schoolProfile.nameKhmer,
+                    principalName: schoolProfile.principalName,
+                    averageScore: average,
+                    rank: rank,
+                    totalStudents: studentsForConcatenatedReportCards.length,
+                    signatureImageUrl: schoolProfile.principalSignatureUrl,
+                    customCreatedAt: customTs,
+                    expiryDate: expiryDate
+                  };
+
+                  return (
+                    <div
+                      key={st.id}
+                      className="border-2 border-slate-800 p-6 sm:p-8 rounded-2xl bg-white space-y-6 relative overflow-hidden shadow-sm print:shadow-none print:border-2 print:border-slate-900 print:p-8 print:m-0 print:rounded-none print:break-after-page print:page-break-after-always"
+                      style={{ pageBreakAfter: 'always', breakAfter: 'page' }}
+                    >
+                      {/* Angkor Watermark */}
+                      <AngkorPageWatermark opacity={0.03} />
+
+                      {/* Header */}
+                      <div className="text-center space-y-1 relative z-1">
+                        <p className="font-moul text-blue-950 text-sm sm:text-base">ព្រះរាជាណាចក្រកម្ពុជា</p>
+                        <p className="font-moul text-blue-950 text-xs sm:text-sm">ជាតិ សាសនា ព្រះមហាក្សត្រ</p>
+                        <div className="w-24 h-0.5 bg-blue-900 mx-auto my-2 opacity-60"></div>
+                        <h3 className="text-base sm:text-lg font-bold font-moul text-blue-900 pt-1">
+                          ព្រឹត្តិបត្រពិន្ទុសិស្សប្រចាំខែ {selectedMonth}
+                        </h3>
+                        <p className="text-xs text-slate-600 font-medium">
+                          ឆ្នាំសិក្សា {schoolProfile.academicYear} • {schoolProfile.nameKhmer}
+                        </p>
+                      </div>
+
+                      {/* Student Identity Card Box */}
+                      <div className="bg-slate-50/90 border border-slate-300 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs relative z-1">
+                        <div className="flex items-center gap-4">
+                          {st.photoUrl ? (
+                            <img
+                              src={st.photoUrl}
+                              alt={st.nameKhmer}
+                              referrerPolicy="no-referrer"
+                              className="w-16 h-20 object-cover rounded-lg border-2 border-slate-300 shadow-2xs"
+                            />
+                          ) : (
+                            <div className="w-16 h-20 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 bg-white">
+                              <Users className="w-6 h-6 mb-1" />
+                              <span className="text-[9px]">រូបថត</span>
+                            </div>
+                          )}
+
+                          <div className="space-y-1">
+                            <p className="text-sm font-bold font-moul text-blue-950">
+                              {st.nameKhmer}
+                            </p>
+                            <p className="font-mono text-slate-600 text-xs uppercase font-semibold">
+                              {st.nameLatin || 'STUDENT'}
+                            </p>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-slate-700 text-[11px] pt-1">
+                              <span>អត្តលេខ៖ <strong className="font-mono">{st.code}</strong></span>
+                              <span>ភេទ៖ <strong>{st.gender === 'F' ? 'ស្រី' : 'ប្រុស'}</strong></span>
+                              <span>ថ្ងៃកំណើត៖ <strong>{st.dob || '---'}</strong></span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-right sm:border-l sm:border-slate-300 sm:pl-6 space-y-1">
+                          <p className="text-slate-600">ថ្នាក់ទី៖ <strong className="font-mono text-blue-900 text-sm">{st.grade}{st.section}</strong></p>
+                          <p className="text-slate-600">គ្រូបន្ទុក៖ <strong className="text-slate-900">{teacherName}</strong></p>
+                          <div className="inline-block bg-blue-900 text-white px-3 py-1 rounded-full text-xs font-bold font-mono mt-1">
+                            ចំណាត់ថ្នាក់ទី {rank} / {studentsForConcatenatedReportCards.length}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Academic Scores Breakdown Table */}
+                      <div className="overflow-x-auto relative z-1">
+                        <table className="w-full text-center border-collapse border border-slate-400 text-xs">
+                          <thead>
+                            <tr className="bg-slate-100 text-slate-800 font-bold">
+                              <th className="border border-slate-400 p-2 text-left w-12">ល.រ</th>
+                              <th className="border border-slate-400 p-2 text-left">មុខវិជ្ជា / សមត្ថភាពសិក្សា</th>
+                              <th className="border border-slate-400 p-2 w-24">ពិន្ទុពេញ</th>
+                              <th className="border border-slate-400 p-2 w-28">ពិន្ទុទទួលបាន</th>
+                              <th className="border border-slate-400 p-2 w-28">និទ្ទេស</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td className="border border-slate-300 p-2 font-mono">១</td>
+                              <td className="border border-slate-300 p-2 text-left font-semibold">ភាសាខ្មែរ (អំណាន សំណេរ ស្តាប់ និយាយ)</td>
+                              <td className="border border-slate-300 p-2 font-mono">១០.០</td>
+                              <td className="border border-slate-300 p-2 font-mono font-bold text-blue-900">
+                                {subjects.khmerReading !== undefined ? (Number(subjects.khmerReading) + Number(subjects.khmerWriting || 0)) / 2 : (subjects.reading || 8.0)}
+                              </td>
+                              <td className="border border-slate-300 p-2 font-bold text-emerald-700">ល្អ</td>
+                            </tr>
+                            <tr>
+                              <td className="border border-slate-300 p-2 font-mono">២</td>
+                              <td className="border border-slate-300 p-2 text-left font-semibold">គណិតវិទ្យា (ចំនួន រង្វាស់រង្វាល់ ធរណីមាត្រ)</td>
+                              <td className="border border-slate-300 p-2 font-mono">១០.០</td>
+                              <td className="border border-slate-300 p-2 font-mono font-bold text-blue-900">
+                                {subjects.mathematics !== undefined ? subjects.mathematics : (subjects.numbers || 8.5)}
+                              </td>
+                              <td className="border border-slate-300 p-2 font-bold text-emerald-700">ល្អ</td>
+                            </tr>
+                            <tr>
+                              <td className="border border-slate-300 p-2 font-mono">៣</td>
+                              <td className="border border-slate-300 p-2 text-left font-semibold">វិទ្យាសាស្ត្រ និងការសិក្សាសង្គម</td>
+                              <td className="border border-slate-300 p-2 font-mono">១០.០</td>
+                              <td className="border border-slate-300 p-2 font-mono font-bold text-blue-900">
+                                {subjects.scienceSocial !== undefined ? subjects.scienceSocial : (subjects.science || 7.5)}
+                              </td>
+                              <td className="border border-slate-300 p-2 font-bold text-blue-700">ល្អបង្គួរ</td>
+                            </tr>
+                            <tr>
+                              <td className="border border-slate-300 p-2 font-mono">៤</td>
+                              <td className="border border-slate-300 p-2 text-left font-semibold">សីលធម៌-ពលរដ្ឋវិជ្ជា និងបំណិនជីវិត</td>
+                              <td className="border border-slate-300 p-2 font-mono">១០.០</td>
+                              <td className="border border-slate-300 p-2 font-mono font-bold text-blue-900">
+                                {subjects.moralCivics || 9.0}
+                              </td>
+                              <td className="border border-slate-300 p-2 font-bold text-emerald-700">ល្អណាស់</td>
+                            </tr>
+                            <tr>
+                              <td className="border border-slate-300 p-2 font-mono">៥</td>
+                              <td className="border border-slate-300 p-2 text-left font-semibold">អប់រំកាយ សុខភាព និងសិល្បៈ</td>
+                              <td className="border border-slate-300 p-2 font-mono">១០.០</td>
+                              <td className="border border-slate-300 p-2 font-mono font-bold text-blue-900">
+                                {subjects.physicalHealth || 8.5}
+                              </td>
+                              <td className="border border-slate-300 p-2 font-bold text-emerald-700">ល្អ</td>
+                            </tr>
+                            <tr className="bg-slate-100/80 font-bold">
+                              <td colSpan={2} className="border border-slate-400 p-2 text-right">សរុបពិន្ទុ និងមធ្យមភាគ៖</td>
+                              <td className="border border-slate-400 p-2 font-mono">៥០.០</td>
+                              <td className="border border-slate-400 p-2 font-mono text-indigo-950 font-bold text-sm">
+                                {total > 0 ? total.toFixed(1) : '41.5'} (ម.ភាគ: {average > 0 ? average.toFixed(2) : '8.30'})
+                              </td>
+                              <td className="border border-slate-400 p-2 font-bold text-blue-950 font-moul">
+                                {getFormattedGrade(average || 8.3)}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* MoEYS Official 3-Column Signatures with Dedicated QR Slot */}
+                      <div className="relative z-1 pt-2">
+                        <MoEYSReportCardSignatures
+                          guardianName={st.guardianName || '...............................'}
+                          teacherName={teacherName}
+                          principalName={schoolProfile.principalName}
+                          schoolLocation={schoolProfile.district || schoolProfile.province}
+                          currentMonthName={selectedMonth}
+                          signatureQRParams={qrSignatureParams}
+                          showSignatureQR={printSettings?.showPrincipalSignatureQR !== false}
+                          signatureQRStyle={printSettings?.signatureQRStyle || 'rounded_modern'}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </div>
+        )}
+
+        {/* 10. Audit History of Scanned QR Code Verifications */}
+        {activeReportType === 'scan_history' && (
+          <div className="space-y-6">
+            {/* Header and Statistics KPIs */}
+            <div className="bg-slate-900 text-white p-6 rounded-2xl space-y-4 shadow-md no-print">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <History className="w-5 h-5 text-indigo-400" />
+                    <h3 className="text-base font-bold font-moul text-white">
+                      ប្រវត្តិស្កេន និងផ្ទៀងផ្ទាត់ហត្ថលេខាឌីជីថល (QR Audit Logs)
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    តាមដានកាលបរិច្ឆេទ ឧបករណ៍ស្កេន ភាពត្រឹមត្រូវ និងសុពលភាពនៃព្រឹត្តិបត្រពិន្ទុដែលត្រូវបានស្កេនផ្ទៀងផ្ទាត់
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsWebcamScannerOpen(true)}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs"
+                  >
+                    <Camera className="w-3.5 h-3.5 animate-pulse" />
+                    <span>បើកម៉ាស៊ីនស្កេន Camera</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (qrScanVerificationLogs.length === 0) {
+                        showToast('មិនទាន់មានប្រវត្តិស្កេនសម្រាប់នាំចេញទេ', 'info');
+                        return;
+                      }
+                      let csv = 'កាលបរិច្ឆេទ,ម៉ោង,ស្ថានភាព,អត្តលេខសិស្ស,ឈ្មោះខ្មែរ,ថ្នាក់,កូដហត្ថលេខា,ឧបករណ៍ស្កេន,ប្រព័ន្ធប្រតិបត្តិការ\n';
+                      qrScanVerificationLogs.forEach(l => {
+                        csv += `"${new Date(l.scannedAt).toLocaleDateString('km-KH')}","${new Date(l.scannedAt).toLocaleTimeString('km-KH')}",${l.status === 'valid' ? 'ត្រឹមត្រូវ' : l.status === 'expired' ? 'ផុតកំណត់' : 'មិនត្រឹមត្រូវ'},"${l.studentCode || ''}","${l.studentName || ''}",${l.grade || ''}${l.section || ''},"${l.signatureCode || ''}","${l.deviceInfo.browser || ''}","${l.deviceInfo.os || ''}"\n`;
+                      });
+                      downloadExcelFile(`MoEYS_QR_Scan_Audit_Logs_${new Date().toISOString().slice(0, 10)}`, csv);
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>នាំចេញ Excel</span>
+                  </button>
+
+                  {qrScanVerificationLogs.length > 0 && (
+                    <button
+                      onClick={() => {
+                        if (confirm('តើអ្នកពិតជាចង់សម្អាតប្រវត្តិស្កេន QR ទាំងអស់មែនទេ?')) {
+                          clearQRScanVerificationLogs();
+                          showToast('បានសម្អាតប្រវត្តិស្កេនទាំងអស់ជោគជ័យ');
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-rose-950 hover:text-rose-300 text-slate-300 text-xs font-semibold rounded-xl transition-all cursor-pointer"
+                      title="សម្អាតកំណត់ត្រាទាំងអស់"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>សម្អាតទាំងអស់</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* KPI Status Badges */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60 flex items-center gap-3">
+                  <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg">
+                    <ScanLine className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-slate-400">ស្កេនសរុប</p>
+                    <p className="text-lg font-bold font-mono">{qrScanVerificationLogs.length} ដង</p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60 flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-slate-400">ហត្ថលេខាត្រឹមត្រូវ</p>
+                    <p className="text-lg font-bold font-mono text-emerald-400">
+                      {qrScanVerificationLogs.filter(l => l.status === 'valid').length}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60 flex items-center gap-3">
+                  <div className="p-2 bg-amber-500/20 text-amber-400 rounded-lg">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-slate-400">ហត្ថលេខាផុតកំណត់</p>
+                    <p className="text-lg font-bold font-mono text-amber-400">
+                      {qrScanVerificationLogs.filter(l => l.status === 'expired').length}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60 flex items-center gap-3">
+                  <div className="p-2 bg-rose-500/20 text-rose-400 rounded-lg">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-slate-400">មិនត្រឹមត្រូវ/ក្លែងបន្លំ</p>
+                    <p className="text-lg font-bold font-mono text-rose-400">
+                      {qrScanVerificationLogs.filter(l => l.status === 'tampered' || l.status === 'invalid').length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter and Search Bar (no-print) */}
+            <div className="no-print flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-slate-600">ត្រងតាមស្ថានភាព៖</span>
+                {(['all', 'valid', 'expired', 'tampered', 'invalid'] as const).map(st => (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => setScanHistoryStatusFilter(st)}
+                    className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                      scanHistoryStatusFilter === st
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {st === 'all' && `ទាំងអស់ (${qrScanVerificationLogs.length})`}
+                    {st === 'valid' && `ត្រឹមត្រូវ (${qrScanVerificationLogs.filter(l => l.status === 'valid').length})`}
+                    {st === 'expired' && `ផុតកំណត់ (${qrScanVerificationLogs.filter(l => l.status === 'expired').length})`}
+                    {st === 'tampered' && `កែប្រែក្លែងបន្លំ (${qrScanVerificationLogs.filter(l => l.status === 'tampered').length})`}
+                    {st === 'invalid' && `មិនត្រឹមត្រូវ (${qrScanVerificationLogs.filter(l => l.status === 'invalid').length})`}
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={scanHistorySearch}
+                  onChange={(e) => setScanHistorySearch(e.target.value)}
+                  placeholder="ស្វែងរកតាមឈ្មោះ, អត្តលេខ, កូដ, ឧបករណ៍..."
+                  className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs w-60 focus:w-72 focus:bg-white transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
+            {/* Audit Logs Table / List */}
+            {(() => {
+              const filteredLogs = qrScanVerificationLogs.filter(log => {
+                if (scanHistoryStatusFilter !== 'all' && log.status !== scanHistoryStatusFilter) {
+                  return false;
+                }
+                if (scanHistorySearch.trim()) {
+                  const q = scanHistorySearch.toLowerCase().trim();
+                  const matchStudent = (log.studentName && log.studentName.toLowerCase().includes(q)) ||
+                                       (log.studentCode && log.studentCode.toLowerCase().includes(q));
+                  const matchSig = log.signatureCode && log.signatureCode.toLowerCase().includes(q);
+                  const matchDevice = (log.deviceInfo.browser && log.deviceInfo.browser.toLowerCase().includes(q)) ||
+                                      (log.deviceInfo.os && log.deviceInfo.os.toLowerCase().includes(q)) ||
+                                      (log.deviceInfo.deviceType && log.deviceInfo.deviceType.toLowerCase().includes(q));
+                  if (!matchStudent && !matchSig && !matchDevice) return false;
+                }
+                return true;
+              });
+
+              if (filteredLogs.length === 0) {
+                return (
+                  <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-3">
+                    <QrCode className="w-12 h-12 text-slate-300 mx-auto" />
+                    <h4 className="text-sm font-bold text-slate-700">មិនមានកំណត់ត្រាស្កេនផ្ទៀងផ្ទាត់ QR ទេ</h4>
+                    <p className="text-xs text-slate-400 max-w-md mx-auto">
+                      នៅពេលមានការស្កេន QR Code លើព្រឹត្តិបត្រពិន្ទុតាម Webcam Scanner ឬកម្មវិធីផ្ទៀងផ្ទាត់ ប្រព័ន្ធនឹងកត់ត្រាព័ត៌មានឧបករណ៍ កាលបរិច្ឆេទ និងស្ថានភាពសុពលភាពនៅទីនេះដោយស្វ័យប្រវត្តិ។
+                    </p>
+                    <button
+                      onClick={() => setIsWebcamScannerOpen(true)}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>សាកល្បងស្កេនឥឡូវនេះ</span>
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold">
+                          <th className="py-3 px-4">កាលបរិច្ឆេទ & ម៉ោង</th>
+                          <th className="py-3 px-4">ស្ថានភាពផ្ទៀងផ្ទាត់</th>
+                          <th className="py-3 px-4">សិស្ស / ម្ចាស់ឯកសារ</th>
+                          <th className="py-3 px-4">ថ្នាក់ / មធ្យមភាគ</th>
+                          <th className="py-3 px-4">កូដហត្ថលេខាឌីជីថល</th>
+                          <th className="py-3 px-4">ឧបករណ៍ & Browser</th>
+                          <th className="py-3 px-4 text-right">សកម្មភាព</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filteredLogs.map(log => {
+                          const dateObj = new Date(log.scannedAt);
+                          const formattedDate = dateObj.toLocaleDateString('km-KH', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          });
+                          const formattedTime = dateObj.toLocaleTimeString('km-KH', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                          });
+
+                          return (
+                            <tr key={log.id} className="hover:bg-slate-50/70 transition-all">
+                              {/* Scanned Timestamp */}
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                <p className="font-bold text-slate-800">{formattedDate}</p>
+                                <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-slate-400" />
+                                  {formattedTime}
+                                </span>
+                              </td>
+
+                              {/* Verification Status */}
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                {log.status === 'valid' && (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full font-bold text-[11px]">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>ត្រឹមត្រូវផ្លូវការ</span>
+                                  </span>
+                                )}
+                                {log.status === 'expired' && (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full font-bold text-[11px]">
+                                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                                    <span>ហត្ថលេខាផុតកំណត់</span>
+                                  </span>
+                                )}
+                                {log.status === 'tampered' && (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 text-rose-800 border border-rose-200 rounded-full font-bold text-[11px]">
+                                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                                    <span>កែប្រែក្លែងបន្លំ</span>
+                                  </span>
+                                )}
+                                {log.status === 'invalid' && (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full font-bold text-[11px]">
+                                    <ShieldAlert className="w-3.5 h-3.5 text-slate-500" />
+                                    <span>QR មិនត្រឹមត្រូវ</span>
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Student info */}
+                              <td className="py-3 px-4">
+                                {log.studentName ? (
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs">
+                                      {log.studentName.slice(0, 1)}
+                                    </div>
+                                    <div>
+                                      <p className="font-bold text-slate-900">{log.studentName}</p>
+                                      <span className="text-[11px] text-slate-500 font-mono">អត្តលេខ: {log.studentCode || '---'}</span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400 italic">មិនមានឈ្មោះសិស្ស</span>
+                                )}
+                              </td>
+
+                              {/* Grade & Score */}
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                {log.grade ? (
+                                  <div>
+                                    <span className="font-semibold text-slate-800">ថ្នាក់ទី {log.grade}{log.section}</span>
+                                    {log.averageScore !== undefined && (
+                                      <p className="text-[11px] text-indigo-700 font-bold font-mono">
+                                        ម.ភាគ: {log.averageScore.toFixed(2)}
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400">---</span>
+                                )}
+                              </td>
+
+                              {/* Signature Code & Principal */}
+                              <td className="py-3 px-4">
+                                {log.signatureCode ? (
+                                  <div>
+                                    <code className="text-[11px] font-mono font-bold text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                                      {log.signatureCode}
+                                    </code>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                      នាយក: {log.principalName || schoolProfile.principalName}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400">---</span>
+                                )}
+                              </td>
+
+                              {/* Device & Browser info */}
+                              <td className="py-3 px-4">
+                                <div className="space-y-0.5 text-[11px] text-slate-600">
+                                  <div className="flex items-center gap-1 font-medium text-slate-800">
+                                    <Laptop className="w-3 h-3 text-slate-500" />
+                                    <span>{log.deviceInfo.deviceType || 'Device'} • {log.deviceInfo.browser || 'Browser'}</span>
+                                  </div>
+                                  <p className="text-[10px] text-slate-500">
+                                    {log.deviceInfo.os} ({log.deviceInfo.screenResolution})
+                                  </p>
+                                </div>
+                              </td>
+
+                              {/* Actions */}
+                              <td className="py-3 px-4 text-right whitespace-nowrap">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {/* If student exists, offer quick report card regeneration */}
+                                  {log.studentId && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const targetSt = students.find(s => s.id === log.studentId);
+                                        if (targetSt) {
+                                          setSelectedStudentForReportCard(targetSt);
+                                          // Refresh signature timestamp
+                                          const nowIso = new Date().toISOString();
+                                          setSignatureRenewalTimestamps(prev => ({
+                                            ...prev,
+                                            [targetSt.id]: nowIso
+                                          }));
+                                          setActiveReportType('report_cards');
+                                          showToast(`បានបើកព្រឹត្តិបត្រពិន្ទុ និងបង្កើត QR ហត្ថលេខាថ្មីសម្រាប់ «${targetSt.nameKhmer}»`);
+                                        }
+                                      }}
+                                      className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition-all cursor-pointer"
+                                      title="បង្កើតព្រឹត្តិបត្រពិន្ទុឡើងវិញជាមួយ QR ថ្មី (Re-generate fresh document)"
+                                    >
+                                      <RefreshCw className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+
+                                  {/* Delete Log item */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      deleteQRScanVerificationLog(log.id);
+                                      showToast('បានលុបកំណត់ត្រាស្កេននេះជោគជ័យ');
+                                    }}
+                                    className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-all cursor-pointer"
+                                    title="លុបកំណត់ត្រានេះ"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* Official Signature Footer for Standard Reports (Census, Scores, Finance, Staff, Profile) */}
+        {activeReportType !== 'report_cards' && activeReportType !== 'scan_history' && (
+          <div className="flex justify-between items-end mt-12 pt-6 border-t border-slate-300 text-xs">
+            <div className="text-center">
+              <p>បានពិនិត្យ និងឯកភាព</p>
+              <p className="font-bold text-slate-800 mt-1">ប្រធានការិយាល័យអប់រំ ក្រុង/ស្រុក</p>
+              <div className="h-16" />
+              <p className="text-slate-400">................................................</p>
+            </div>
+
+            <div className="text-center flex flex-col items-center">
+              <p>{schoolProfile.district}, ថ្ងៃទី {new Date().getDate()} ខែ {new Date().getMonth() + 1} ឆ្នាំ២០២៤</p>
+              <p className="font-bold font-moul text-slate-900 mt-1">នាយិកាសាលា</p>
+              
+              {/* QR Code / Placeholder Digital Seal */}
+              <div className="min-h-16 my-2 flex items-center justify-center">
+                {printSettings?.showPrincipalSignatureQR !== false ? (
+                  <PrincipalSignatureQRSlot
+                    params={{
+                      studentId: 'OFFICIAL_REPORT',
+                      studentCode: schoolProfile.schoolCode,
+                      studentNameKhmer: schoolProfile.nameKhmer,
+                      grade: selectedGrade,
+                      section: selectedSection,
+                      academicYear: schoolProfile.academicYear,
+                      monthOrSemester: selectedMonth,
+                      schoolCode: schoolProfile.schoolCode,
+                      schoolNameKhmer: schoolProfile.nameKhmer,
+                      principalName: schoolProfile.principalName,
+                      signatureImageUrl: schoolProfile.principalSignatureUrl
+                    }}
+                    size={64}
+                    showBorder={true}
+                    showVerificationText={true}
+                    styleType={printSettings?.signatureQRStyle || 'rounded_modern'}
+                  />
+                ) : (
+                  <div className="h-16" />
+                )}
+              </div>
+
+              <p className="font-bold text-slate-900">{schoolProfile.principalName}</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Live Webcam QR Scanner Modal */}

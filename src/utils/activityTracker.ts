@@ -125,6 +125,51 @@ export function logNewActivity(
   return newItem;
 }
 
+/**
+ * Helper to record activity log whenever a report card with Principal's Digital QR signature is generated or printed
+ */
+export function createPrincipalQRReportCardLog(params: {
+  studentId: string;
+  studentName: string;
+  studentCode: string;
+  grade: number;
+  section: string;
+  actorName: string;
+  actorRole: string;
+  action: 'generated' | 'printed' | 'exported_pdf';
+  monthOrSemester?: string;
+  academicYear?: string;
+  signatureRef?: string;
+}): Omit<ActivityLogItem, 'id' | 'timestamp'> {
+  const actionText = params.action === 'printed' ? 'បោះពុម្ព' : (params.action === 'exported_pdf' ? 'ទាញយកជា PDF' : 'បង្កើត/ពិនិត្យមើល');
+  return {
+    domain: 'academic',
+    actionType: 'document',
+    title: `${actionText}ព្រឹត្តិបត្រពិន្ទុជាមួយ QR ហត្ថលេខាឌីជីថល`,
+    description: `បាន${actionText}ព្រឹត្តិបត្រពិន្ទុផ្លូវការភ្ជាប់ QR Code ហត្ថលេខាឌីជីថលនាយកសាលា (${params.signatureRef || 'MoEYS Digital Signature'}) សម្រាប់សិស្ស «${params.studentName}» (អត្តលេខ: ${params.studentCode}) ថ្នាក់ទី ${params.grade}${params.section}`,
+    entityId: params.studentId,
+    entityCode: params.studentCode,
+    entityName: params.studentName,
+    actorName: params.actorName,
+    actorRole: params.actorRole,
+    targetTab: 'reports_qr',
+    tags: ['report_card', 'principal_qr_signature', 'moeys_verification', params.action],
+    details: {
+      studentId: params.studentId,
+      studentName: params.studentName,
+      studentCode: params.studentCode,
+      grade: params.grade,
+      section: params.section,
+      monthOrSemester: params.monthOrSemester || 'ប្រចាំខែ',
+      academicYear: params.academicYear,
+      signatureRef: params.signatureRef,
+      action: params.action,
+      hasPrincipalSignatureQR: true,
+      timestamp: new Date().toISOString()
+    }
+  };
+}
+
 // ----------------------------------------------------
 // 1. RETENTION POLICY & AUTOMATED CLEANUP
 // ----------------------------------------------------

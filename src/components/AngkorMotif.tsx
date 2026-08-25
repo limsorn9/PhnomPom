@@ -1,4 +1,5 @@
 import React from 'react';
+import { SignatureQRStyle } from '../types';
 import {
   PrincipalSignatureQRParams,
   PrincipalSignatureQRSlot
@@ -453,6 +454,8 @@ export const MoEYSReportCardSignatures: React.FC<{
   currentMonthName?: string;
   signatureQRParams?: PrincipalSignatureQRParams;
   showSignatureQR?: boolean;
+  signatureQRStyle?: SignatureQRStyle;
+  onRegenerateNewSignature?: () => void;
   className?: string;
 }> = ({
   guardianName = '...............................',
@@ -462,6 +465,8 @@ export const MoEYSReportCardSignatures: React.FC<{
   currentMonthName = 'មករា',
   signatureQRParams,
   showSignatureQR = true,
+  signatureQRStyle,
+  onRegenerateNewSignature,
   className = ''
 }) => {
   const day = new Date().getDate();
@@ -517,6 +522,8 @@ export const MoEYSReportCardSignatures: React.FC<{
                 size={74}
                 showBorder={true}
                 showVerificationText={true}
+                style={signatureQRStyle || signatureQRParams.style}
+                onRegenerateNewSignature={onRegenerateNewSignature}
               />
             </div>
           ) : (

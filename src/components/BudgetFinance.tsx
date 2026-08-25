@@ -4,6 +4,7 @@ import { BudgetTransaction, BudgetSource } from '../types';
 import { exportFinanceToGoogleSheets } from '../services/googleSheets';
 import { getAccessToken, googleSignIn } from '../services/googleAuth';
 import { MonthlyBudgetSheetsSync } from './MonthlyBudgetSheetsSync';
+import { D3BudgetCategoryPieChart } from './D3BudgetCategoryPieChart';
 import {
   CircleDollarSign,
   TrendingUp,
@@ -337,6 +338,9 @@ export const BudgetFinance: React.FC = () => {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* D3.js Category Breakdown Pie/Donut Chart */}
+      <D3BudgetCategoryPieChart />
 
       {/* Transactions Ledger Table */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">

@@ -93,6 +93,8 @@ export const TeacherManagement: React.FC = () => {
     role: 'គ្រូបន្ទុកថ្នាក់',
     assignedGrade: 1,
     assignedSection: 'ក',
+    assignedGrade2: '' as unknown as number,
+    assignedSection2: '',
     teachingSubject: 'ភាសាខ្មែរ-គណិតវិទ្យា',
     yearsOfService: 6,
     startDate: '2018-10-01',
@@ -179,6 +181,8 @@ export const TeacherManagement: React.FC = () => {
       role: formData.role,
       assignedGrade: Number(formData.assignedGrade),
       assignedSection: formData.assignedSection || 'ក',
+      assignedGrade2: formData.assignedGrade2 ? Number(formData.assignedGrade2) : undefined,
+      assignedSection2: formData.assignedSection2 || undefined,
       yearsOfService: Number(formData.yearsOfService) || 1,
       startDate: formData.startDate,
       civilServiceEntryDate: formData.civilServiceEntryDate,
@@ -241,6 +245,8 @@ export const TeacherManagement: React.FC = () => {
       role: teacher.role,
       assignedGrade: teacher.assignedGrade || 1,
       assignedSection: teacher.assignedSection || 'ក',
+      assignedGrade2: teacher.assignedGrade2 || ('' as unknown as number),
+      assignedSection2: teacher.assignedSection2 || '',
       yearsOfService: teacher.yearsOfService,
       startDate: teacher.startDate,
       civilServiceEntryDate: teacher.civilServiceEntryDate || teacher.startDate,
@@ -752,6 +758,7 @@ export const TeacherManagement: React.FC = () => {
                   <span className="text-slate-500 block text-xs">បន្ទុកថ្នាក់</span>
                   <strong className="text-sm text-indigo-900 font-bold">
                     {selectedTeacherForProfile.assignedGrade ? `ថ្នាក់ទី ${selectedTeacherForProfile.assignedGrade}${selectedTeacherForProfile.assignedSection || 'ក'}` : 'គ្មាន'}
+                    {selectedTeacherForProfile.assignedGrade2 && ` និងទី ${selectedTeacherForProfile.assignedGrade2}${selectedTeacherForProfile.assignedSection2 || 'ខ'}`}
                   </strong>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
@@ -1059,6 +1066,7 @@ export const TeacherManagement: React.FC = () => {
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                     >
                       <option value="គ្រូបន្ទុកថ្នាក់">គ្រូបន្ទុកថ្នាក់</option>
+                      <option value="មន្ត្រីទីចាត់ការ">មន្ត្រីទីចាត់ការ</option>
                       <option value="នាយកសាលា">នាយកសាលា</option>
                       <option value="នាយករង">នាយករង</option>
                       <option value="បណ្ណារក្ស">បណ្ណារក្ស</option>
@@ -1067,13 +1075,14 @@ export const TeacherManagement: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      បន្ទុកថ្នាក់ទី
+                      បន្ទុកថ្នាក់ទី១ (ឧ. ព្រឹក)
                     </label>
                     <select
-                      value={formData.assignedGrade}
-                      onChange={e => setFormData({ ...formData, assignedGrade: Number(e.target.value) })}
+                      value={formData.assignedGrade || ''}
+                      onChange={e => setFormData({ ...formData, assignedGrade: e.target.value ? Number(e.target.value) : ('' as unknown as number), assignedSection: e.target.value ? (formData.assignedSection || 'ក') : '' })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                     >
+                      <option value="">គ្មានថ្នាក់</option>
                       <option value="1">ថ្នាក់ទី១</option>
                       <option value="2">ថ្នាក់ទី២</option>
                       <option value="3">ថ្នាក់ទី៣</option>
@@ -1084,17 +1093,54 @@ export const TeacherManagement: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      បន្ទប់/ផ្នែក
+                      បន្ទប់/ផ្នែក (ថ្នាក់ទី១)
                     </label>
                     <input
                       type="text"
-                      value={formData.assignedSection}
+                      value={formData.assignedSection || ''}
+                      disabled={!formData.assignedGrade}
                       onChange={e => setFormData({ ...formData, assignedSection: e.target.value })}
-                      placeholder="ឧ. ក"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                      placeholder={formData.assignedGrade ? "ឧ. ក" : "គ្មានថ្នាក់កាន់"}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
                     />
                   </div>
                 </div>
+
+                {/* Second Class Assignment (e.g. Afternoon shift) - Only show if Grade 1 is assigned */}
+                {formData.assignedGrade ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+                  <div>
+                    <label className="block text-xs font-semibold text-indigo-900 mb-1">
+                      បន្ទុកថ្នាក់ទី២ បន្ថែម (ឧ. រសៀល - បើមាន)
+                    </label>
+                    <select
+                      value={formData.assignedGrade2 || ''}
+                      onChange={e => setFormData({ ...formData, assignedGrade2: e.target.value ? Number(e.target.value) : ('' as unknown as number) })}
+                      className="w-full px-3 py-2 border border-indigo-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                    >
+                      <option value="">-- គ្មានថ្នាក់ទី២ --</option>
+                      <option value="1">ថ្នាក់ទី១</option>
+                      <option value="2">ថ្នាក់ទី២</option>
+                      <option value="3">ថ្នាក់ទី៣</option>
+                      <option value="4">ថ្នាក់ទី៤</option>
+                      <option value="5">ថ្នាក់ទី៥</option>
+                      <option value="6">ថ្នាក់ទី៦</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-indigo-900 mb-1">
+                      បន្ទប់/ផ្នែក (ថ្នាក់ទី២)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.assignedSection2 || ''}
+                      onChange={e => setFormData({ ...formData, assignedSection2: e.target.value })}
+                      placeholder="ឧ. ខ"
+                      className="w-full px-3 py-2 border border-indigo-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                    />
+                  </div>
+                </div>
+                ) : null}
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                   <div>
