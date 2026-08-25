@@ -19,7 +19,7 @@
 
 @layer base {
   html {
-    font-size: 14.5px;
+    font-size: 18px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
