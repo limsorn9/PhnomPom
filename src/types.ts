@@ -1233,6 +1233,7 @@ export interface ActivityLogItem {
   entityId: string;
   entityCode?: string;
   entityName: string;
+  actorId?: string;
   actorName: string;
   actorRole: string;
   actorAvatar?: string;

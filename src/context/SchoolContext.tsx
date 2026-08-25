@@ -1087,6 +1087,9 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const newItem: ActivityLogItem = {
       ...activity,
       id: `act-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      actorId: activity.actorId || currentUser?.id || 'sys-admin-01',
+      actorName: activity.actorName || currentUser?.nameKhmer || 'លោក លីម សន (នាយកសាលា)',
+      actorRole: activity.actorRole || (currentUser?.role === 'director' ? 'នាយកសាលា' : currentUser?.role === 'teacher' ? 'គ្រូបន្ទុកថ្នាក់' : 'រដ្ឋបាលសាលា'),
       timestamp: new Date().toISOString()
     };
     setActivityLogs(prev => [newItem, ...prev].slice(0, 300));

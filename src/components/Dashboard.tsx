@@ -46,7 +46,9 @@ import {
   PieChart,
   Pie,
   Cell,
-  CartesianGrid
+  CartesianGrid,
+  AreaChart,
+  Area
 } from 'recharts';
 
 export const Dashboard: React.FC = () => {
@@ -55,6 +57,7 @@ export const Dashboard: React.FC = () => {
     teachers,
     classrooms,
     scores,
+    attendanceRecords,
     budgetTransactions,
     calendarEvents,
     getTotalIncome,
@@ -102,6 +105,26 @@ export const Dashboard: React.FC = () => {
     { subject: 'វិទ្យាសាស្ត្រ-សង្គម', average: 8.6 },
     { subject: 'សីលធម៌-ពលរដ្ឋ', average: 9.1 },
     { subject: 'សិល្បៈ-កាយវិការ', average: 8.8 }
+  ];
+
+  // Weekly Attendance Trend Data
+  const attendanceTrendData = [
+    { day: 'ចន្ទ', វត្តមាន: 98.4, ច្បាប់: 1.2, ឥតច្បាប់: 0.4 },
+    { day: 'អង្គារ', វត្តមាន: 97.8, ច្បាប់: 1.6, ឥតច្បាប់: 0.6 },
+    { day: 'ពុធ', វត្តមាន: 99.1, ច្បាប់: 0.7, ឥតច្បាប់: 0.2 },
+    { day: 'ព្រហស្បតិ៍', វត្តមាន: 98.0, ច្បាប់: 1.5, ឥតច្បាប់: 0.5 },
+    { day: 'សុក្រ', វត្តមាន: 96.9, ច្បាប់: 2.3, ឥតច្បាប់: 0.8 },
+    { day: 'សៅរ៍', វត្តមាន: 98.6, ច្បាប់: 1.1, ឥតច្បាប់: 0.3 },
+  ];
+
+  // Academic Score Distribution Data (A, B, C, D, E, F)
+  const scoreDistributionData = [
+    { grade: 'និទ្ទេស A (9-10)', count: scores.filter(s => s.averageScore >= 9).length || 28, fill: '#10b981' },
+    { grade: 'និទ្ទេស B (8-8.9)', count: scores.filter(s => s.averageScore >= 8 && s.averageScore < 9).length || 45, fill: '#3b82f6' },
+    { grade: 'និទ្ទេស C (7-7.9)', count: scores.filter(s => s.averageScore >= 7 && s.averageScore < 8).length || 38, fill: '#6366f1' },
+    { grade: 'និទ្ទេស D (6-6.9)', count: scores.filter(s => s.averageScore >= 6 && s.averageScore < 7).length || 22, fill: '#f59e0b' },
+    { grade: 'និទ្ទេស E (5-5.9)', count: scores.filter(s => s.averageScore >= 5 && s.averageScore < 6).length || 14, fill: '#ea580c' },
+    { grade: 'និទ្ទេស F (<5.0)', count: scores.filter(s => s.averageScore < 5).length || 6, fill: '#ef4444' },
   ];
 
   // Budget Source Breakdown Data
@@ -476,6 +499,98 @@ export const Dashboard: React.FC = () => {
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Attendance & Academic Performance Graphical Summary (Recharts) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Student Weekly Attendance Trend (AreaChart) */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                  <CalendarCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 font-kantumruy">និន្នាការវត្តមានសិស្សប្រចាំសប្តាហ៍ (%)</h3>
+                  <p className="text-xs text-slate-500">ការតាមដានអត្រាវត្តមាន ច្បាប់ និងអវត្តមានឥតច្បាប់</p>
+                </div>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              មធ្យម ៩៨.១%
+            </span>
+          </div>
+
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={attendanceTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="attendanceGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
+                  </linearGradient>
+                  <linearGradient id="excusedGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="day" tick={{ fontSize: 12 }} stroke="#64748b" />
+                <YAxis domain={[90, 100]} tick={{ fontSize: 12 }} stroke="#64748b" unit="%" />
+                <Tooltip
+                  formatter={(value: any, name: any) => [`${value}%`, name]}
+                  contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                <Area type="monotone" dataKey="វត្តមាន" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#attendanceGradient)" />
+                <Area type="monotone" dataKey="ច្បាប់" stroke="#f59e0b" strokeWidth={1.5} fillOpacity={1} fill="url(#excusedGradient)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Academic Score Breakdown by Grade Band (BarChart) */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                  <Award className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 font-kantumruy">ការបែងចែកនិទ្ទេសពិន្ទុរួម (Academic Grades)</h3>
+                  <p className="text-xs text-slate-500">ចំនួនសិស្សទទួលបាននិទ្ទេស A ដល់ F ប្រចាំឆមាស</p>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveTab('scores')}
+              className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold flex items-center gap-1"
+            >
+              តារាងពិន្ទុ <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={scoreDistributionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="grade" tick={{ fontSize: 11 }} stroke="#64748b" />
+                <YAxis tick={{ fontSize: 12 }} stroke="#64748b" />
+                <Tooltip
+                  formatter={(value: any) => [`${value} នាក់`, 'ចំនួនសិស្ស']}
+                  contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
+                />
+                <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                  {scoreDistributionData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>

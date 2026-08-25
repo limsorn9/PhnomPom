@@ -136,7 +136,7 @@ async function startServer() {
   // POST /api/telegram/generate-code
   app.post('/api/telegram/generate-code', async (req, res) => {
     try {
-      const { identifier } = req.body;
+      const { identifier, actionDescription } = req.body;
       if (!identifier) {
         return res.status(400).json({ success: false, error: 'Identifier (username or email) is required' });
       }
@@ -152,7 +152,8 @@ async function startServer() {
       let sentViaTelegram = false;
       if (botToken && chatId) {
         try {
-          const telegramMsg = `🔐 *សាលាបឋមសិក្សាភ្នំពុំ* - កូដសម្ងាត់បញ្ជាក់ការចូលប្រព័ន្ធ (Confirmation Code):\n\n\`${code}\`\n\nកូដនេះមានសុពលភាពរយៈពេល ៥ នាទី។ សូមកومប្រាប់អ្នកដទៃ។`;
+          const actionText = actionDescription ? `\n🎯 *សកម្មភាពរដ្ឋបាល:* ${actionDescription}` : '';
+          const telegramMsg = `🔐 *សាលាបឋមសិក្សាភ្នំពុំ* - កូដសម្ងាត់ផ្ទៀងផ្ទាត់ (Verification Code):${actionText}\n\n\`${code}\`\n\nកូដនេះមានសុពលភាពរយៈពេល ៥ នាទី។ សូមកុំប្រាប់អ្នកដទៃ។`;
           const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -176,12 +177,51 @@ async function startServer() {
         sentViaTelegram,
         message: sentViaTelegram
           ? 'កូដបញ្ជាក់ត្រូវបានបញ្ជូនទៅកាន់ Telegram Bot ដោយជោគជ័យ!'
-          : 'បានបង្កើតកូដបញ្ជាក់ (Telegram Bot មិនទាន់ដាក់ Token គឺប្រើប្រាស់កូដបង្ហាញជូនខាងក្រោមសម្រាប់ការធ្វើតេស្ត)',
+          : 'បានបង្កើតកូដបញ្ជាក់ (Telegram Bot មិនទាន់កំណត់ Token គឺប្រើប្រាស់កូដ Demo ខាងក្រោម)',
         // For testing/demonstration convenience if bot is not configured:
         debugCode: sentViaTelegram ? undefined : code,
       });
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err?.message || 'Failed to generate code' });
+    }
+  });
+
+  // POST /api/telegram/send-notification
+  app.post('/api/telegram/send-notification', async (req, res) => {
+    try {
+      const { text } = req.body;
+      if (!text) {
+        return res.status(400).json({ success: false, error: 'Message text is required' });
+      }
+
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      const chatId = process.env.TELEGRAM_CHAT_ID;
+
+      if (!botToken || !chatId) {
+        return res.json({
+          success: true,
+          message: 'បានរក្សាទុកដំណឹង (Telegram Token មិនទាន់ត្រូវបានកំណត់ក្នុង .env)',
+          simulated: true,
+        });
+      }
+
+      const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text,
+          parse_mode: 'Markdown',
+        }),
+      });
+      const tgData = await tgRes.json();
+      if (tgData.ok) {
+        return res.json({ success: true, message: 'បានផ្ញើទៅ Telegram រួចរាល់!', messageId: tgData.result?.message_id });
+      } else {
+        return res.status(500).json({ success: false, error: tgData.description || 'Telegram API Error' });
+      }
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err?.message || 'Failed to send notification' });
     }
   });
 
