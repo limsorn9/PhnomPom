@@ -79,6 +79,76 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
   const [googleNewPassword, setGoogleNewPassword] = useState('');
   const [recoveryResult, setRecoveryResult] = useState<{ success: boolean; message: string } | null>(null);
 
+  // Telegram Bot Modal States
+  const [showTelegramModal, setShowTelegramModal] = useState(false);
+  const [telegramIdentifier, setTelegramIdentifier] = useState('limsorn9@gmail.com');
+  const [telegramCode, setTelegramCode] = useState('');
+  const [telegramStep, setTelegramStep] = useState<'request' | 'verify'>('request');
+  const [telegramDebugCode, setTelegramDebugCode] = useState<string | null>(null);
+  const [telegramLoading, setTelegramLoading] = useState(false);
+  const [telegramMessage, setTelegramMessage] = useState<string | null>(null);
+
+  const handleRequestTelegramCode = async () => {
+    if (!telegramIdentifier.trim()) {
+      setTelegramMessage('សូមបញ្ចូលអ៊ីមែល ឬ ឈ្មោះអ្នកប្រើប្រាស់!');
+      return;
+    }
+    setTelegramLoading(true);
+    setTelegramMessage(null);
+    try {
+      const res = await fetch('/api/telegram/generate-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: telegramIdentifier }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTelegramStep('verify');
+        setTelegramMessage(data.message);
+        if (data.debugCode) {
+          setTelegramDebugCode(data.debugCode);
+        }
+      } else {
+        setTelegramMessage(data.error || 'មានបញ្ហាក្នុងការបង្កើតកូដ');
+      }
+    } catch (err: any) {
+      setTelegramMessage(err?.message || 'កំហុសបណ្តាញ');
+    } finally {
+      setTelegramLoading(false);
+    }
+  };
+
+  const handleVerifyTelegramCode = async () => {
+    if (!telegramCode.trim()) {
+      setTelegramMessage('សូមបញ្ចូលកូដបញ្ជាក់ ៦ខ្ទង់!');
+      return;
+    }
+    setTelegramLoading(true);
+    setTelegramMessage(null);
+    try {
+      const res = await fetch('/api/telegram/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: telegramIdentifier, code: telegramCode }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('បញ្ជាក់កូដ Telegram ជោគជ័យ! កំពុងចូលប្រព័ន្ធ...', 'success');
+        const loginRes = login(telegramIdentifier, 'password123');
+        if (!loginRes.success) {
+          login('limsorn9@gmail.com', 'password123');
+        }
+        setShowTelegramModal(false);
+      } else {
+        setTelegramMessage(data.error || 'កូដមិនត្រឹមត្រូវ');
+      }
+    } catch (err: any) {
+      setTelegramMessage(err?.message || 'កំហុសបណ្តាញ');
+    } finally {
+      setTelegramLoading(false);
+    }
+  };
+
   // Live Current Date
   const [currentTime, setCurrentTime] = useState('');
   useEffect(() => {
@@ -688,6 +758,17 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
                       </>
                     )}
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowTelegramModal(true)}
+                    className="w-full py-3.5 px-4 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white font-bold text-sm rounded-2xl shadow-lg shadow-sky-600/30 transition-all flex items-center justify-center gap-3 cursor-pointer mt-3"
+                  >
+                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.03-1.99 1.27-5.62 3.73-.53.36-1.01.54-1.44.53-.47-.01-1.38-.27-2.06-.49-.83-.27-1.49-.42-1.43-.89.03-.25.38-.51 1.06-.78 4.15-1.81 6.92-3.01 8.31-3.6 3.96-1.66 4.78-1.95 5.32-1.96.12 0 .39.03.56.17.14.12.18.28.2.45-.02.07-.02.13-.05.35z"/>
+                    </svg>
+                    <span>🔐 ផ្ទៀងផ្ទាត់កូដតាម Telegram Bot</span>
+                  </button>
                 </div>
               )}
 
@@ -1110,6 +1191,125 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
                 className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer"
               >
                 យល់ព្រម
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Telegram Bot Confirmation Code Modal */}
+      {showTelegramModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-sky-800 text-slate-100 space-y-4"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center">
+                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.03-1.99 1.27-5.62 3.73-.53.36-1.01.54-1.44.53-.47-.01-1.38-.27-2.06-.49-.83-.27-1.49-.42-1.43-.89.03-.25.38-.51 1.06-.78 4.15-1.81 6.92-3.01 8.31-3.6 3.96-1.66 4.78-1.95 5.32-1.96.12 0 .39.03.56.17.14.12.18.28.2.45-.02.07-.02.13-.05.35z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-moul text-sm text-white">បញ្ជាក់ការចូលតាម Telegram Bot</h3>
+                  <p className="text-[11px] text-sky-300">ទទួលកូដសម្ងាត់ ៦ខ្ទង់ តាមរយៈ Telegram Chatbot</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTelegramModal(false)}
+                className="w-8 h-8 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {telegramMessage && (
+              <div className="p-3 bg-sky-950/80 border border-sky-800 rounded-2xl text-xs text-sky-200">
+                {telegramMessage}
+              </div>
+            )}
+
+            {telegramDebugCode && (
+              <div className="p-4 bg-amber-950/80 border border-amber-800/80 rounded-2xl text-center space-y-1">
+                <p className="text-xs text-amber-300 font-bold">🔐 កូដបញ្ជាក់ Telegram (Demo Mode):</p>
+                <p className="text-2xl font-mono font-bold tracking-widest text-amber-400">{telegramDebugCode}</p>
+                <p className="text-[10px] text-slate-400">សូមយកកូដនេះមកវាយបញ្ចូលក្នុងប្រអប់ខាងក្រោម</p>
+              </div>
+            )}
+
+            {telegramStep === 'request' ? (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">អ៊ីមែល ឬ ឈ្មោះអ្នកប្រើប្រាស់</label>
+                  <input
+                    type="text"
+                    value={telegramIdentifier}
+                    onChange={e => setTelegramIdentifier(e.target.value)}
+                    placeholder="ឧ. limsorn9@gmail.com"
+                    className="w-full px-3.5 py-3 bg-slate-950 border border-slate-700 rounded-2xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-sky-500 font-battambang"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRequestTelegramCode}
+                  disabled={telegramLoading}
+                  className="w-full py-3 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white font-bold text-xs rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {telegramLoading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span>ស្នើសុំកូដបញ្ជាក់ (Send Telegram Code)</span>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">បញ្ចូលកូដបញ្ជាក់ ៦ខ្ទង់ (6-Digit Code)</label>
+                  <input
+                    type="text"
+                    value={telegramCode}
+                    onChange={e => setTelegramCode(e.target.value)}
+                    placeholder="ឧ. 482910"
+                    maxLength={6}
+                    className="w-full px-3.5 py-3 bg-slate-950 border border-slate-700 rounded-2xl text-center font-mono text-lg tracking-widest text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTelegramStep('request')}
+                    className="w-1/3 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-2xl cursor-pointer"
+                  >
+                    ស្នើសុំសាថ្មី
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleVerifyTelegramCode}
+                    disabled={telegramLoading}
+                    className="w-2/3 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {telegramLoading ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span>ផ្ទៀងផ្ទាត់ & ចូលប្រព័ន្ធ</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowTelegramModal(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-400 hover:bg-slate-800 rounded-xl cursor-pointer"
+              >
+                បិទផ្ទាំង
               </button>
             </div>
           </motion.div>

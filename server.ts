@@ -130,6 +130,91 @@ async function startServer() {
     }
   });
 
+  // Telegram Bot Confirmation Code Store
+  const telegramCodes = new Map<string, { code: string; expires: number }>();
+
+  // POST /api/telegram/generate-code
+  app.post('/api/telegram/generate-code', async (req, res) => {
+    try {
+      const { identifier } = req.body;
+      if (!identifier) {
+        return res.status(400).json({ success: false, error: 'Identifier (username or email) is required' });
+      }
+
+      // Generate random 6-digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expires = Date.now() + 5 * 60 * 1000; // valid for 5 minutes
+      telegramCodes.set(identifier, { code, expires });
+
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      const chatId = process.env.TELEGRAM_CHAT_ID;
+
+      let sentViaTelegram = false;
+      if (botToken && chatId) {
+        try {
+          const telegramMsg = `🔐 *សាលាបឋមសិក្សាភ្នំពុំ* - កូដសម្ងាត់បញ្ជាក់ការចូលប្រព័ន្ធ (Confirmation Code):\n\n\`${code}\`\n\nកូដនេះមានសុពលភាពរយៈពេល ៥ នាទី។ សូមកومប្រាប់អ្នកដទៃ។`;
+          const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: telegramMsg,
+              parse_mode: 'Markdown',
+            }),
+          });
+          const tgData = await tgRes.json();
+          if (tgData.ok) {
+            sentViaTelegram = true;
+          }
+        } catch (tgErr) {
+          console.error('Telegram API send error:', tgErr);
+        }
+      }
+
+      return res.json({
+        success: true,
+        sentViaTelegram,
+        message: sentViaTelegram
+          ? 'កូដបញ្ជាក់ត្រូវបានបញ្ជូនទៅកាន់ Telegram Bot ដោយជោគជ័យ!'
+          : 'បានបង្កើតកូដបញ្ជាក់ (Telegram Bot មិនទាន់ដាក់ Token គឺប្រើប្រាស់កូដបង្ហាញជូនខាងក្រោមសម្រាប់ការធ្វើតេស្ត)',
+        // For testing/demonstration convenience if bot is not configured:
+        debugCode: sentViaTelegram ? undefined : code,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err?.message || 'Failed to generate code' });
+    }
+  });
+
+  // POST /api/telegram/verify-code
+  app.post('/api/telegram/verify-code', (req, res) => {
+    try {
+      const { identifier, code } = req.body;
+      if (!identifier || !code) {
+        return res.status(400).json({ success: false, error: 'Identifier and code are required' });
+      }
+
+      const record = telegramCodes.get(identifier);
+      if (!record) {
+        return res.status(400).json({ success: false, error: 'រកមិនឃើញកូដបញ្ជាក់ ឬកូដបានផុតកំណត់ហើយ។ សូមស្នើសុំកូដថ្មី។' });
+      }
+
+      if (Date.now() > record.expires) {
+        telegramCodes.delete(identifier);
+        return res.status(400).json({ success: false, error: 'កូដបញ្ជាក់បានផុតសុពលភាព (៥នាទី)។ សូមស្នើសុំកូដថ្មី។' });
+      }
+
+      if (record.code !== code.trim()) {
+        return res.status(400).json({ success: false, error: 'កូដបញ្ជាក់មិនត្រឹមត្រូវ។ សូមព្យាយាមម្ដងទៀត។' });
+      }
+
+      // Success
+      telegramCodes.delete(identifier);
+      return res.json({ success: true, message: 'បញ្ជាក់កូដតាម Telegram ជោគជ័យ!' });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err?.message || 'Verification failed' });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
