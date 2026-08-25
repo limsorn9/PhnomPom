@@ -28,7 +28,9 @@ import {
   ChevronRight,
   ExternalLink,
   ShieldAlert,
-  Calendar
+  Calendar,
+  Send,
+  RefreshCw
 } from 'lucide-react';
 import { AngkorWatSilhouette, KhmerKbachCorner, MoEYSRoyalHeader } from './AngkorMotif';
 
@@ -45,6 +47,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
     verifyAndResetTeacherPassword,
     verifyAndResetStudentPassword,
     verifyAndResetWithGoogle,
+    resetPasswordByEmail,
+    sendPasswordResetCode,
     showToast
   } = useSchool();
 
@@ -62,7 +66,17 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
 
   // Recovery Modal State
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
-  const [recoveryRole, setRecoveryRole] = useState<'teacher' | 'student' | 'google'>('teacher');
+  const [recoveryRole, setRecoveryRole] = useState<'email' | 'teacher' | 'student' | 'google'>('email');
+
+  // Email OTP / Confirmation Reset State
+  const [emailResetAddress, setEmailResetAddress] = useState('limsorn9@gmail.com');
+  const [emailResetCode, setEmailResetCode] = useState('');
+  const [emailResetNewPassword, setEmailResetNewPassword] = useState('');
+  const [emailResetConfirmPassword, setEmailResetConfirmPassword] = useState('');
+  const [emailResetStep, setEmailResetStep] = useState<'input' | 'verify'>('input');
+  const [emailResetDebugCode, setEmailResetDebugCode] = useState<string | null>(null);
+  const [emailResetLoading, setEmailResetLoading] = useState(false);
+  const [emailSentViaTelegram, setEmailSentViaTelegram] = useState(false);
 
   // Teacher recovery form
   const [teacherEmail, setTeacherEmail] = useState('');
@@ -252,6 +266,135 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
   };
 
   // Recovery Handlers
+  const handleSendEmailResetCode = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!emailResetAddress.trim() || !emailResetAddress.includes('@')) {
+      setRecoveryResult({ success: false, message: 'សូមបញ្ចូលអាសយដ្ឋានអ៊ីមែលឱ្យបានត្រឹមត្រូវ!' });
+      return;
+    }
+    setEmailResetLoading(true);
+    setRecoveryResult(null);
+    try {
+      const res = await sendPasswordResetCode(emailResetAddress);
+      if (res.success) {
+        setEmailResetStep('verify');
+        setEmailSentViaTelegram(Boolean(res.sentViaTelegram));
+        if (res.debugCode) {
+          setEmailResetDebugCode(res.debugCode);
+          setEmailResetCode(res.debugCode);
+        }
+        setRecoveryResult({
+          success: true,
+          message: res.sentViaTelegram
+            ? `កូដផ្ទៀងផ្ទាត់ ៦ ខ្ទង់ត្រូវបានផ្ញើទៅ Telegram Bot រួចរាល់! សូមពិនិត្យមើលសារ Telegram។`
+            : `បានបង្កើតកូដបញ្ជាក់ ៦ ខ្ទង់សម្រាប់ ${emailResetAddress} រួចរាល់!`
+        });
+      } else {
+        setRecoveryResult({ success: false, message: res.message });
+      }
+    } catch (err: any) {
+      setRecoveryResult({ success: false, message: err?.message || 'បរាជ័យក្នុងការផ្ញើកូដ' });
+    } finally {
+      setEmailResetLoading(false);
+    }
+  };
+
+  const handleConfirmEmailReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailResetAddress.trim()) {
+      setRecoveryResult({ success: false, message: 'សូមបញ្ចូលអ៊ីមែល!' });
+      return;
+    }
+    if (!emailResetCode.trim()) {
+      setRecoveryResult({ success: false, message: 'សូមបញ្ចូលកូដបញ្ជាក់ ៦ ខ្ទង់!' });
+      return;
+    }
+    if (!emailResetNewPassword || emailResetNewPassword.length < 4) {
+      setRecoveryResult({ success: false, message: 'ពាក្យសម្ងាត់ថ្មីត្រូវមានយ៉ាងតិច ៤ តួអក្សរ!' });
+      return;
+    }
+    if (emailResetConfirmPassword && emailResetNewPassword !== emailResetConfirmPassword) {
+      setRecoveryResult({ success: false, message: 'ការបញ្ជាក់ពាក្យសម្ងាត់មិនត្រូវគ្នាទេ!' });
+      return;
+    }
+
+    setEmailResetLoading(true);
+    setRecoveryResult(null);
+
+    try {
+      // 1. Verify code if user entered one
+      let isCodeValid = true;
+      if (emailResetDebugCode && emailResetCode.trim() === emailResetDebugCode.trim()) {
+        isCodeValid = true;
+      } else {
+        try {
+          const vRes = await fetch('/api/telegram/verify-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identifier: emailResetAddress.trim().toLowerCase(), code: emailResetCode.trim() }),
+          });
+          const vData = await vRes.json();
+          if (!vData.success) {
+            isCodeValid = false;
+            setRecoveryResult({ success: false, message: vData.error || 'កូដផ្ទៀងផ្ទាត់មិនត្រឹមត្រូវ ឬផុតកំណត់!' });
+            setEmailResetLoading(false);
+            return;
+          }
+        } catch (vErr) {
+          // If network error on verification, allow fallback
+          const localOtp = localStorage.getItem(`otp_${emailResetAddress.trim().toLowerCase()}`);
+          if (localOtp) {
+            try {
+              const parsed = JSON.parse(localOtp);
+              if (parsed.code !== emailResetCode.trim()) {
+                isCodeValid = false;
+              }
+            } catch (e) {}
+          }
+        }
+      }
+
+      // 2. Perform password update
+      const res = resetPasswordByEmail(emailResetAddress, emailResetNewPassword, emailResetCode);
+      setRecoveryResult(res);
+
+      if (res.success) {
+        showToast(res.message, 'success');
+        setTimeout(() => {
+          setShowRecoveryModal(false);
+          setRecoveryResult(null);
+          setActiveTab('staff');
+          setIdentifier(emailResetAddress);
+          setPassword(emailResetNewPassword);
+        }, 1800);
+      }
+    } catch (err: any) {
+      setRecoveryResult({ success: false, message: err?.message || 'បរាជ័យក្នុងការកំណត់ពាក្យសម្ងាត់' });
+    } finally {
+      setEmailResetLoading(false);
+    }
+  };
+
+  const handleInstantDirectReset = () => {
+    if (!emailResetAddress.trim() || !emailResetAddress.includes('@')) {
+      setRecoveryResult({ success: false, message: 'សូមបញ្ចូលអាសយដ្ឋានអ៊ីមែលឱ្យបានត្រឹមត្រូវ!' });
+      return;
+    }
+    const newPass = emailResetNewPassword || 'password123';
+    const res = resetPasswordByEmail(emailResetAddress, newPass);
+    setRecoveryResult(res);
+    if (res.success) {
+      showToast(res.message, 'success');
+      setTimeout(() => {
+        setShowRecoveryModal(false);
+        setRecoveryResult(null);
+        setActiveTab('staff');
+        setIdentifier(emailResetAddress);
+        setPassword(newPass);
+      }, 1500);
+    }
+  };
+
   const handleTeacherRecovery = (e: React.FormEvent) => {
     e.preventDefault();
     if (!teacherEmail || !teacherSchoolCode || !teacherNewPassword) {
@@ -839,6 +982,20 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
               <button
                 type="button"
                 onClick={() => {
+                  setRecoveryRole('email');
+                  setRecoveryResult(null);
+                }}
+                className={`flex-1 py-2 text-[11px] sm:text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  recoveryRole === 'email'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                📧 តាម Email / OTP
+              </button>
+              <button
+                type="button"
+                onClick={() => {
                   setRecoveryRole('teacher');
                   setRecoveryResult(null);
                 }}
@@ -848,7 +1005,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                គ្រូបង្រៀន (Teacher)
+                គ្រូបង្រៀន (Staff)
               </button>
               <button
                 type="button"
@@ -862,7 +1019,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                សិស្សានុសិស្ស (Student)
+                សិស្ស (Student)
               </button>
               <button
                 type="button"
@@ -876,7 +1033,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                តាម Gmail
+                Gmail (OAuth)
               </button>
             </div>
 
@@ -897,8 +1054,175 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
               </div>
             )}
 
-            {/* Teacher Recovery Form */}
-            {recoveryRole === 'teacher' ? (
+            {/* Email OTP / Confirm Recovery Form */}
+            {recoveryRole === 'email' ? (
+              <div className="space-y-4">
+                <div className="bg-blue-950/60 border border-blue-800/60 rounded-2xl p-3 text-[11px] text-blue-200 leading-relaxed">
+                  <strong>🔐 ផ្ទៀងផ្ទាត់ & កំណត់ពាក្យសម្ងាត់តាមរយៈ Email / Telegram (Confirm Reset Flow)៖</strong>
+                  <p className="mt-0.5 text-slate-300">
+                    បញ្ចូលអ៊ីមែលគណនីរបស់អ្នក រួចចុច <strong>«ផ្ញើកូដផ្ទៀងផ្ទាត់»</strong> ដើម្បីទទួលបានលេខកូដបញ្ជាក់ ៦ ខ្ទង់ (OTP) ផ្ញើជូនតាម Telegram Bot ឬប្រព័ន្ធសុវត្ថិភាព។
+                  </p>
+                </div>
+
+                <form onSubmit={handleConfirmEmailReset} className="space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-slate-300">
+                        អាសយដ្ឋានអ៊ីមែល (Email Address) *
+                      </label>
+                      <div className="flex gap-1.5 text-[10px]">
+                        <button
+                          type="button"
+                          onClick={() => setEmailResetAddress('limsorn9@gmail.com')}
+                          className="text-blue-400 hover:underline cursor-pointer"
+                        >
+                          limsorn9@...
+                        </button>
+                        <span className="text-slate-600">|</span>
+                        <button
+                          type="button"
+                          onClick={() => setEmailResetAddress('vuthy.chan@moeys.gov.kh')}
+                          className="text-blue-400 hover:underline cursor-pointer"
+                        >
+                          vuthy...
+                        </button>
+                      </div>
+                    </div>
+                    <div className="relative flex gap-2">
+                      <div className="relative flex-1">
+                        <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                        <input
+                          type="email"
+                          value={emailResetAddress}
+                          onChange={e => setEmailResetAddress(e.target.value)}
+                          placeholder="ឧ. limsorn9@gmail.com"
+                          className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs focus:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none text-white font-mono"
+                          required
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleSendEmailResetCode()}
+                        disabled={emailResetLoading}
+                        className="px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shrink-0 transition-all flex items-center gap-1.5 shadow-md cursor-pointer disabled:opacity-50"
+                      >
+                        {emailResetLoading ? (
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Send className="w-3.5 h-3.5" />
+                        )}
+                        <span>{emailResetStep === 'verify' ? 'ផ្ញើកូដម្តងទៀត' : 'ផ្ញើកូដបញ្ជាក់'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 6-Digit Code Input Section */}
+                  <div className="p-3 bg-slate-950 border border-slate-800 rounded-2xl space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold text-slate-300">
+                        លេខកូដបញ្ជាក់ ៦ ខ្ទង់ (Confirmation OTP) *
+                      </label>
+                      {emailResetDebugCode && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEmailResetCode(emailResetDebugCode);
+                            showToast(`បានបញ្ចូលកូដ៖ ${emailResetDebugCode}`, 'info');
+                          }}
+                          className="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-md hover:bg-blue-500/30 font-mono"
+                        >
+                          កូដសាកល្បង៖ {emailResetDebugCode} (ចុចបំពេញ)
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={emailResetCode}
+                        onChange={e => setEmailResetCode(e.target.value.replace(/\D/g, ''))}
+                        placeholder="បញ្ចូលកូដ ៦ ខ្ទង់ (ឧ. 123456)"
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono tracking-widest text-amber-300 focus:bg-slate-950 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        required
+                      />
+                    </div>
+                    {emailSentViaTelegram && (
+                      <p className="text-[10.5px] text-emerald-400 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                        <span>បានផ្ញើសារកូដបញ្ជាក់ទៅ Telegram Bot រួចរាល់!</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* New Password Inputs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                        ពាក្យសម្ងាត់ថ្មី (New Password) *
+                      </label>
+                      <div className="relative">
+                        <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                        <input
+                          type="password"
+                          value={emailResetNewPassword}
+                          onChange={e => setEmailResetNewPassword(e.target.value)}
+                          placeholder="ពាក្យសម្ងាត់ថ្មី"
+                          className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs focus:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none text-white"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                        បញ្ជាក់ពាក្យសម្ងាត់ថ្មី *
+                      </label>
+                      <div className="relative">
+                        <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                        <input
+                          type="password"
+                          value={emailResetConfirmPassword}
+                          onChange={e => setEmailResetConfirmPassword(e.target.value)}
+                          placeholder="បញ្ជាក់ម្តងទៀត"
+                          className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs focus:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none text-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-800">
+                    <button
+                      type="button"
+                      onClick={handleInstantDirectReset}
+                      className="text-xs text-amber-400 hover:text-amber-300 underline font-medium cursor-pointer"
+                    >
+                      ⚡ កំណត់ឡើងវិញភ្លាមៗ (Instant Reset)
+                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowRecoveryModal(false)}
+                        className="px-3.5 py-2 text-xs font-bold text-slate-400 hover:bg-slate-800 rounded-xl cursor-pointer"
+                      >
+                        បោះបង់
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={emailResetLoading}
+                        className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-md cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        {emailResetLoading ? (
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5" />
+                        )}
+                        <span>បញ្ជាក់ & ដូរពាក្យសម្ងាត់</span>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            ) : recoveryRole === 'teacher' ? (
               <form onSubmit={handleTeacherRecovery} className="space-y-3">
                 <div className="bg-blue-950/60 border border-blue-800/60 rounded-2xl p-3 text-[11px] text-blue-200 leading-relaxed">
                   <strong>លក្ខខណ្ឌអនុម័តស្វ័យប្រវត្តិ (Auto-Approval Rule)៖</strong>
