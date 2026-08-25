@@ -1,5 +1,5 @@
 {
-  "name": "សាលាបឋមសិក្សាភ្នំពុំ - Phnom Pom Primary School",
+  "name": "សាលាបឋមសិក្សាភ្នំពុំ",
   "description": "ប្រព័ន្ធគ្រប់គ្រងសាលាបឋមសិក្សាភ្នំពុំ និងជំនួយការបង្រៀន AI ស្របតាមស្តង់ដារសាលាបឋមសិក្សាគំរូ ៥ ស្តង់ដារ ២៧ សូចនាករ និងកម្មវិធីសិក្សាគោលក្រសួងអប់រំ យុវជន និងកីឡា ថ្នាក់ទី១ ដល់ទី៦",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

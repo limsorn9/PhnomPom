@@ -487,10 +487,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         return JSON.parse(saved);
       } catch {
-        return initialUsers[0];
+        return null;
       }
     }
-    return initialUsers[0];
+    return null;
   });
 
   // Notifications State
@@ -3268,7 +3268,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (role === 'director') return true;
 
     if (role === 'secretary') {
-      return ['dashboard', 'homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'accounts', 'library', 'learning_resources', 'workspace'].includes(tab);
+      return ['dashboard', 'homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'library', 'learning_resources'].includes(tab);
     }
 
     if (role === 'librarian') {
@@ -3276,7 +3276,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     if (role === 'teacher') {
-      return ['homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'dashboard', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'classrooms', 'scores', 'attendance_health', 'calendar', 'reports_qr', 'accounts', 'library', 'learning_resources', 'workspace'].includes(tab);
+      return ['homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'dashboard', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'classrooms', 'scores', 'attendance_health', 'calendar', 'reports_qr', 'library', 'learning_resources'].includes(tab);
     }
 
     if (role === 'student') {

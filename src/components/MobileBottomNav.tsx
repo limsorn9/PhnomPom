@@ -15,14 +15,15 @@ interface MobileBottomNavProps {
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenMobileMenu }) => {
-  const { activeTab, setActiveTab } = useSchool();
+  const { activeTab, setActiveTab, currentUser } = useSchool();
+  const isDirector = currentUser?.role === 'director';
 
   const quickTabs: { id: ActiveTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'dashboard', label: 'ផ្ទាំងដើម', icon: LayoutDashboard },
     { id: 'students', label: 'សិស្ស', icon: Users },
     { id: 'scores', label: 'ពិន្ទុ', icon: BookOpen },
     { id: 'finance', label: 'ថវិកា', icon: CircleDollarSign },
-    { id: 'workspace', label: 'Drive/Sheet', icon: HardDrive },
+    ...(isDirector ? [{ id: 'workspace' as ActiveTab, label: 'Drive/Sheet', icon: HardDrive }] : []),
   ];
 
   return (

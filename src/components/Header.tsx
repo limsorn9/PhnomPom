@@ -395,53 +395,57 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Offline Sync / IndexedDB Status Badge */}
           <OfflineSyncStatusBadge />
 
-          {/* Firebase Cloud Firestore Real-time Sync Status Indicator */}
-          <button
-            type="button"
-            onClick={() => syncAllToCloud()}
-            disabled={isCloudSyncing}
-            className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-xl text-xs font-bold transition-all shadow-2xs ${
-              isCloudSyncing
-                ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 text-amber-800 dark:text-amber-300 animate-pulse'
-                : 'bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/50 border-teal-200 dark:border-teal-800/60 text-teal-900 dark:text-teal-200'
-            }`}
-            title={
-              lastCloudSyncTime
-                ? `Cloud Firestore ភ្ជាប់ជាប់លាប់! ធ្វើសមកាលកម្មចុងក្រោយ៖ ${new Date(lastCloudSyncTime).toLocaleTimeString('km-KH')}`
-                : 'ចុចដើម្បី Sync ទិន្នន័យឡើង Cloud Firestore ឥឡូវនេះ'
-            }
-          >
-            <div className={`w-2 h-2 rounded-full ${isCloudSyncing ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'}`} />
-            <Cloud className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin text-amber-600' : 'text-teal-700 dark:text-teal-400'}`} />
-            <span className="hidden sm:inline">
-              {isCloudSyncing ? 'កំពុង Cloud Sync...' : 'Cloud Online'}
-            </span>
-          </button>
+          {currentUser?.role === 'director' && (
+            <>
+              {/* Firebase Cloud Firestore Real-time Sync Status Indicator */}
+              <button
+                type="button"
+                onClick={() => syncAllToCloud()}
+                disabled={isCloudSyncing}
+                className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-xl text-xs font-bold transition-all shadow-2xs ${
+                  isCloudSyncing
+                    ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 text-amber-800 dark:text-amber-300 animate-pulse'
+                    : 'bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/50 border-teal-200 dark:border-teal-800/60 text-teal-900 dark:text-teal-200'
+                }`}
+                title={
+                  lastCloudSyncTime
+                    ? `Cloud Firestore ភ្ជាប់ជាប់លាប់! ធ្វើសមកាលកម្មចុងក្រោយ៖ ${new Date(lastCloudSyncTime).toLocaleTimeString('km-KH')}`
+                    : 'ចុចដើម្បី Sync ទិន្នន័យឡើង Cloud Firestore ឥឡូវនេះ'
+                }
+              >
+                <div className={`w-2 h-2 rounded-full ${isCloudSyncing ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'}`} />
+                <Cloud className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin text-amber-600' : 'text-teal-700 dark:text-teal-400'}`} />
+                <span className="hidden sm:inline">
+                  {isCloudSyncing ? 'កំពុង Cloud Sync...' : 'Cloud Online'}
+                </span>
+              </button>
 
-          {/* Google Drive Cloud Sync Quick Button */}
-          {onOpenDriveSync && (
-            <button
-              type="button"
-              onClick={onOpenDriveSync}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold rounded-xl transition-all"
-              title="Google Drive Cloud Sync (limsorn9@gmail.com)"
-            >
-              <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Drive Sync</span>
-            </button>
-          )}
+              {/* Google Drive Cloud Sync Quick Button */}
+              {onOpenDriveSync && (
+                <button
+                  type="button"
+                  onClick={onOpenDriveSync}
+                  className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold rounded-xl transition-all"
+                  title="Google Drive Cloud Sync"
+                >
+                  <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Drive Sync</span>
+                </button>
+              )}
 
-          {/* Bulk Import/Export Hub Button */}
-          {onOpenBulkImport && (
-            <button
-              type="button"
-              onClick={onOpenBulkImport}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800/60 text-indigo-800 dark:text-indigo-300 text-xs font-bold rounded-xl transition-all"
-              title={language === 'en' ? 'Bulk Data CSV / Excel Import & Export Hub' : 'នាំចូល និងនាំចេញទិន្នន័យធំ (Bulk Data CSV / Excel)'}
-            >
-              <FileSpreadsheetIcon className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-              <span>Bulk Hub</span>
-            </button>
+              {/* Bulk Import/Export Hub Button */}
+              {onOpenBulkImport && (
+                <button
+                  type="button"
+                  onClick={onOpenBulkImport}
+                  className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800/60 text-indigo-800 dark:text-indigo-300 text-xs font-bold rounded-xl transition-all"
+                  title={language === 'en' ? 'Bulk Data CSV / Excel Import & Export Hub' : 'នាំចូល និងនាំចេញទិន្នន័យធំ (Bulk Data CSV / Excel)'}
+                >
+                  <FileSpreadsheetIcon className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span>Bulk Hub</span>
+                </button>
+              )}
+            </>
           )}
 
           {/* Standalone HTML Exporter Button */}
