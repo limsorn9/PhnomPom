@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { HouseholdRecord, FamilyMember, FamilyPovertyStatus } from '../types';
+import { AddressSelector } from './common/AddressSelector';
 import {
   Home,
   MapPin,
@@ -272,6 +273,98 @@ export const HouseholdCensus: React.FC = () => {
       recordedBy: h.recordedBy || ''
     });
     setIsAddModalOpen(true);
+  };
+
+  // Auto-fetch Guardian and Children from Students by Phone Number
+  const handleAutoSyncFromStudentsByPhone = (phoneInput: string) => {
+    const cleanPhone = (phoneInput || '').replace(/[\s\-\+]/g, '');
+    if (!cleanPhone || cleanPhone.length < 5) {
+      showToast('សូមបញ្ចូលលេខទូរស័ព្ទឱ្យបានត្រឹមត្រូវសិន ដើម្បីទាញយកទិន្នន័យ!', 'error');
+      return;
+    }
+
+    const matchedStudents = students.filter(s => {
+      const gPhone = (s.guardianPhone || '').replace(/[\s\-\+]/g, '');
+      const sPhone = (s.phone || '').replace(/[\s\-\+]/g, '');
+      return (gPhone && cleanPhone.includes(gPhone)) || (sPhone && cleanPhone.includes(sPhone)) || (gPhone && gPhone === cleanPhone) || (sPhone && sPhone === cleanPhone);
+    });
+
+    if (matchedStudents.length === 0) {
+      showToast(`រកមិនឃើញសិស្សដែលមានលេខទូរស័ព្ទ "${phoneInput}" ក្នុងប្រព័ន្ធឡើយ។`, 'info');
+      return;
+    }
+
+    const firstStudent = matchedStudents[0];
+    const detectedFatherName = firstStudent.fatherName || '';
+    const detectedFatherOcc = firstStudent.fatherOccupation || 'កសិករ';
+    const detectedMotherName = firstStudent.motherName || '';
+    const detectedMotherOcc = firstStudent.motherOccupation || 'កសិករ';
+    const detectedGuardianName = firstStudent.guardianName || detectedFatherName || detectedMotherName || 'អាណាព្យាបាលសិស្ស';
+    const detectedGuardianOccupation = firstStudent.guardianOccupation || detectedFatherOcc || 'កសិករ';
+    const detectedAddress = firstStudent.address || `${firstStudent.currentVillage || ''}, ${firstStudent.currentCommune || ''}, ${firstStudent.currentDistrict || ''}, ${firstStudent.currentProvince || ''}`.replace(/^, /, '') || '';
+
+    const newMembers: FamilyMember[] = [];
+    
+    // Add Father if exists
+    if (detectedFatherName) {
+      newMembers.push({
+        id: `mem-fat-${firstStudent.id}`,
+        name: detectedFatherName,
+        gender: 'M',
+        dob: '1980-01-01',
+        age: 45,
+        relationship: 'ឪពុក',
+        occupation: detectedFatherOcc,
+        civilStatusDoc: 'អត្តសញ្ញាណប័ណ្ណ',
+        isStudentAtSchool: false
+      });
+    }
+
+    // Add Mother if exists
+    if (detectedMotherName) {
+      newMembers.push({
+        id: `mem-mot-${firstStudent.id}`,
+        name: detectedMotherName,
+        gender: 'F',
+        dob: '1982-01-01',
+        age: 43,
+        relationship: 'ម្តាយ',
+        occupation: detectedMotherOcc,
+        civilStatusDoc: 'អត្តសញ្ញាណប័ណ្ណ',
+        isStudentAtSchool: false
+      });
+    }
+
+    // Add all matched children (students)
+    matchedStudents.forEach((s, idx) => {
+      newMembers.push({
+        id: `mem-stu-${s.id}-${idx}`,
+        name: s.nameKhmer,
+        gender: s.gender,
+        dob: s.dob || '2015-01-01',
+        age: s.age || 10,
+        relationship: 'កូន',
+        occupation: 'សិស្ស',
+        civilStatusDoc: 'សំបុត្រកំណើត',
+        isStudentAtSchool: true,
+        studentGrade: s.grade,
+        studentSection: s.section,
+        studentCode: s.code
+      });
+    });
+
+    setFormData(prev => ({
+      ...prev,
+      headName: prev.headName ? prev.headName : detectedGuardianName,
+      headOccupation: prev.headOccupation ? prev.headOccupation : detectedGuardianOccupation,
+      spouseName: prev.spouseName ? prev.spouseName : detectedMotherName,
+      spouseOccupation: prev.spouseOccupation ? prev.spouseOccupation : detectedMotherOcc,
+      currentAddress: prev.currentAddress ? prev.currentAddress : detectedAddress,
+      phoneNumber: phoneInput,
+      members: [...prev.members.filter(m => !m.isStudentAtSchool && m.relationship !== 'ឪពុក' && m.relationship !== 'ម្តាយ'), ...newMembers]
+    }));
+
+    showToast(`បានទាញយកឈ្មោះឪពុក ម្តាយ មុខរបរ អាសយដ្ឋាន និងកូនៗចំនួន ${matchedStudents.length} នាក់ដោយស្វ័យប្រវត្តិ!`, 'success');
   };
 
   // Add Member to Form
@@ -1015,7 +1108,24 @@ export const HouseholdCensus: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="space-y-3">
+                  <AddressSelector
+                    province={'ខេត្តបាត់ដំបង'}
+                    district={'ស្រុកភ្នំព្រឹក'}
+                    commune={'ឃុំភ្នំព្រឹក'}
+                    village={formData.village || 'ភូមិភ្នំព្រឹក'}
+                    showSchoolSelector={false}
+                    onChange={(addr) => {
+                      setFormData({
+                        ...formData,
+                        village: addr.village || formData.village,
+                        currentAddress: addr.fullAddressString
+                      });
+                    }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-slate-600 font-medium mb-1">លេខខ្នងផ្ទះ (House No.)</label>
                     <input
@@ -1025,19 +1135,6 @@ export const HouseholdCensus: React.FC = () => {
                       placeholder="ឧ. ០២៨"
                       className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 font-bold"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-600 font-medium mb-1">ភូមិតំបន់សេវា *</label>
-                    <select
-                      value={formData.village}
-                      onChange={e => setFormData({ ...formData, village: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800"
-                    >
-                      {villages.map(v => (
-                        <option key={v} value={v}>{v}</option>
-                      ))}
-                    </select>
                   </div>
 
                   <div>
@@ -1069,7 +1166,7 @@ export const HouseholdCensus: React.FC = () => {
                     type="text"
                     value={formData.currentAddress || ''}
                     onChange={e => setFormData({ ...formData, currentAddress: e.target.value })}
-                    placeholder="ភូមិ... ឃុំបារាំងធ្លាក់ ស្រុកភ្នំព្រឹក ខេត្តបាត់ដំបង"
+                    placeholder="ភូមិ... ឃុំ... ស្រុក... ខេត្ត..."
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
@@ -1142,13 +1239,27 @@ export const HouseholdCensus: React.FC = () => {
 
                   <div>
                     <label className="block text-slate-600 font-medium mb-1">លេខទូរស័ព្ទទាក់ទង</label>
-                    <input
-                      type="tel"
-                      value={formData.phoneNumber || ''}
-                      onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })}
-                      placeholder="012 334 455"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-800"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="tel"
+                        value={formData.phoneNumber || ''}
+                        onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })}
+                        placeholder="012 334 455"
+                        className="flex-1 px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-800"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleAutoSyncFromStudentsByPhone(formData.phoneNumber || '')}
+                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-bold shadow-sm transition-all flex items-center gap-1 shrink-0"
+                        title="ទាញយកឈ្មោះអាណាព្យាបាល និងកូនៗពីបញ្ជីសិស្សតាមលេខទូរស័ព្ទ"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>ទាញយកស្វ័យប្រវត្តិ</span>
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      💡 បញ្ចូលលេខទូរស័ព្ទ ហើយចុចប៊ូតុងនេះ ដើម្បីទាញយកឈ្មោះអាណាព្យាបាល និងកូនៗទាំងអស់ពីបញ្ជីសិស្ស។
+                    </p>
                   </div>
                 </div>
               </div>

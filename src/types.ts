@@ -434,6 +434,7 @@ export interface AcademicCalendarEvent {
 }
 
 export type UserRole = 
+  | 'super_admin' // ស៊ុបទែអបមីន (Super Administrator)
   | 'director'    // នាយកសាលារៀន
   | 'secretary'   // លេខាធិការ
   | 'librarian'   // បណ្ណារក្ស

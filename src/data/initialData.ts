@@ -585,15 +585,28 @@ export const initialCalendarEvents: AcademicCalendarEvent[] = [
 
 export const initialUsers = [
   {
-    id: 'u-1',
+    id: 'u-super-admin',
     username: 'limsorn',
     email: 'limsorn9@gmail.com',
-    password: 'password123',
-    nameKhmer: 'លោក លីម សន',
+    password: '11101989',
+    nameKhmer: 'លោក លីម សន (Super Admin)',
     nameLatin: 'Lim Sorn',
-    role: 'director' as const,
+    role: 'super_admin' as const,
     phone: '087 99 19 77',
-    staffCode: 'MOEYS-104921',
+    staffCode: 'MOEYS-SUPER-001',
+    createdAt: '2024-01-01',
+    status: 'active' as const
+  },
+  {
+    id: 'u-1',
+    username: 'director',
+    email: 'director@school.edu.kh',
+    password: 'password123',
+    nameKhmer: 'លោកនាយកសាលា',
+    nameLatin: 'School Director',
+    role: 'director' as const,
+    phone: '012 345 678',
+    staffCode: 'MOEYS-DIR-001',
     createdAt: '2024-01-01',
     status: 'active' as const
   }

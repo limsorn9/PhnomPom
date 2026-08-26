@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import QRCode from 'qrcode';
 import { useSchool } from '../context/SchoolContext';
 import { Student, Gender, LivingCondition, AcademicHistoryStatus, OrphanStatus } from '../types';
+import { AddressSelector } from './common/AddressSelector';
 import { exportStudentsToGoogleSheets } from '../services/googleSheets';
 import { getAccessToken, googleSignIn } from '../services/googleAuth';
 import { StudentSearchIndex } from '../utils/searchIndex';
@@ -1968,11 +1969,27 @@ export const StudentManagement: React.FC = () => {
               <div className="space-y-4">
                 <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-2">
                   <MapPin className="w-4 h-4 text-emerald-500" />
-                  ៣. ទីលំនៅបច្ចុប្បន្នលម្អិត (Current Address Breakdown)
+                  ៣. ទីលំនៅបច្ចុប្បន្នលម្អិត (ខេត្ត ➔ ស្រុក ➔ ឃុំ ➔ ភូមិ ➔ សាលារៀន)
                 </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                <AddressSelector
+                  province={formData.currentProvince || 'ខេត្តបាត់ដំបង'}
+                  district={formData.currentDistrict || 'ស្រុកភ្នំព្រឹក'}
+                  commune={formData.currentCommune || ''}
+                  village={formData.currentVillage || ''}
+                  showSchoolSelector={false}
+                  onChange={(addr) => {
+                    setFormData({
+                      ...formData,
+                      currentProvince: addr.province,
+                      currentDistrict: addr.district,
+                      currentCommune: addr.commune,
+                      currentVillage: addr.village
+                    });
+                  }}
+                />
+                <div className="grid grid-cols-2 gap-3.5 pt-1">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">ផ្ទះលេខ / ផ្លូវលេខ</label>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">ផ្ទះលេខ</label>
                     <input
                       type="text"
                       value={formData.currentHouseNumber}
@@ -1982,32 +1999,12 @@ export const StudentManagement: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">ភូមិបច្ចុប្បន្ន</label>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">ផ្លូវលេខ</label>
                     <input
                       type="text"
-                      value={formData.currentVillage}
-                      onChange={e => setFormData({ ...formData, currentVillage: e.target.value })}
-                      placeholder="ឧ. អូរគល់សំយ៉ុង"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">ឃុំ/សង្កាត់បច្ចុប្បន្ន</label>
-                    <input
-                      type="text"
-                      value={formData.currentCommune}
-                      onChange={e => setFormData({ ...formData, currentCommune: e.target.value })}
-                      placeholder="ឧ. បារាំងធ្លាក់"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">ស្រុក & ខេត្ត</label>
-                    <input
-                      type="text"
-                      value={formData.currentDistrict}
-                      onChange={e => setFormData({ ...formData, currentDistrict: e.target.value })}
-                      placeholder="ឧ. ភ្នំព្រឹក ខេត្តបាត់ដំបង"
+                      value={formData.currentStreetNumber}
+                      onChange={e => setFormData({ ...formData, currentStreetNumber: e.target.value })}
+                      placeholder="ឧ. ផ្លូវលេខ ២០"
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     />
                   </div>
