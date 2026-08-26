@@ -4,6 +4,7 @@ import { sendTelegramNotification, sendTelegramDirectMessage } from '../services
 import { TelegramTemplateManager } from './telegram/TelegramTemplateManager';
 import { TelegramBotAnalytics } from './telegram/TelegramBotAnalytics';
 import { TelegramAutomatedTasks } from './telegram/TelegramAutomatedTasks';
+import { TelegramSmartAutoResponder, DEFAULT_AUTO_RESPONDER_RULES, AutoResponderRule } from './telegram/TelegramSmartAutoResponder';
 import { 
   Send, 
   Bot, 
@@ -45,7 +46,12 @@ import {
   ArrowRight,
   Bookmark,
   BarChart3,
-  FileText
+  FileText,
+  BrainCircuit,
+  Lock,
+  ShieldAlert,
+  Zap,
+  Tag
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -85,8 +91,11 @@ interface BotCommandConfig {
 
 export const TelegramBotStudio: React.FC = () => {
   const { currentUser, schoolProfile, students, teachers, showToast } = useSchool();
-  const [activeTab, setActiveTab] = useState<'chat' | 'commands' | 'webhook_activity' | 'templates' | 'analytics' | 'automated_tasks' | 'settings'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'commands' | 'webhook_activity' | 'auto_responder' | 'templates' | 'analytics' | 'automated_tasks' | 'settings'>('chat');
   
+  // Strict Principal Access Check
+  const isPrincipal = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
+
   // Bot Settings state
   const [botToken, setBotToken] = useState('8946444884:AAHc1ESlanNspj6atsVCGlxto-q5ks-NKGg');
   const [chatId, setChatId] = useState('240224709');
@@ -102,6 +111,13 @@ export const TelegramBotStudio: React.FC = () => {
   const [replyTargetLog, setReplyTargetLog] = useState<WebhookLog | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);
+  const [smartSuggestedReplies, setSmartSuggestedReplies] = useState<{
+    intent: string;
+    keywords: string[];
+    confidence: number;
+    ruleName: string;
+    text: string;
+  }[]>([]);
 
   const [selectedCommandForPreview, setSelectedCommandForPreview] = useState<string>('/status');
   const [logFilter, setLogFilter] = useState<'all' | 'command' | 'message' | 'callback_query' | 'system_ping'>('all');
@@ -402,6 +418,10 @@ export const TelegramBotStudio: React.FC = () => {
 
   // Test Telegram Bot Configuration
   const handleTestConfiguration = async () => {
+    if (!isPrincipal) {
+      showToast('🔒 មានតែនាយកសាលាប៉ុណ្ណោះដែលអាចធ្វើតេស្ត Bot Token Configuration បាន!', 'error');
+      return;
+    }
     setIsTestingConfig(true);
     setTestResult(null);
 
@@ -484,6 +504,10 @@ export const TelegramBotStudio: React.FC = () => {
 
   // Activate Telegram Webhook with Telegram servers
   const handleActivateWebhook = async () => {
+    if (!isPrincipal) {
+      showToast('🔒 មានតែនាយកសាលាប៉ុណ្ណោះដែលអាចកំណត់រចនាសម្ព័ន្ធ Webhook API បាន!', 'error');
+      return;
+    }
     setIsActivatingWebhook(true);
     try {
       const res = await fetch('/api/telegram/set-webhook', {
@@ -511,13 +535,49 @@ export const TelegramBotStudio: React.FC = () => {
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isPrincipal) {
+      showToast('🔒 មានតែនាយកសាលាប៉ុណ្ណោះដែលអាចផ្លាស់ប្តូរការកំណត់ Bot Token ឬ API Credentials!', 'error');
+      return;
+    }
     showToast('បានរក្សាទុកការកំណត់ Telegram Bot Token និង Chat ID រួចរាល់!', 'success');
   };
 
-  // Open Message Reply Modal
+  // Open Message Reply Modal with AI Smart Auto-Suggestions
   const handleOpenReply = (log: WebhookLog) => {
     setReplyTargetLog(log);
     setReplyText(`🙏 សួស្ដី ${log.senderName}!\n\n`);
+
+    // Match keywords using DEFAULT_AUTO_RESPONDER_RULES
+    const incoming = (log.messageText || '').toLowerCase();
+    const suggestions: {
+      intent: string;
+      keywords: string[];
+      confidence: number;
+      ruleName: string;
+      text: string;
+    }[] = [];
+
+    DEFAULT_AUTO_RESPONDER_RULES.forEach(rule => {
+      const matched = rule.triggerKeywords.filter(kw => incoming.includes(kw.toLowerCase()));
+      if (matched.length > 0) {
+        const textRendered = rule.replyTemplate
+          .replace(/{{school_name}}/g, schoolProfile.nameKhmer || 'សាលាបឋមសិក្សាភ្នំពុំ')
+          .replace(/{{academic_year}}/g, schoolProfile.academicYear || '២០២៥-២០២៦')
+          .replace(/{{principal_name}}/g, schoolProfile.principalName || 'លឹម សន')
+          .replace(/{{principal_phone}}/g, schoolProfile.principalPhone || '012 345 678');
+        
+        suggestions.push({
+          intent: rule.intentKhmer,
+          keywords: matched,
+          confidence: Math.min(98, 60 + matched.length * 20),
+          ruleName: rule.name,
+          text: `🙏 សួស្ដី ${log.senderName}!\n\n` + textRendered
+        });
+      }
+    });
+
+    suggestions.sort((a, b) => b.confidence - a.confidence);
+    setSmartSuggestedReplies(suggestions);
   };
 
   // Send Direct Reply to Telegram User
@@ -762,6 +822,21 @@ export const TelegramBotStudio: React.FC = () => {
           Webhook Activity & Reply
           <span className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
             {webhookLogs.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('auto_responder')}
+          className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'auto_responder'
+              ? 'bg-white text-indigo-600 border-b-2 border-indigo-600 shadow-sm'
+              : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+          }`}
+        >
+          <BrainCircuit className="w-3.5 h-3.5 text-purple-600" />
+          Smart Auto-Responder (AI)
+          <span className="bg-purple-100 text-purple-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+            AI
           </span>
         </button>
 
@@ -1405,10 +1480,56 @@ export const TelegramBotStudio: React.FC = () => {
                   </p>
                 </div>
 
+                {/* AI Smart Auto-Responder Suggestions */}
+                {smartSuggestedReplies.length > 0 && (
+                  <div className="p-3 bg-purple-50 rounded-xl border border-purple-200 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-purple-900 flex items-center gap-1.5">
+                        <BrainCircuit className="w-3.5 h-3.5 text-purple-600 animate-pulse" />
+                        AI Smart Auto-Responder ស្នើពុម្ពឆ្លើយតប (ផ្អែកលើពាក្យគន្លឹះ):
+                      </span>
+                      <span className="text-[10px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full font-bold">
+                        {smartSuggestedReplies[0].intent} ({smartSuggestedReplies[0].confidence}%)
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {smartSuggestedReplies.slice(0, 2).map((sug, idx) => (
+                        <div key={idx} className="bg-white p-2.5 rounded-lg border border-purple-100 flex items-start justify-between gap-2 shadow-2xs">
+                          <div className="space-y-1 text-xs">
+                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700">
+                              <span className="text-purple-700">📌 {sug.ruleName}</span>
+                              <span className="text-slate-400">•</span>
+                              <span className="text-slate-500 font-normal flex items-center gap-0.5">
+                                <Tag className="w-2.5 h-2.5 text-slate-400" />
+                                ពាក្យគន្លឹះ: {sug.keywords.join(', ')}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-600 line-clamp-2 italic font-battambang">
+                              "{sug.text.substring(0, 95)}..."
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReplyText(sug.text);
+                              showToast(`បានបញ្ចូលពុម្ពឆ្លើយតប AI (${sug.ruleName}) រួចរាល់!`, 'success');
+                            }}
+                            className="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold shrink-0 flex items-center gap-1 shadow-xs transition-all"
+                          >
+                            <Zap className="w-3 h-3" />
+                            ប្រើពុម្ពនេះ
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Quick Reply Presets */}
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">
-                    ចម្លើយរហ័ស (Quick Reply Presets)៖
+                    ចម្លើយរហ័សទូទៅ (Quick Reply Presets)៖
                   </label>
                   <div className="flex flex-wrap gap-1.5">
                     {[
@@ -1477,6 +1598,9 @@ export const TelegramBotStudio: React.FC = () => {
         </div>
       )}
 
+      {/* Tab: Smart Auto-Responder */}
+      {activeTab === 'auto_responder' && <TelegramSmartAutoResponder />}
+
       {/* Tab: Template Manager */}
       {activeTab === 'templates' && <TelegramTemplateManager />}
 
@@ -1489,32 +1613,70 @@ export const TelegramBotStudio: React.FC = () => {
       {/* Tab 4: Bot Settings & Test Configuration */}
       {activeTab === 'settings' && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6 max-w-3xl mx-auto">
-          <div className="border-b pb-4">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <Sliders className="w-5 h-5 text-indigo-600" />
-              ការកំណត់ Token និង Telegram Bot Credentials
-            </h3>
-            <p className="text-xs text-slate-500">
-              កែប្រែ API Token, Chat ID និងធ្វើតេស្តផ្ញើសារ 'System Check' ទៅកាន់ Telegram ដោយផ្ទាល់
-            </p>
+          <div className="border-b pb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Sliders className="w-5 h-5 text-indigo-600" />
+                ការកំណត់ Token និង Telegram Bot Credentials
+              </h3>
+              <p className="text-xs text-slate-500">
+                កែប្រែ API Token, Chat ID និងធ្វើតេស្តផ្ញើសារ 'System Check' ទៅកាន់ Telegram ដោយផ្ទាល់
+              </p>
+            </div>
+            {isPrincipal ? (
+              <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                សិទ្ធិនាយកសាលា (Full Control)
+              </span>
+            ) : (
+              <span className="px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-xs font-bold flex items-center gap-1">
+                <Lock className="w-3.5 h-3.5" />
+                សិទ្ធិត្រូវបានកម្រិត (Protected)
+              </span>
+            )}
           </div>
+
+          {/* Strict Role Banner if not principal */}
+          {!isPrincipal && (
+            <div className="p-4 bg-rose-50 rounded-2xl border border-rose-200 flex items-start gap-3 text-rose-950">
+              <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              <div className="text-xs space-y-1">
+                <p className="font-bold text-rose-900">🔒 សិទ្ធិគ្រប់គ្រងត្រូវបានការពារ (Principal Protected Zone):</p>
+                <p className="text-rose-800 leading-relaxed font-battambang">
+                  យោងតាមគោលការណ៍សុវត្ថិភាពសាលារៀន <b>ក្រៅពីនាយកសាលា (School Principal / Super Admin) មិនអាចកំណត់ការគ្រប់គ្រងបត ឬផ្លាស់ប្តូរ Bot API Token ឬមើលឃើញលេខកូដសម្ងាត់ API បានឡើយ</b>។
+                </p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSaveSettings} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Telegram Bot Token (ពី @BotFather)
+              <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                <span>Telegram Bot Token (ពី @BotFather)</span>
+                {!isPrincipal && <span className="text-rose-600 text-[11px] font-bold">🔒 Hidden for Non-Principal</span>}
               </label>
               <div className="relative">
                 <KeyRound className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
-                  type="text"
-                  value={botToken}
-                  onChange={e => setBotToken(e.target.value)}
+                  type={isPrincipal ? "text" : "password"}
+                  value={isPrincipal ? botToken : "••••••••••••••••••••••••••••••••••••••••••••"}
+                  onChange={e => isPrincipal && setBotToken(e.target.value)}
+                  disabled={!isPrincipal}
                   placeholder="8946444884:AAHc1ESlanNspj6atsVCGlxto-q5ks-NKGg"
-                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-300 font-mono text-sm focus:ring-2 focus:ring-indigo-500"
+                  className={`w-full pl-11 pr-4 py-3 rounded-xl border font-mono text-sm ${
+                    isPrincipal 
+                      ? 'border-slate-300 focus:ring-2 focus:ring-indigo-500 bg-white' 
+                      : 'border-rose-200 bg-slate-100 text-slate-400 cursor-not-allowed'
+                  }`}
                 />
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">Token បច្ចុប្បន្នត្រូវបានតភ្ជាប់ជាមួយ Bot: <b>PPTC_Notify</b> (@PPTC_Notify_bot)</p>
+              <p className="text-[11px] text-slate-400 mt-1">
+                {isPrincipal ? (
+                  <>Token បច្ចុប្បន្នត្រូវបានតភ្ជាប់ជាមួយ Bot: <b>PPTC_Notify</b> (@PPTC_Notify_bot)</>
+                ) : (
+                  <>លេខសម្ងាត់ Bot API Token ត្រូវបានលាក់ដោយសុវត្ថិភាព</>
+                )}
+              </p>
             </div>
 
             <div>
@@ -1523,12 +1685,19 @@ export const TelegramBotStudio: React.FC = () => {
               </label>
               <input
                 type="text"
-                value={chatId}
-                onChange={e => setChatId(e.target.value)}
+                value={isPrincipal ? chatId : "•••••••••"}
+                onChange={e => isPrincipal && setChatId(e.target.value)}
+                disabled={!isPrincipal}
                 placeholder="240224709"
-                className="w-full px-4 py-3 rounded-xl border border-slate-300 font-mono text-sm focus:ring-2 focus:ring-indigo-500"
+                className={`w-full px-4 py-3 rounded-xl border font-mono text-sm ${
+                  isPrincipal 
+                    ? 'border-slate-300 focus:ring-2 focus:ring-indigo-500 bg-white' 
+                    : 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed'
+                }`}
               />
-              <p className="text-[11px] text-slate-400 mt-1">Telegram ID របស់អ្នក (@limsorn): <b>240224709</b></p>
+              <p className="text-[11px] text-slate-400 mt-1">
+                {isPrincipal ? <>Telegram ID របស់អ្នក (@limsorn): <b>{chatId}</b></> : <>Chat ID ត្រូវបានការពារ</>}
+              </p>
             </div>
 
             <div>
@@ -1536,8 +1705,9 @@ export const TelegramBotStudio: React.FC = () => {
               <input
                 type="text"
                 value={webhookUrl}
-                onChange={e => setWebhookUrl(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-300 font-mono text-xs bg-slate-50 text-slate-600"
+                onChange={e => isPrincipal && setWebhookUrl(e.target.value)}
+                disabled={!isPrincipal}
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 font-mono text-xs bg-slate-50 text-slate-600 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -1548,12 +1718,17 @@ export const TelegramBotStudio: React.FC = () => {
               </div>
               <button
                 type="button"
+                disabled={!isPrincipal}
                 onClick={() => {
+                  if (!isPrincipal) {
+                    showToast('🔒 មានតែនាយកសាលាប៉ុណ្ណោះដែលអាចប្តូរស្ថានភាព Bot បាន!', 'error');
+                    return;
+                  }
                   const nextState = !isOnline;
                   setIsOnline(nextState);
                   showToast(`ស្ថានភាព Bot ត្រូវបានប្តូរទៅជា ${nextState ? 'Online' : 'Offline'}`, nextState ? 'success' : 'info');
                 }}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed ${
                   isOnline ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
                 }`}
               >
@@ -1577,8 +1752,8 @@ export const TelegramBotStudio: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleActivateWebhook}
-                  disabled={isActivatingWebhook}
-                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all whitespace-nowrap shrink-0"
+                  disabled={isActivatingWebhook || !isPrincipal}
+                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all whitespace-nowrap shrink-0"
                 >
                   {isActivatingWebhook ? (
                     <>
@@ -1620,15 +1795,15 @@ export const TelegramBotStudio: React.FC = () => {
                     ផ្ទៀងផ្ទាត់ការកំណត់រចនាសម្ព័ន្ធ (Test Configuration)
                   </h4>
                   <p className="text-xs text-sky-800/80">
-                    ផ្ញើសារ 'System Check' ទៅកាន់ Telegram Chat ID <b>{chatId}</b> ដើម្បីធានាថា Token ដំណើរការត្រឹមត្រូវ
+                    ផ្ញើសារ 'System Check' ទៅកាន់ Telegram Chat ID <b>{isPrincipal ? chatId : '•••••••••'}</b> ដើម្បីធានាថា Token ដំណើរការត្រឹមត្រូវ
                   </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={handleTestConfiguration}
-                  disabled={isTestingConfig}
-                  className="px-4 py-2.5 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all whitespace-nowrap shrink-0"
+                  disabled={isTestingConfig || !isPrincipal}
+                  className="px-4 py-2.5 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all whitespace-nowrap shrink-0"
                 >
                   {isTestingConfig ? (
                     <>
@@ -1663,7 +1838,8 @@ export const TelegramBotStudio: React.FC = () => {
             <div className="pt-4 border-t flex justify-end gap-3">
               <button
                 type="submit"
-                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-sm transition-all text-sm flex items-center gap-1.5"
+                disabled={!isPrincipal}
+                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-semibold shadow-sm transition-all text-sm flex items-center gap-1.5"
               >
                 <Check className="w-4 h-4" />
                 រក្សាទុកការកំណត់ Bot
