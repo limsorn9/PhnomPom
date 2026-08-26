@@ -139,6 +139,7 @@ interface SchoolContextType {
   previousTeacherUser: AppUser | null;
   appUsers: AppUser[];
   login: (identifier: string, password: string) => { success: boolean; message: string; user?: AppUser };
+  loginByVerifiedIdentifier: (identifier: string) => { success: boolean; message: string; user?: AppUser };
   loginWithGoogle: () => Promise<{ success: boolean; message: string; user?: AppUser }>;
   logoutApp: () => void;
   switchUserRole: (role: UserRole) => void;
@@ -2687,7 +2688,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           u.username.toLowerCase() === cleanId ||
           (u.studentCode && u.studentCode.toLowerCase() === cleanId) ||
           (u.phone && u.phone.replace(/\s+/g, '') === cleanId.replace(/\s+/g, ''))) &&
-        (u.password === password || password === 'password123')
+        u.password === password
     );
 
     if (user) {
@@ -2705,6 +2706,33 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     return { success: false, message: 'អ៊ីមែល/ឈ្មោះអ្នកប្រើប្រាស់ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវទេ!' };
+  };
+
+  const loginByVerifiedIdentifier = (identifier: string) => {
+    const cleanId = identifier.trim().toLowerCase();
+    const user = appUsers.find(
+      u =>
+        u.email.toLowerCase() === cleanId ||
+        u.username.toLowerCase() === cleanId ||
+        (u.studentCode && u.studentCode.toLowerCase() === cleanId) ||
+        (u.phone && u.phone.replace(/\s+/g, '') === cleanId.replace(/\s+/g, ''))
+    );
+
+    if (user) {
+      if (user.status === 'suspended') {
+        return { success: false, message: 'គណនីនេះត្រូវបានផ្អាកបណ្តោះអាសន្ន សូមទាក់ទងនាយកសាលា' };
+      }
+      setCurrentUser(user);
+      if (user.role === 'student') {
+        setActiveTab('student_portal');
+      } else {
+        setActiveTab('dashboard');
+      }
+      showToast(`សូមស្វាគមន៍មកកាន់ប្រព័ន្ធ, ${user.nameKhmer}!`, 'success');
+      return { success: true, message: 'ចូលប្រព័ន្ធជោគជ័យ', user };
+    }
+
+    return { success: false, message: 'រកមិនឃើញគណនីដែលត្រូវគ្នានឹងព័ត៌មានដែលបានផ្ទៀងផ្ទាត់ទេ!' };
   };
 
   const loginWithGoogle = async (): Promise<{ success: boolean; message: string; user?: AppUser }> => {
@@ -2728,7 +2756,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           id: `usr-google-${Date.now()}`,
           username: cleanEmail.split('@')[0] || `google_user_${Date.now()}`,
           email: cleanEmail,
-          password: 'password123',
+          password: `google_oauth_${Date.now()}`,
           nameKhmer: teacherMatch?.nameKhmer || gUser.displayName || 'ភ្ញៀវ (Google User)',
           nameLatin: teacherMatch?.nameLatin || gUser.displayName || 'Google User',
           role: isDirector ? 'director' : (teacherMatch ? 'teacher' : 'teacher'),
@@ -2815,7 +2843,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         id: `usr-stu-${student.id}`,
         username: student.code || `student_${student.id}`,
         email: `${student.code.toLowerCase()}@school.edu.kh`,
-        password: 'password123',
+        password: student.code || `stu_${Date.now()}`,
         nameKhmer: student.nameKhmer,
         nameLatin: student.nameLatin || student.code,
         role: 'student',
@@ -2840,7 +2868,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!targetTeacher) {
       return { success: false, message: 'មិនមានព័ត៌មានគណនីគ្រូដើមទេ!' };
     }
-    if (password === targetTeacher.password || password === 'password123' || password === '123456') {
+    if (password === targetTeacher.password) {
       setCurrentUser(targetTeacher);
       setPreviousTeacherUser(null);
       localStorage.removeItem(`${LOCAL_STORAGE_KEY}_prev_teacher`);
@@ -3341,7 +3369,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       let targetUser = appUsers.find(u => u.email.toLowerCase().trim() === cleanEmail);
       let targetTeacher = teachers.find(t => t.email.toLowerCase().trim() === cleanEmail);
 
-      const passToSet = newPassword || 'password123';
+      const passToSet = newPassword || `oauth_auth_${Date.now()}`;
 
       if (targetUser) {
         if (newPassword) {
@@ -3573,7 +3601,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const { requesterUserId, proposedNewPassword, reason } = notif.meta;
     if (!requesterUserId) return { success: false, message: 'រកមិនឃើញអត្តសញ្ញាណអ្នកស្នើសុំទេ' };
 
-    const newPass = proposedNewPassword || 'password123';
+    const newPass = proposedNewPassword || `reset_pass_${Math.floor(100000 + Math.random() * 900000)}`;
     setAppUsers(prev =>
       prev.map(u => (u.id === requesterUserId ? { ...u, password: newPass, passwordUpdatedAt: new Date().toISOString() } : u))
     );
@@ -4520,6 +4548,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         previousTeacherUser,
         appUsers,
         login,
+        loginByVerifiedIdentifier,
         loginWithGoogle,
         logoutApp,
         switchUserRole,

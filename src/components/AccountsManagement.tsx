@@ -263,7 +263,7 @@ export const AccountsManagement: React.FC = () => {
   // New Account Form State
   const [newUsername, setNewUsername] = useState('');
   const [newEmail, setNewEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('password123');
+  const [newPassword, setNewPassword] = useState('');
   const [newNameKhmer, setNewNameKhmer] = useState('');
   const [newNameLatin, setNewNameLatin] = useState('');
   const [newRole, setNewRole] = useState<UserRole>(

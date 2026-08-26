@@ -41,6 +41,7 @@ interface AuthScreenProps {
 export const AuthScreen: React.FC<AuthScreenProps> = () => {
   const {
     login,
+    loginByVerifiedIdentifier,
     loginWithGoogle,
     schoolProfile,
     switchUserRole,
@@ -148,11 +149,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
       const data = await res.json();
       if (data.success) {
         showToast('បញ្ជាក់កូដ Telegram ជោគជ័យ! កំពុងចូលប្រព័ន្ធ...', 'success');
-        const loginRes = login(telegramIdentifier, 'password123');
+        const loginRes = loginByVerifiedIdentifier(telegramIdentifier);
         if (!loginRes.success) {
-          login('limsorn9@gmail.com', 'password123');
+          showToast(loginRes.message, 'error');
+        } else {
+          setShowTelegramModal(false);
         }
-        setShowTelegramModal(false);
       } else {
         setTelegramMessage(data.error || 'កូដមិនត្រឹមត្រូវ');
       }
@@ -179,16 +181,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
   const handleTabChange = (tab: 'staff' | 'student' | 'google') => {
     setActiveTab(tab);
     setErrorMessage('');
-    if (tab === 'staff') {
-      setIdentifier('limsorn9@gmail.com');
-      setPassword('password123');
-    } else if (tab === 'student') {
-      setIdentifier('STU-2024-001');
-      setPassword('password123');
-    } else if (tab === 'google') {
-      setIdentifier('');
-      setPassword('');
-    }
+    setIdentifier('');
+    setPassword('');
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -380,7 +374,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
       setRecoveryResult({ success: false, message: 'សូមបញ្ចូលអាសយដ្ឋានអ៊ីមែលឱ្យបានត្រឹមត្រូវ!' });
       return;
     }
-    const newPass = emailResetNewPassword || 'password123';
+    if (!emailResetNewPassword.trim()) {
+      setRecoveryResult({ success: false, message: 'សូមបញ្ចូលពាក្យសម្ងាត់ថ្មី!' });
+      return;
+    }
+    const newPass = emailResetNewPassword;
     const res = resetPasswordByEmail(emailResetAddress, newPass);
     setRecoveryResult(res);
     if (res.success) {

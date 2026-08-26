@@ -119,11 +119,11 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
       onShowToast(`បានផ្ញើតំណភ្ជាប់កំណត់លេខសម្ងាត់ឡើងវិញទៅកាន់ ${email} រួចរាល់!`, 'success');
     } catch (err: any) {
       console.warn('Firebase Auth Reset Email notice:', err);
-      // Fallback
-      const res = resetPasswordByEmail(email, 'password123');
-      setIsSent(true);
-      setSuccessMessage(`បានកំណត់ពាក្យសម្ងាត់ឡើងវិញជា 'password123' សម្រាប់ ${email}!`);
-      onShowToast(res.message, 'success');
+      setErrorNotice(
+        err?.message
+          ? `មិនអាចផ្ញើអ៊ីមែលបានទេ៖ ${err.message}`
+          : 'មិនអាចផ្ញើអ៊ីមែលកំណត់ពាក្យសម្ងាត់បានទេ។ សូមប្រើផ្ទាំងកំណត់ពាក្យសម្ងាត់ជាមួយ OTP ឬទាក់ទងនាយកសាលា។'
+      );
     } finally {
       setIsLoading(false);
     }
