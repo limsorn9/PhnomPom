@@ -49,7 +49,8 @@ import {
   MonthlyBudgetSummary,
   DriveAutoSyncConfig,
   DriveSyncHistoryItem,
-  QRScanVerificationLog
+  QRScanVerificationLog,
+  AcademicAchievement
 } from '../types';
 import { getTranslation, AppLanguage } from '../utils/translations';
 import { googleSignIn, isGoogleAuthenticated } from '../services/googleAuth';
@@ -85,6 +86,7 @@ import {
   buildNotification,
   SendNotificationPayload
 } from '../services/fcmNotificationService';
+import { sendTelegramNotification } from '../services/telegramService';
 import {
   initialSchoolProfile,
   initialTeachers,
@@ -124,7 +126,8 @@ import {
   initialEquipmentLoans,
   initialTeacherDailyTasks,
   initialTeacherMeetings,
-  initialTeachingResources
+  initialTeachingResources,
+  initialAcademicAchievements
 } from '../data/initialData';
 
 interface SchoolContextType {
@@ -250,6 +253,14 @@ interface SchoolContextType {
   calculateClassRankings: (grade: number, section: string, monthOrSemester: string) => void;
   getScoresForClassMonth: (grade: number, section: string, month: string) => StudentScoreRecord[];
   getScoresForStudent: (studentId: string) => StudentScoreRecord[];
+
+  // Academic Achievements & Honor Roll (ការគ្រប់គ្រងសមិទ្ធផលសិក្សា និងតារាងកិត្តិយស)
+  academicAchievements: AcademicAchievement[];
+  addAcademicAchievement: (achievement: Omit<AcademicAchievement, 'id' | 'createdAt'>) => { success: boolean; message: string; id: string };
+  updateAcademicAchievement: (id: string, updated: Partial<AcademicAchievement>) => void;
+  deleteAcademicAchievement: (id: string) => void;
+  getAchievementsByStudent: (studentId: string) => AcademicAchievement[];
+  getAchievementsByClass: (grade: number, section: string, semester?: string) => AcademicAchievement[];
 
   // Attendance
   attendanceRecords: DailyAttendanceRecord[];

@@ -3,6 +3,47 @@ export type LivingCondition = 'ទូទៅ' | 'ក្រ១' | 'ក្រ២' |
 export type AcademicHistoryStatus = 'ឡើងថ្នាក់' | 'ត្រួតថ្នាក់' | 'ចូលរៀនឡើងវិញ' | 'ផ្ទេរចូល' | string;
 export type OrphanStatus = 'មិនកំព្រា' | 'កំព្រាឪពុក' | 'កំព្រាម្តាយ' | 'កំព្រាទាំងពីរ' | string;
 
+export interface VaccinationItem {
+  id: string;
+  vaccineName: string; // e.g. វ៉ាក់សាំងកញ្ជ្រឹល-ស្អូច (MR), វ៉ាក់សាំងស្វិតដៃជើង (Polio), វ៉ាក់សាំងកូវីដ-១៩, វ៉ាក់សាំងតេតាណូស (Tetanus), វ៉ាក់សាំងថ្លើមប្រភេទ B (Hep B)
+  doseNumber: string; // e.g. ដូសទី១, ដូសទី២, ដូសជំរុញ (Booster)
+  administeredDate: string; // YYYY-MM-DD
+  administeredPlace?: string; // e.g. មណ្ឌលសុខភាពភ្នំព្រឹក, យុទ្ធនាការសាលារៀន
+  batchNumber?: string; // លេខឡូត៍
+  status: 'completed' | 'scheduled' | 'overdue';
+  verifiedByDoctor?: string; // ឈ្មោះគ្រូពេទ្យ/បុគ្គលិកសុខាភិបាល
+}
+
+export interface ChronicHealthCondition {
+  id: string;
+  conditionName: string; // e.g. ជំងឺហឺត (Asthma), អាឡែកហ្ស៊ីចំណីអាហារ/ថ្នាំ (Allergy), បេះដូងពីកំណើត (Congenital Heart), ប្រកាច់ (Epilepsy), ទឹកនោមផ្អែមប្រភេទ១ (Type 1 Diabetes)
+  severity: 'mild' | 'moderate' | 'severe';
+  diagnosedDate?: string;
+  symptomsAndTriggers?: string; // រោគសញ្ញា ឬកត្តាជំរុញ
+  emergencyMedication?: string; // ថ្នាំសង្គ្រោះបន្ទាន់ (e.g. ថ្នាំបាញ់ហឺត Inhaler, ថ្នាំលេប)
+  careInstructions?: string; // ការណែនាំសម្រាប់លោកគ្រូអ្នកគ្រូពេលមានអាសន្ន
+  hospitalContact?: string; // ទំនាក់ទំនងមន្ទីរពេទ្យ/គ្រូពេទ្យផ្ទាល់
+}
+
+export interface PhysicalExaminationRecord {
+  id: string;
+  examDate: string; // YYYY-MM-DD
+  examinerName: string; // គ្រូពេទ្យពិនិត្យ ឬបុគ្គលិកសុខាភិបាល
+  examinerRole?: string; // វេជ្ជបណ្ឌិត, គិលានុបដ្ឋាក, គ្រូទទួលបន្ទុកសុខភាព
+  heightCm: number;
+  weightKg: number;
+  bmi: number;
+  visionLeft?: string; // ភ្នែកឆ្វេង (e.g. 10/10, 6/10)
+  visionRight?: string; // ភ្នែកស្តាំ (e.g. 10/10, 8/10)
+  hearingStatus?: 'normal' | 'impaired_mild' | 'impaired_severe'; // សោតវិញ្ញាណ/ការស្តាប់
+  dentalHealth?: 'good' | 'cavities' | 'inflamed_gums' | 'needs_treatment'; // សុខភាពមាត់ធ្មេញ
+  postureAndSpine?: 'normal' | 'scoliosis_risk' | 'abnormal'; // ឆ្អឹងខ្នង និងឥរិយាបថ
+  skinAndHygiene?: 'clean' | 'rash' | 'fungal' | 'pediculosis'; // ស្បែក និងអនាម័យទូទៅ
+  generalNotes?: string;
+  followUpRequired?: boolean;
+  followUpPlan?: string;
+}
+
 export interface HealthRecord {
   heightCm: number;
   weightKg: number;
@@ -12,6 +53,15 @@ export interface HealthRecord {
   bloodType: string;
   notes?: string;
   lastCheckedDate: string;
+  // Extended Clinical Health Record Attributes
+  vaccinations?: VaccinationItem[]; // ប្រវត្តិការចាក់វ៉ាក់សាំងលម្អិត
+  chronicConditions?: ChronicHealthCondition[]; // ជំងឺរ៉ាំរ៉ៃ និងអាឡែកហ្ស៊ី
+  physicalExams?: PhysicalExaminationRecord[]; // ប្រវត្តិពិនិត្យកាយសម្បទា និងសុខភាពតាមកាលកំណត់
+  allergies?: string[]; // អាឡែកហ្ស៊ីចំណីអាហារ/ថ្នាំ
+  hasGlasses?: boolean; // ពាក់វ៉ែនតា
+  hasHearingAid?: boolean; // ឧបករណ៍ជំនួយការស្តាប់
+  emergencyContactName?: string; // ទំនាក់ទំនងសង្គ្រោះបន្ទាន់
+  emergencyContactPhone?: string;
 }
 
 export interface AttendanceSummary {
@@ -1607,25 +1657,46 @@ export interface TeachingResourceFile {
 }
 
 // ----------------------------------------------------
-// 5. MONTHLY BUDGET TRACKING WITH GOOGLE SHEETS
 // ----------------------------------------------------
-export interface MonthlyBudgetSummary {
-  monthName: string; // ឧ. តុលា, វិច្ឆិកា...
-  monthNumber: number;
+// 6. ACADEMIC ACHIEVEMENTS & HONOR ROLL AWARDS MODULE
+// ----------------------------------------------------
+export type AchievementAwardType = 
+  | 'honor_roll_first'       // តារាងកិត្តិយសលេខ១ ប្រចាំឆមាស
+  | 'honor_roll_second'      // តារាងកិត្តិយសលេខ២ ប្រចាំឆមាស
+  | 'honor_roll_third'       // តារាងកិត្តិយសលេខ៣ ប្រចាំឆមាស
+  | 'honor_roll_distinction' // សិស្សឆ្នើមប្រចាំឆមាស (Outstanding Academic Distinction)
+  | 'subject_khmer_star'     // ឆ្នើមមុខវិជ្ជាភាសាខ្មែរ (Khmer Language Excellence)
+  | 'subject_math_master'    // ឆ្នើមមុខវិជ្ជាគណិតវិទ្យា (Mathematics Master)
+  | 'subject_science_whiz'   // ឆ្នើមមុខវិជ្ជាវិទ្យាសាស្ត្រ និងសង្គម (Science & Social Excellence)
+  | 'subject_english_champ'  // ឆ្នើមមុខវិជ្ជាភាសាអង់គ្លេស (English Champion)
+  | 'subject_arts_creativity'// ឆ្នើមសិល្បៈ និងគំនូរច្នៃប្រឌិត (Arts & Creativity)
+  | 'perfect_attendance'     // វត្តមានពេញលេញឥតឈប់ (100% Attendance Award)
+  | 'morality_civics_model'  // គំរូសីលធម៌ វិន័យ និងចរិយាសម្បត្តិ (Model Civics & Conduct)
+  | 'sports_athletics'       // ឆ្នើមកីឡា និងកាយសម្បទា (Athletics & Sports Star)
+  | 'reading_advocate'       // ឆ្នើមការអានសៀវភៅបណ្ណាល័យ (Reading Advocate)
+  | 'custom_special';        // ពានរង្វាន់/ការលើកសរសើរពិសេស
+
+export interface AcademicAchievement {
+  id: string;
+  studentId: string;
+  studentCode: string;
+  studentNameKhmer: string;
+  grade: number;
+  section: string;
   academicYear: string;
-  incomeRiel: number;
-  expenseRiel: number;
-  balanceRiel: number;
-  incomeUsd: number;
-  expenseUsd: number;
-  balanceUsd: number;
-  transactionCount: number;
-  bySource: {
-    pbStateBudget: { income: number; expense: number };
-    sigImprovementGrant: { income: number; expense: number };
-    communityParents: { income: number; expense: number };
-    ngoPartner: { income: number; expense: number };
-  };
-  byCategory: Record<string, number>;
+  semester: 'semester_1' | 'semester_2' | 'full_year'; // ឆមាសទី១, ឆមាសទី២, ពេញមួយឆ្នាំ
+  awardType: AchievementAwardType;
+  awardTitleKhmer: string; // ឈ្មោះពានរង្វាន់/កិត្តិយស e.g. "តារាងកិត្តិយសលេខ១ ប្រចាំឆមាសទី១"
+  awardTitleEnglish?: string;
+  subjectTarget?: string; // មុខវិជ្ជាជាក់លាក់ (ប្រសិនបើជា Subject Award)
+  rankPosition?: number; // ចំណាត់ថ្នាក់ (បើមាន ឧ. ១, ២, ៣)
+  gpaScore?: number; // ពិន្ទុមធ្យមភាគ
+  awardedDate: string; // YYYY-MM-DD
+  awardedByTeacherName: string; // គ្រូបង្រៀន/នាយកសាលាដែលប្រគល់
+  remarksOrPraise?: string; // សេចក្តីសរសើរ ឬការលើកទឹកចិត្ត
+  certificateNumber?: string; // លេខសំបុត្រសរសើរផ្លូវការ
+  status: 'published' | 'draft';
+  createdAt: string;
 }
+
 

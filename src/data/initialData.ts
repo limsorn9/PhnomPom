@@ -30,7 +30,8 @@ import {
   EquipmentLoanRecord,
   TeacherDailyTask,
   TeacherMeetingRecord,
-  TeachingResourceFile
+  TeachingResourceFile,
+  AcademicAchievement
 } from '../types';
 
 export const toKhmerNum = (num: number) => {
@@ -2475,6 +2476,94 @@ export const initialTeachingResources: TeachingResourceFile[] = [
     createdAt: '2024-10-14T10:00:00Z'
   }
 ];
+
+export const initialAcademicAchievements: AcademicAchievement[] = [
+  {
+    id: 'ach-1',
+    studentId: 'st-6-1',
+    studentCode: 'STU-001',
+    studentNameKhmer: 'សុខ ជា',
+    grade: 6,
+    section: 'ក',
+    academicYear: '២០២៤ - ២០២៥',
+    semester: 'semester_1',
+    awardType: 'honor_roll_first',
+    awardTitleKhmer: 'តារាងកិត្តិយសលេខ១ ប្រចាំឆមាសទី១',
+    awardTitleEnglish: 'Honor Roll - 1st Rank (Semester 1)',
+    rankPosition: 1,
+    gpaScore: 9.6,
+    awardedDate: '2025-02-28',
+    awardedByTeacherName: 'លោកគ្រូ ចាន់ សុភាព',
+    remarksOrPraise: 'មានការខិតខំប្រឹងប្រែងខ្ពស់ លទ្ធផលសិក្សាឆ្នើមគ្រប់មុខវិជ្ជា និងជាគំរូដល់មិត្តរួមថ្នាក់',
+    certificateNumber: 'MOEYS-HONOR-2025-001',
+    status: 'published',
+    createdAt: '2025-02-28T10:00:00Z'
+  },
+  {
+    id: 'ach-2',
+    studentId: 'st-6-2',
+    studentCode: 'STU-002',
+    studentNameKhmer: 'ចាន់ ស្រីមុំ',
+    grade: 6,
+    section: 'ក',
+    academicYear: '២០២៤ - ២០២៥',
+    semester: 'semester_1',
+    awardType: 'subject_math_master',
+    awardTitleKhmer: 'សិស្សឆ្នើមមុខវិជ្ជាគណិតវិទ្យា (Math Master)',
+    awardTitleEnglish: 'Excellence in Mathematics',
+    subjectTarget: 'គណិតវិទ្យា',
+    rankPosition: 2,
+    gpaScore: 9.8,
+    awardedDate: '2025-02-28',
+    awardedByTeacherName: 'លោកគ្រូ ចាន់ សុភាព',
+    remarksOrPraise: 'ពូកែដោះស្រាយចំណោទរហ័ស ទទួលបានពិន្ទុអតិបរមាក្នុងការប្រឡងឆមាសទី១',
+    certificateNumber: 'MOEYS-HONOR-2025-002',
+    status: 'published',
+    createdAt: '2025-02-28T10:30:00Z'
+  },
+  {
+    id: 'ach-3',
+    studentId: 'st-5-1',
+    studentCode: 'STU-003',
+    studentNameKhmer: 'ម៉ៅ វិច្ឆិកា',
+    grade: 5,
+    section: 'ក',
+    academicYear: '២០២៤ - ២០២៥',
+    semester: 'semester_1',
+    awardType: 'subject_khmer_star',
+    awardTitleKhmer: 'សិស្សឆ្នើមភាសាខ្មែរ (Khmer Star Award)',
+    awardTitleEnglish: 'Khmer Language Champion',
+    subjectTarget: 'ភាសាខ្មែរ',
+    rankPosition: 1,
+    gpaScore: 9.5,
+    awardedDate: '2025-02-28',
+    awardedByTeacherName: 'អ្នកគ្រូ កែវ ផល្លា',
+    remarksOrPraise: 'សំណេរតែងសេចក្តីល្អឥតខ្ចោះ អក្សរផ្ចិតផ្ចង់ និងស្ទាត់ជំនាញអំណានរហ័ស',
+    certificateNumber: 'MOEYS-HONOR-2025-003',
+    status: 'published',
+    createdAt: '2025-02-28T11:00:00Z'
+  },
+  {
+    id: 'ach-4',
+    studentId: 'st-1-1',
+    studentCode: 'STU-004',
+    studentNameKhmer: 'កែវ ពិសិដ្ឋ',
+    grade: 1,
+    section: 'ក',
+    academicYear: '២០២៤ - ២០២៥',
+    semester: 'semester_1',
+    awardType: 'perfect_attendance',
+    awardTitleKhmer: 'វត្តមានពេញលេញ ១០០% (Perfect Attendance)',
+    awardTitleEnglish: '100% Attendance Award',
+    awardedDate: '2025-02-28',
+    awardedByTeacherName: 'អ្នកគ្រូ អ៊ឹម សារ៉េត',
+    remarksOrPraise: 'មិនធ្លាប់អវត្តមាន ឬមកយឺតម្តងណាឡើយ ក្នុងឆមាសទី១',
+    certificateNumber: 'MOEYS-HONOR-2025-004',
+    status: 'published',
+    createdAt: '2025-02-28T11:30:00Z'
+  }
+];
+
 
 
 
