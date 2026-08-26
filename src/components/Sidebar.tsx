@@ -383,10 +383,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
-                <h1 className="text-sm font-bold font-moul text-amber-300 truncate leading-tight">
+                <h1 className="text-sm font-bold font-moul text-amber-300 leading-snug break-words">
                   {language === 'en' ? (schoolProfile.nameLatin || schoolProfile.nameKhmer) : schoolProfile.nameKhmer}
                 </h1>
-                <p className="text-[11px] text-slate-400 font-medium truncate font-times">
+                <p className="text-[11px] text-slate-400 font-medium break-words font-times mt-0.5">
                   {language === 'en' ? schoolProfile.nameKhmer : schoolProfile.nameLatin}
                 </p>
               </div>

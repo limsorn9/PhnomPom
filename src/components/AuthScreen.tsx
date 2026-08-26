@@ -54,8 +54,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
 
   // Login Form States
   const [activeTab, setActiveTab] = useState<'staff' | 'student' | 'google'>('staff');
-  const [identifier, setIdentifier] = useState('limsorn9@gmail.com');
-  const [password, setPassword] = useState('password123');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -786,7 +786,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
                     </div>
                   </div>
 
-                  {/* Remember Me & Auto-Fill Sample Chips */}
+                  {/* Remember Me */}
                   <div className="flex items-center justify-between text-xs pt-1">
                     <label className="flex items-center gap-2 cursor-pointer text-slate-300">
                       <input
@@ -797,47 +797,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
                       />
                       <span>ចងចាំការចូលប្រើប្រាស់</span>
                     </label>
-
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                      <span>គំរូ៖</span>
-                      {activeTab === 'staff' ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleFillCredentials('limsorn9@gmail.com', 'password123', 'staff')}
-                            className="text-blue-400 hover:underline cursor-pointer"
-                          >
-                            នាយក
-                          </button>
-                          <span>•</span>
-                          <button
-                            type="button"
-                            onClick={() => handleFillCredentials('vuthy.chan@moeys.gov.kh', 'password123', 'staff')}
-                            className="text-emerald-400 hover:underline cursor-pointer"
-                          >
-                            គ្រូ៦ក
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleFillCredentials('STU-2024-001', 'password123', 'student')}
-                            className="text-purple-400 hover:underline cursor-pointer"
-                          >
-                            STU-001
-                          </button>
-                          <span>•</span>
-                          <button
-                            type="button"
-                            onClick={() => handleFillCredentials('STU-2024-002', 'password123', 'student')}
-                            className="text-purple-400 hover:underline cursor-pointer"
-                          >
-                            STU-002
-                          </button>
-                        </>
-                      )}
-                    </div>
                   </div>
 
                   {/* Submit Button */}
@@ -1496,15 +1455,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
                 <p className="text-slate-400">លេខកូដសាលា៖ <span className="font-mono text-amber-400 font-bold">{schoolProfile.schoolCode}</span></p>
                 <p className="text-slate-400">នាយកសាលា៖ {schoolProfile.principalName} ({schoolProfile.principalPhone})</p>
                 <p className="text-slate-400">អ៊ីមែល៖ {schoolProfile.email}</p>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-blue-950/60 border border-blue-800/60 space-y-1 text-blue-200">
-                <p className="font-bold text-blue-300">គណនីសាកល្បងលំនាំដើម (Default Demo Credentials)៖</p>
-                <ul className="list-disc pl-4 space-y-0.5 text-[11px] text-slate-300">
-                  <li>នាយកសាលា៖ <code className="text-amber-300">limsorn9@gmail.com</code> / <code className="text-slate-300">password123</code></li>
-                  <li>គ្រូបង្រៀន៖ <code className="text-emerald-300">vuthy.chan@moeys.gov.kh</code> / <code className="text-slate-300">password123</code></li>
-                  <li>សិស្សានុសិស្ស៖ <code className="text-purple-300">STU-2024-001</code> / <code className="text-slate-300">password123</code></li>
-                </ul>
               </div>
             </div>
 

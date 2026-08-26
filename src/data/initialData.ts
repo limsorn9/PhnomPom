@@ -62,7 +62,7 @@ export const getDynamicAcademicYears = () => {
 export const initialSchoolProfile: SchoolProfile = {
   nameKhmer: 'សាលាបឋមសិក្សាភ្នំពុំ',
   nameLatin: 'Phnom Pom Primary School',
-  schoolCode: '020401015',
+  schoolCode: '02100108027',
   province: 'ខេត្តបាត់ដំបង',
   district: 'ស្រុកភ្នំព្រឹក',
   commune: 'ឃុំបារាំងធ្លាក់',
@@ -76,7 +76,7 @@ export const initialSchoolProfile: SchoolProfile = {
   email: 'phnompom.primary@moeys.gov.kh',
   logoUrl: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=150&auto=format&fit=crop&q=80',
   mapUrl: 'https://maps.app.goo.gl/ackTYSYsd7t54vGP6',
-  facebookPage: 'https://web.facebook.com/%E1%9E%9F%E1%9E%B6%E1%9E%9B%E1%9E%B6%E1%9E%94%E1%9E%8B%E1%9E%98%E1%9E%9F%E1%9E%B7%E1%9E%80%E1%9F%92%E1%9E%9F%E1%9E%B6%E1%9E%97%E1%9F%92%E1%9E%93%E1%9F%86%E1%9E%96%E1%9E%BB%E1%9F%86-PhnomPom-Primary-School/61553220989324/'
+  facebookPage: 'https://www.facebook.com/share/1EZeRXioNB/'
 };
 
 export const initialTeachers: Teacher[] = [

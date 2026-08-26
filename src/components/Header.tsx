@@ -289,30 +289,29 @@ export const Header: React.FC<HeaderProps> = ({
       )}
 
       {/* Royal Government & School Quick Bar (Compact) */}
-      <div className="bg-gradient-to-r from-blue-950 via-indigo-950 to-blue-900 text-white text-[11px] py-1 px-4 sm:px-6 flex flex-wrap justify-between items-center border-b border-indigo-900/60">
-        <div className="flex items-center gap-2">
-          <span className="font-moul tracking-wide text-amber-300">
+      <div className="bg-gradient-to-r from-blue-950 via-indigo-950 to-blue-900 text-white text-[11px] py-1.5 px-3 sm:px-6 flex flex-wrap justify-between items-center gap-y-1 border-b border-indigo-900/60 overflow-hidden">
+        <div className="flex items-center gap-2 min-w-0 flex-shrink truncate">
+          <span className="font-moul tracking-wide text-amber-300 truncate">
             {language === 'en' ? schoolProfile.nameLatin || schoolProfile.nameKhmer : schoolProfile.nameKhmer}
           </span>
-          <span className="text-slate-300 hidden sm:inline">
+          <span className="text-slate-300 hidden md:inline truncate">
             • {language === 'en' ? `Academic Year ${schoolProfile.academicYear}` : `ឆ្នាំសិក្សា ${schoolProfile.academicYear}`}
           </span>
         </div>
         
-        <div className="flex items-center gap-3 text-slate-300">
+        <div className="flex items-center gap-2 sm:gap-3 text-slate-300 flex-wrap">
           {/* Location link to Maps */}
           {schoolProfile.mapUrl && (
             <a
               href={schoolProfile.mapUrl}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1 text-amber-300 hover:text-amber-200 hover:underline transition-colors"
+              className="flex items-center gap-1 text-amber-300 hover:text-amber-200 hover:underline transition-colors truncate max-w-[150px] sm:max-w-none"
               title={language === 'en' ? 'View location on Google Maps' : 'មើលទីតាំងលើ Google Maps'}
             >
-              <MapPin className="w-3 h-3 text-red-400" />
-              <span className="hidden md:inline">{schoolProfile.commune}, {schoolProfile.district}, {schoolProfile.province}</span>
-              <span className="md:hidden">Maps</span>
-              <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+              <MapPin className="w-3 h-3 text-red-400 flex-shrink-0" />
+              <span className="truncate">{schoolProfile.commune || 'ភូមិ/ឃុំ'}, {schoolProfile.district || 'ស្រុក'}, {schoolProfile.province || 'ខេត្ត'}</span>
+              <ExternalLink className="w-2.5 h-2.5 opacity-60 flex-shrink-0" />
             </a>
           )}
 
@@ -322,7 +321,7 @@ export const Header: React.FC<HeaderProps> = ({
               href={schoolProfile.facebookPage}
               target="_blank"
               rel="noreferrer"
-              className="hidden sm:flex items-center gap-1 text-sky-300 hover:text-sky-200 hover:underline transition-colors"
+              className="hidden lg:flex items-center gap-1 text-sky-300 hover:text-sky-200 hover:underline transition-colors"
               title={language === 'en' ? 'Official School Facebook Page' : 'ទំព័រ Facebook ផ្លូវការរបស់សាលា'}
             >
               <Facebook className="w-3 h-3 text-sky-400" />
@@ -334,7 +333,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Principal Contact Phone */}
           <a
             href={`tel:${schoolProfile.principalPhone.replace(/\s+/g, '')}`}
-            className="flex items-center gap-1 text-emerald-300 hover:text-emerald-200 font-times font-medium"
+            className="flex items-center gap-1 text-emerald-300 hover:text-emerald-200 font-times font-medium flex-shrink-0"
             title={language === 'en' ? `Principal: ${schoolProfile.principalName}` : `នាយកសាលា: ${schoolProfile.principalName}`}
           >
             <Phone className="w-3 h-3 text-emerald-400" />
@@ -344,27 +343,27 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Main Top Bar Controls */}
-      <div className="px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors">
+      <div className="px-3 sm:px-6 py-2.5 flex items-center justify-between gap-x-4 gap-y-2 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors flex-wrap">
         {/* Left Side: Mobile Menu Button & Active Tab Breadcrumb */}
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <button
             id="mobile-sidebar-toggle-btn"
             onClick={onToggleMobileSidebar}
-            className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+            className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors flex-shrink-0"
             aria-label={language === 'en' ? 'Open Sidebar Menu' : 'បើកម៉ឺនុយចំហៀង'}
           >
             <Menu className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0 hidden sm:flex border border-blue-100 dark:border-blue-900/40">
               <CurrentIcon className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 truncate font-moul leading-tight">
+              <h2 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate font-moul leading-tight">
                 {currentTabInfo.title}
               </h2>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate hidden md:block">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate hidden xl:block">
                 {language === 'en' ? schoolProfile.nameLatin || schoolProfile.nameKhmer : schoolProfile.nameKhmer} • {currentTabInfo.subtitle}
               </p>
             </div>
@@ -372,28 +371,32 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Right Side: Quick Search, Role Switcher, Notifications & Auth Profile */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0 flex-wrap justify-end">
           {/* Visual Inactivity Timeout Warning & Countdown Timer */}
-          <InactivityTimeoutCountdown />
+          <div className="hidden xl:block">
+            <InactivityTimeoutCountdown />
+          </div>
 
           {/* Global Search Input & Quick Spotlight Search Trigger */}
-          <div className="relative hidden md:block w-44 lg:w-56">
+          <div className="relative hidden md:block w-36 lg:w-48">
             <button
               type="button"
               onClick={onOpenSpotlightSearch}
-              className="w-full flex items-center justify-between pl-8 pr-2 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/70 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 dark:text-slate-400 transition-all text-left group shadow-2xs"
+              className="w-full flex items-center justify-between pl-7 pr-2 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/70 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 dark:text-slate-400 transition-all text-left group shadow-2xs"
               title="ស្វែងរកសិស្ស និងគ្រូ (Ctrl+K)"
             >
               <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 absolute left-2.5 top-1/2 -translate-y-1/2 transition-colors" />
-              <span className="truncate">{language === 'en' ? 'Quick Search...' : 'ស្វែងរករហ័ស...'}</span>
-              <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-mono font-bold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md">
+              <span className="truncate">{language === 'en' ? 'Search...' : 'ស្វែងរក...'}</span>
+              <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1 py-0.5 text-[9px] font-mono font-bold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md">
                 ⌘K
               </kbd>
             </button>
           </div>
 
           {/* Offline Sync / IndexedDB Status Badge */}
-          <OfflineSyncStatusBadge />
+          <div className="hidden sm:block">
+            <OfflineSyncStatusBadge />
+          </div>
 
           {currentUser?.role === 'director' && (
             <>
@@ -402,7 +405,7 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 onClick={() => syncAllToCloud()}
                 disabled={isCloudSyncing}
-                className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-xl text-xs font-bold transition-all shadow-2xs ${
+                className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 border rounded-xl text-xs font-bold transition-all shadow-2xs ${
                   isCloudSyncing
                     ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 text-amber-800 dark:text-amber-300 animate-pulse'
                     : 'bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/50 border-teal-200 dark:border-teal-800/60 text-teal-900 dark:text-teal-200'
@@ -415,8 +418,8 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <div className={`w-2 h-2 rounded-full ${isCloudSyncing ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'}`} />
                 <Cloud className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin text-amber-600' : 'text-teal-700 dark:text-teal-400'}`} />
-                <span className="hidden sm:inline">
-                  {isCloudSyncing ? 'កំពុង Cloud Sync...' : 'Cloud Online'}
+                <span className="hidden xl:inline">
+                  {isCloudSyncing ? 'Syncing...' : 'Cloud Online'}
                 </span>
               </button>
 
@@ -425,11 +428,11 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   type="button"
                   onClick={onOpenDriveSync}
-                  className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold rounded-xl transition-all"
+                  className="hidden 2xl:flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold rounded-xl transition-all"
                   title="Google Drive Cloud Sync"
                 >
                   <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>Drive Sync</span>
+                  <span>Drive</span>
                 </button>
               )}
 
@@ -438,11 +441,11 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   type="button"
                   onClick={onOpenBulkImport}
-                  className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800/60 text-indigo-800 dark:text-indigo-300 text-xs font-bold rounded-xl transition-all"
+                  className="hidden 2xl:flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800/60 text-indigo-800 dark:text-indigo-300 text-xs font-bold rounded-xl transition-all"
                   title={language === 'en' ? 'Bulk Data CSV / Excel Import & Export Hub' : 'នាំចូល និងនាំចេញទិន្នន័យធំ (Bulk Data CSV / Excel)'}
                 >
                   <FileSpreadsheetIcon className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                  <span>Bulk Hub</span>
+                  <span>Bulk</span>
                 </button>
               )}
             </>
@@ -453,11 +456,11 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={onExportStandaloneHtml}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800/60 text-blue-800 dark:text-blue-300 text-xs font-bold rounded-xl transition-all"
+              className="hidden 2xl:flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800/60 text-blue-800 dark:text-blue-300 text-xs font-bold rounded-xl transition-all"
               title={language === 'en' ? 'Download Standalone Single-File HTML' : 'ទាញយកជា Single-File HTML Standalone'}
             >
               <FileCode2 className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />
-              <span>HTML Standalone</span>
+              <span>HTML</span>
             </button>
           )}
 
@@ -465,18 +468,18 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={() => setLanguage(language === 'km' ? 'en' : 'km')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 shadow-xs active:scale-95"
-            title={language === 'km' ? 'ប្តូរទៅភាសាអង់គ្លេស (Switch to English)' : 'Switch to Khmer (ប្តូរទៅភាសាខ្មែរ)'}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 shadow-xs active:scale-95"
+            title={language === 'km' ? 'ប្តូរទៅភាសាអង់គ្លេស' : 'Switch to Khmer'}
           >
             <Globe className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
             <span className="font-mono text-[11px] font-bold">
-              {language === 'km' ? 'ខ្មែរ (KM)' : 'English (EN)'}
+              {language === 'km' ? 'KM' : 'EN'}
             </span>
           </button>
 
           {/* Dark / Light Mode Theme Toggle Switch */}
-          <div className="flex items-center px-1">
-            <ThemeToggleSwitch showLabel={false} size="md" />
+          <div className="flex items-center px-0.5">
+            <ThemeToggleSwitch showLabel={false} size="sm" />
           </div>
 
           {/* Notifications Bell */}
@@ -488,7 +491,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Bell className="w-4 h-4" />
             {unreadNotifCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
                 {unreadNotifCount}
               </span>
             )}
@@ -499,20 +502,20 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={() => setShowRoleMenu(!showRoleMenu)}
-              className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
             >
-              <div className="w-7 h-7 rounded-lg bg-blue-700 text-white font-bold text-xs flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-blue-700 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
                 {currentUser?.nameKhmer ? currentUser.nameKhmer.charAt(0) : 'U'}
               </div>
-              <div className="text-left hidden sm:block">
-                <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-none truncate max-w-[110px]">
+              <div className="text-left hidden md:block">
+                <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-none truncate max-w-[95px]">
                   {currentUser?.nameKhmer || (language === 'en' ? 'User' : 'អ្នកប្រើប្រាស់')}
                 </p>
-                <span className={`inline-block mt-0.5 text-[9.5px] font-bold px-1.5 py-0.2 rounded border ${currentRoleMeta.bg}`}>
+                <span className={`inline-block mt-0.5 text-[9px] font-bold px-1 py-0.2 rounded border ${currentRoleMeta.bg}`}>
                   {currentRoleMeta.label}
                 </span>
               </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronDown className="w-3 h-3 text-slate-400 flex-shrink-0" />
             </button>
 
             {/* Dropdown Menu */}
@@ -528,7 +531,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                 <div className="py-1">
                   <p className="text-[10px] font-bold uppercase text-slate-400 px-2 py-1">
-                    {language === 'en' ? 'Switch Role (RBAC Demo)' : 'សាកល្បងប្តូរតួនាទី (Role Demo)'}
+                    {language === 'en' ? 'Switch Role' : 'ប្តូរតួនាទីរដ្ឋបាល'}
                   </p>
                   <button
                     type="button"
