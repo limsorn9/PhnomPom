@@ -2631,7 +2631,13 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           isRemoteUpdateRef.current = true;
           if (cloudData.schoolProfile) setSchoolProfile(cloudData.schoolProfile);
           if (cloudData.students && Array.isArray(cloudData.students)) setStudents(cloudData.students);
-          if (cloudData.teachers && Array.isArray(cloudData.teachers)) setTeachers(cloudData.teachers);
+          if (cloudData.teachers && Array.isArray(cloudData.teachers)) {
+            setTeachers(prev => {
+              const cloudIds = new Set(cloudData.teachers.map((t: Teacher) => t.id || t.staffCode || t.email));
+              const localOnly = prev.filter(t => !cloudIds.has(t.id) && !cloudIds.has(t.staffCode) && (!t.email || !cloudIds.has(t.email)));
+              return [...cloudData.teachers, ...localOnly];
+            });
+          }
           if (cloudData.classrooms && Array.isArray(cloudData.classrooms)) setClassrooms(cloudData.classrooms);
           if (cloudData.scores && Array.isArray(cloudData.scores)) setScores(cloudData.scores);
           if (cloudData.budgetTransactions && Array.isArray(cloudData.budgetTransactions)) setBudgetTransactions(cloudData.budgetTransactions);
@@ -2639,7 +2645,13 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (cloudData.calendarEvents && Array.isArray(cloudData.calendarEvents)) setCalendarEvents(cloudData.calendarEvents);
           if (cloudData.transfers && Array.isArray(cloudData.transfers)) setTransfers(cloudData.transfers);
           if (cloudData.activityLogs && Array.isArray(cloudData.activityLogs)) setActivityLogs(cloudData.activityLogs);
-          if (cloudData.appUsers && Array.isArray(cloudData.appUsers) && cloudData.appUsers.length > 0) setAppUsers(cloudData.appUsers);
+          if (cloudData.appUsers && Array.isArray(cloudData.appUsers) && cloudData.appUsers.length > 0) {
+            setAppUsers(prev => {
+              const cloudKeys = new Set(cloudData.appUsers.map((u: AppUser) => u.id || u.email?.toLowerCase() || u.username?.toLowerCase()));
+              const localOnly = prev.filter(u => !cloudKeys.has(u.id) && (!u.email || !cloudKeys.has(u.email.toLowerCase())) && (!u.username || !cloudKeys.has(u.username.toLowerCase())));
+              return [...cloudData.appUsers, ...localOnly];
+            });
+          }
         }
       }
     });
@@ -2650,7 +2662,13 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isRemoteUpdateRef.current = true;
         if (cloudData.schoolProfile) setSchoolProfile(prev => ({ ...prev, ...cloudData.schoolProfile }));
         if (cloudData.students && Array.isArray(cloudData.students)) setStudents(cloudData.students);
-        if (cloudData.teachers && Array.isArray(cloudData.teachers)) setTeachers(cloudData.teachers);
+        if (cloudData.teachers && Array.isArray(cloudData.teachers)) {
+          setTeachers(prev => {
+            const cloudIds = new Set(cloudData.teachers.map((t: Teacher) => t.id || t.staffCode || t.email));
+            const localOnly = prev.filter(t => !cloudIds.has(t.id) && !cloudIds.has(t.staffCode) && (!t.email || !cloudIds.has(t.email)));
+            return [...cloudData.teachers, ...localOnly];
+          });
+        }
         if (cloudData.classrooms && Array.isArray(cloudData.classrooms)) setClassrooms(cloudData.classrooms);
         if (cloudData.scores && Array.isArray(cloudData.scores)) setScores(cloudData.scores);
         if (cloudData.budgetTransactions && Array.isArray(cloudData.budgetTransactions)) setBudgetTransactions(cloudData.budgetTransactions);
@@ -2658,7 +2676,13 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (cloudData.calendarEvents && Array.isArray(cloudData.calendarEvents)) setCalendarEvents(cloudData.calendarEvents);
         if (cloudData.transfers && Array.isArray(cloudData.transfers)) setTransfers(cloudData.transfers);
         if (cloudData.activityLogs && Array.isArray(cloudData.activityLogs)) setActivityLogs(cloudData.activityLogs);
-        if (cloudData.appUsers && Array.isArray(cloudData.appUsers) && cloudData.appUsers.length > 0) setAppUsers(cloudData.appUsers);
+        if (cloudData.appUsers && Array.isArray(cloudData.appUsers) && cloudData.appUsers.length > 0) {
+          setAppUsers(prev => {
+            const cloudKeys = new Set(cloudData.appUsers.map((u: AppUser) => u.id || u.email?.toLowerCase() || u.username?.toLowerCase()));
+            const localOnly = prev.filter(u => !cloudKeys.has(u.id) && (!u.email || !cloudKeys.has(u.email.toLowerCase())) && (!u.username || !cloudKeys.has(u.username.toLowerCase())));
+            return [...cloudData.appUsers, ...localOnly];
+          });
+        }
         if (cloudData.academicYears && Array.isArray(cloudData.academicYears)) setAcademicYears(cloudData.academicYears);
         if (cloudData.examSubjects && Array.isArray(cloudData.examSubjects)) setExamSubjects(cloudData.examSubjects);
         if (cloudData.profileEditRequests && Array.isArray(cloudData.profileEditRequests)) setProfileEditRequests(cloudData.profileEditRequests);
@@ -2707,16 +2731,53 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // RBAC & Auth Actions
   const login = (identifier: string, password: string) => {
     const cleanId = identifier.trim().toLowerCase();
-    const user = appUsers.find(
+    let user = appUsers.find(
       u =>
         (u.email.toLowerCase() === cleanId ||
           u.username.toLowerCase() === cleanId ||
           (cleanId === 'admin' && (u.role === 'super_admin' || u.username === 'limsorn' || u.email.toLowerCase() === 'limsorn9@gmail.com')) ||
+          (u.staffCode && u.staffCode.toLowerCase() === cleanId) ||
           (u.studentCode && u.studentCode.toLowerCase() === cleanId) ||
           (u.phone && u.phone.replace(/\s+/g, '') === cleanId.replace(/\s+/g, ''))) &&
         (u.password === password ||
           ((u.email.toLowerCase() === 'limsorn9@gmail.com' || u.username === 'limsorn') && (password === 'Ls12122012@' || password === '11101989')))
     );
+
+    // Fallback: Check in teachers list if AppUser record is missing
+    if (!user) {
+      const teacherMatch = teachers.find(
+        t =>
+          (t.email && t.email.toLowerCase() === cleanId) ||
+          (t.staffCode && t.staffCode.toLowerCase() === cleanId) ||
+          (t.phone && t.phone.replace(/\s+/g, '') === cleanId.replace(/\s+/g, '')) ||
+          (t.nameLatin && t.nameLatin.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanId)
+      );
+
+      if (teacherMatch) {
+        const cleanPhone = teacherMatch.phone ? teacherMatch.phone.replace(/\s+/g, '') : '';
+        const isPassValid = password === cleanPhone || password === '123456' || password === teacherMatch.staffCode;
+        if (isPassValid) {
+          const rawUsername = teacherMatch.nameLatin ? teacherMatch.nameLatin.toLowerCase().replace(/[^a-z0-9]/g, '') : `teacher_${teacherMatch.id.slice(-4)}`;
+          user = {
+            id: `u-${teacherMatch.id}`,
+            username: rawUsername,
+            email: teacherMatch.email || `${rawUsername}@moeys.gov.kh`,
+            phone: teacherMatch.phone || '',
+            password: password,
+            nameKhmer: teacherMatch.nameKhmer,
+            nameLatin: teacherMatch.nameLatin || teacherMatch.nameKhmer,
+            role: teacherMatch.role === 'នាយកសាលា' || teacherMatch.role === 'នាយករង' ? 'director' : 'teacher',
+            status: 'active',
+            staffCode: teacherMatch.staffCode,
+            assignedGrade: teacherMatch.assignedGrade,
+            assignedSection: teacherMatch.assignedSection,
+            avatarUrl: teacherMatch.avatarUrl,
+            createdAt: new Date().toISOString().split('T')[0]
+          };
+          setAppUsers(prev => [user!, ...prev]);
+        }
+      }
+    }
 
     if (user) {
       if (user.status === 'suspended') {
@@ -2737,14 +2798,46 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const loginByVerifiedIdentifier = (identifier: string) => {
     const cleanId = identifier.trim().toLowerCase();
-    const user = appUsers.find(
+    let user = appUsers.find(
       u =>
         u.email.toLowerCase() === cleanId ||
         u.username.toLowerCase() === cleanId ||
         (cleanId === 'admin' && (u.role === 'super_admin' || u.username === 'limsorn' || u.email.toLowerCase() === 'limsorn9@gmail.com')) ||
+        (u.staffCode && u.staffCode.toLowerCase() === cleanId) ||
         (u.studentCode && u.studentCode.toLowerCase() === cleanId) ||
         (u.phone && u.phone.replace(/\s+/g, '') === cleanId.replace(/\s+/g, ''))
     );
+
+    if (!user) {
+      const teacherMatch = teachers.find(
+        t =>
+          (t.email && t.email.toLowerCase() === cleanId) ||
+          (t.staffCode && t.staffCode.toLowerCase() === cleanId) ||
+          (t.phone && t.phone.replace(/\s+/g, '') === cleanId.replace(/\s+/g, '')) ||
+          (t.nameLatin && t.nameLatin.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanId)
+      );
+
+      if (teacherMatch) {
+        const rawUsername = teacherMatch.nameLatin ? teacherMatch.nameLatin.toLowerCase().replace(/[^a-z0-9]/g, '') : `teacher_${teacherMatch.id.slice(-4)}`;
+        user = {
+          id: `u-${teacherMatch.id}`,
+          username: rawUsername,
+          email: teacherMatch.email || `${rawUsername}@moeys.gov.kh`,
+          phone: teacherMatch.phone || '',
+          password: teacherMatch.phone ? teacherMatch.phone.replace(/\s+/g, '') : '123456',
+          nameKhmer: teacherMatch.nameKhmer,
+          nameLatin: teacherMatch.nameLatin || teacherMatch.nameKhmer,
+          role: teacherMatch.role === 'នាយកសាលា' || teacherMatch.role === 'នាយករង' ? 'director' : 'teacher',
+          status: 'active',
+          staffCode: teacherMatch.staffCode,
+          assignedGrade: teacherMatch.assignedGrade,
+          assignedSection: teacherMatch.assignedSection,
+          avatarUrl: teacherMatch.avatarUrl,
+          createdAt: new Date().toISOString().split('T')[0]
+        };
+        setAppUsers(prev => [user!, ...prev]);
+      }
+    }
 
     if (user) {
       if (user.status === 'suspended') {
@@ -3119,6 +3212,47 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     setAppUsers(prev => [newUser, ...prev]);
+
+    // If a teacher account was created, also link or create a Teacher profile in teachers list if missing
+    if (newUser.role === 'teacher') {
+      setTeachers(prev => {
+        const exists = prev.find(t => 
+          t.id === newUser.id.replace('u-', '') || 
+          (newUser.email && t.email?.toLowerCase() === newUser.email.toLowerCase()) || 
+          (newUser.phone && t.phone?.replace(/\s+/g, '') === newUser.phone.replace(/\s+/g, ''))
+        );
+        if (exists) return prev;
+
+        const nextIndex = prev.length + 1;
+        const staffCode = newUser.staffCode || `MOEYS-10${String(nextIndex).padStart(4, '0')}`;
+        const newTeacherRecord: Teacher = {
+          id: newUser.id.startsWith('u-t-') ? newUser.id.replace('u-', '') : `t-${Date.now()}`,
+          staffCode,
+          nameKhmer: newUser.nameKhmer,
+          nameLatin: newUser.nameLatin || newUser.nameKhmer,
+          gender: 'M',
+          dob: '1990-01-01',
+          phone: newUser.phone || '',
+          email: newUser.email,
+          role: 'គ្រូបង្រៀន',
+          framework: 'ក្របខណ្ឌគ្រូបង្រៀនកម្រិតមូលដ្ឋាន',
+          qualification: 'បរិញ្ញាបត្រ',
+          teachingSubject: 'ភាសាខ្មែរ-គណិតវិទ្យា',
+          assignedGrade: newUser.assignedGrade || 1,
+          assignedSection: newUser.assignedSection || 'ក',
+          yearsOfService: 1,
+          startDate: new Date().toISOString().split('T')[0],
+          status: 'active',
+          avatarUrl: newUser.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+          schedule: [
+            { day: 'ចន្ទ', subject: 'ភាសាខ្មែរ', timeSlot: '07:30 - 09:00', gradeClass: `${newUser.assignedGrade || 1}${newUser.assignedSection || 'ក'}` },
+            { day: 'អង្គារ', subject: 'គណិតវិទ្យា', timeSlot: '07:30 - 08:30', gradeClass: `${newUser.assignedGrade || 1}${newUser.assignedSection || 'ក'}` }
+          ]
+        };
+        return [newTeacherRecord, ...prev];
+      });
+    }
+
     showToast(`បានបង្កើតគណនីជូន ${newUser.nameKhmer} (${getRoleLabel(newUser.role)}) ដោយជោគជ័យ!`);
     return { success: true, message: 'ជោគជ័យ' };
   };
@@ -3956,7 +4090,44 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       staffCode
     };
     setTeachers(prev => [newTeacher, ...prev]);
-    showToast(`បានបញ្ចូលលោកគ្រូ/អ្នកគ្រូ «${newTeacher.nameKhmer}» ជោគជ័យ!`);
+
+    // Automatically create / synchronize AppUser account for this teacher so they can login reliably
+    const cleanPhone = newTeacher.phone ? newTeacher.phone.replace(/\s+/g, '') : '';
+    const rawUsername = newTeacher.nameLatin
+      ? newTeacher.nameLatin.toLowerCase().replace(/[^a-z0-9]/g, '')
+      : (newTeacher.email ? newTeacher.email.split('@')[0].replace(/[^a-z0-9]/g, '') : `teacher_${Date.now().toString().slice(-4)}`);
+    
+    const fallbackUsername = rawUsername || `teacher_${Date.now().toString().slice(-4)}`;
+    const fallbackEmail = newTeacher.email?.trim() || `${fallbackUsername}@moeys.gov.kh`;
+    const defaultPassword = cleanPhone || '123456';
+
+    const teacherUser: AppUser = {
+      id: `u-${newTeacher.id}`,
+      username: fallbackUsername,
+      email: fallbackEmail,
+      phone: newTeacher.phone || '',
+      password: defaultPassword,
+      nameKhmer: newTeacher.nameKhmer,
+      nameLatin: newTeacher.nameLatin || newTeacher.nameKhmer,
+      role: newTeacher.role === 'នាយកសាលា' || newTeacher.role === 'នាយករង' ? 'director' : 'teacher',
+      status: 'active',
+      staffCode: newTeacher.staffCode,
+      assignedGrade: newTeacher.assignedGrade,
+      assignedSection: newTeacher.assignedSection,
+      avatarUrl: newTeacher.avatarUrl,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+
+    setAppUsers(prev => {
+      const filtered = prev.filter(
+        u => u.id !== teacherUser.id &&
+             u.email?.toLowerCase() !== teacherUser.email.toLowerCase() &&
+             (!cleanPhone || u.phone?.replace(/\s+/g, '') !== cleanPhone)
+      );
+      return [teacherUser, ...filtered];
+    });
+
+    showToast(`បានបញ្ចូលលោកគ្រូ/អ្នកគ្រូ «${newTeacher.nameKhmer}» និងបានបង្កើតគណនីចូលប្រព័ន្ធជោគជ័យ!`);
 
     addActivityLog({
       domain: 'teacher',
@@ -3976,6 +4147,26 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const updateTeacher = (id: string, updated: Partial<Teacher>) => {
     const existing = teachers.find(t => t.id === id);
     setTeachers(prev => prev.map(t => (t.id === id ? { ...t, ...updated } : t)));
+
+    // Synchronize updates with AppUser account
+    setAppUsers(prev =>
+      prev.map(u => {
+        if (u.id === `u-${id}` || (existing && (u.email === existing.email || (existing.phone && u.phone === existing.phone)))) {
+          return {
+            ...u,
+            nameKhmer: updated.nameKhmer || u.nameKhmer,
+            nameLatin: updated.nameLatin || u.nameLatin,
+            email: updated.email || u.email,
+            phone: updated.phone || u.phone,
+            assignedGrade: updated.assignedGrade !== undefined ? updated.assignedGrade : u.assignedGrade,
+            assignedSection: updated.assignedSection !== undefined ? updated.assignedSection : u.assignedSection,
+            avatarUrl: updated.avatarUrl || u.avatarUrl
+          };
+        }
+        return u;
+      })
+    );
+
     showToast('បានធ្វើបច្ចុប្បន្នភាពព័ត៌មានគ្រូបង្រៀនជោគជ័យ!');
 
     if (existing) {
@@ -3998,7 +4189,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const deleteTeacher = (id: string) => {
     const existing = teachers.find(t => t.id === id);
     setTeachers(prev => prev.filter(t => t.id !== id));
-    showToast('បានលុបទិន្នន័យគ្រូបង្រៀនរួចរាល់', 'info');
+
+    // Remove corresponding AppUser
+    setAppUsers(prev => prev.filter(u => u.id !== `u-${id}` && (!existing || (u.email !== existing.email && (!existing.phone || u.phone !== existing.phone)))));
+
+    showToast('បានលុបទិន្នន័យគ្រូបង្រៀន និងគណនីរួចរាល់', 'info');
 
     if (existing) {
       addActivityLog({
