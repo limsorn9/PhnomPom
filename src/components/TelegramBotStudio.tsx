@@ -87,6 +87,8 @@ export const TelegramBotStudio: React.FC = () => {
   const [isOnline, setIsOnline] = useState(true);
   const [webhookUrl, setWebhookUrl] = useState('https://ais-dev-2jmspxaqev7bavrmenfxlh-383767016415.asia-southeast1.run.app/api/telegram/webhook');
   const [isTestingConfig, setIsTestingConfig] = useState(false);
+  const [isActivatingWebhook, setIsActivatingWebhook] = useState(false);
+  const [webhookStatusInfo, setWebhookStatusInfo] = useState<{ active: boolean; url?: string; pendingCount?: number; lastError?: string } | null>(null);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; timestamp: string } | null>(null);
   const [selectedLogPayload, setSelectedLogPayload] = useState<WebhookLog | null>(null);
   const [selectedCommandForPreview, setSelectedCommandForPreview] = useState<string>('/status');
@@ -449,6 +451,51 @@ export const TelegramBotStudio: React.FC = () => {
       setIsTestingConfig(false);
     }
   };
+
+  // Check Webhook Status
+  const checkWebhookStatus = async () => {
+    try {
+      const res = await fetch('/api/telegram/webhook-info');
+      const data = await res.json();
+      if (data.success && data.info) {
+        setWebhookStatusInfo({
+          active: Boolean(data.info.url),
+          url: data.info.url || '',
+          pendingCount: data.info.pending_update_count || 0,
+          lastError: data.info.last_error_message
+        });
+      }
+    } catch (err) {
+      console.error('Failed to get webhook info:', err);
+    }
+  };
+
+  // Activate Telegram Webhook with Telegram servers
+  const handleActivateWebhook = async () => {
+    setIsActivatingWebhook(true);
+    try {
+      const res = await fetch('/api/telegram/set-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhookUrl })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('⚡ បានភ្ជាប់ Webhook អូតូទៅកាន់ Telegram API ជោគជ័យ! Bot ឆ្លើយតបអូតូពេលមានសារចូល។', 'success');
+        checkWebhookStatus();
+      } else {
+        showToast(data.response?.description || 'បរាជ័យក្នុងការកំណត់ Webhook', 'error');
+      }
+    } catch (err: any) {
+      showToast('បញ្ហាក្នុងការភ្ជាប់ Webhook: ' + err?.message, 'error');
+    } finally {
+      setIsActivatingWebhook(false);
+    }
+  };
+
+  useEffect(() => {
+    checkWebhookStatus();
+  }, []);
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1279,6 +1326,56 @@ export const TelegramBotStudio: React.FC = () => {
               >
                 {isOnline ? '🟢 Online (Active)' : '🔴 Offline'}
               </button>
+            </div>
+
+            {/* Live Telegram Webhook Integration Card */}
+            <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-indigo-950 text-sm flex items-center gap-1.5">
+                    <Activity className="w-4 h-4 text-indigo-600" />
+                    ដំណើរការអូតូជាមួយ Telegram ផ្ទាល់ (Live Webhook Activation)
+                  </h4>
+                  <p className="text-xs text-indigo-800/80">
+                    ចុចប៊ូតុងនេះដើម្បីភ្ជាប់ Server Webhook ទៅ Telegram API ឱ្យ Bot អាចឆ្លើយតបអូតូពេលមានអ្នកឆាតទៅ (@PPTC_Notify_bot)
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleActivateWebhook}
+                  disabled={isActivatingWebhook}
+                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all whitespace-nowrap shrink-0"
+                >
+                  {isActivatingWebhook ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      កំពុងភ្ជាប់ Webhook...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      ដំណើរការ Webhook អូតូ
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {webhookStatusInfo && (
+                <div className="bg-white/80 p-3 rounded-xl text-xs border border-indigo-100 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">ស្ថានភាព Webhook លើ Telegram API:</span>
+                    <span className={`font-bold ${webhookStatusInfo.active ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      {webhookStatusInfo.active ? '🟢 Webhook កំពុងដំណើរការ (Active)' : '⚪ មិនទាន់ភ្ជាប់ (Pending)'}
+                    </span>
+                  </div>
+                  {webhookStatusInfo.url && (
+                    <div className="text-[11px] text-slate-600 font-mono truncate">
+                      URL: {webhookStatusInfo.url}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Test Configuration Diagnostic Card */}
