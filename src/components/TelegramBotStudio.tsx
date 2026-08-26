@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useSchool } from '../context/SchoolContext';
-import { sendTelegramNotification } from '../services/telegramService';
+import { sendTelegramNotification, sendTelegramDirectMessage } from '../services/telegramService';
+import { TelegramTemplateManager } from './telegram/TelegramTemplateManager';
+import { TelegramBotAnalytics } from './telegram/TelegramBotAnalytics';
+import { TelegramAutomatedTasks } from './telegram/TelegramAutomatedTasks';
 import { 
   Send, 
   Bot, 
@@ -39,7 +42,10 @@ import {
   Filter,
   CheckCircle,
   XCircle,
-  ArrowRight
+  ArrowRight,
+  Bookmark,
+  BarChart3,
+  FileText
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -79,7 +85,7 @@ interface BotCommandConfig {
 
 export const TelegramBotStudio: React.FC = () => {
   const { currentUser, schoolProfile, students, teachers, showToast } = useSchool();
-  const [activeTab, setActiveTab] = useState<'chat' | 'commands' | 'webhook_activity' | 'settings'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'commands' | 'webhook_activity' | 'templates' | 'analytics' | 'automated_tasks' | 'settings'>('chat');
   
   // Bot Settings state
   const [botToken, setBotToken] = useState('8946444884:AAHc1ESlanNspj6atsVCGlxto-q5ks-NKGg');
@@ -91,6 +97,12 @@ export const TelegramBotStudio: React.FC = () => {
   const [webhookStatusInfo, setWebhookStatusInfo] = useState<{ active: boolean; url?: string; pendingCount?: number; lastError?: string } | null>(null);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; timestamp: string } | null>(null);
   const [selectedLogPayload, setSelectedLogPayload] = useState<WebhookLog | null>(null);
+  
+  // Message Reply state for Webhook Activity
+  const [replyTargetLog, setReplyTargetLog] = useState<WebhookLog | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
+
   const [selectedCommandForPreview, setSelectedCommandForPreview] = useState<string>('/status');
   const [logFilter, setLogFilter] = useState<'all' | 'command' | 'message' | 'callback_query' | 'system_ping'>('all');
   const [searchLogQuery, setSearchLogQuery] = useState('');
@@ -502,6 +514,63 @@ export const TelegramBotStudio: React.FC = () => {
     showToast('បានរក្សាទុកការកំណត់ Telegram Bot Token និង Chat ID រួចរាល់!', 'success');
   };
 
+  // Open Message Reply Modal
+  const handleOpenReply = (log: WebhookLog) => {
+    setReplyTargetLog(log);
+    setReplyText(`🙏 សួស្ដី ${log.senderName}!\n\n`);
+  };
+
+  // Send Direct Reply to Telegram User
+  const handleSendReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyTargetLog || !replyText.trim()) {
+      showToast('សូមបញ្ចូលខ្លឹមសារចម្លើយតប!', 'error');
+      return;
+    }
+
+    setIsSendingReply(true);
+    try {
+      const res = await sendTelegramDirectMessage(replyTargetLog.chatId, replyText);
+      if (res.success) {
+        showToast(`បានផ្ញើចម្លើយតបទៅកាន់ ${replyTargetLog.senderName} (Chat ID: ${replyTargetLog.chatId}) ជោគជ័យ!`, 'success');
+        
+        // Append sent response to webhook logs
+        const replyLog: WebhookLog = {
+          id: `log-reply-${Date.now()}`,
+          updateId: Math.floor(10000000 + Math.random() * 90000000),
+          eventType: 'message',
+          senderName: 'PPTC_Notify (ឆ្លើយតបផ្ទាល់)',
+          username: 'PPTC_Notify_bot',
+          chatId: replyTargetLog.chatId,
+          messageText: `[ឆ្លើយតបទៅ @${replyTargetLog.username || replyTargetLog.senderName}]: ${replyText}`,
+          timestamp: new Date().toLocaleTimeString('km-KH'),
+          fullDate: new Date().toISOString(),
+          status: 'success',
+          latencyMs: 28,
+          rawPayload: {
+            reply_to: {
+              update_id: replyTargetLog.updateId,
+              sender: replyTargetLog.senderName,
+              chat_id: replyTargetLog.chatId,
+              original_message: replyTargetLog.messageText
+            },
+            outgoing_text: replyText,
+            sent_at: new Date().toISOString()
+          }
+        };
+        setWebhookLogs(prev => [replyLog, ...prev]);
+        setReplyTargetLog(null);
+        setReplyText('');
+      } else {
+        showToast(res.error || 'បរាជ័យក្នុងការផ្ញើចម្លើយតប', 'error');
+      }
+    } catch (err: any) {
+      showToast('បញ្ហាក្នុងការផ្ញើសារ: ' + err?.message, 'error');
+    } finally {
+      setIsSendingReply(false);
+    }
+  };
+
   // Filtered Webhook Logs
   const filteredWebhookLogs = useMemo(() => {
     return webhookLogs.filter(log => {
@@ -653,59 +722,95 @@ export const TelegramBotStudio: React.FC = () => {
       </div>
 
       {/* Sub Navigation Tabs */}
-      <div className="flex border-b border-slate-200 gap-2 overflow-x-auto">
+      <div className="flex border-b border-slate-200 gap-1.5 overflow-x-auto pb-px">
         <button
           onClick={() => setActiveTab('chat')}
-          className={`px-4 py-3 font-semibold text-sm rounded-t-xl transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'chat'
               ? 'bg-white text-indigo-600 border-b-2 border-indigo-600 shadow-sm'
               : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
           }`}
         >
-          <MessageSquare className="w-4 h-4" />
-          ជជែកផ្ទាល់ជាមួយ Bot (Simulator)
+          <MessageSquare className="w-3.5 h-3.5" />
+          ជជែកផ្ទាល់ (Simulator)
         </button>
 
         <button
           onClick={() => setActiveTab('commands')}
-          className={`px-4 py-3 font-semibold text-sm rounded-t-xl transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'commands'
               ? 'bg-white text-indigo-600 border-b-2 border-indigo-600 shadow-sm'
               : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
           }`}
         >
-          <Layers className="w-4 h-4" />
-          Command Registry & JSON Preview
-          <span className="bg-indigo-100 text-indigo-700 text-[11px] px-2 py-0.5 rounded-full font-bold">
+          <Layers className="w-3.5 h-3.5" />
+          Command Registry
+          <span className="bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
             {commands.length}
           </span>
         </button>
 
         <button
           onClick={() => setActiveTab('webhook_activity')}
-          className={`px-4 py-3 font-semibold text-sm rounded-t-xl transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'webhook_activity'
               ? 'bg-white text-indigo-600 border-b-2 border-indigo-600 shadow-sm'
               : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
           }`}
         >
-          <Activity className="w-4 h-4" />
-          Webhook Activity & Payload Logs
-          <span className="bg-emerald-100 text-emerald-700 text-[11px] px-2 py-0.5 rounded-full font-bold">
+          <Activity className="w-3.5 h-3.5" />
+          Webhook Activity & Reply
+          <span className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
             {webhookLogs.length}
           </span>
         </button>
 
         <button
+          onClick={() => setActiveTab('templates')}
+          className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'templates'
+              ? 'bg-white text-indigo-600 border-b-2 border-indigo-600 shadow-sm'
+              : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+          }`}
+        >
+          <Bookmark className="w-3.5 h-3.5 text-purple-600" />
+          Template Manager (ពុម្ពសារ)
+        </button>
+
+        <button
+          onClick={() => setActiveTab('analytics')}
+          className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'analytics'
+              ? 'bg-white text-indigo-600 border-b-2 border-indigo-600 shadow-sm'
+              : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+          }`}
+        >
+          <BarChart3 className="w-3.5 h-3.5 text-sky-600" />
+          Bot Usage Analytics
+        </button>
+
+        <button
+          onClick={() => setActiveTab('automated_tasks')}
+          className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'automated_tasks'
+              ? 'bg-white text-indigo-600 border-b-2 border-indigo-600 shadow-sm'
+              : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+          }`}
+        >
+          <Clock className="w-3.5 h-3.5 text-emerald-600" />
+          Automated Tasks (កាលវិភាគ)
+        </button>
+
+        <button
           onClick={() => setActiveTab('settings')}
-          className={`px-4 py-3 font-semibold text-sm rounded-t-xl transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'settings'
               ? 'bg-white text-indigo-600 border-b-2 border-indigo-600 shadow-sm'
               : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
           }`}
         >
-          <Settings className="w-4 h-4" />
-          Bot Settings & Test Ping
+          <Settings className="w-3.5 h-3.5" />
+          Bot Settings
         </button>
       </div>
 
@@ -1143,7 +1248,7 @@ export const TelegramBotStudio: React.FC = () => {
                     <th className="p-3">Chat ID</th>
                     <th className="p-3">ខ្លឹមសារសារ (Incoming Message)</th>
                     <th className="p-3">Latency & ម៉ោងទទួល</th>
-                    <th className="p-3 text-center">Payload</th>
+                    <th className="p-3 text-center">សកម្មភាព (Actions)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1191,12 +1296,24 @@ export const TelegramBotStudio: React.FC = () => {
                         </td>
 
                         <td className="p-3 text-center">
-                          <button
-                            onClick={() => setSelectedLogPayload(log)}
-                            className="px-2.5 py-1 bg-slate-100 hover:bg-indigo-100 text-slate-700 hover:text-indigo-700 rounded-lg text-[11px] font-semibold transition-colors flex items-center gap-1 mx-auto"
-                          >
-                            <Code className="w-3.5 h-3.5" /> View JSON
-                          </button>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => handleOpenReply(log)}
+                              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white rounded-lg text-[11px] font-semibold transition-colors flex items-center gap-1 shadow-xs"
+                              title="ឆ្លើយតបទៅកាន់សារនេះផ្ទាល់"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              ឆ្លើយតប
+                            </button>
+
+                            <button
+                              onClick={() => setSelectedLogPayload(log)}
+                              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition-colors flex items-center gap-1"
+                              title="មើលទិន្នន័យ JSON Raw Payload"
+                            >
+                              <Code className="w-3.5 h-3.5" /> JSON
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -1250,8 +1367,124 @@ export const TelegramBotStudio: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Modal Message Reply */}
+          {replyTargetLog && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+              <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between border-b pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 bg-indigo-100 text-indigo-700 rounded-xl flex items-center justify-center">
+                      <Send className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-sm">
+                        ឆ្លើយតបទៅកាន់ Telegram ផ្ទាល់
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        ផ្ញើទៅកាន់ <b>{replyTargetLog.senderName}</b> (Chat ID: <span className="font-mono text-indigo-600">{replyTargetLog.chatId}</span>)
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setReplyTargetLog(null)}
+                    className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+                  >
+                    <XCircle className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Original Message Quote */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    <Info className="w-3 h-3 text-slate-400" />
+                    សារដែលបានទទួល (Original Incoming Message):
+                  </div>
+                  <p className="font-medium text-slate-700 italic pl-2 border-l-2 border-indigo-400">
+                    "{replyTargetLog.messageText}"
+                  </p>
+                </div>
+
+                {/* Quick Reply Presets */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                    ចម្លើយរហ័ស (Quick Reply Presets)៖
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      '✅ បានទទួលព័ត៌មានហើយ អរគុណ!',
+                      '🏫 ព័ត៌មានត្រូវបានកត់ត្រាចូលប្រព័ន្ធដោយជោគជ័យ។',
+                      '👨‍🏫 នាយកសាលានឹងពិនិត្យ និងផ្តល់ចម្លើយឆាប់ៗ។',
+                      '📋 សូមចូលពិនិត្យរបាយការណ៍លើកម្មវិធីសាលា។'
+                    ].map((preset, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setReplyText(prev => prev + preset + '\n')}
+                        className="text-[11px] bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 hover:border-indigo-200 transition-colors"
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <form onSubmit={handleSendReply} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      ខ្លឹមសារឆ្លើយតប (Markdown Supported) *
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={replyText}
+                      onChange={e => setReplyText(e.target.value)}
+                      placeholder="សរសេរចម្លើយតបផ្ញើទៅកាន់តេលេក្រាមអ្នកប្រើប្រាស់..."
+                      className="w-full p-3 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 font-battambang leading-relaxed"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                    <button
+                      type="button"
+                      onClick={() => setReplyTargetLog(null)}
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold"
+                    >
+                      បោះបង់
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSendingReply || !replyText.trim()}
+                      className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                    >
+                      {isSendingReply ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          កំពុងផ្ញើ...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-3.5 h-3.5" />
+                          បញ្ជូនចម្លើយទៅ Telegram
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
+
+      {/* Tab: Template Manager */}
+      {activeTab === 'templates' && <TelegramTemplateManager />}
+
+      {/* Tab: Usage Analytics */}
+      {activeTab === 'analytics' && <TelegramBotAnalytics />}
+
+      {/* Tab: Automated Tasks */}
+      {activeTab === 'automated_tasks' && <TelegramAutomatedTasks />}
 
       {/* Tab 4: Bot Settings & Test Configuration */}
       {activeTab === 'settings' && (

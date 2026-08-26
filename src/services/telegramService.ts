@@ -7,6 +7,7 @@ export interface TelegramNotificationPayload {
   title: string;
   message: string;
   category?: 'announcement' | 'attendance' | 'event' | 'security' | 'audit' | 'general';
+  chatId?: string | number;
   metadata?: Record<string, any>;
 }
 
@@ -19,7 +20,7 @@ export interface TelegramSendResult {
 }
 
 /**
- * Send notification to the configured Telegram chat/group
+ * Send notification to the configured Telegram chat/group or custom chatId
  */
 export async function sendTelegramNotification(payload: TelegramNotificationPayload): Promise<TelegramSendResult> {
   try {
@@ -40,6 +41,7 @@ export async function sendTelegramNotification(payload: TelegramNotificationPayl
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         text,
+        chatId: payload.chatId,
         category: payload.category,
         title: payload.title,
         metadata: payload.metadata,
@@ -53,6 +55,29 @@ export async function sendTelegramNotification(payload: TelegramNotificationPayl
     return {
       success: false,
       message: 'ការតភ្ជាប់បណ្តាញ Telegram បរាជ័យ',
+      error: err?.message || 'Network error',
+    };
+  }
+}
+
+/**
+ * Send custom markdown message directly to any Telegram chat ID
+ */
+export async function sendTelegramDirectMessage(chatId: string | number, text: string): Promise<TelegramSendResult> {
+  try {
+    const res = await fetch('/api/telegram/send-notification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text,
+        chatId,
+      }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return {
+      success: false,
+      message: 'បរាជ័យក្នុងការផ្ញើសារផ្ទាល់',
       error: err?.message || 'Network error',
     };
   }

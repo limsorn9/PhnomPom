@@ -353,13 +353,13 @@ async function startServer() {
   // POST /api/telegram/send-notification
   app.post('/api/telegram/send-notification', async (req, res) => {
     try {
-      const { text } = req.body;
+      const { text, chatId: targetChatId } = req.body;
       if (!text) {
         return res.status(400).json({ success: false, error: 'Message text is required' });
       }
 
       const botToken = process.env.TELEGRAM_BOT_TOKEN || '8946444884:AAHc1ESlanNspj6atsVCGlxto-q5ks-NKGg';
-      const chatId = process.env.TELEGRAM_CHAT_ID || '240224709';
+      const chatId = targetChatId || process.env.TELEGRAM_CHAT_ID || '240224709';
 
       if (!botToken || !chatId) {
         return res.json({
@@ -380,7 +380,7 @@ async function startServer() {
       });
       const tgData = await tgRes.json();
       if (tgData.ok) {
-        return res.json({ success: true, message: 'បានផ្ញើទៅ Telegram រួចរាល់!', messageId: tgData.result?.message_id });
+        return res.json({ success: true, message: 'បានផ្ញើទៅ Telegram រួចរាល់!', messageId: tgData.result?.message_id, result: tgData.result });
       } else {
         return res.status(500).json({ success: false, error: tgData.description || 'Telegram API Error' });
       }
