@@ -63,21 +63,53 @@ let pendingPayload: Partial<CloudSchoolData> | null = null;
 let lastSyncedDataHash = '';
 
 /**
- * Helper to generate simple hash string to avoid redundant writes
+ * Clean & prune payload to keep document size light, fast, and below Firestore limits
  */
-const getHash = (obj: any): string => {
+const sanitizePayload = (data: Partial<CloudSchoolData>): Record<string, any> => {
+  const clean: Record<string, any> = {};
+  
+  for (const [key, value] of Object.entries(data)) {
+    if (value === undefined) continue;
+    
+    // Prune activity logs to last 80 entries to prevent document bloat
+    if (key === 'activityLogs' && Array.isArray(value)) {
+      clean[key] = value.slice(0, 80);
+    } else {
+      clean[key] = value;
+    }
+  }
+  return clean;
+};
+
+/**
+ * Fast lightweight checksum to avoid heavy JSON stringification
+ */
+const getQuickHash = (obj: any): string => {
+  if (!obj) return '';
   try {
-    return JSON.stringify(obj);
+    const keys = Object.keys(obj);
+    let summary = `k:${keys.length};`;
+    for (const k of keys) {
+      const val = obj[k];
+      if (Array.isArray(val)) {
+        summary += `${k}:${val.length}_${val[0]?.id || ''};`;
+      } else if (typeof val === 'object' && val !== null) {
+        summary += `${k}:${Object.keys(val).length};`;
+      } else {
+        summary += `${k}:${val};`;
+      }
+    }
+    return summary;
   } catch {
-    return '';
+    return String(Date.now());
   }
 };
 
 /**
- * Save school data to Firestore with write serialization and loop prevention
+ * Save school data to Firestore with write serialization, timeout protection, and loop prevention
  */
 export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, force = false): Promise<boolean> => {
-  const currentHash = getHash(data);
+  const currentHash = getQuickHash(data);
   if (!force && currentHash === lastSyncedDataHash) {
     // Data has not changed since last successful sync
     return true;
@@ -91,12 +123,21 @@ export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, 
 
   isWriting = true;
   try {
+    const sanitized = sanitizePayload(data);
     const docRef = doc(db, 'schools', CLOUD_SCHOOL_DOC_ID);
-    await setDoc(docRef, {
-      ...data,
+    
+    // Write with 12-second timeout protection
+    const writePromise = setDoc(docRef, {
+      ...sanitized,
       clientId: CURRENT_CLIENT_ID,
       lastUpdated: new Date().toISOString()
     }, { merge: true });
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Firestore write timeout')), 12000)
+    );
+
+    await Promise.race([writePromise, timeoutPromise]);
 
     lastSyncedDataHash = currentHash;
     isWriting = false;
@@ -107,7 +148,7 @@ export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, 
       pendingPayload = null;
       setTimeout(() => {
         syncSchoolDataToFirestore(next).catch(console.warn);
-      }, 500);
+      }, 600);
     }
     return true;
   } catch (error: any) {
@@ -125,15 +166,20 @@ export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, 
 };
 
 /**
- * Fetch full school dataset from Firestore once on startup
+ * Fetch full school dataset from Firestore once on startup with fast timeout
  */
 export const fetchSchoolDataFromFirestore = async (): Promise<CloudSchoolData | null> => {
   try {
     const docRef = doc(db, 'schools', CLOUD_SCHOOL_DOC_ID);
-    const snap = await getDoc(docRef);
-    if (snap.exists()) {
+    const fetchPromise = getDoc(docRef);
+    const timeoutPromise = new Promise<null>((resolve) => 
+      setTimeout(() => resolve(null), 8000)
+    );
+
+    const snap = await Promise.race([fetchPromise, timeoutPromise]);
+    if (snap && snap.exists()) {
       const data = snap.data() as CloudSchoolData;
-      lastSyncedDataHash = getHash(data);
+      lastSyncedDataHash = getQuickHash(data);
       return data;
     }
     return null;
@@ -155,7 +201,7 @@ export const subscribeToSchoolData = (onData: (data: CloudSchoolData) => void) =
       if (data.clientId && data.clientId === CURRENT_CLIENT_ID) {
         return;
       }
-      lastSyncedDataHash = getHash(data);
+      lastSyncedDataHash = getQuickHash(data);
       onData(data);
     }
   }, (err) => {
