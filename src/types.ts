@@ -441,6 +441,32 @@ export interface BudgetTransaction {
   status: 'approved' | 'pending';
 }
 
+export interface MonthlyBudgetSourceBreakdown {
+  income: number;
+  expense: number;
+}
+
+export interface MonthlyBudgetSummary {
+  monthName: string;
+  monthNumber?: number;
+  academicYear?: string;
+  incomeRiel: number;
+  expenseRiel: number;
+  balanceRiel: number;
+  incomeUsd: number;
+  expenseUsd: number;
+  balanceUsd: number;
+  transactionCount: number;
+  bySource: {
+    pbStateBudget: MonthlyBudgetSourceBreakdown;
+    sigImprovementGrant: MonthlyBudgetSourceBreakdown;
+    communityParents: MonthlyBudgetSourceBreakdown;
+    ngoPartner: MonthlyBudgetSourceBreakdown;
+  };
+  byCategory: Record<string, number>;
+  transactions?: BudgetTransaction[];
+}
+
 export type GradingScaleType = 'khmer_term' | 'letter';
 
 export interface SchoolProfile {

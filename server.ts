@@ -297,6 +297,171 @@ async function startServer() {
     }
   });
 
+  // ----------------------------------------------------
+  // Telegram Anti-Spam Queue & Rate-Limiter Engine
+  // ----------------------------------------------------
+  interface TelegramQueueTask {
+    id: string;
+    botToken: string;
+    chatId: string | number;
+    text: string;
+    parse_mode?: string;
+    delayMs?: number;
+    retries: number;
+    resolve: (value: any) => void;
+    reject: (reason: any) => void;
+    enqueuedAt: number;
+  }
+
+  const telegramQueue: TelegramQueueTask[] = [];
+  let isQueueProcessing = false;
+  let lastTelegramSendTime = 0;
+  const DEFAULT_ANTI_SPAM_DELAY_MS = 1200; // 1.2s default spacing between messages to avoid Telegram flood limits
+
+  const antiSpamStats = {
+    totalSent: 0,
+    totalFailed: 0,
+    totalRetries: 0,
+    totalQueued: 0,
+    lastSentAt: null as string | null,
+    currentDelayMs: DEFAULT_ANTI_SPAM_DELAY_MS,
+  };
+
+  async function processNextQueueItem() {
+    if (isQueueProcessing || telegramQueue.length === 0) return;
+    isQueueProcessing = true;
+
+    const task = telegramQueue.shift()!;
+    const now = Date.now();
+    const effectiveDelay = Math.max(task.delayMs ?? DEFAULT_ANTI_SPAM_DELAY_MS, 800);
+    const timeSinceLastSend = now - lastTelegramSendTime;
+
+    if (timeSinceLastSend < effectiveDelay) {
+      const waitTime = effectiveDelay - timeSinceLastSend;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+
+    try {
+      const tgRes = await fetch(`https://api.telegram.org/bot${task.botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: task.chatId,
+          text: task.text,
+          parse_mode: task.parse_mode || 'Markdown',
+        }),
+      });
+
+      const tgData = await tgRes.json();
+      lastTelegramSendTime = Date.now();
+
+      // Check for Telegram 429 Rate Limit (Flood control)
+      if (!tgData.ok && tgRes.status === 429 && task.retries < 3) {
+        antiSpamStats.totalRetries++;
+        const retryAfterSec = tgData.parameters?.retry_after || 3;
+        console.warn(`[Telegram Anti-Spam] Rate limited (429). Retrying after ${retryAfterSec}s for task ${task.id}...`);
+        await new Promise(resolve => setTimeout(resolve, (retryAfterSec * 1000) + 500));
+        
+        // Re-enqueue task with incremented retry count
+        task.retries++;
+        telegramQueue.unshift(task);
+        isQueueProcessing = false;
+        processNextQueueItem();
+        return;
+      }
+
+      if (tgData.ok) {
+        antiSpamStats.totalSent++;
+        antiSpamStats.lastSentAt = new Date().toISOString();
+        task.resolve({
+          success: true,
+          message: 'បានផ្ញើទៅ Telegram រួចរាល់ដោយសុវត្ថិភាព (Anti-Spam Throttled)!',
+          messageId: tgData.result?.message_id,
+          result: tgData.result,
+          antiSpam: {
+            delayAppliedMs: effectiveDelay,
+            queueRemaining: telegramQueue.length,
+            retries: task.retries,
+          }
+        });
+      } else {
+        antiSpamStats.totalFailed++;
+        task.resolve({
+          success: false,
+          error: tgData.description || 'Telegram API Error',
+          errorCode: tgData.error_code,
+        });
+      }
+    } catch (err: any) {
+      antiSpamStats.totalFailed++;
+      task.reject(err);
+    } finally {
+      isQueueProcessing = false;
+      if (telegramQueue.length > 0) {
+        setTimeout(processNextQueueItem, 50);
+      }
+    }
+  }
+
+  function enqueueTelegramMessage(params: {
+    botToken: string;
+    chatId: string | number;
+    text: string;
+    parse_mode?: string;
+    delayMs?: number;
+  }): Promise<any> {
+    antiSpamStats.totalQueued++;
+    return new Promise((resolve, reject) => {
+      const task: TelegramQueueTask = {
+        id: `tg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        botToken: params.botToken,
+        chatId: params.chatId,
+        text: params.text,
+        parse_mode: params.parse_mode,
+        delayMs: params.delayMs,
+        retries: 0,
+        resolve,
+        reject,
+        enqueuedAt: Date.now(),
+      };
+      telegramQueue.push(task);
+      processNextQueueItem();
+    });
+  }
+
+  // GET /api/telegram/anti-spam-status
+  app.get('/api/telegram/anti-spam-status', (req, res) => {
+    res.json({
+      success: true,
+      queueLength: telegramQueue.length,
+      isProcessing: isQueueProcessing,
+      stats: antiSpamStats,
+      defaultDelayMs: antiSpamStats.currentDelayMs || DEFAULT_ANTI_SPAM_DELAY_MS,
+      recommendation: 'ពន្យាពេលចន្លោះពី ១.២ ទៅ ២.៥ វិនាទី ដើម្បីការពារគណនី Bot ពីការចាប់ជា Spam របស់ Telegram',
+    });
+  });
+
+  // POST /api/telegram/anti-spam-config
+  app.post('/api/telegram/anti-spam-config', (req, res) => {
+    try {
+      const { delayMs } = req.body;
+      if (typeof delayMs === 'number' && delayMs >= 300 && delayMs <= 30000) {
+        antiSpamStats.currentDelayMs = Math.round(delayMs);
+        return res.json({
+          success: true,
+          message: `បានកែប្រែកម្រិតពន្យាពេលបញ្ជូនសារ Telegram ទៅ ${antiSpamStats.currentDelayMs} ms (${(antiSpamStats.currentDelayMs / 1000).toFixed(1)} វិនាទី)`,
+          currentDelayMs: antiSpamStats.currentDelayMs,
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid delayMs. Must be a number between 300 and 30000 ms.',
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err?.message });
+    }
+  });
+
   // POST /api/telegram/generate-code
   app.post('/api/telegram/generate-code', async (req, res) => {
     try {
@@ -318,17 +483,16 @@ async function startServer() {
         try {
           const actionText = actionDescription ? `\n🎯 *សកម្មភាពរដ្ឋបាល:* ${actionDescription}` : '';
           const telegramMsg = `🔐 *សាលាបឋមសិក្សាភ្នំពុំ* - កូដសម្ងាត់ផ្ទៀងផ្ទាត់ (Verification Code):${actionText}\n\n\`${code}\`\n\nកូដនេះមានសុពលភាពរយៈពេល ៥ នាទី។ សូមកុំប្រាប់អ្នកដទៃ។`;
-          const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: chatId,
-              text: telegramMsg,
-              parse_mode: 'Markdown',
-            }),
+          
+          const result = await enqueueTelegramMessage({
+            botToken,
+            chatId,
+            text: telegramMsg,
+            parse_mode: 'Markdown',
+            delayMs: 1000,
           });
-          const tgData = await tgRes.json();
-          if (tgData.ok) {
+          
+          if (result && result.success) {
             sentViaTelegram = true;
           }
         } catch (tgErr) {
@@ -353,7 +517,7 @@ async function startServer() {
   // POST /api/telegram/send-notification
   app.post('/api/telegram/send-notification', async (req, res) => {
     try {
-      const { text, chatId: targetChatId } = req.body;
+      const { text, chatId: targetChatId, delayMs, parseMode = 'Markdown' } = req.body;
       if (!text) {
         return res.status(400).json({ success: false, error: 'Message text is required' });
       }
@@ -369,23 +533,21 @@ async function startServer() {
         });
       }
 
-      const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text,
-          parse_mode: 'Markdown',
-        }),
+      const queueResult = await enqueueTelegramMessage({
+        botToken,
+        chatId,
+        text,
+        parse_mode: parseMode,
+        delayMs: typeof delayMs === 'number' ? delayMs : undefined,
       });
-      const tgData = await tgRes.json();
-      if (tgData.ok) {
-        return res.json({ success: true, message: 'បានផ្ញើទៅ Telegram រួចរាល់!', messageId: tgData.result?.message_id, result: tgData.result });
+
+      if (queueResult.success) {
+        return res.json(queueResult);
       } else {
-        return res.status(500).json({ success: false, error: tgData.description || 'Telegram API Error' });
+        return res.status(500).json(queueResult);
       }
     } catch (err: any) {
-      return res.status(500).json({ success: false, error: err?.message || 'Failed to send notification' });
+      return res.status(500).json({ success: false, error: err?.message || 'Failed to send notification via queue' });
     }
   });
 

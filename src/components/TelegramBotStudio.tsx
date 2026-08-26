@@ -1,6 +1,14 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useSchool } from '../context/SchoolContext';
-import { sendTelegramNotification, sendTelegramDirectMessage } from '../services/telegramService';
+import { 
+  sendTelegramNotification, 
+  sendTelegramDirectMessage,
+  getTelegramDelayMs,
+  saveTelegramDelayMs,
+  updateTelegramAntiSpamConfig,
+  getTelegramAntiSpamStatus,
+  TelegramAntiSpamStatus
+} from '../services/telegramService';
 import { TelegramTemplateManager } from './telegram/TelegramTemplateManager';
 import { TelegramBotAnalytics } from './telegram/TelegramBotAnalytics';
 import { TelegramAutomatedTasks } from './telegram/TelegramAutomatedTasks';
@@ -107,6 +115,11 @@ export const TelegramBotStudio: React.FC = () => {
   const [webhookStatusInfo, setWebhookStatusInfo] = useState<{ active: boolean; url?: string; pendingCount?: number; lastError?: string } | null>(null);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; timestamp: string } | null>(null);
   const [selectedLogPayload, setSelectedLogPayload] = useState<WebhookLog | null>(null);
+  
+  // Anti-Spam Message Rate-Limiter & Delay Interval Control
+  const [delayIntervalMs, setDelayIntervalMs] = useState<number>(() => getTelegramDelayMs());
+  const [antiSpamStatusInfo, setAntiSpamStatusInfo] = useState<TelegramAntiSpamStatus | null>(null);
+  const [isApplyingDelay, setIsApplyingDelay] = useState(false);
   
   // Message Reply state for Webhook Activity
   const [replyTargetLog, setReplyTargetLog] = useState<WebhookLog | null>(null);
@@ -530,17 +543,43 @@ export const TelegramBotStudio: React.FC = () => {
     }
   };
 
+  const loadAntiSpamStatus = async () => {
+    try {
+      const status = await getTelegramAntiSpamStatus();
+      if (status) {
+        setAntiSpamStatusInfo(status);
+        if (status.stats?.currentDelayMs && !localStorage.getItem('telegram_bot_delay_interval_ms')) {
+          setDelayIntervalMs(status.stats.currentDelayMs);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load anti-spam status:', e);
+    }
+  };
+
   useEffect(() => {
     checkWebhookStatus();
+    loadAntiSpamStatus();
   }, []);
 
-  const handleSaveSettings = (e: React.FormEvent) => {
+  const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isPrincipal) {
       showToast('🔒 មានតែនាយកសាលាប៉ុណ្ណោះដែលអាចផ្លាស់ប្តូរការកំណត់ Bot Token ឬ API Credentials!', 'error');
       return;
     }
-    showToast('បានរក្សាទុកការកំណត់ Telegram Bot Token និង Chat ID រួចរាល់!', 'success');
+    
+    setIsApplyingDelay(true);
+    try {
+      saveTelegramDelayMs(delayIntervalMs);
+      await updateTelegramAntiSpamConfig(delayIntervalMs);
+      await loadAntiSpamStatus();
+      showToast(`បានរក្សាទុកការកំណត់ Bot និងគម្លាតពន្យាពេល ${(delayIntervalMs / 1000).toFixed(1)} វិនាទី រួចរាល់!`, 'success');
+    } catch (err: any) {
+      showToast('បានរក្សាទុកក្នុងម៉ាស៊ីន ប៉ុន្តែបរាជ័យក្នុងការ sync ទៅ Server: ' + err?.message, 'warning');
+    } finally {
+      setIsApplyingDelay(false);
+    }
   };
 
   // Open Message Reply Modal with AI Smart Auto-Suggestions
@@ -1801,6 +1840,194 @@ export const TelegramBotStudio: React.FC = () => {
                       URL: {webhookStatusInfo.url}
                     </div>
                   )}
+                </div>
+              )}
+            </div>
+
+            {/* 3. Anti-Spam Message Rate-Limiter & Transmission Delay Interval Control (Slider) */}
+            <div className="p-5 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl border border-indigo-500/30 space-y-4 shadow-sm">
+              <div className="flex items-center justify-between border-b border-indigo-800/60 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-600/80 border border-indigo-400/30 flex items-center justify-center text-white shrink-0">
+                    <Sliders className="w-4 h-4 text-emerald-300" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                      <span>កម្រិតពន្យាពេលបញ្ជូនសារ (Message Delay Interval Slider)</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                        Anti-Flood Protection
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-indigo-200/75 font-battambang mt-0.5">
+                      លៃតម្រូវរយៈពេលផ្អាកចន្លោះសារនីមួយៗ (Pacing Delay) ដោយផ្ទាល់តាមរយៈ Slider ដើម្បីការពារ Bot ពីការជាប់ Rate Limit (HTTP 429)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <div className="text-lg font-black font-mono text-amber-300">
+                    {(delayIntervalMs / 1000).toFixed(1)} <span className="text-xs font-normal text-indigo-200">វិនាទី</span>
+                  </div>
+                  <div className="text-[10px] font-mono text-slate-400">
+                    ({delayIntervalMs} ms)
+                  </div>
+                </div>
+              </div>
+
+              {/* Dynamic Safety Tier Banner */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-800/80 border border-slate-700/80 text-xs">
+                <div className="flex items-center gap-2">
+                  {delayIntervalMs < 800 ? (
+                    <>
+                      <Zap className="w-4 h-4 text-amber-400 shrink-0" />
+                      <div>
+                        <span className="font-bold text-amber-300">⚡ កម្រិតលឿនរហ័ស (Fast Transmission):</span>
+                        <span className="text-slate-300 ml-1 text-[11px]">ល្អសម្រាប់ការផ្ញើសារទោល ឬតេស្តសាកល្បងបន្ទាន់</span>
+                      </div>
+                    </>
+                  ) : delayIntervalMs <= 2500 ? (
+                    <>
+                      <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div>
+                        <span className="font-bold text-emerald-300">🛡️ កម្រិតណែនាំស្តង់ដារ (Optimal & Safe):</span>
+                        <span className="text-slate-300 ml-1 text-[11px]">ការពារការចាប់ជា Spam និងជៀសវាង Telegram Flood Limit</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4 text-sky-400 shrink-0" />
+                      <div>
+                        <span className="font-bold text-sky-300">🔒 កម្រិតសុវត្ថិភាពខ្ពស់បំផុត (Ultra-Safe Mode):</span>
+                        <span className="text-slate-300 ml-1 text-[11px]">ស័ក្តិសមបំផុតសម្រាប់ការចាក់ផ្សាយសារធំៗទៅកាន់គ្រប់ថ្នាក់រៀន</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <span className="text-[10px] font-mono text-slate-400 shrink-0 hidden sm:inline-block">
+                  Default: 1.5s
+                </span>
+              </div>
+
+              {/* Slider Control with Steppers */}
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between text-xs text-indigo-200">
+                  <label htmlFor="telegram-delay-slider" className="font-semibold cursor-pointer">
+                    ទាញរំកិល Slider ដើម្បីកំណត់រយៈពេលពន្យាពេល៖
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={!isPrincipal || delayIntervalMs <= 300}
+                      onClick={() => setDelayIntervalMs(prev => Math.max(300, prev - 100))}
+                      className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-600 rounded text-[11px] font-mono font-bold text-slate-200 transition-all"
+                    >
+                      -100ms
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!isPrincipal || delayIntervalMs >= 6000}
+                      onClick={() => setDelayIntervalMs(prev => Math.min(6000, prev + 100))}
+                      className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-600 rounded text-[11px] font-mono font-bold text-slate-200 transition-all"
+                    >
+                      +100ms
+                    </button>
+                  </div>
+                </div>
+
+                <div className="relative pt-1 pb-2">
+                  <input
+                    id="telegram-delay-slider"
+                    type="range"
+                    min="300"
+                    max="6000"
+                    step="100"
+                    value={delayIntervalMs}
+                    disabled={!isPrincipal}
+                    onChange={e => setDelayIntervalMs(Number(e.target.value))}
+                    className="w-full h-2.5 bg-slate-700/80 rounded-lg appearance-none cursor-pointer accent-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-hidden"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 font-mono mt-1">
+                    <span>0.3s (លឿន)</span>
+                    <span className="hidden sm:inline">1.0s</span>
+                    <span className="text-emerald-400 font-bold">1.5s (ណែនាំ)</span>
+                    <span className="hidden sm:inline">2.5s</span>
+                    <span className="hidden sm:inline">4.0s</span>
+                    <span>6.0s (យឺត)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick-Select Presets */}
+              <div className="space-y-1.5 pt-1 border-t border-indigo-900/60">
+                <div className="text-[11px] text-indigo-300 font-medium flex items-center justify-between">
+                  <span>កម្រិតកំណត់រហ័ស (Preset Intervals):</span>
+                  {!isPrincipal && <span className="text-rose-400 text-[10px]">🔒 អាចកែសម្រួលបានដោយនាយកសាលា</span>}
+                </div>
+
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                  {[
+                    { label: '០.៨s', ms: 800, desc: 'លឿន' },
+                    { label: '១.២s', ms: 1200, desc: 'ស្តង់ដារ' },
+                    { label: '១.៥s ⭐', ms: 1500, desc: 'ណែនាំ' },
+                    { label: '២.០s', ms: 2000, desc: 'សុវត្ថិភាព' },
+                    { label: '៣.០s', ms: 3000, desc: 'អតិបរមា' },
+                    { label: '៥.០s', ms: 5000, desc: 'យឺតខ្លាំង' },
+                  ].map(preset => (
+                    <button
+                      key={preset.ms}
+                      type="button"
+                      disabled={!isPrincipal}
+                      onClick={() => setDelayIntervalMs(preset.ms)}
+                      className={`px-2 py-1.5 rounded-xl text-xs font-bold border transition-all text-center disabled:opacity-40 disabled:cursor-not-allowed ${
+                        delayIntervalMs === preset.ms
+                          ? 'bg-indigo-600 text-white border-indigo-400 shadow-xs ring-2 ring-indigo-400/50'
+                          : 'bg-slate-800/90 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
+                      }`}
+                    >
+                      <div className="font-mono">{preset.label}</div>
+                      <div className="text-[9px] opacity-75 font-normal">{preset.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Live Anti-Spam Queue Dispatcher Metrics */}
+              {antiSpamStatusInfo && (
+                <div className="p-3 bg-slate-950/60 rounded-xl border border-indigo-900/50 space-y-1.5 text-xs text-slate-300">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-indigo-300">
+                    <span className="flex items-center gap-1">
+                      <Activity className="w-3.5 h-3.5 text-indigo-400" />
+                      ស្ថិតិ Queue Dispatcher បច្ចុប្បន្ន៖
+                    </span>
+                    <button
+                      type="button"
+                      onClick={loadAntiSpamStatus}
+                      className="text-[10px] text-indigo-400 hover:text-indigo-300 underline flex items-center gap-0.5"
+                    >
+                      <RefreshCw className="w-3 h-3" /> Refresh
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[10px]">
+                    <div className="p-1.5 bg-slate-800/60 rounded-lg border border-slate-700/50">
+                      <span className="block text-slate-400">សារបញ្ជូនសរុប</span>
+                      <span className="font-mono font-bold text-emerald-400 text-xs">{antiSpamStatusInfo.stats?.totalSent || 0}</span>
+                    </div>
+                    <div className="p-1.5 bg-slate-800/60 rounded-lg border border-slate-700/50">
+                      <span className="block text-slate-400">ការពារ Retry (429)</span>
+                      <span className="font-mono font-bold text-amber-400 text-xs">{antiSpamStatusInfo.stats?.totalRetries || 0}</span>
+                    </div>
+                    <div className="p-1.5 bg-slate-800/60 rounded-lg border border-slate-700/50">
+                      <span className="block text-slate-400">ជួររង់ចាំ (Queue)</span>
+                      <span className="font-mono font-bold text-sky-400 text-xs">{antiSpamStatusInfo.queueLength || 0}</span>
+                    </div>
+                    <div className="p-1.5 bg-slate-800/60 rounded-lg border border-slate-700/50">
+                      <span className="block text-slate-400">ការបញ្ជូនចុងក្រោយ</span>
+                      <span className="font-mono text-[9px] text-slate-300">
+                        {antiSpamStatusInfo.stats?.lastSentAt ? new Date(antiSpamStatusInfo.stats.lastSentAt).toLocaleTimeString('km-KH') : 'មិនទាន់មាន'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

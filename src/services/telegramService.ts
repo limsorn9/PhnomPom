@@ -9,6 +9,7 @@ export interface TelegramNotificationPayload {
   category?: 'announcement' | 'attendance' | 'event' | 'security' | 'audit' | 'general';
   chatId?: string | number;
   metadata?: Record<string, any>;
+  delayMs?: number;
 }
 
 export interface TelegramSendResult {
@@ -17,6 +18,60 @@ export interface TelegramSendResult {
   messageId?: number;
   error?: string;
   debugCode?: string;
+  antiSpam?: {
+    delayAppliedMs: number;
+    queueRemaining: number;
+    retries: number;
+  };
+}
+
+export interface TelegramAntiSpamStatus {
+  success: boolean;
+  queueLength: number;
+  isProcessing: boolean;
+  defaultDelayMs: number;
+  recommendation: string;
+  stats: {
+    totalSent: number;
+    totalFailed: number;
+    totalRetries: number;
+    totalQueued: number;
+    lastSentAt: string | null;
+    currentDelayMs: number;
+  };
+}
+
+export const DEFAULT_TELEGRAM_DELAY_MS = 1500;
+export const TELEGRAM_DELAY_STORAGE_KEY = 'telegram_bot_delay_interval_ms';
+
+/**
+ * Get configured Telegram transmission delay interval in milliseconds (from localStorage or default)
+ */
+export function getTelegramDelayMs(): number {
+  try {
+    const saved = localStorage.getItem(TELEGRAM_DELAY_STORAGE_KEY);
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed >= 300 && parsed <= 30000) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to read telegram delay from localStorage', e);
+  }
+  return DEFAULT_TELEGRAM_DELAY_MS;
+}
+
+/**
+ * Save configured Telegram transmission delay interval in milliseconds
+ */
+export function saveTelegramDelayMs(delayMs: number): void {
+  try {
+    const clamped = Math.max(300, Math.min(30000, Math.round(delayMs)));
+    localStorage.setItem(TELEGRAM_DELAY_STORAGE_KEY, clamped.toString());
+  } catch (e) {
+    console.warn('Failed to save telegram delay to localStorage', e);
+  }
 }
 
 /**
@@ -35,6 +90,7 @@ export async function sendTelegramNotification(payload: TelegramNotificationPayl
 
     const icon = iconMap[payload.category || 'general'] || '🏫';
     const text = `${icon} *សាលាបឋមសិក្សាភ្នំពុំ - ដំណឹងផ្លូវការ*\n\n📌 *${payload.title}*\n${payload.message}\n\n🕒 _${new Date().toLocaleString('km-KH')}_`;
+    const effectiveDelay = payload.delayMs ?? getTelegramDelayMs();
 
     const res = await fetch('/api/telegram/send-notification', {
       method: 'POST',
@@ -45,6 +101,7 @@ export async function sendTelegramNotification(payload: TelegramNotificationPayl
         category: payload.category,
         title: payload.title,
         metadata: payload.metadata,
+        delayMs: effectiveDelay,
       }),
     });
 
@@ -61,16 +118,23 @@ export async function sendTelegramNotification(payload: TelegramNotificationPayl
 }
 
 /**
- * Send custom markdown message directly to any Telegram chat ID
+ * Send custom markdown message directly to any Telegram chat ID with optional anti-spam delay
  */
-export async function sendTelegramDirectMessage(chatId: string | number, text: string): Promise<TelegramSendResult> {
+export async function sendTelegramDirectMessage(
+  chatId: string | number,
+  text: string,
+  options?: { delayMs?: number; parseMode?: string }
+): Promise<TelegramSendResult> {
   try {
+    const effectiveDelay = options?.delayMs ?? getTelegramDelayMs();
     const res = await fetch('/api/telegram/send-notification', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         text,
         chatId,
+        delayMs: effectiveDelay,
+        parseMode: options?.parseMode || 'Markdown',
       }),
     });
     return await res.json();
@@ -80,6 +144,40 @@ export async function sendTelegramDirectMessage(chatId: string | number, text: s
       message: 'បរាជ័យក្នុងការផ្ញើសារផ្ទាល់',
       error: err?.message || 'Network error',
     };
+  }
+}
+
+/**
+ * Get current Telegram Anti-Spam Queue status and rate limiting metrics
+ */
+export async function getTelegramAntiSpamStatus(): Promise<TelegramAntiSpamStatus | null> {
+  try {
+    const res = await fetch('/api/telegram/anti-spam-status');
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Update server-side Anti-Spam default delay configuration
+ */
+export async function updateTelegramAntiSpamConfig(delayMs: number): Promise<{ success: boolean; message: string }> {
+  try {
+    saveTelegramDelayMs(delayMs);
+    const res = await fetch('/api/telegram/anti-spam-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ delayMs }),
+    });
+    if (!res.ok) {
+      return { success: false, message: 'បរាជ័យក្នុងការធ្វើបច្ចុប្បន្នភាពកម្រិតពន្យាពេលលើ Server' };
+    }
+    const data = await res.json();
+    return { success: true, message: data.message || 'បានកែប្រែដោយជោគជ័យ' };
+  } catch (err: any) {
+    return { success: false, message: err?.message || 'Network error' };
   }
 }
 

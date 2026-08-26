@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useSchool } from '../../context/SchoolContext';
-import { sendTelegramDirectMessage, sendTelegramNotification } from '../../services/telegramService';
+import { sendTelegramDirectMessage, sendTelegramNotification, getTelegramDelayMs } from '../../services/telegramService';
 import { Classroom } from '../../types';
 import {
   Send,
@@ -127,6 +127,11 @@ export const TelegramClassroomGroupRouter: React.FC = () => {
   const [customBroadcastMessage, setCustomBroadcastMessage] = useState<string>('');
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [broadcastProgress, setBroadcastProgress] = useState<{ total: number; sent: number; currentTarget: string; logs: string[] } | null>(null);
+  
+  // Anti-Spam Rate-Limiting & Delay Settings
+  const [antiSpamDelayMs, setAntiSpamDelayMs] = useState<number>(() => getTelegramDelayMs());
+  const [antiSpamCountdownSec, setAntiSpamCountdownSec] = useState<number>(0);
+  const [antiSpamShieldEnabled, setAntiSpamShieldEnabled] = useState<boolean>(true);
 
   // Filtered Classrooms list
   const filteredClassrooms = useMemo(() => {
@@ -355,31 +360,44 @@ export const TelegramClassroomGroupRouter: React.FC = () => {
 
     let successCount = 0;
     const logs: string[] = [];
+    const effectiveDelay = antiSpamShieldEnabled ? Math.max(antiSpamDelayMs, 800) : 400;
 
     for (let i = 0; i < uniqueTargets.length; i++) {
       const target = uniqueTargets[i];
       setBroadcastProgress(prev => prev ? { ...prev, sent: i, currentTarget: target.name } : null);
 
       try {
-        const res = await sendTelegramDirectMessage(target.chatId, generatedBroadcastContent);
+        const res = await sendTelegramDirectMessage(target.chatId, generatedBroadcastContent, {
+          delayMs: effectiveDelay,
+        });
+
         if (res.success) {
           successCount++;
           logs.push(`✅ [ជោគជ័យ] ផ្ញើទៅកាន់ «${target.name}» (Chat ID: ${target.chatId})`);
         } else {
-          logs.push(`⚠️ [បរាជ័យ] «${target.name}» (${target.chatId}): ${res.message}`);
+          logs.push(`⚠️ [បរាជ័យ] «${target.name}» (${target.chatId}): ${res.message || res.error || 'បរាជ័យ'}`);
         }
       } catch (err: any) {
         logs.push(`❌ [កំហុស] «${target.name}»: ${err.message}`);
       }
 
-      // Small delay between telegram messages to prevent rate-limiting
-      await new Promise(r => setTimeout(r, 600));
+      // Anti-Spam Delay Pacing with smooth countdown to next message
+      if (i < uniqueTargets.length - 1) {
+        const stepCount = 10;
+        const stepTime = effectiveDelay / stepCount;
+        for (let s = stepCount; s > 0; s--) {
+          setAntiSpamCountdownSec(Number(((s * stepTime) / 1000).toFixed(1)));
+          await new Promise(r => setTimeout(r, stepTime));
+        }
+        setAntiSpamCountdownSec(0);
+      }
     }
 
     setBroadcastProgress(prev => prev ? { ...prev, sent: uniqueTargets.length, currentTarget: 'បញ្ចប់', logs } : null);
     setIsBroadcasting(false);
+    setAntiSpamCountdownSec(0);
 
-    showToast(`បានចាក់ផ្សាយសារទៅកាន់ ${successCount}/${uniqueTargets.length} ក្រុមដោយជោគជ័យ!`, 'success');
+    showToast(`បានចាក់ផ្សាយសារទៅកាន់ ${successCount}/${uniqueTargets.length} ក្រុមដោយជោគជ័យ! (Anti-Spam Delay: ${(effectiveDelay / 1000).toFixed(1)}s)`, 'success');
   };
 
   return (
@@ -829,7 +847,64 @@ export const TelegramClassroomGroupRouter: React.FC = () => {
                 </div>
               </div>
 
-              {/* Multi-Broadcast Progress Bar */}
+              {/* 4. Anti-Spam Protection & Rate Limiter Settings */}
+              <div className="p-3.5 bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-xl border border-indigo-500/30 space-y-2.5 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-bold text-emerald-200">
+                      ការការពារ Spam (Anti-Spam Delay Protection)
+                    </span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={antiSpamShieldEnabled}
+                      onChange={e => setAntiSpamShieldEnabled(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-8 h-4 bg-slate-700 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-emerald-500"></div>
+                  </label>
+                </div>
+
+                <p className="text-[11px] text-indigo-200/80 font-battambang leading-relaxed">
+                  ពន្យាពេលចន្លោះសារនីមួយៗ ដើម្បីកាត់បន្ថយការចាប់របស់ Telegram ថាជា Bot Spam ឬ Flood Limit។
+                </p>
+
+                {antiSpamShieldEnabled && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-[11px] text-slate-300">
+                      <span>កម្រិតពន្យាពេល (Pacing Delay):</span>
+                      <span className="font-mono font-bold text-amber-300">{(antiSpamDelayMs / 1000).toFixed(1)} វិនាទី</span>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[
+                        { label: '១.០s', ms: 1000, desc: 'លឿន' },
+                        { label: '១.៥s ⭐', ms: 1500, desc: 'ណែនាំ' },
+                        { label: '២.០s', ms: 2000, desc: 'សុវត្ថិភាព' },
+                        { label: '៣.០s', ms: 3000, desc: 'អតិបរមា' },
+                      ].map(preset => (
+                        <button
+                          key={preset.ms}
+                          type="button"
+                          onClick={() => setAntiSpamDelayMs(preset.ms)}
+                          className={`px-2 py-1.5 rounded-lg text-xs font-bold border transition-all text-center ${
+                            antiSpamDelayMs === preset.ms
+                              ? 'bg-indigo-600 text-white border-indigo-400 shadow-xs ring-1 ring-indigo-400'
+                              : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700'
+                          }`}
+                        >
+                          <div>{preset.label}</div>
+                          <div className="text-[9px] opacity-75 font-normal">{preset.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Multi-Broadcast Progress Bar & Live Anti-Spam Delay Countdown */}
               {broadcastProgress && (
                 <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-200 space-y-2">
                   <div className="flex items-center justify-between text-xs font-bold text-indigo-900">
@@ -842,6 +917,15 @@ export const TelegramClassroomGroupRouter: React.FC = () => {
                       style={{ width: `${(broadcastProgress.sent / (broadcastProgress.total || 1)) * 100}%` }}
                     />
                   </div>
+
+                  {/* Real-time Anti-Spam countdown between broadcasts */}
+                  {antiSpamCountdownSec > 0 && (
+                    <div className="flex items-center justify-center gap-2 py-1 px-2.5 bg-amber-100/90 border border-amber-300 rounded-lg text-amber-900 text-xs font-bold animate-pulse">
+                      <Clock className="w-3.5 h-3.5 text-amber-700" />
+                      <span>🛡️ កំពុងពន្យាពេល Anti-Spam៖ <b>{antiSpamCountdownSec} វិនាទី</b> មុននឹងផ្ញើទៅក្រុមបន្ទាប់...</span>
+                    </div>
+                  )}
+
                   {broadcastProgress.logs.length > 0 && (
                     <div className="max-h-24 overflow-y-auto space-y-0.5 text-[10px] font-mono text-slate-700 bg-white p-2 rounded border border-indigo-100">
                       {broadcastProgress.logs.map((log, idx) => (
