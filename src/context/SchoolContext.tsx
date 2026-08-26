@@ -3640,6 +3640,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!currentUser) return false;
     const role = currentUser.role;
 
+    // Super Admin Hub (បង្កើតសាលារៀនថ្មី និងគ្រប់គ្រងស្ថាប័នទូទាំងប្រទេស) គឺសម្រាប់តែ Super Admin ប៉ុណ្ណោះ
+    if (tab === 'super_admin_hub') {
+      return role === 'super_admin';
+    }
+
+    // នាយកសាលា (Director) និង Super Admin មានសិទ្ធិពេញលេញលើគ្រប់ផ្នែកទាំងអស់នៃកម្មវិធី
     if (role === 'super_admin' || role === 'director') return true;
 
     if (tab === 'telegram_bot') return true;
