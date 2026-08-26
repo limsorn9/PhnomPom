@@ -196,6 +196,9 @@ interface SchoolContextType {
   sendPasswordResetCode: (
     email: string
   ) => Promise<{ success: boolean; message: string; debugCode?: string; sentViaTelegram?: boolean }>;
+  updateCurrentUserProfile: (updatedFields: Partial<AppUser>) => { success: boolean; message: string };
+  requestPasswordApprovalFromDirector: (reason: 'change_password' | 'forgot_password', proposedNewPassword?: string) => { success: boolean; message: string };
+  approveDirectorPasswordRequest: (notificationId: string) => { success: boolean; message: string };
 
   // Notifications
   notifications: SystemNotification[];
@@ -3502,6 +3505,66 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
+  const updateCurrentUserProfile = (updatedFields: Partial<AppUser>) => {
+    if (!currentUser) return { success: false, message: 'មិនមានអ្នកប្រើប្រាស់កំពុងចូលស្ថាប័នទេ' };
+    const finalUpdates = { ...updatedFields };
+    if (currentUser.role === 'student') {
+      delete finalUpdates.avatarUrl; // Students cannot freely change photo
+    }
+
+    const updatedUser = { ...currentUser, ...finalUpdates };
+    setCurrentUser(updatedUser);
+    setAppUsers(prev => prev.map(u => (u.id === currentUser.id ? updatedUser : u)));
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_current_user`, JSON.stringify(updatedUser));
+    return { success: true, message: 'បានកែប្រែប្រវត្តិរូបផ្ទាល់ខ្លួនជោគជ័យ!' };
+  };
+
+  const requestPasswordApprovalFromDirector = (reason: 'change_password' | 'forgot_password', proposedNewPassword?: string) => {
+    if (!currentUser) return { success: false, message: 'មិនមានអ្នកប្រើប្រាស់' };
+    
+    addNotification({
+      title: `ស្នើសុំអនុម័តពាក្យសម្ងាត់ពី ${currentUser.nameKhmer}`,
+      message: `អ្នកប្រើប្រាស់ ${currentUser.nameKhmer} (តួនាទី: ${currentUser.role.toUpperCase()}) បានស្នើសុំ ${reason === 'forgot_password' ? 'ភ្លេចលេខសម្ងាត់' : 'កែប្រែលេខសម្ងាត់'}.`,
+      type: 'password_reset',
+      targetRole: 'director',
+      priority: 'urgent',
+      meta: {
+        requesterUserId: currentUser.id,
+        requesterName: currentUser.nameKhmer,
+        requesterRole: currentUser.role,
+        reason,
+        proposedNewPassword: proposedNewPassword || ''
+      }
+    });
+
+    return { success: true, message: 'បានផ្ញើសារស្នើសុំទៅកាន់នាយកសាលាដោយជោគជ័យ!' };
+  };
+
+  const approveDirectorPasswordRequest = (notificationId: string) => {
+    const notif = notifications.find(n => n.id === notificationId);
+    if (!notif || !notif.meta) return { success: false, message: 'រកមិនឃើញសេចក្តីជូនដំណឹងនេះទេ' };
+
+    const { requesterUserId, proposedNewPassword, reason } = notif.meta;
+    if (!requesterUserId) return { success: false, message: 'រកមិនឃើញអត្តសញ្ញាណអ្នកស្នើសុំទេ' };
+
+    const newPass = proposedNewPassword || 'password123';
+    setAppUsers(prev =>
+      prev.map(u => (u.id === requesterUserId ? { ...u, password: newPass, passwordUpdatedAt: new Date().toISOString() } : u))
+    );
+
+    markNotificationRead(notificationId);
+
+    addNotification({
+      title: 'ការស្នើសុំពាក្យសម្ងាត់ត្រូវបានអនុម័ត',
+      message: `នាយកសាលាបានអនុម័តការស្នើសុំ${reason === 'forgot_password' ? 'ភ្លេចលេខសម្ងាត់' : 'កែប្រែលេខសម្ងាត់'}របស់អ្នករួចរាល់ហើយ។ ពាក្យសម្ងាត់ថ្មីរបស់អ្នកគឺ: ${newPass}`,
+      type: 'info',
+      targetUserId: requesterUserId
+    });
+
+    showToast('បានអនុម័តការស្នើសុំពាក្យសម្ងាត់ជោគជ័យ!', 'success');
+    return { success: true, message: 'បានអនុម័តការស្នើសុំពាក្យសម្ងាត់ជោគជ័យ!' };
+  };
+
   const unreadNotifCount = (notifications || []).filter(n => {
     if (n.read) return false;
     if (!currentUser) return false;
@@ -4632,6 +4695,9 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         dispatchNotification,
         dispatchScoreDeadlineAlert,
         dispatchSchoolEventAlert,
+        updateCurrentUserProfile,
+        requestPasswordApprovalFromDirector,
+        approveDirectorPasswordRequest,
         isCloudSyncing,
         lastCloudSyncTime,
         syncAllToCloud,

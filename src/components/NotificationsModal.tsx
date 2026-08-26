@@ -39,7 +39,8 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({ isOpen, 
     setActiveTab,
     dispatchNotification,
     dispatchScoreDeadlineAlert,
-    dispatchSchoolEventAlert
+    dispatchSchoolEventAlert,
+    approveDirectorPasswordRequest
   } = useSchool();
 
   const [activeFilter, setActiveFilter] = useState<'all' | 'score_deadline' | 'password_reset' | 'school_event' | 'alert'>('all');
@@ -457,6 +458,22 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({ isOpen, 
                             </span>
                             <ArrowRight className="w-3 h-3" />
                           </button>
+                        )}
+
+                        {isPasswordReset && currentUser?.role === 'director' && notif.meta?.requesterUserId && (
+                          <div className="pt-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                approveDirectorPasswordRequest(notif.id);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>អនុម័តពាក្យសម្ងាត់ (Approve Password)</span>
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>

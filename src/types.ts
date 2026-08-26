@@ -558,6 +558,12 @@ export interface SystemNotification {
     monthOrSemester?: string;
     eventDate?: string;
     fcmMessageId?: string;
+    requesterUserId?: string;
+    requesterName?: string;
+    requesterRole?: string;
+    reason?: string;
+    proposedNewPassword?: string;
+    [key: string]: any;
   };
 }
 

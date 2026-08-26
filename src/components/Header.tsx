@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { ActiveTab, UserRole } from '../types';
 import { User } from 'firebase/auth';
+import { UserProfileSettingsModal } from './UserProfileSettingsModal';
 import {
   Menu,
   Search,
@@ -98,6 +99,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const tabTitles: Record<ActiveTab, { title: string; subtitle: string; icon: React.ComponentType<{ className?: string }> }> = {
     dashboard: {
@@ -530,6 +532,18 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 <div className="py-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowRoleMenu(false);
+                      setShowProfileModal(true);
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-blue-700 dark:text-blue-400 font-bold mb-1 border border-blue-100 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/20"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-blue-600" />
+                    <span>{language === 'en' ? 'My Account Settings' : '⚙️ ការកំណត់គណនី និងប្រវត្តិរូប'}</span>
+                  </button>
+
                   <p className="text-[10px] font-bold uppercase text-slate-400 px-2 py-1">
                     {language === 'en' ? 'Switch Role' : 'ប្តូរតួនាទីរដ្ឋបាល'}
                   </p>
@@ -624,6 +638,12 @@ export const Header: React.FC<HeaderProps> = ({
       <NotificationsModal
         isOpen={showNotifModal}
         onClose={() => setShowNotifModal(false)}
+      />
+
+      {/* User Profile & Account Settings Modal */}
+      <UserProfileSettingsModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
       />
     </header>
   );
