@@ -57,6 +57,7 @@ import { useFormAutoSave } from '../hooks/useFormAutoSave';
 import { FormAutoSaveIndicator } from './common/FormAutoSaveIndicator';
 import { StudentProgressTrendChart } from './StudentProgressTrendChart';
 import { MultiStudentProfileSummaryPdfModal } from './MultiStudentProfileSummaryPdfModal';
+import { StudentProfilePdfModal } from './StudentProfilePdfModal';
 import { getStudentRiskAlert, getAllStudentRiskAlerts } from '../utils/studentRiskAlerts';
 import { StudentAnalyticsDashboard } from './StudentAnalyticsDashboard';
 
@@ -92,6 +93,7 @@ export const StudentManagement: React.FC = () => {
   const [localSearch, setLocalSearch] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStudentForView, setSelectedStudentForView] = useState<Student | null>(null);
+  const [selectedStudentForPdfPrint, setSelectedStudentForPdfPrint] = useState<Student | null>(null);
 
   // Generate QR Code when viewing a student
   useEffect(() => {
@@ -1197,6 +1199,14 @@ export const StudentManagement: React.FC = () => {
                             <Award className="w-4 h-4" />
                           </button>
                           <button
+                            id={`print-student-${student.id}`}
+                            onClick={() => setSelectedStudentForPdfPrint(student)}
+                            title="បោះពុម្ពប្រវត្តិរូបសិស្សជាទម្រង់ A4 PDF ស្តង់ដារ"
+                            className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
+                          <button
                             id={`view-student-${student.id}`}
                             onClick={() => setSelectedStudentForView(student)}
                             title="មើលប្រវត្តិរូបលម្អិត"
@@ -1283,15 +1293,16 @@ export const StudentManagement: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => window.print()}
-                  className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-                  title="បោះពុម្ពប្រវត្តិរូប"
+                  onClick={() => setSelectedStudentForPdfPrint(selectedStudentForView)}
+                  className="px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="បោះពុម្ពប្រវត្តិរូបសិស្សជាទម្រង់ A4 PDF ស្តង់ដារ"
                 >
-                  <Printer className="w-5 h-5" />
+                  <Printer className="w-4 h-4" />
+                  <span className="hidden sm:inline">បោះពុម្ព A4 PDF</span>
                 </button>
                 <button
                   onClick={() => setSelectedStudentForView(null)}
-                  className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                  className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1657,6 +1668,19 @@ export const StudentManagement: React.FC = () => {
 
       {/* Roster Mode End */}
       </>
+      )}
+
+      {/* Individual Student Profile A4 PDF Modal */}
+      {selectedStudentForPdfPrint && (
+        <StudentProfilePdfModal
+          student={selectedStudentForPdfPrint}
+          scores={scores}
+          dailyAttendance={attendanceRecords}
+          schoolProfile={schoolProfile}
+          badges={getStudentBadges(selectedStudentForPdfPrint.id)}
+          totalBadgePoints={getStudentTotalPoints(selectedStudentForPdfPrint.id)}
+          onClose={() => setSelectedStudentForPdfPrint(null)}
+        />
       )}
 
       {/* Student Badge Showcase Modal */}
