@@ -265,6 +265,8 @@ export interface Classroom {
   homeroomTeacherName: string;
   academicYear: string;
   capacity: number;
+  telegramChatId?: string; // Telegram Group Chat ID e.g. "-10023456789"
+  telegramGroupName?: string; // e.g. "ក្រុមតេលេក្រាម ថ្នាក់ទី១ក"
 }
 
 export interface MonthlySubjectScores {

@@ -314,6 +314,59 @@ export const StudentManagement: React.FC = () => {
     if (bmi < 14) nutritionStatus = 'underweight';
     else if (bmi > 20) nutritionStatus = 'overweight';
 
+    // MoEYS Standard Validation
+    const errors: string[] = [];
+
+    // 1. Khmer Name Validation (Required, at least 2 chars, Khmer script preferred)
+    if (!formData.nameKhmer || formData.nameKhmer.trim().length < 2) {
+      errors.push('សូមបញ្ចូលគោត្តនាម និងនាមសិស្សជាភាសាខ្មែរ (យ៉ាងហោចណាស់ ២ តួអក្សរ)');
+    }
+
+    // 2. Date of Birth & MoEYS Primary School Age Validation (Normally 5 to 16 years old)
+    if (!formData.dob) {
+      errors.push('សូមជ្រើសរើសថ្ងៃខែឆ្នាំកំណើតរបស់សិស្ស');
+    } else {
+      const birthDate = new Date(formData.dob);
+      const today = new Date();
+      if (isNaN(birthDate.getTime())) {
+        errors.push('ថ្ងៃខែឆ្នាំកំណើតមិនត្រឹមត្រូវតាមទម្រង់');
+      } else {
+        const ageInYears = today.getFullYear() - birthDate.getFullYear();
+        if (birthDate > today) {
+          errors.push('ថ្ងៃខែឆ្នាំកំណើតមិនអាចលើសពីថ្ងៃបច្ចុប្បន្នបានទេ');
+        } else if (ageInYears < 5) {
+          errors.push(`អាយុសិស្សតូចពេកសម្រាប់បឋមសិក្សា (អាយុ ${ageInYears} ឆ្នាំ - ស្តង់ដារក្រសួងគឺចាប់ពី ៦ ឆ្នាំឡើង)`);
+        } else if (ageInYears > 18) {
+          errors.push(`អាយុសិស្សលើសពី ១៨ ឆ្នាំ សូមពិនិត្យមើលថ្ងៃខែឆ្នាំកំណើតឡើងវិញ`);
+        }
+      }
+    }
+
+    // 3. Grade & Section Validation
+    if (!formData.grade || formData.grade < 1 || formData.grade > 6) {
+      errors.push('សូមជ្រើសរើសកម្រិតថ្នាក់ពី ថ្នាក់ទី១ ដល់ ថ្នាក់ទី៦');
+    }
+
+    if (!formData.section || formData.section.trim().length === 0) {
+      errors.push('សូមបញ្ជាក់បន្ទប់/ផ្នែក (ឧ. ក, ខ, គ)');
+    }
+
+    // 4. Guardian / Parent Contact Validation
+    const contactPhone = formData.guardianPhone || formData.phone;
+    if (contactPhone && contactPhone.trim()) {
+      // Basic phone format check: digits, spaces, dashes (8-12 digits)
+      const cleanPhone = contactPhone.replace(/[\s\-\.]/g, '');
+      if (!/^\+?[0-9]{8,15}$/.test(cleanPhone)) {
+        errors.push('លេខទូរស័ព្ទទាក់ទងមិនត្រឹមត្រូវតាមទម្រង់ (ឧ. 012 345 678)');
+      }
+    }
+
+    // If validation errors exist, notify user and prevent saving
+    if (errors.length > 0) {
+      showToast(`⚠️ សូមបំពេញទិន្នន័យឱ្យបានត្រឹមត្រូវតាមស្តង់ដារក្រសួង៖\n• ${errors.join('\n• ')}`, 'error');
+      return;
+    }
+
     const pobFormatted = [formData.pobVillage && `ភូមិ${formData.pobVillage}`, formData.pobCommune && `ឃុំ${formData.pobCommune}`, formData.pobDistrict && `ស្រុក${formData.pobDistrict}`, formData.pobProvince].filter(Boolean).join(' ') || 'ខេត្តបាត់ដំបង';
     const addressFormatted = [formData.currentHouseNumber && `ផ្ទះលេខ${formData.currentHouseNumber}`, formData.currentStreetNumber && `ផ្លូវ${formData.currentStreetNumber}`, formData.currentVillage && `ភូមិ${formData.currentVillage}`, formData.currentCommune && `ឃុំ${formData.currentCommune}`, formData.currentDistrict && `ស្រុក${formData.currentDistrict}`, formData.currentProvince].filter(Boolean).join(' ') || 'ស្រុកភ្នំព្រឹក ខេត្តបាត់ដំបង';
 
@@ -668,10 +721,10 @@ export const StudentManagement: React.FC = () => {
                 setFormData(initialFormState);
                 setIsAddModalOpen(true);
               }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95"
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
             >
               <UserPlus className="w-4 h-4" />
-              <span>+ បញ្ចូលសិស្សថ្មី</span>
+              <span>+ ចុះឈ្មោះសិស្សថ្មី (MoEYS)</span>
             </button>
           </div>
         </div>
@@ -1644,10 +1697,10 @@ export const StudentManagement: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-bold font-moul">
-                    {editingStudent ? 'កែប្រែព័ត៌មានសិស្ស' : 'បញ្ចូលសិស្សថ្មីក្នុងប្រព័ន្ធ'}
+                    {editingStudent ? 'កែប្រែព័ត៌មានសិស្ស' : 'ទម្រង់ចុះឈ្មោះសិស្សថ្មី (MoEYS Standard)'}
                   </h3>
                   <p className="text-xs text-blue-100">
-                    ទម្រង់ប្រមូលទិន្នន័យសិស្សលម្អិតស្របតាមទម្រង់ក្រសួងអប់រំ យុវជន និងកីឡា (MoEYS)
+                    ទម្រង់ប្រមូលទិន្នន័យសិស្សលម្អិតស្របតាមស្តង់ដារក្រសួងអប់រំ យុវជន និងកីឡា (មានការផ្ទៀងផ្ទាត់ Validation ស្វ័យប្រវត្តិ)
                   </p>
                 </div>
               </div>

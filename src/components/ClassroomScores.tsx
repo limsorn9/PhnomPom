@@ -4,6 +4,7 @@ import { useSchool } from '../context/SchoolContext';
 import { StudentScoreRecord, MonthlySubjectScores, Student, ExamSubject } from '../types';
 import { exportScoresToGoogleSheets } from '../services/googleSheets';
 import { getAccessToken, googleSignIn } from '../services/googleAuth';
+import { sendTelegramDirectMessage } from '../services/telegramService';
 import {
   BookOpen,
   School,
@@ -34,7 +35,8 @@ import {
   Send,
   Check,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Zap
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -419,6 +421,64 @@ export const ClassroomScores: React.FC = () => {
     }
   };
 
+  // Telegram Group Score Broadcast Handler
+  const [isBroadcastingTg, setIsBroadcastingTg] = useState(false);
+
+  const handleBroadcastClassScoresToTelegram = async () => {
+    const currentClassroom = classrooms.find(c => c.grade === selectedGrade && c.section === selectedSection);
+    const targetChatId = currentClassroom?.telegramChatId || '240224709';
+    const groupLabel = currentClassroom?.telegramGroupName || `ក្រុមតេលេក្រាម ថ្នាក់ទី${selectedGrade}${selectedSection}`;
+
+    if (activeScores.length === 0) {
+      showToast('⚠️ មិនទាន់មានពិន្ទុសម្រាប់ថ្នាក់នេះក្នុងខែនេះនៅឡើយទេ!', 'error');
+      return;
+    }
+
+    setIsBroadcastingTg(true);
+    try {
+      const sortedScores = [...activeScores].sort((a, b) => b.averageScore - a.averageScore);
+      const top3 = sortedScores.slice(0, 3);
+      const passCount = sortedScores.filter(s => s.resultStatus === 'ជាប់' || s.averageScore >= 5).length;
+      const passRate = sortedScores.length > 0 ? Math.round((passCount / sortedScores.length) * 100) : 100;
+
+      let honorList = '';
+      if (top3.length > 0) {
+        honorList = `\n🏆 *កិត្តិយសសិស្សឆ្នើមប្រចាំថ្នាក់៖*\n` +
+          top3.map((st, i) => {
+            const medal = i === 0 ? '🥇 លេខ១' : i === 1 ? '🥈 លេខ២' : '🥉 លេខ៣';
+            return `${medal}៖ *${st.studentNameKhmer}* (មធ្យមភាគ: ${st.averageScore.toFixed(2)} | និទ្ទេស: ${st.gradeLetter || 'A'})`;
+          }).join('\n');
+      }
+
+      const tgMessage = `📊 *${schoolProfile.nameKhmer} - ប្រកាសលទ្ធផលប្រឡង*\n\n` +
+        `🏫 *ថ្នាក់ទី៖* ថ្នាក់ទី ${selectedGrade}${selectedSection} (${groupLabel})\n` +
+        `📅 *ប្រចាំខែ៖* ${selectedMonth} (ឆ្នាំសិក្សា ${selectedAcademicYear})\n` +
+        `👨‍🏫 *គ្រូបន្ទុកថ្នាក់៖* ${homeroomTeacher?.nameKhmer || 'លោកគ្រូ/អ្នកគ្រូបន្ទុកថ្នាក់'}\n` +
+        `📈 *ស្ថិតិពិន្ទុ៖* សិស្សជាប់ ${passCount}/${sortedScores.length} នាក់ (អត្រាជាប់ ${passRate}%)\n` +
+        honorList + `\n\n` +
+        `📱 អាណាព្យាបាលសិស្សអាចចូលពិនិត្យសៀវភៅតាមដាន និងពិន្ទុលម្អិតលើគេហទំព័រសាលារៀនបានតាមរយៈគណនីសិស្ស។\n\n` +
+        `🙏 សូមអរគុណ និងសូមអបអរសាទរដល់ប្អូនៗទាំងអស់! ✨\n` +
+        `✍️ _នាយកសាលា៖ ${schoolProfile.principalNameKhmer || 'គណៈគ្រប់គ្រងសាលា'}_`;
+
+      const res = await sendTelegramDirectMessage(targetChatId, tgMessage);
+      if (res.success) {
+        showToast(`🎉 បានចាក់ផ្សាយលទ្ធផលប្រឡងទៅកាន់ «${groupLabel}» ជោគជ័យ!`, 'success');
+        addActivityLog({
+          userName: currentUser?.nameKhmer || 'នាយកសាលា',
+          role: currentUser?.role || 'director',
+          action: 'ចាក់ផ្សាយលទ្ធផលតាម Telegram',
+          details: `បានចាក់ផ្សាយលទ្ធផលថ្នាក់ទី ${selectedGrade}${selectedSection} ខែ ${selectedMonth} ទៅ Telegram (Chat ID: ${targetChatId})`
+        });
+      } else {
+        showToast(`បរាជ័យក្នុងការចាក់ផ្សាយ៖ ${res.message || 'Error'}`, 'error');
+      }
+    } catch (err: any) {
+      showToast(`កំហុសបណ្តាញ៖ ${err.message}`, 'error');
+    } finally {
+      setIsBroadcastingTg(false);
+    }
+  };
+
   return (
     <div className="space-y-6 font-kantumruy">
       {/* Grade and Class Header Selector */}
@@ -507,7 +567,7 @@ export const ClassroomScores: React.FC = () => {
         </div>
 
         {/* Class Details Bar & Release Toggle */}
-        <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+        <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
           <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center justify-between">
             <span className="text-slate-500">គ្រូបន្ទុកថ្នាក់:</span>
             <span className="font-bold text-slate-900">
@@ -535,18 +595,39 @@ export const ClassroomScores: React.FC = () => {
           }`}>
             <div className="flex items-center gap-1.5">
               {isClassReleased ? <Unlock className="w-4 h-4 text-emerald-600" /> : <Lock className="w-4 h-4 text-amber-600" />}
-              <span className="font-bold">{isClassReleased ? 'បានផ្សាយទៅសិស្ស' : 'លទ្ធផលចាក់សោ'}</span>
+              <span className="font-bold">{isClassReleased ? 'បានផ្សាយ' : 'លទ្ធផលចាក់សោ'}</span>
             </div>
             {(currentUser?.role === 'teacher' || currentUser?.role === 'director' || currentUser?.role === 'secretary') && (
               <button
                 onClick={() => toggleReleaseClassResults(selectedGrade, selectedSection, selectedMonth, selectedAcademicYear)}
-                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition-colors ${
+                className={`px-2 py-1 rounded-lg font-bold text-[11px] shadow-sm transition-colors ${
                   isClassReleased
                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                     : 'bg-amber-600 hover:bg-amber-700 text-white'
                 }`}
               >
-                {isClassReleased ? 'បិទការផ្សាយ' : 'ផ្សព្វផ្សាយ'}
+                {isClassReleased ? 'បិទ' : 'ផ្សព្វផ្សាយ'}
+              </button>
+            )}
+          </div>
+
+          {/* Broadcast to Telegram Group */}
+          <div className="p-2.5 bg-indigo-50/80 border border-indigo-200 rounded-xl flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Zap className="w-4 h-4 text-indigo-600 shrink-0" />
+              <span className="font-bold text-indigo-950 truncate">
+                Telegram ថ្នាក់ {selectedGrade}{selectedSection}
+              </span>
+            </div>
+            {(currentUser?.role === 'teacher' || currentUser?.role === 'director' || currentUser?.role === 'secretary') && (
+              <button
+                onClick={handleBroadcastClassScoresToTelegram}
+                disabled={isBroadcastingTg || activeScores.length === 0}
+                title="ចាក់ផ្សាយលទ្ធផលប្រឡងប្រចាំខែនេះទៅក្រុម Telegram ប្រចាំថ្នាក់"
+                className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-bold text-[11px] shadow-xs flex items-center gap-1 transition-all shrink-0"
+              >
+                {isBroadcastingTg ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                <span>ចាក់ផ្សាយ</span>
               </button>
             )}
           </div>

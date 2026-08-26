@@ -5,6 +5,7 @@ import { TelegramTemplateManager } from './telegram/TelegramTemplateManager';
 import { TelegramBotAnalytics } from './telegram/TelegramBotAnalytics';
 import { TelegramAutomatedTasks } from './telegram/TelegramAutomatedTasks';
 import { TelegramSmartAutoResponder, DEFAULT_AUTO_RESPONDER_RULES, AutoResponderRule } from './telegram/TelegramSmartAutoResponder';
+import { TelegramClassroomGroupRouter } from './telegram/TelegramClassroomGroupRouter';
 import { 
   Send, 
   Bot, 
@@ -91,7 +92,7 @@ interface BotCommandConfig {
 
 export const TelegramBotStudio: React.FC = () => {
   const { currentUser, schoolProfile, students, teachers, showToast } = useSchool();
-  const [activeTab, setActiveTab] = useState<'chat' | 'commands' | 'webhook_activity' | 'auto_responder' | 'templates' | 'analytics' | 'automated_tasks' | 'settings'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'commands' | 'webhook_activity' | 'auto_responder' | 'group_router' | 'templates' | 'analytics' | 'automated_tasks' | 'settings'>('chat');
   
   // Strict Principal Access Check
   const isPrincipal = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
@@ -837,6 +838,21 @@ export const TelegramBotStudio: React.FC = () => {
           Smart Auto-Responder (AI)
           <span className="bg-purple-100 text-purple-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
             AI
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('group_router')}
+          className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'group_router'
+              ? 'bg-white text-indigo-600 border-b-2 border-indigo-600 shadow-sm'
+              : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5 text-amber-500" />
+          ចាក់ផ្សាយតាមថ្នាក់ (Router)
+          <span className="bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+            ថ្នាក់ទី១-៦
           </span>
         </button>
 
@@ -1600,6 +1616,9 @@ export const TelegramBotStudio: React.FC = () => {
 
       {/* Tab: Smart Auto-Responder */}
       {activeTab === 'auto_responder' && <TelegramSmartAutoResponder />}
+
+      {/* Tab: Classroom & Group Channels Router */}
+      {activeTab === 'group_router' && <TelegramClassroomGroupRouter />}
 
       {/* Tab: Template Manager */}
       {activeTab === 'templates' && <TelegramTemplateManager />}
