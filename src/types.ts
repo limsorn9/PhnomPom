@@ -569,6 +569,8 @@ export interface SystemNotification {
 }
 
 export type ActiveTab = 
+  | 'super_admin_hub'
+  | 'telegram_bot'
   | 'dashboard'
   | 'homeroom_dashboard'
   | 'teacher_agenda'

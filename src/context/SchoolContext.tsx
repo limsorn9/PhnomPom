@@ -3586,7 +3586,9 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!currentUser) return false;
     const role = currentUser.role;
 
-    if (role === 'director') return true;
+    if (role === 'super_admin' || role === 'director') return true;
+
+    if (tab === 'telegram_bot') return true;
 
     if (role === 'secretary') {
       return ['dashboard', 'homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'library', 'learning_resources'].includes(tab);

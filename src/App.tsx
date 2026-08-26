@@ -34,6 +34,8 @@ import { QuickSearchSpotlightModal } from './components/QuickSearchSpotlightModa
 import { AuthScreen } from './components/AuthScreen';
 import { StandaloneHtmlExportModal } from './components/StandaloneHtmlExportModal';
 import { SchoolProfileModal } from './components/SchoolProfileModal';
+import { SuperAdminHub } from './components/SuperAdminHub';
+import { TelegramBotStudio } from './components/TelegramBotStudio';
 import { initAuth, googleSignIn, logout } from './services/googleAuth';
 import { User } from 'firebase/auth';
 import {
@@ -149,6 +151,8 @@ const MainLayout: React.FC = () => {
         {/* Dynamic Main Workspace Container */}
         <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 lg:p-6 pb-20 lg:pb-8 space-y-6">
           {/* Render based on RBAC & Active Tab */}
+          {activeTab === 'super_admin_hub' && canAccessTab('super_admin_hub') && <SuperAdminHub />}
+          {activeTab === 'telegram_bot' && canAccessTab('telegram_bot') && <TelegramBotStudio />}
           {activeTab === 'dashboard' && canAccessTab('dashboard') && <Dashboard />}
           {activeTab === 'ai_teacher' && canAccessTab('ai_teacher') && <AITeacherHub />}
           {activeTab === 'activity_logs' && canAccessTab('activity_logs') && <RecentActivityDashboard />}

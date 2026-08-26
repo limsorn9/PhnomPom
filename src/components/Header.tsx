@@ -47,7 +47,9 @@ import {
   CalendarDays,
   Laptop,
   Users2,
-  FolderKanban
+  FolderKanban,
+  ShieldCheck,
+  Bot
 } from 'lucide-react';
 import { NotificationsModal } from './NotificationsModal';
 import { OfflineSyncStatusBadge } from './OfflineSyncStatusBadge';
@@ -236,6 +238,16 @@ export const Header: React.FC<HeaderProps> = ({
       title: language === 'en' ? 'School Settings' : 'ការកំណត់ព័ត៌មានសាលា',
       subtitle: language === 'en' ? 'School profile and administrative settings' : 'កែប្រែព័ត៌មានរដ្ឋបាល និងទីតាំងសាលារៀន',
       icon: Settings
+    },
+    super_admin_hub: {
+      title: 'Super Admin Hub',
+      subtitle: 'ការគ្រប់គ្រងស្ថាប័ន និងនាយកសាលាទូទាំងប្រទេស (@limsorn - 240224709)',
+      icon: ShieldCheck
+    },
+    telegram_bot: {
+      title: 'Telegram Bot Studio',
+      subtitle: 'តេលេក្រាមឆាតបតផ្ទាល់ក្នុងកម្មវិធី (@SornBot - 240224709)',
+      icon: Bot
     },
   };
 

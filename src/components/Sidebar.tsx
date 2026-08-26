@@ -41,7 +41,8 @@ import {
   CalendarDays,
   Laptop,
   FolderKanban,
-  Users2
+  Users2,
+  Bot
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { ThemeToggleSwitch } from './common/ThemeToggleSwitch';
@@ -143,6 +144,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
     badge?: number | string;
     badgeColor?: string;
   }[] = [
+    ...(currentUser?.role === 'super_admin' ? [{
+      id: 'super_admin_hub' as ActiveTab,
+      labelKh: '👑 Super Admin Hub',
+      labelEn: 'Super Admin Hub',
+      icon: ShieldCheck,
+      badge: 'Admin',
+      badgeColor: 'bg-purple-100 text-purple-800 font-bold border border-purple-300'
+    }] : []),
+    {
+      id: 'telegram_bot' as ActiveTab,
+      labelKh: '🤖 Telegram Bot Studio',
+      labelEn: 'Telegram Bot',
+      icon: Bot,
+      badge: 'Bot 💬',
+      badgeColor: 'bg-sky-100 text-sky-800 font-bold border border-sky-300'
+    },
     {
       id: 'dashboard',
       labelKh: 'ផ្ទាំងគ្រប់គ្រងទូទៅ',
