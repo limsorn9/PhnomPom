@@ -25,7 +25,8 @@ import {
   Activity,
   BarChart3,
   Trophy,
-  Share2
+  Share2,
+  X
 } from 'lucide-react';
 import { LibraryBookCategory } from '../types';
 import { StudentProgressAnalysis } from './StudentProgressAnalysis';
@@ -34,6 +35,8 @@ import { StudentRankingSystem } from './StudentRankingSystem';
 export const StudentPortal: React.FC = () => {
   const {
     currentUser,
+    previousTeacherUser,
+    switchToTeacherWithPassword,
     students,
     scores,
     attendanceRecords,
@@ -53,6 +56,8 @@ export const StudentPortal: React.FC = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showTeacherPasswordModal, setShowTeacherPasswordModal] = useState(false);
+  const [teacherPasswordInput, setTeacherPasswordInput] = useState('');
 
   // Library browse state in Student Portal (Strictly View-Only)
   const [selectedLibCategory, setSelectedLibCategory] = useState<string>('all');
@@ -203,6 +208,14 @@ export const StudentPortal: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowTeacherPasswordModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold shadow-lg transition-all cursor-pointer animate-pulse"
+            >
+              <span>🔄 ត្រឡប់ទៅគណនីគ្រូវិញ</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setShowPasswordModal(true)}
@@ -927,6 +940,85 @@ export const StudentPortal: React.FC = () => {
                   className="px-4 py-2 text-xs font-bold text-white bg-blue-700 hover:bg-blue-800 rounded-xl shadow-xs cursor-pointer"
                 >
                   រក្សាទុកពាក្យសម្ងាត់
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Teacher Password Verification Modal for Switching Back */}
+      {showTeacherPasswordModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+                  🔐
+                </div>
+                <div>
+                  <h3 className="font-moul text-sm text-slate-800 dark:text-slate-100">
+                    ផ្ទៀងផ្ទាត់ពាក្យសម្ងាត់គ្រូ
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    សូមបញ្ចូលពាក្យសម្ងាត់គណនីគ្រូ ដើម្បីត្រឡប់ទៅគណនីគ្រូវិញ
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowTeacherPasswordModal(false);
+                  setTeacherPasswordInput('');
+                }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const res = switchToTeacherWithPassword(teacherPasswordInput);
+                if (res.success) {
+                  setShowTeacherPasswordModal(false);
+                  setTeacherPasswordInput('');
+                } else {
+                  showToast(res.message || 'ពាក្យសម្ងាត់គ្រូមិនត្រឹមត្រូវទេ', 'error');
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  ពាក្យសម្ងាត់គណនីគ្រូ (Teacher Password)
+                </label>
+                <input
+                  type="password"
+                  placeholder="បញ្ចូលពាក្យសម្ងាត់គ្រូ..."
+                  value={teacherPasswordInput}
+                  onChange={(e) => setTeacherPasswordInput(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTeacherPasswordModal(false);
+                    setTeacherPasswordInput('');
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  បោះបង់
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md transition-all cursor-pointer"
+                >
+                  បញ្ជាក់ និងត្រឡប់ទៅគ្រូ
                 </button>
               </div>
             </form>

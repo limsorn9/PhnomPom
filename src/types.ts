@@ -1518,6 +1518,8 @@ export interface TeacherMeetingRecord {
   googleDriveWebViewLink?: string;
   driveSyncedAt?: string;
   status: 'draft' | 'approved' | 'published';
+  creatorId?: string;
+  creatorRole?: string;
   createdAt: string;
   updatedAt: string;
 }

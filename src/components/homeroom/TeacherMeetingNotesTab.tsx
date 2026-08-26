@@ -31,7 +31,11 @@ import {
   UserCheck,
   ArrowRight,
   Send,
-  CalendarCheck
+  CalendarCheck,
+  Minimize2,
+  Maximize2,
+  ChevronRight,
+  ChevronLeft
 } from 'lucide-react';
 
 interface TeacherMeetingNotesTabProps {
@@ -72,6 +76,8 @@ export const TeacherMeetingNotesTab: React.FC<TeacherMeetingNotesTabProps> = ({
   const [syncingMeetingId, setSyncingMeetingId] = useState<string | null>(null);
   const [syncingDriveMeetingId, setSyncingDriveMeetingId] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [isFloatingCollapsed, setIsFloatingCollapsed] = useState(false);
+  const [isFloatingHidden, setIsFloatingHidden] = useState(false);
 
   const TARGET_DRIVE_FOLDER_ID = PRIMARY_SCHOOL_DRIVE_FOLDER_ID; // 1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g
 
@@ -150,9 +156,26 @@ export const TeacherMeetingNotesTab: React.FC<TeacherMeetingNotesTabProps> = ({
     showToast(`បានអនុវត្ត «${tmpl.name}» រួចរាល់!`, 'success');
   };
 
-  // Filtered meetings
+  // Filtered meetings with Role-Based Access Control
   const filteredMeetings = useMemo(() => {
+    const role = currentUser?.role || 'teacher';
+    // Students cannot view meetings at all
+    if (role === 'student') {
+      return [];
+    }
+
     return teacherMeetings.filter(m => {
+      // Role-based visibility check
+      if (role === 'teacher' || role === 'librarian') {
+        // Can only view their own meetings (created by them or where they are the secretary/chairperson matching currentUser)
+        const isOwner = 
+          m.creatorId === currentUser?.id || 
+          (m.secretaryName && currentUser?.nameKhmer && m.secretaryName.includes(currentUser.nameKhmer)) ||
+          (m.chairpersonName && currentUser?.nameKhmer && m.chairpersonName.includes(currentUser.nameKhmer));
+        if (!isOwner) return false;
+      }
+      // director and secretary can view all
+
       const matchesType = filterType === 'all' || m.meetingType === filterType;
       const matchesMonth = filterMonth === 'all' || m.meetingDate.startsWith(filterMonth);
       const matchesSearch =
@@ -164,7 +187,7 @@ export const TeacherMeetingNotesTab: React.FC<TeacherMeetingNotesTabProps> = ({
 
       return matchesType && matchesMonth && matchesSearch;
     });
-  }, [teacherMeetings, filterType, filterMonth, searchTerm]);
+  }, [teacherMeetings, filterType, filterMonth, searchTerm, currentUser]);
 
   // Metrics
   const totalMeetings = teacherMeetings.length;
@@ -228,6 +251,8 @@ export const TeacherMeetingNotesTab: React.FC<TeacherMeetingNotesTabProps> = ({
       isSyncedToGoogleCalendar: editingMeeting?.isSyncedToGoogleCalendar || false,
       googleCalendarEventId: gCalEventId,
       googleCalendarHtmlLink: gCalHtmlLink,
+      creatorId: editingMeeting?.creatorId || currentUser?.id,
+      creatorRole: editingMeeting?.creatorRole || currentUser?.role,
       status: 'approved'
     };
 
@@ -356,7 +381,74 @@ export const TeacherMeetingNotesTab: React.FC<TeacherMeetingNotesTabProps> = ({
   };
 
   return (
-    <div className="space-y-6 font-battambang animate-fadeIn">
+    <div className="space-y-6 font-battambang animate-fadeIn relative">
+      {/* Floating Blurred Collapsible Widget for Mobile & Tablet */}
+      <div className={`fixed bottom-20 right-3 z-40 md:hidden transition-all duration-300 ${isFloatingHidden ? 'translate-x-[calc(100%-2rem)]' : 'translate-x-0'}`}>
+        <div className="bg-slate-900/75 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl p-3 w-[290px] max-w-[calc(100vw-1.5rem)] text-white">
+          <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-white/10">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-white">
+              <CalendarCheck className="w-3.5 h-3.5 text-blue-400" />
+              <span>កំណត់ហេតុប្រជុំ</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setIsFloatingCollapsed(!isFloatingCollapsed)}
+                className="p-1 rounded-md text-slate-300 hover:bg-white/10 transition-colors cursor-pointer"
+                title={isFloatingCollapsed ? "ពង្រីក" : "បង្រួម"}
+              >
+                {isFloatingCollapsed ? <Maximize2 className="w-3 h-3" /> : <Minimize2 className="w-3 h-3" />}
+              </button>
+              <button
+                onClick={() => setIsFloatingHidden(!isFloatingHidden)}
+                className="p-1 rounded-md text-slate-300 hover:bg-white/10 transition-colors cursor-pointer"
+                title={isFloatingHidden ? "បង្ហាញមកវិញ" : "លាក់ទៅគៀន"}
+              >
+                {isFloatingHidden ? <ChevronLeft className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+              </button>
+            </div>
+          </div>
+
+          {!isFloatingCollapsed && (
+            <div className="space-y-2 max-h-[45vh] overflow-y-auto text-[11px]">
+              <div className="bg-white/10 p-2 rounded-lg border border-white/10 flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-white text-[11px]">ប្រជុំសរុប៖ {totalMeetings} លើក</div>
+                  <div className="text-[10px] text-slate-300">សេចក្តីសម្រេច៖ {totalResolutions} ចំណុច</div>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingMeeting(null);
+                    setFormData(initialForm);
+                    setIsAddModalOpen(true);
+                  }}
+                  className="px-2 py-1 rounded-md bg-blue-600 text-white font-bold text-[10px] shadow-xs flex items-center gap-1 cursor-pointer hover:bg-blue-500 transition-colors"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>កត់ត្រាថ្មី</span>
+                </button>
+              </div>
+
+              {teacherMeetings.slice(0, 3).map((m) => (
+                <div key={m.id} className="bg-white/5 p-2 rounded-lg border border-white/10 space-y-1 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-white truncate max-w-[160px] text-[11px]">{m.title}</span>
+                    <span className="text-[9px] text-slate-400">{m.meetingDate}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-300 line-clamp-2">
+                    {m.resolutions?.[0] ? `• ${m.resolutions[0]}` : m.agendas?.[0] || 'គ្មានសេចក្តីសម្រេចបញ្ជាក់'}
+                  </div>
+                </div>
+              ))}
+
+              {teacherMeetings.length === 0 && (
+                <div className="text-center py-2 text-slate-400 italic text-[10px]">
+                  មិនទាន់មានកិច្ចប្រជុំ
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
       {/* Top Banner & Folder ID Link Indicator */}
       <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />

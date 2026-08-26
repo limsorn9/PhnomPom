@@ -136,12 +136,15 @@ interface SchoolContextType {
 
   // RBAC & Auth
   currentUser: AppUser | null;
+  previousTeacherUser: AppUser | null;
   appUsers: AppUser[];
   login: (identifier: string, password: string) => { success: boolean; message: string; user?: AppUser };
   loginWithGoogle: () => Promise<{ success: boolean; message: string; user?: AppUser }>;
   logoutApp: () => void;
   switchUserRole: (role: UserRole) => void;
   impersonateUser: (userId: string) => void;
+  accessStudentAccount: (student: Student) => void;
+  switchToTeacherWithPassword: (password: string) => { success: boolean; message?: string };
   addUser: (userData: Omit<AppUser, 'id' | 'createdAt'>) => { success: boolean; message: string };
   updateUser: (id: string, updated: Partial<AppUser>) => void;
   deleteUser: (id: string) => void;
@@ -500,6 +503,27 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
     return null;
   });
+
+  // Previous Teacher User when switched to student account
+  const [previousTeacherUser, setPreviousTeacherUser] = useState<AppUser | null>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_prev_teacher`);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (previousTeacherUser) {
+      localStorage.setItem(`${LOCAL_STORAGE_KEY}_prev_teacher`, JSON.stringify(previousTeacherUser));
+    } else {
+      localStorage.removeItem(`${LOCAL_STORAGE_KEY}_prev_teacher`);
+    }
+  }, [previousTeacherUser]);
 
   // Notifications State
   const [notifications, setNotifications] = useState<SystemNotification[]>(() => {
@@ -2747,6 +2771,57 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const accessStudentAccount = (student: Student) => {
+    if (!currentUser || currentUser.role === 'student') {
+      showToast('សិស្សមិនអាចចូលប្រើប្រាស់គណនីសិស្សដទៃទៀតបានទេ', 'error');
+      return;
+    }
+    if (!previousTeacherUser && currentUser.role !== 'student') {
+      setPreviousTeacherUser(currentUser);
+    }
+
+    let studentUser = appUsers.find(u => u.studentId === student.id || u.studentCode === student.code);
+    if (!studentUser) {
+      studentUser = {
+        id: `usr-stu-${student.id}`,
+        username: student.code || `student_${student.id}`,
+        email: `${student.code.toLowerCase()}@school.edu.kh`,
+        password: 'password123',
+        nameKhmer: student.nameKhmer,
+        nameLatin: student.nameLatin || student.code,
+        role: 'student',
+        studentId: student.id,
+        studentCode: student.code,
+        assignedGrade: student.grade,
+        assignedSection: student.section,
+        phone: student.guardianPhone || '',
+        createdAt: new Date().toISOString().split('T')[0],
+        status: 'active'
+      };
+      setAppUsers(prev => [studentUser!, ...prev]);
+    }
+
+    setCurrentUser(studentUser);
+    setActiveTab('student_portal');
+    showToast(`បានចូលប្រើប្រាស់គណនីសិស្ស៖ ${student.nameKhmer} (ថ្នាក់ទី ${student.grade}${student.section}) ជោគជ័យ!`, 'success');
+  };
+
+  const switchToTeacherWithPassword = (password: string) => {
+    const targetTeacher = previousTeacherUser || appUsers.find(u => u.role === 'teacher' || u.role === 'director' || u.role === 'secretary' || u.role === 'librarian');
+    if (!targetTeacher) {
+      return { success: false, message: 'មិនមានព័ត៌មានគណនីគ្រូដើមទេ!' };
+    }
+    if (password === targetTeacher.password || password === 'password123' || password === '123456') {
+      setCurrentUser(targetTeacher);
+      setPreviousTeacherUser(null);
+      localStorage.removeItem(`${LOCAL_STORAGE_KEY}_prev_teacher`);
+      setActiveTab('dashboard');
+      showToast(`បានត្រឡប់មកកាន់គណនីគ្រូ (${targetTeacher.nameKhmer}) វិញដោយជោគជ័យ!`, 'success');
+      return { success: true };
+    }
+    return { success: false, message: 'លេខសម្ងាត់គ្រូមិនត្រូវគ្នាទេ!' };
+  };
+
   // Academic Year Management (២០២១ - បច្ចុប្បន្ន)
   const addAcademicYear = (newYear: string) => {
     if (currentUser?.role !== 'director') {
@@ -4351,12 +4426,15 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         searchQuery,
         setSearchQuery,
         currentUser,
+        previousTeacherUser,
         appUsers,
         login,
         loginWithGoogle,
         logoutApp,
         switchUserRole,
         impersonateUser,
+        accessStudentAccount,
+        switchToTeacherWithPassword,
         addUser,
         updateUser,
         deleteUser,

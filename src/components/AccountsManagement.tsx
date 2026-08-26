@@ -323,7 +323,10 @@ export const AccountsManagement: React.FC = () => {
 
   // Filter allowed roles for creation based on hierarchical RBAC
   const isDirector = currentUser?.role === 'director';
+  const isSecretary = currentUser?.role === 'secretary';
+  const isLibrarian = currentUser?.role === 'librarian';
   const isTeacher = currentUser?.role === 'teacher';
+  const isStudent = currentUser?.role === 'student';
 
   const pendingRequestsCount = profileEditRequests.filter(r => r.status === 'pending').length;
 
@@ -331,6 +334,20 @@ export const AccountsManagement: React.FC = () => {
     e.preventDefault();
     if (!newNameKhmer || !newEmail || !newPassword) {
       showToast('សូមបំពេញព័ត៌មានចាំបាច់ឲ្យបានគ្រប់គ្រាន់', 'error');
+      return;
+    }
+
+    // Role creation validation
+    if (isSecretary && (newRole === 'director' || newRole === 'teacher')) {
+      showToast('លេខាធិការមិនមានសិទ្ធិបង្កើតគណនីនាយក ឬគ្រូបង្រៀនឡើយ (បង្កើតបានតែបណ្ណារក្ស និងគណនីផ្សេងទៀត)', 'error');
+      return;
+    }
+    if (isLibrarian || isStudent) {
+      showToast('អ្នកមិនមានសិទ្ធិបង្កើតគណនីអ្នកប្រើប្រាស់ឡើយ', 'error');
+      return;
+    }
+    if (isTeacher && newRole !== 'student') {
+      showToast('គ្រូបង្រៀនមានសិទ្ធិបង្កើតបានតែគណនីសិស្សប៉ុណ្ណោះ', 'error');
       return;
     }
 
@@ -346,12 +363,12 @@ export const AccountsManagement: React.FC = () => {
       password: newPassword,
       nameKhmer: newNameKhmer,
       nameLatin: newNameLatin,
-      role: newRole,
+      role: isTeacher ? 'student' : newRole,
       phone: newPhone,
       staffCode: newStaffCode,
-      studentCode: newRole === 'student' ? newStudentCode : undefined,
-      assignedGrade: newRole === 'teacher' || newRole === 'student' ? newAssignedGrade : undefined,
-      assignedSection: newRole === 'teacher' || newRole === 'student' ? newAssignedSection : undefined,
+      studentCode: (isTeacher || newRole === 'student') ? newStudentCode : undefined,
+      assignedGrade: (isTeacher || newRole === 'student') ? newAssignedGrade : undefined,
+      assignedSection: (isTeacher || newRole === 'student') ? newAssignedSection : undefined,
       status: 'active',
       passwordUpdatedAt: new Date().toISOString()
     };
@@ -834,14 +851,24 @@ export const AccountsManagement: React.FC = () => {
                             </button>
                           )}
 
-                          <button
-                            type="button"
-                            onClick={() => setSelectedUserForEdit(user)}
-                            title="កែប្រែ / ប្តូរពាក្យសម្ងាត់"
-                            className="p-1.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
+                          {/* Edit permissions check:
+                              - Director can edit anyone
+                              - Secretary can edit librarian and teacher, but CANNOT edit director
+                              - Librarian can only edit their own account
+                              - Teacher / Student cannot edit accounts here
+                          */}
+                          {((isDirector) ||
+                            (isSecretary && user.role !== 'director') ||
+                            (isLibrarian && user.id === currentUser?.id)) && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedUserForEdit(user)}
+                              title="កែប្រែ / ប្តូរពាក្យសម្ងាត់"
+                              className="p-1.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
 
                           <button
                             type="button"
@@ -855,6 +882,7 @@ export const AccountsManagement: React.FC = () => {
                             <Send className="w-4 h-4" />
                           </button>
 
+                          {/* Delete permission: ONLY DIRECTOR can delete accounts */}
                           {isDirector && user.id !== currentUser?.id && (
                             <button
                               type="button"
@@ -863,7 +891,7 @@ export const AccountsManagement: React.FC = () => {
                                   deleteUser(user.id);
                                 }
                               }}
-                              title="លុបគណនី"
+                              title="លុបគណនី (មានតែនាយកសាលាប៉ុណ្ណោះ)"
                               className="p-1.5 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
