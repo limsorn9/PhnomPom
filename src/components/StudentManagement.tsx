@@ -60,6 +60,8 @@ import { MultiStudentProfileSummaryPdfModal } from './MultiStudentProfileSummary
 import { StudentProfilePdfModal } from './StudentProfilePdfModal';
 import { getStudentRiskAlert, getAllStudentRiskAlerts } from '../utils/studentRiskAlerts';
 import { StudentAnalyticsDashboard } from './StudentAnalyticsDashboard';
+import { MoEYSStudentRecordMasterModal } from './MoEYSStudentRecordMasterModal';
+import { splitName, calculateStudentAge, formatStudentToMoEYSRow } from '../utils/studentMoeyHelpers';
 
 export const StudentManagement: React.FC = () => {
   const {
@@ -92,6 +94,7 @@ export const StudentManagement: React.FC = () => {
   const [selectedRiskFilter, setSelectedRiskFilter] = useState<'all' | 'at_risk' | 'consecutive_absent' | 'score_drop' | 'normal'>('all');
   const [localSearch, setLocalSearch] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isMoeyMasterModalOpen, setIsMoeyMasterModalOpen] = useState(false);
   const [selectedStudentForView, setSelectedStudentForView] = useState<Student | null>(null);
   const [selectedStudentForPdfPrint, setSelectedStudentForPdfPrint] = useState<Student | null>(null);
 
@@ -665,6 +668,15 @@ export const StudentManagement: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              id="open-moeys-master-modal-btn"
+              onClick={() => setIsMoeyMasterModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-amber-300/60"
+              title="មើល និងបោះពុម្ពតារាងប្រវត្តិសិស្សស្តង់ដារក្រសួងអប់រំ ១២ ជួរឈរពេញលេញ (MoEYS Master Student Roster Table)"
+            >
+              <Sparkles className="w-4 h-4 text-amber-200" />
+              <span>តារាងប្រវត្តិសិស្សស្តង់ដារក្រសួង (MoEYS)</span>
+            </button>
             <button
               id="export-multi-student-pdf-btn"
               onClick={() => {
@@ -2402,6 +2414,16 @@ export const StudentManagement: React.FC = () => {
           getStudentBadges={getStudentBadges}
           getStudentTotalPoints={getStudentTotalPoints}
           onClose={() => setIsMultiPdfModalOpen(false)}
+        />
+      )}
+
+      {/* MoEYS Standard Student Record Master Table Modal (12 Columns & Official Print) */}
+      {isMoeyMasterModalOpen && (
+        <MoEYSStudentRecordMasterModal
+          students={students}
+          schoolProfile={schoolProfile}
+          initialGrade={selectedGrade === 'all' ? 'all' : selectedGrade}
+          onClose={() => setIsMoeyMasterModalOpen(false)}
         />
       )}
     </div>

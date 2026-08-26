@@ -65,6 +65,7 @@ import {
   PrincipalSignatureQRParams
 } from '../utils/reportCardSignatureQR';
 import { MoEYSReportCardSignatures, AngkorPageWatermark, MoEYSRoyalHeader } from './AngkorMotif';
+import { MoEYSStudentRecordMasterModal } from './MoEYSStudentRecordMasterModal';
 
 export const ReportsAndQR: React.FC = () => {
   const {
@@ -116,6 +117,7 @@ export const ReportsAndQR: React.FC = () => {
   // Scan History Filter & Search
   const [scanHistoryStatusFilter, setScanHistoryStatusFilter] = useState<'all' | 'valid' | 'expired' | 'tampered' | 'invalid'>('all');
   const [scanHistorySearch, setScanHistorySearch] = useState<string>('');
+  const [isMoeyMasterModalOpen, setIsMoeyMasterModalOpen] = useState<boolean>(false);
 
   // Filter students for active class
   const classStudents = students.filter(
@@ -393,6 +395,17 @@ export const ReportsAndQR: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* MoEYS Standard Master Student Roster Action Button */}
+            <button
+              id="open-reports-moeys-master-modal-btn"
+              onClick={() => setIsMoeyMasterModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-600 via-amber-700 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer ring-2 ring-amber-300/40"
+              title="មើល និងបោះពុម្ពតារាងប្រវត្តិសិស្សស្តង់ដារក្រសួងអប់រំ ១២ ជួរឈរពេញលេញ (MoEYS Master Student Roster)"
+            >
+              <Sparkles className="w-4 h-4 text-amber-200" />
+              <span>តារាងប្រវត្តិសិស្សក្រសួង (MoEYS)</span>
+            </button>
+
             {/* Export High-Res Student ID Badge Card Action Button */}
             <button
               id="open-export-student-id-card-btn"
@@ -2831,6 +2844,16 @@ export const ReportsAndQR: React.FC = () => {
           schoolProfile={schoolProfile}
           initialStudentId={selectedStudentForBadgeId}
           showToast={showToast}
+        />
+      )}
+
+      {/* MoEYS Standard Master Student Record Modal */}
+      {isMoeyMasterModalOpen && (
+        <MoEYSStudentRecordMasterModal
+          students={students}
+          schoolProfile={schoolProfile}
+          initialGrade={selectedGrade}
+          onClose={() => setIsMoeyMasterModalOpen(false)}
         />
       )}
     </div>
