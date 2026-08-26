@@ -146,8 +146,8 @@ async function startServer() {
       const expires = Date.now() + 5 * 60 * 1000; // valid for 5 minutes
       telegramCodes.set(identifier, { code, expires });
 
-      const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      const chatId = process.env.TELEGRAM_CHAT_ID;
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8946444884:AAHc1ESlanNspj6atsVCGlxto-q5ks-NKGg';
+      const chatId = process.env.TELEGRAM_CHAT_ID || '240224709';
 
       let sentViaTelegram = false;
       if (botToken && chatId) {
@@ -194,8 +194,8 @@ async function startServer() {
         return res.status(400).json({ success: false, error: 'Message text is required' });
       }
 
-      const botToken = process.env.TELEGRAM_BOT_TOKEN;
-      const chatId = process.env.TELEGRAM_CHAT_ID;
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8946444884:AAHc1ESlanNspj6atsVCGlxto-q5ks-NKGg';
+      const chatId = process.env.TELEGRAM_CHAT_ID || '240224709';
 
       if (!botToken || !chatId) {
         return res.json({

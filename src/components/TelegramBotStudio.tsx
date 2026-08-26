@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
+import { sendTelegramNotification } from '../services/telegramService';
 import { 
   Send, 
   Bot, 
@@ -14,7 +15,8 @@ import {
   Database,
   Search,
   ExternalLink,
-  Code
+  Code,
+  SendHorizontal
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -137,6 +139,25 @@ export const TelegramBotStudio: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                const res = await sendTelegramNotification({
+                  title: 'តេស្តសារពី PPTC_Notify',
+                  message: 'សារផ្ញើចេញពី Telegram Bot Studio (@PPTC_Notify_bot) ទៅកាន់ Telegram Group ជោគជ័យ!',
+                  category: 'announcement'
+                });
+                if (res.success) {
+                  showToast('បានផ្ញើសារទៅកាន់ Telegram Bot ជោគជ័យ!', 'success');
+                } else {
+                  showToast(res.error || 'បរាជ័យក្នុងការផ្ញើ', 'error');
+                }
+              }}
+              title="ផ្ញើសារតេស្តទៅ Telegram"
+              className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+            >
+              <SendHorizontal className="w-3.5 h-3.5" />
+              តេស្តផ្ញើ Telegram
+            </button>
             <button
               onClick={() => {
                 setMessages([{
