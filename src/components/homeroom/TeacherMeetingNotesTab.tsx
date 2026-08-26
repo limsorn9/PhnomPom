@@ -52,6 +52,10 @@ export const TeacherMeetingNotesTab: React.FC<TeacherMeetingNotesTabProps> = ({
     updateTeacherMeeting,
     deleteTeacherMeeting,
     syncMeetingToDrive,
+    syncAllMeetingsToDrive,
+    syncFinancialReportToDrive,
+    triggerDriveAutoSyncAll,
+    selectedAcademicYear,
     isDriveSyncing,
     teachers,
     currentUser,
@@ -399,7 +403,23 @@ export const TeacherMeetingNotesTab: React.FC<TeacherMeetingNotesTabProps> = ({
           </div>
 
           {/* Action Button */}
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              onClick={async () => {
+                try {
+                  await triggerDriveAutoSyncAll();
+                } catch (e) {
+                  showToast('បញ្ហាក្នុងការ Sync ទៅ Google Drive', 'error');
+                }
+              }}
+              disabled={isDriveSyncing}
+              className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all cursor-pointer transform hover:-translate-y-0.5"
+              title="Sync កំណត់ហេតុប្រជុំ និងរបាយការណ៍ហិរញ្ញវត្ថុទាំងអស់ទៅ Folder ID: 1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g"
+            >
+              <RefreshCw className={`w-4 h-4 ${isDriveSyncing ? 'animate-spin' : ''}`} />
+              <span>{isDriveSyncing ? 'កំពុង Sync Drive...' : 'Sync ឯកសារទាំងអស់ទៅ Drive'}</span>
+            </button>
+
             <button
               onClick={() => {
                 setEditingMeeting(null);

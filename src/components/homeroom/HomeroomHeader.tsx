@@ -13,7 +13,9 @@ import {
   ShieldCheck,
   Building2,
   FileSpreadsheet,
-  HeartPulse
+  HeartPulse,
+  HardDrive,
+  FolderSync
 } from 'lucide-react';
 
 interface HomeroomHeaderProps {
@@ -31,9 +33,12 @@ interface HomeroomHeaderProps {
   classAvgScore: number;
   totalLessonPlans: number;
   totalParentMeetings: number;
+  totalTeacherMeetings?: number;
   pendingNotificationsCount?: number;
   urgentNotificationsCount?: number;
   onOpenNotifications?: () => void;
+  onOpenTeacherMeetings?: () => void;
+  onOpenDriveSync?: () => void;
   onPrintClassSummary: () => void;
   onOpenClassCommitteePrint?: () => void;
   onOpenPriStatistics?: () => void;
@@ -56,9 +61,12 @@ export const HomeroomHeader: React.FC<HomeroomHeaderProps> = ({
   classAvgScore,
   totalLessonPlans,
   totalParentMeetings,
+  totalTeacherMeetings = 0,
   pendingNotificationsCount = 0,
   urgentNotificationsCount = 0,
   onOpenNotifications,
+  onOpenTeacherMeetings,
+  onOpenDriveSync,
   onPrintClassSummary,
   onOpenClassCommitteePrint,
   onOpenPriStatistics,
@@ -160,6 +168,31 @@ export const HomeroomHeader: React.FC<HomeroomHeaderProps> = ({
               ))}
             </select>
           </div>
+
+          {onOpenDriveSync && (
+            <button
+              onClick={onOpenDriveSync}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-xs cursor-pointer"
+              title="ធ្វើសមកាលកម្មឯកសារប្រជុំ & ហិរញ្ញវត្ថុទៅ Google Drive (Folder ID: 1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g)"
+            >
+              <HardDrive className="w-4 h-4 text-emerald-200" />
+              <span>Drive Sync</span>
+              <span className="hidden lg:inline-block px-1.5 py-0.5 rounded text-[10px] bg-emerald-800/60 font-mono text-emerald-100">
+                1GCMdT...
+              </span>
+            </button>
+          )}
+
+          {onOpenTeacherMeetings && (
+            <button
+              onClick={onOpenTeacherMeetings}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-indigo-700 hover:bg-indigo-800 text-white transition-all shadow-xs cursor-pointer"
+              title="កំណត់ត្រាការប្រជុំគ្រូ សេចក្ដីសម្រេចចិត្ត & Sync Google Calendar / Drive (Folder ID: 1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g)"
+            >
+              <Users className="w-4 h-4 text-indigo-200" />
+              <span>ប្រជុំគ្រូ</span>
+            </button>
+          )}
 
           {onOpenClassCommitteePrint && (
             <button

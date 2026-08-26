@@ -6,6 +6,7 @@ import { SchoolActivityFeed } from './SchoolActivityFeed';
 import { TeacherDailyTasks } from './TeacherDailyTasks';
 import { QuickAttendanceModal } from './QuickAttendanceModal';
 import { NewClassroomWizardModal } from './NewClassroomWizardModal';
+import { AcademicTrendAnalysis } from './AcademicTrendAnalysis';
 import {
   Users,
   GraduationCap,
@@ -502,6 +503,9 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* School-wide Academic Trend Analysis Across 3 Trimesters (Recharts) */}
+      <AcademicTrendAnalysis />
 
       {/* Attendance & Academic Performance Graphical Summary (Recharts) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -3884,8 +3884,25 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       updatedScores = [...scores, record];
     }
 
-    setScores(updatedScores);
-    showToast(`បានកត់ត្រាពិន្ទុរបស់សិស្ស «${student.nameKhmer}» រួចរាល់!`);
+    // Automatically recalculate rankings for this class & month
+    const classMonthScores = updatedScores.filter(
+      s => s.grade === student.grade && s.section === student.section && s.monthOrSemester === scoreData.monthOrSemester
+    );
+    const sorted = [...classMonthScores].sort((a, b) => b.totalScore - a.totalScore || b.averageScore - a.averageScore);
+    const idToRank = new Map<string, number>();
+    sorted.forEach((item, index) => {
+      idToRank.set(item.id, index + 1);
+    });
+
+    const finalScoresWithRanks = updatedScores.map(s => {
+      if (idToRank.has(s.id)) {
+        return { ...s, rank: idToRank.get(s.id)! };
+      }
+      return s;
+    });
+
+    setScores(finalScoresWithRanks);
+    showToast(`បានកត់ត្រាពិន្ទុ & គណនាចំណាត់ថ្នាក់សិស្ស «${student.nameKhmer}» រួចរាល់!`);
 
     addActivityLog({
       domain: 'academic',
