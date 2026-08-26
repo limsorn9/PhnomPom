@@ -14,6 +14,7 @@ import { TelegramBotAnalytics } from './telegram/TelegramBotAnalytics';
 import { TelegramAutomatedTasks } from './telegram/TelegramAutomatedTasks';
 import { TelegramSmartAutoResponder, DEFAULT_AUTO_RESPONDER_RULES, AutoResponderRule } from './telegram/TelegramSmartAutoResponder';
 import { TelegramClassroomGroupRouter } from './telegram/TelegramClassroomGroupRouter';
+import { TelegramTransmissionTimelineChart } from './telegram/TelegramTransmissionTimelineChart';
 import { 
   Send, 
   Bot, 
@@ -2031,6 +2032,9 @@ export const TelegramBotStudio: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* 4. Transmission Timeline & Delay Verification Chart (Recharts) */}
+            <TelegramTransmissionTimelineChart currentSliderDelayMs={delayIntervalMs} />
 
             {/* Test Configuration Diagnostic Card */}
             <div className="p-4 bg-sky-50 rounded-2xl border border-sky-200 space-y-3">

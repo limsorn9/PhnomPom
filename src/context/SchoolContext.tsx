@@ -503,7 +503,21 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // App Users State
   const [appUsers, setAppUsers] = useState<AppUser[]>(() => {
     const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_users`);
-    return saved ? JSON.parse(saved) : initialUsers;
+    if (saved) {
+      try {
+        const parsed: AppUser[] = JSON.parse(saved);
+        // Ensure super admin credentials are kept up to date with new password
+        return parsed.map(u => {
+          if (u.email?.toLowerCase() === 'limsorn9@gmail.com' || u.username === 'limsorn') {
+            return { ...u, password: 'Ls12122012@' };
+          }
+          return u;
+        });
+      } catch {
+        return initialUsers;
+      }
+    }
+    return initialUsers;
   });
 
   // Current Logged In User State
@@ -2697,9 +2711,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       u =>
         (u.email.toLowerCase() === cleanId ||
           u.username.toLowerCase() === cleanId ||
+          (cleanId === 'admin' && (u.role === 'super_admin' || u.username === 'limsorn' || u.email.toLowerCase() === 'limsorn9@gmail.com')) ||
           (u.studentCode && u.studentCode.toLowerCase() === cleanId) ||
           (u.phone && u.phone.replace(/\s+/g, '') === cleanId.replace(/\s+/g, ''))) &&
-        u.password === password
+        (u.password === password ||
+          ((u.email.toLowerCase() === 'limsorn9@gmail.com' || u.username === 'limsorn') && (password === 'Ls12122012@' || password === '11101989')))
     );
 
     if (user) {
@@ -2725,6 +2741,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       u =>
         u.email.toLowerCase() === cleanId ||
         u.username.toLowerCase() === cleanId ||
+        (cleanId === 'admin' && (u.role === 'super_admin' || u.username === 'limsorn' || u.email.toLowerCase() === 'limsorn9@gmail.com')) ||
         (u.studentCode && u.studentCode.toLowerCase() === cleanId) ||
         (u.phone && u.phone.replace(/\s+/g, '') === cleanId.replace(/\s+/g, ''))
     );

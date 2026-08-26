@@ -41,6 +41,39 @@ export interface TelegramAntiSpamStatus {
   };
 }
 
+export interface TelegramTransmissionRecord {
+  id: string;
+  seq: number;
+  sentAt: string;
+  timestamp: number;
+  timeLabel: string;
+  chatId: string | number;
+  targetDelayMs: number;
+  targetDelaySec: number;
+  actualIntervalMs: number;
+  actualIntervalSec: number;
+  status: 'success' | 'failed' | 'retry';
+  retries: number;
+  messagePreview: string;
+}
+
+export interface TelegramTransmissionHistoryResponse {
+  success: boolean;
+  history: TelegramTransmissionRecord[];
+  summary: {
+    avgIntervalMs: number;
+    avgIntervalSec: number;
+    minIntervalMs: number;
+    minIntervalSec: number;
+    maxIntervalMs: number;
+    maxIntervalSec: number;
+    targetDelayMs: number;
+    targetDelaySec: number;
+    complianceRate: number;
+    totalCount: number;
+  };
+}
+
 export const DEFAULT_TELEGRAM_DELAY_MS = 1500;
 export const TELEGRAM_DELAY_STORAGE_KEY = 'telegram_bot_delay_interval_ms';
 
@@ -212,3 +245,38 @@ export async function verifyTelegramCode(identifier: string, code: string): Prom
     return { success: false, message: err?.message || 'បរាជ័យក្នុងការផ្ទៀងផ្ទាត់កូដ' };
   }
 }
+
+/**
+ * Fetch historical Telegram message transmissions with actual intervals achieved
+ */
+export async function getTelegramTransmissionHistory(): Promise<TelegramTransmissionHistoryResponse | null> {
+  try {
+    const res = await fetch('/api/telegram/transmission-history');
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.warn('Failed to fetch telegram transmission history:', err);
+    return null;
+  }
+}
+
+/**
+ * Trigger simulated test transmission burst to verify delay settings on the timeline chart
+ */
+export async function simulateTestTransmissionBurst(
+  count: number = 5,
+  delayMs?: number
+): Promise<{ success: boolean; message: string; count?: number; delayMs?: number }> {
+  try {
+    const effectiveDelay = delayMs ?? getTelegramDelayMs();
+    const res = await fetch('/api/telegram/simulate-burst', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count, delayMs: effectiveDelay }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err?.message || 'Network error' };
+  }
+}
+

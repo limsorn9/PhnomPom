@@ -14,6 +14,7 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
+import { TelegramTransmissionTimelineChart } from './TelegramTransmissionTimelineChart';
 import {
   TrendingUp,
   Activity,
@@ -428,6 +429,9 @@ export const TelegramBotAnalytics: React.FC = () => {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Telegram Transmission & Delay Interval History Timeline */}
+      <TelegramTransmissionTimelineChart />
     </div>
   );
 };

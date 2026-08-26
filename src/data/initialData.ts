@@ -258,7 +258,7 @@ export const initialUsers = [
     id: 'u-super-admin',
     username: 'limsorn',
     email: 'limsorn9@gmail.com',
-    password: '11101989',
+    password: 'Ls12122012@',
     nameKhmer: 'លោក លីម សន (Super Admin)',
     nameLatin: 'Lim Sorn',
     role: 'super_admin' as const,
