@@ -14,6 +14,10 @@ import {
 import { SecurityHealthBadge } from './SecurityHealthBadge';
 import { PasswordPolicyTab } from './PasswordPolicyTab';
 import { SuspiciousAlertsBanner } from './SuspiciousAlertsBanner';
+import { RolePermissionsInspectorModal } from './RolePermissionsInspectorModal';
+import { RecentlyDeletedTab } from './RecentlyDeletedTab';
+import { DeleteAccountModal } from './DeleteAccountModal';
+import { AccountAuditLogTab } from './AccountAuditLogTab';
 import {
   Users,
   UserPlus,
@@ -59,6 +63,12 @@ export const AccountsManagement: React.FC = () => {
     addUser,
     updateUser,
     deleteUser,
+    deletedUsers,
+    restoreUser,
+    permanentlyDeleteUser,
+    emptyRecentlyDeleted,
+    accountAuditLogs,
+    clearAccountAuditLogs,
     students,
     teachers,
     showToast,
@@ -69,7 +79,7 @@ export const AccountsManagement: React.FC = () => {
   } = useSchool();
 
   const [activeTab, setActiveTab] = useState<
-    'accounts' | 'security_sessions' | 'security_logs' | 'password_policy' | 'edit_requests'
+    'accounts' | 'recently_deleted' | 'audit_logs' | 'security_sessions' | 'security_logs' | 'password_policy' | 'edit_requests'
   >('accounts');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
@@ -80,6 +90,11 @@ export const AccountsManagement: React.FC = () => {
   const [dismiss90DayNotice, setDismiss90DayNotice] = useState(false);
   const [showBulkForceConfirmModal, setShowBulkForceConfirmModal] = useState(false);
   const [showPatternsPanel, setShowPatternsPanel] = useState(true);
+
+  // Role Inspector and Delete Confirmation State
+  const [showRoleInspectorModal, setShowRoleInspectorModal] = useState(false);
+  const [inspectedUserForRole, setInspectedUserForRole] = useState<AppUser | null>(null);
+  const [userToDelete, setUserToDelete] = useState<AppUser | null>(null);
 
   // Mandatory Force Password Update for Current User
   const [mandatoryNewPassword, setMandatoryNewPassword] = useState('');
@@ -437,7 +452,7 @@ export const AccountsManagement: React.FC = () => {
 
         {/* Action Button & Tab Switcher */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl flex-wrap">
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl flex-wrap gap-1">
             <button
               onClick={() => setActiveTab('accounts')}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
@@ -445,6 +460,38 @@ export const AccountsManagement: React.FC = () => {
               }`}
             >
               បញ្ជីគណនី ({appUsers.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('recently_deleted')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'recently_deleted' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>ធុងសំរាម ៣០ ថ្ងៃ</span>
+              {deletedUsers.length > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  activeTab === 'recently_deleted' ? 'bg-white text-rose-700' : 'bg-rose-500 text-white'
+                }`}>
+                  {deletedUsers.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('audit_logs')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                activeTab === 'audit_logs' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>សវនកម្ម (Audit)</span>
+              {accountAuditLogs.length > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  activeTab === 'audit_logs' ? 'bg-white text-blue-700' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {accountAuditLogs.length}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab('security_sessions')}
@@ -461,7 +508,7 @@ export const AccountsManagement: React.FC = () => {
                 activeTab === 'security_logs' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Clock className="w-3.5 h-3.5" />
+              <Shield className="w-3.5 h-3.5" />
               <span>Security Logs</span>
             </button>
             <button
@@ -471,7 +518,7 @@ export const AccountsManagement: React.FC = () => {
               }`}
             >
               <Sliders className="w-3.5 h-3.5" />
-              <span>គោលការណ៍ (Policy)</span>
+              <span>គោលការណ៍</span>
             </button>
             <button
               onClick={() => setActiveTab('edit_requests')}
@@ -488,6 +535,19 @@ export const AccountsManagement: React.FC = () => {
               )}
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setInspectedUserForRole(null);
+              setShowRoleInspectorModal(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
+            title="ពិនិត្យលម្អិតសិទ្ធិប្រើប្រាស់ និងមុខងារតាមតួនាទី"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <span>ពិនិត្យសិទ្ធិតួនាទី (Role Inspector)</span>
+          </button>
 
           <button
             type="button"
@@ -873,6 +933,18 @@ export const AccountsManagement: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => {
+                              setInspectedUserForRole(user);
+                              setShowRoleInspectorModal(true);
+                            }}
+                            title="ពិនិត្យសិទ្ធិ និងមុខងារលម្អិតរបស់គណនីនេះ"
+                            className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
                               setForgotPasswordUser(user);
                               setShowForgotPasswordModal(true);
                             }}
@@ -882,15 +954,11 @@ export const AccountsManagement: React.FC = () => {
                             <Send className="w-4 h-4" />
                           </button>
 
-                          {/* Delete permission: ONLY DIRECTOR can delete accounts */}
+                          {/* Delete permission: ONLY DIRECTOR can delete accounts (with mandatory reason modal) */}
                           {isDirector && user.id !== currentUser?.id && (
                             <button
                               type="button"
-                              onClick={() => {
-                                if (window.confirm(`តើអ្នកពិតជាចង់លុបគណនី «${user.nameKhmer}» ឬទេ?`)) {
-                                  deleteUser(user.id);
-                                }
-                              }}
+                              onClick={() => setUserToDelete(user)}
                               title="លុបគណនី (មានតែនាយកសាលាប៉ុណ្ណោះ)"
                               className="p-1.5 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                             >
@@ -906,6 +974,24 @@ export const AccountsManagement: React.FC = () => {
             </div>
           </div>
         </>
+      )}
+
+      {activeTab === 'recently_deleted' && (
+        <RecentlyDeletedTab
+          deletedUsers={deletedUsers}
+          onRestore={(deletedId) => restoreUser(deletedId)}
+          onPermanentDelete={(deletedId) => permanentlyDeleteUser(deletedId)}
+          onEmptyTrash={() => emptyRecentlyDeleted()}
+          isDirector={isDirector}
+        />
+      )}
+
+      {activeTab === 'audit_logs' && (
+        <AccountAuditLogTab
+          logs={accountAuditLogs}
+          onClearLogs={() => clearAccountAuditLogs()}
+          isDirector={isDirector}
+        />
       )}
 
       {activeTab === 'security_sessions' && (
@@ -1561,6 +1647,27 @@ export const AccountsManagement: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Role & Permissions Inspector Modal */}
+      <RolePermissionsInspectorModal
+        isOpen={showRoleInspectorModal}
+        onClose={() => {
+          setShowRoleInspectorModal(false);
+          setInspectedUserForRole(null);
+        }}
+        targetUser={inspectedUserForRole}
+      />
+
+      {/* Delete Account Confirmation Modal with Mandatory Reason */}
+      <DeleteAccountModal
+        isOpen={!!userToDelete}
+        onClose={() => setUserToDelete(null)}
+        user={userToDelete}
+        onConfirmDelete={(userId, reason) => {
+          deleteUser(userId, reason);
+          showToast(`បានលុបគណនី និងផ្លាស់ទីទៅធុងសំរាម ៣០ ថ្ងៃ`, 'success');
+        }}
+      />
     </div>
   );
 };

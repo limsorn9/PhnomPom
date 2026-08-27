@@ -12,6 +12,9 @@ import {
   AcademicCalendarEvent,
   UserRole,
   AppUser,
+  DeletedAppUser,
+  AccountAuditLog,
+  AccountAuditEventType,
   SystemNotification,
   StudentTransferRecord,
   ExamSubject,
@@ -97,6 +100,8 @@ import {
   initialAttendanceRecords,
   initialCalendarEvents,
   initialUsers,
+  initialDeletedUsers,
+  initialAccountAuditLogs,
   initialNotifications,
   initialTransfers,
   initialAcademicYears,
@@ -151,7 +156,14 @@ interface SchoolContextType {
   switchToTeacherWithPassword: (password: string) => { success: boolean; message?: string };
   addUser: (userData: Omit<AppUser, 'id' | 'createdAt'>) => { success: boolean; message: string };
   updateUser: (id: string, updated: Partial<AppUser>) => void;
-  deleteUser: (id: string) => void;
+  deleteUser: (id: string, reason?: string) => void;
+  deletedUsers: DeletedAppUser[];
+  restoreUser: (deletedId: string) => { success: boolean; message: string };
+  permanentlyDeleteUser: (deletedId: string) => { success: boolean; message: string };
+  emptyRecentlyDeleted: () => void;
+  accountAuditLogs: AccountAuditLog[];
+  addAccountAuditLog: (log: Omit<AccountAuditLog, 'id' | 'timestamp'>) => void;
+  clearAccountAuditLogs: () => void;
   canAccessTab: (tab: ActiveTab) => boolean;
   canAccessStudentDashboard: (student?: Student | string | null) => { allowed: boolean; reason: string };
 
@@ -518,6 +530,38 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     }
     return initialUsers;
+  });
+
+  // Recently Deleted Users (30-day soft delete retention)
+  const [deletedUsers, setDeletedUsers] = useState<DeletedAppUser[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_deleted_users`);
+    if (saved) {
+      try {
+        const parsed: DeletedAppUser[] = JSON.parse(saved);
+        // Filter out records older than 30 days automatically
+        const now = Date.now();
+        return parsed.filter(item => {
+          const exp = new Date(item.expiresAt).getTime();
+          return !isNaN(exp) && exp > now;
+        });
+      } catch {
+        return initialDeletedUsers;
+      }
+    }
+    return initialDeletedUsers;
+  });
+
+  // Account Audit Logs (Tracks user creation, deletion, modification, etc.)
+  const [accountAuditLogs, setAccountAuditLogs] = useState<AccountAuditLog[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_account_audit_logs`);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return initialAccountAuditLogs;
+      }
+    }
+    return initialAccountAuditLogs;
   });
 
   // Current Logged In User State
@@ -2407,6 +2451,14 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [appUsers]);
 
   useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_deleted_users`, JSON.stringify(deletedUsers));
+  }, [deletedUsers]);
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_account_audit_logs`, JSON.stringify(accountAuditLogs));
+  }, [accountAuditLogs]);
+
+  useEffect(() => {
     if (currentUser) {
       localStorage.setItem(`${LOCAL_STORAGE_KEY}_current_user`, JSON.stringify(currentUser));
     } else {
@@ -3187,7 +3239,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // Hierarchical Account Creation
+    // Hierarchical Account Creation
   const addUser = (userData: Omit<AppUser, 'id' | 'createdAt'>) => {
     if (!currentUser) {
       return { success: false, message: 'សូមចូលប្រព័ន្ធជាមុនសិន' };
@@ -3253,25 +3305,266 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
     }
 
+    // Log to Account Audit
+    addAccountAuditLog({
+      eventType: 'create',
+      targetUserId: newUser.id,
+      targetUserName: newUser.nameKhmer,
+      targetUserRole: newUser.role,
+      targetUserEmail: newUser.email,
+      targetStaffCode: newUser.staffCode,
+      actor: {
+        id: currentUser.id,
+        nameKhmer: currentUser.nameKhmer,
+        email: currentUser.email,
+        role: currentUser.role
+      },
+      reason: `បង្កើតគណនីថ្មីប្រភេទ ${getRoleLabel(newUser.role)}`,
+      details: `បានបង្កើតគណនី «${newUser.nameKhmer}» (${newUser.email || newUser.username}) តួនាទី ${getRoleLabel(newUser.role)}`
+    });
+
     showToast(`បានបង្កើតគណនីជូន ${newUser.nameKhmer} (${getRoleLabel(newUser.role)}) ដោយជោគជ័យ!`);
     return { success: true, message: 'ជោគជ័យ' };
   };
 
   const updateUser = (id: string, updated: Partial<AppUser>) => {
+    const existing = appUsers.find(u => u.id === id);
     setAppUsers(prev => prev.map(u => (u.id === id ? { ...u, ...updated } : u)));
     if (currentUser && currentUser.id === id) {
       setCurrentUser(prev => (prev ? { ...prev, ...updated } : null));
     }
+
+    if (existing) {
+      const changesSummary: { field: string; before?: string | number | boolean; after?: string | number | boolean }[] = [];
+      if (updated.role && updated.role !== existing.role) {
+        changesSummary.push({ field: 'role', before: existing.role, after: updated.role });
+      }
+      if (updated.status && updated.status !== existing.status) {
+        changesSummary.push({ field: 'status', before: existing.status, after: updated.status });
+      }
+      if (updated.assignedGrade !== undefined && updated.assignedGrade !== existing.assignedGrade) {
+        changesSummary.push({ field: 'assignedGrade', before: existing.assignedGrade || 0, after: updated.assignedGrade });
+      }
+      if (updated.assignedSection !== undefined && updated.assignedSection !== existing.assignedSection) {
+        changesSummary.push({ field: 'assignedSection', before: existing.assignedSection || '', after: updated.assignedSection });
+      }
+      if (updated.password) {
+        changesSummary.push({ field: 'password', before: '••••••', after: '•••••• (Changed)' });
+      }
+      if (updated.forcePasswordChange !== undefined && updated.forcePasswordChange !== existing.forcePasswordChange) {
+        changesSummary.push({ field: 'forcePasswordChange', before: existing.forcePasswordChange || false, after: updated.forcePasswordChange });
+      }
+
+      let eventType: AccountAuditEventType = 'update_profile';
+      if (updated.role && updated.role !== existing.role) eventType = 'update_role';
+      else if (updated.password) eventType = 'reset_password';
+      else if (updated.status && updated.status !== existing.status) eventType = 'toggle_status';
+      else if (updated.forcePasswordChange !== undefined) eventType = 'force_password_rotation';
+
+      addAccountAuditLog({
+        eventType,
+        targetUserId: id,
+        targetUserName: updated.nameKhmer || existing.nameKhmer,
+        targetUserRole: updated.role || existing.role,
+        targetUserEmail: updated.email || existing.email,
+        targetStaffCode: updated.staffCode || existing.staffCode,
+        actor: {
+          id: currentUser?.id,
+          nameKhmer: currentUser?.nameKhmer || 'អ្នកគ្រប់គ្រង',
+          email: currentUser?.email || 'admin@moeys.gov.kh',
+          role: currentUser?.role || 'director'
+        },
+        reason: 'កែប្រែព័ត៌មានគណនី/សិទ្ធិប្រើប្រាស់',
+        details: `បានកែប្រែព័ត៌មានរបស់ «${existing.nameKhmer}» (${getRoleLabel(existing.role)})`,
+        changesSummary: changesSummary.length > 0 ? changesSummary : undefined
+      });
+    }
+
     showToast('បានកែប្រែព័ត៌មានគណនីជោគជ័យ!');
   };
 
-  const deleteUser = (id: string) => {
+  const deleteUser = (id: string, reason: string = 'បានលុបដោយអ្នកគ្រប់គ្រង') => {
     if (currentUser && currentUser.id === id) {
       showToast('មិនអាចលុបគណនីដែលកំពុងដំណើរការបានឡើយ', 'error');
       return;
     }
+
+    const targetUser = appUsers.find(u => u.id === id);
+    if (!targetUser) {
+      showToast('រកមិនឃើញគណនីនេះឡើយ', 'error');
+      return;
+    }
+
+    // Check if user is associated with a Teacher profile to backup
+    const teacherBackup = teachers.find(
+      t => t.id === targetUser.id.replace('u-', '') ||
+           (targetUser.email && t.email?.toLowerCase() === targetUser.email.toLowerCase()) ||
+           (targetUser.phone && t.phone?.replace(/\s+/g, '') === targetUser.phone.replace(/\s+/g, '')) ||
+           (targetUser.staffCode && t.staffCode === targetUser.staffCode)
+    );
+
+    // Remove from active appUsers
     setAppUsers(prev => prev.filter(u => u.id !== id));
-    showToast('បានលុបគណនីរួចរាល់', 'info');
+
+    // Also remove from active teachers list if present (saved in backup for restore)
+    if (teacherBackup) {
+      setTeachers(prev => prev.filter(t => t.id !== teacherBackup.id));
+    }
+
+    // Add to 30-day soft-delete trash
+    const deletedRecord: DeletedAppUser = {
+      id: `del-${Date.now()}-${targetUser.id}`,
+      user: targetUser,
+      deletedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      reason: reason.trim() || 'បានលុបដោយអ្នកគ្រប់គ្រង',
+      deletedBy: {
+        id: currentUser?.id,
+        nameKhmer: currentUser?.nameKhmer || 'អ្នកគ្រប់គ្រង',
+        email: currentUser?.email || 'admin@moeys.gov.kh',
+        role: currentUser?.role || 'director'
+      },
+      teacherProfileBackup: teacherBackup
+    };
+
+    setDeletedUsers(prev => [deletedRecord, ...prev]);
+
+    // Audit log
+    addAccountAuditLog({
+      eventType: 'delete',
+      targetUserId: targetUser.id,
+      targetUserName: targetUser.nameKhmer,
+      targetUserRole: targetUser.role,
+      targetUserEmail: targetUser.email,
+      targetStaffCode: targetUser.staffCode,
+      actor: {
+        id: currentUser?.id,
+        nameKhmer: currentUser?.nameKhmer || 'អ្នកគ្រប់គ្រង',
+        email: currentUser?.email || 'admin@moeys.gov.kh',
+        role: currentUser?.role || 'director'
+      },
+      reason: reason.trim() || 'បានលុបដោយអ្នកគ្រប់គ្រង',
+      details: `បានលុបគណនី «${targetUser.nameKhmer}» (${getRoleLabel(targetUser.role)}) និងបានផ្លាស់ទីទៅក្នុងធុងសំរាម ៣០ ថ្ងៃ`
+    });
+
+    showToast(`បានផ្លាស់ទីគណនី «${targetUser.nameKhmer}» ទៅកាន់ធុងសំរាម (រក្សាទុក ៣០ ថ្ងៃ)`, 'info');
+  };
+
+  const restoreUser = (deletedId: string) => {
+    const deletedRecord = deletedUsers.find(d => d.id === deletedId);
+    if (!deletedRecord) {
+      return { success: false, message: 'រកមិនឃើញទិន្នន័យដែលបានលុបនេះឡើយ' };
+    }
+
+    // Restore to appUsers
+    const restoredUser: AppUser = {
+      ...deletedRecord.user,
+      status: 'active'
+    };
+
+    setAppUsers(prev => {
+      const filtered = prev.filter(u => u.id !== restoredUser.id && u.email?.toLowerCase() !== restoredUser.email?.toLowerCase());
+      return [restoredUser, ...filtered];
+    });
+
+    // Restore teacher profile if backup exists
+    if (deletedRecord.teacherProfileBackup) {
+      const restoredTeacher = deletedRecord.teacherProfileBackup;
+      setTeachers(prev => {
+        const filtered = prev.filter(t => t.id !== restoredTeacher.id && t.staffCode !== restoredTeacher.staffCode);
+        return [restoredTeacher, ...filtered];
+      });
+    }
+
+    // Remove from deletedUsers
+    setDeletedUsers(prev => prev.filter(d => d.id !== deletedId));
+
+    // Audit log
+    addAccountAuditLog({
+      eventType: 'restore',
+      targetUserId: restoredUser.id,
+      targetUserName: restoredUser.nameKhmer,
+      targetUserRole: restoredUser.role,
+      targetUserEmail: restoredUser.email,
+      targetStaffCode: restoredUser.staffCode,
+      actor: {
+        id: currentUser?.id,
+        nameKhmer: currentUser?.nameKhmer || 'អ្នកគ្រប់គ្រង',
+        email: currentUser?.email || 'admin@moeys.gov.kh',
+        role: currentUser?.role || 'director'
+      },
+      reason: 'ស្តារគណនីឡើងវិញពីធុងសំរាម',
+      details: `បានស្តារគណនី «${restoredUser.nameKhmer}» (${getRoleLabel(restoredUser.role)}) ឱ្យដំណើរការឡើងវិញ`
+    });
+
+    showToast(`បានស្តារគណនី «${restoredUser.nameKhmer}» ឡើងវិញដោយជោគជ័យ!`, 'success');
+    return { success: true, message: 'បានស្តារឡើងវិញជោគជ័យ' };
+  };
+
+  const permanentlyDeleteUser = (deletedId: string) => {
+    const deletedRecord = deletedUsers.find(d => d.id === deletedId);
+    if (!deletedRecord) {
+      return { success: false, message: 'រកមិនឃើញទិន្នន័យឡើយ' };
+    }
+
+    setDeletedUsers(prev => prev.filter(d => d.id !== deletedId));
+
+    addAccountAuditLog({
+      eventType: 'permanent_delete',
+      targetUserId: deletedRecord.user.id,
+      targetUserName: deletedRecord.user.nameKhmer,
+      targetUserRole: deletedRecord.user.role,
+      targetUserEmail: deletedRecord.user.email,
+      targetStaffCode: deletedRecord.user.staffCode,
+      actor: {
+        id: currentUser?.id,
+        nameKhmer: currentUser?.nameKhmer || 'អ្នកគ្រប់គ្រង',
+        email: currentUser?.email || 'admin@moeys.gov.kh',
+        role: currentUser?.role || 'director'
+      },
+      reason: 'លុបជាស្ថាពរចេញពីប្រព័ន្ធ',
+      details: `បានលុបគណនី «${deletedRecord.user.nameKhmer}» ជាស្ថាពរចេញពីធុងសំរាម`
+    });
+
+    showToast(`បានលុបគណនី «${deletedRecord.user.nameKhmer}» ជាស្ថាពររួចរាល់`, 'info');
+    return { success: true, message: 'បានលុបជាស្ថាពរ' };
+  };
+
+  const emptyRecentlyDeleted = () => {
+    if (deletedUsers.length === 0) return;
+    const count = deletedUsers.length;
+    setDeletedUsers([]);
+
+    addAccountAuditLog({
+      eventType: 'permanent_delete',
+      targetUserId: 'bulk-purge',
+      targetUserName: `គណនីចំនួន ${count}`,
+      targetUserRole: 'teacher',
+      actor: {
+        id: currentUser?.id,
+        nameKhmer: currentUser?.nameKhmer || 'អ្នកគ្រប់គ្រង',
+        email: currentUser?.email || 'admin@moeys.gov.kh',
+        role: currentUser?.role || 'director'
+      },
+      reason: 'សម្អាតធុងសំរាមគណនីទាំងអស់',
+      details: `បានសម្អាតគណនីដែលបានលុបចំនួន ${count} ជាស្ថាពរ`
+    });
+
+    showToast(`បានសម្អាតធុងសំរាមគណនីទាំងអស់ (${count} គណនី) រួចរាល់!`, 'info');
+  };
+
+  const addAccountAuditLog = (log: Omit<AccountAuditLog, 'id' | 'timestamp'>) => {
+    const newLog: AccountAuditLog = {
+      ...log,
+      id: `audit-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      timestamp: new Date().toISOString()
+    };
+    setAccountAuditLogs(prev => [newLog, ...prev.slice(0, 499)]);
+  };
+
+  const clearAccountAuditLogs = () => {
+    setAccountAuditLogs([]);
+    showToast('បានសម្អាតកំណត់ត្រាសវនកម្មគណនីរួចរាល់', 'info');
   };
 
   // Smart Password Recovery Rules
@@ -4787,6 +5080,13 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         addUser,
         updateUser,
         deleteUser,
+        deletedUsers,
+        restoreUser,
+        permanentlyDeleteUser,
+        emptyRecentlyDeleted,
+        accountAuditLogs,
+        addAccountAuditLog,
+        clearAccountAuditLogs,
         canAccessTab,
         canAccessStudentDashboard,
         academicYears,

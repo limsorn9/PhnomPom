@@ -608,6 +608,73 @@ export interface SuspiciousActivityAlert {
   dismissed?: boolean;
 }
 
+export interface DeletedAppUser {
+  id: string;
+  user: AppUser;
+  deletedAt: string; // ISO string
+  deletedBy: {
+    id?: string;
+    nameKhmer: string;
+    email: string;
+    role: string;
+  };
+  reason: string;
+  expiresAt: string; // ISO string (30 days from deletedAt)
+  teacherProfileBackup?: Teacher;
+}
+
+export type AccountAuditEventType =
+  | 'create'
+  | 'delete'
+  | 'restore'
+  | 'permanent_delete'
+  | 'update_role'
+  | 'update_profile'
+  | 'reset_password'
+  | 'toggle_status'
+  | 'force_password_rotation'
+  | 'permission_override';
+
+export interface AccountAuditLog {
+  id: string;
+  timestamp: string; // ISO string
+  eventType: AccountAuditEventType;
+  targetUserId: string;
+  targetUserName: string;
+  targetUserRole: UserRole;
+  targetUserEmail?: string;
+  targetStaffCode?: string;
+  actor: {
+    id?: string;
+    nameKhmer: string;
+    email: string;
+    role: string;
+  };
+  reason?: string;
+  details: string;
+  changesSummary?: {
+    field: string;
+    before?: string | number | boolean;
+    after?: string | number | boolean;
+  }[];
+}
+
+export type PermissionAccessLevel = 'full' | 'scoped' | 'view_only' | 'restricted';
+
+export interface FeatureAccessDetail {
+  id: string;
+  category: string;
+  name: string;
+  description: string;
+  accessLevel: PermissionAccessLevel;
+  scopeNote?: string;
+  canView: boolean;
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canExport: boolean;
+}
+
 export interface SecurityPolicySettings {
   sessionTimeoutEnabled: boolean;
   sessionTimeoutMinutes: number; // e.g. 15, 30, 60, 120, 240

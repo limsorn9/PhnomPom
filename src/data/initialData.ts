@@ -269,6 +269,66 @@ export const initialUsers = [
   }
 ];
 
+export const initialDeletedUsers: any[] = [];
+
+export const initialAccountAuditLogs = [
+  {
+    id: 'audit-seed-1',
+    timestamp: '2026-08-25T08:30:00.000Z',
+    eventType: 'create' as const,
+    targetUserId: 'u-super-admin',
+    targetUserName: 'លោក លីម សន',
+    targetUserRole: 'super_admin' as const,
+    targetUserEmail: 'limsorn9@gmail.com',
+    targetStaffCode: 'MOEYS-SUPER-001',
+    actor: {
+      nameKhmer: 'ប្រព័ន្ធស្វ័យប្រវត្តិ (System Core)',
+      email: 'system@moeys.gov.kh',
+      role: 'super_admin'
+    },
+    reason: 'បង្កើតគណនីគ្រប់គ្រងកម្រិតកំពូលនៃប្រព័ន្ធ (Super Administrator Setup)',
+    details: 'បង្កើតគណនី Super Admin ជាមួយនឹងសិទ្ធិគ្រប់គ្រងពេញលេញលើសាលា នាយក គ្រូបង្រៀន និង Telegram Bot Studio'
+  },
+  {
+    id: 'audit-seed-2',
+    timestamp: '2026-08-26T09:15:00.000Z',
+    eventType: 'update_role' as const,
+    targetUserId: 'u-t-1',
+    targetUserName: 'លោកគ្រូ ម៉ែន វុទ្ធី',
+    targetUserRole: 'teacher' as const,
+    targetUserEmail: 'men.vuthy@moeys.gov.kh',
+    targetStaffCode: 'MOEYS-100001',
+    actor: {
+      nameKhmer: 'លោក លីម សន',
+      email: 'limsorn9@gmail.com',
+      role: 'super_admin'
+    },
+    reason: 'ចាត់តាំងជាគ្រូបន្ទុកថ្នាក់ទី 1A (Grade 1 Section A Homeroom)',
+    details: 'បានកំណត់សិទ្ធិគ្រប់គ្រងបញ្ជីសិស្ស វត្តមាន និងការបញ្ចូលពិន្ទុសម្រាប់ថ្នាក់ទី 1A',
+    changesSummary: [
+      { field: 'assignedGrade', before: 0, after: 1 },
+      { field: 'assignedSection', before: '', after: 'ក' }
+    ]
+  },
+  {
+    id: 'audit-seed-3',
+    timestamp: '2026-08-26T11:00:00.000Z',
+    eventType: 'create' as const,
+    targetUserId: 'u-t-2',
+    targetUserName: 'អ្នកគ្រូ សេង រដ្ឋា',
+    targetUserRole: 'teacher' as const,
+    targetUserEmail: 'seng.rotha@moeys.gov.kh',
+    targetStaffCode: 'MOEYS-100002',
+    actor: {
+      nameKhmer: 'លោក លីម សន',
+      email: 'limsorn9@gmail.com',
+      role: 'super_admin'
+    },
+    reason: 'ចុះឈ្មោះគណនីគ្រូបង្រៀនថ្មីចូលបង្រៀនថ្នាក់ទី 2A',
+    details: 'បានបង្កើតគណនីគ្រូ និងធ្វើសមកាលកម្មទិន្នន័យបុគ្គលិកជាមួយប្រព័ន្ធ'
+  }
+];
+
 export const initialNotifications = [];
 
 export const initialTransfers: StudentTransferRecord[] = [];
