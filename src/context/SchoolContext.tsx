@@ -4103,18 +4103,17 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // នាយកសាលា (Director) និង Super Admin មានសិទ្ធិពេញលេញលើគ្រប់ផ្នែកទាំងអស់នៃកម្មវិធី
     if (role === 'super_admin' || role === 'director') return true;
 
-    if (tab === 'telegram_bot') return true;
-
+    // អ្នកមានសិទ្ធិឆាតបត និងប្រើប្រាស់ Telegram Bot Studio មានតែបុគ្គលិក (គ្រូបង្រៀន, លេខាធិការ, បណ្ណារក្ស) និងនាយកសាលា/Super Admin ប៉ុណ្ណោះ (សិស្សមិនមានសិទ្ធិទេ)
     if (role === 'secretary') {
-      return ['dashboard', 'homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'library', 'learning_resources'].includes(tab);
+      return ['dashboard', 'homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'library', 'learning_resources', 'telegram_bot'].includes(tab);
     }
 
     if (role === 'librarian') {
-      return ['library', 'teaching_resources', 'learning_resources', 'dashboard', 'calendar', 'official_documents'].includes(tab);
+      return ['library', 'teaching_resources', 'learning_resources', 'dashboard', 'calendar', 'official_documents', 'telegram_bot'].includes(tab);
     }
 
     if (role === 'teacher') {
-      return ['homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'dashboard', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'classrooms', 'scores', 'attendance_health', 'calendar', 'reports_qr', 'library', 'learning_resources'].includes(tab);
+      return ['homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'dashboard', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'classrooms', 'scores', 'attendance_health', 'calendar', 'reports_qr', 'library', 'learning_resources', 'telegram_bot'].includes(tab);
     }
 
     if (role === 'student') {

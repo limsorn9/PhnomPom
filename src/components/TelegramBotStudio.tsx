@@ -112,8 +112,25 @@ export const TelegramBotStudio: React.FC = () => {
   const { currentUser, schoolProfile, students, teachers, showToast } = useSchool();
   const [activeTab, setActiveTab] = useState<'chat' | 'commands' | 'webhook_activity' | 'activity_log' | 'group_config' | 'channel_validator' | 'auto_responder' | 'group_router' | 'group_inspector' | 'templates' | 'analytics' | 'automated_tasks' | 'alert_system' | 'settings'>('chat');
   
-  // Strict Principal Access Check
+  // Strict Principal & Staff Access Control
   const isPrincipal = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
+  // អ្នកមានសិទ្ធិឆាតបត និងបញ្ជា Bot គឺមានតែបុគ្គលិក (គ្រូបង្រៀន, លេខាធិការ, បណ្ណារក្ស) និងនាយកសាលា/Super Admin ប៉ុណ្ណោះ
+  const isStaffOrDirector = useMemo(() => {
+    if (!currentUser) return false;
+    return ['super_admin', 'director', 'teacher', 'secretary', 'librarian'].includes(currentUser.role);
+  }, [currentUser]);
+
+  const getRoleLabelKhmer = (role?: string) => {
+    switch (role) {
+      case 'super_admin': return 'Super Admin';
+      case 'director': return 'នាយកសាលា';
+      case 'secretary': return 'លេខាធិការ';
+      case 'librarian': return 'បណ្ណារក្ស';
+      case 'teacher': return 'លោកគ្រូ/អ្នកគ្រូ';
+      case 'student': return 'សិស្សានុសិស្ស';
+      default: return 'អ្នកប្រើប្រាស់';
+    }
+  };
 
   // Bot Settings state
   const [botToken, setBotToken] = useState('8725240678:AAGWt5VL8CvgdKNsGHEM_-O2BHgvJFVx_3w');
@@ -347,6 +364,12 @@ export const TelegramBotStudio: React.FC = () => {
   };
 
   const handleSendMessage = (textToSend?: string) => {
+    // សិទ្ធិឆាតបត៖ មានតែបុគ្គលិក និងនាយកសាលា/Super Admin ប៉ុណ្ណោះ
+    if (!isStaffOrDirector) {
+      showToast('⚠️ អ្នកគ្មានសិទ្ធិឆាត ឬបញ្ជា Bot ទេ! មានតែបុគ្គលិក (លោកគ្រូ-អ្នកគ្រូ, លេខា, បណ្ណារក្ស) និងនាយកសាលាប៉ុណ្ណោះ។', 'error');
+      return;
+    }
+
     const text = textToSend || inputVal;
     if (!text.trim()) return;
 
@@ -662,6 +685,10 @@ export const TelegramBotStudio: React.FC = () => {
   // Send Direct Reply to Telegram User
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isStaffOrDirector) {
+      showToast('⚠️ អ្នកគ្មានសិទ្ធិឆ្លើយតបសារ Telegram ទេ! មានតែបុគ្គលិក និងនាយកសាលាប៉ុណ្ណោះ។', 'error');
+      return;
+    }
     if (!replyTargetLog || !replyText.trim()) {
       showToast('សូមបញ្ចូលខ្លឹមសារចម្លើយតប!', 'error');
       return;
@@ -1110,13 +1137,29 @@ export const TelegramBotStudio: React.FC = () => {
               <div>
                 <div className="font-bold text-slate-800 flex items-center gap-2">
                   PPTC_Notify_bot <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">Verified</span>
+                  {isStaffOrDirector ? (
+                    <span className="text-[11px] bg-sky-100 text-sky-800 border border-sky-200 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-sky-600" />
+                      សិទ្ធិឆាត៖ {getRoleLabelKhmer(currentUser?.role)}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] bg-rose-100 text-rose-800 border border-rose-200 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                      <Lock className="w-3 h-3 text-rose-600" />
+                      គ្មានសិទ្ធិឆាតបត
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs text-slate-500">bot active • <a href="https://t.me/PPTC_Notify_bot" target="_blank" rel="noreferrer" className="text-sky-600 hover:underline font-semibold">@PPTC_Notify_bot</a> • Owner: @limsorn (ID: {chatId})</div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <button
+                disabled={!isStaffOrDirector}
                 onClick={async () => {
+                  if (!isStaffOrDirector) {
+                    showToast('⚠️ អ្នកគ្មានសិទ្ធិផ្ញើសារតេស្តទេ! មានតែបុគ្គលិក និងនាយកសាលាប៉ុណ្ណោះ។', 'error');
+                    return;
+                  }
                   const res = await sendTelegramNotification({
                     title: 'តេស្តសារពី PPTC_Notify_bot',
                     message: 'សារផ្ញើចេញពី Telegram Bot Studio (@PPTC_Notify_bot) ទៅកាន់ Telegram Group ជោគជ័យ!',
@@ -1128,8 +1171,8 @@ export const TelegramBotStudio: React.FC = () => {
                     showToast(res.error || 'បរាជ័យក្នុងការផ្ញើ', 'error');
                   }
                 }}
-                title="ផ្ញើសារតេស្តទៅ Telegram"
-                className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all"
+                title={isStaffOrDirector ? "ផ្ញើសារតេស្តទៅ Telegram" : "មុខងារនេះសម្រាប់តែបុគ្គលិក និងនាយកសាលា"}
+                className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
               >
                 <SendHorizontal className="w-3.5 h-3.5" />
                 តេស្តផ្ញើ Telegram
@@ -1144,7 +1187,7 @@ export const TelegramBotStudio: React.FC = () => {
                   }]);
                 }}
                 title="សម្អាតឆាត"
-                className="p-2 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors"
+                className="p-2 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors cursor-pointer"
               >
                 <RefreshCw className="w-4 h-4" />
               </button>
@@ -1157,13 +1200,35 @@ export const TelegramBotStudio: React.FC = () => {
             {commands.filter(c => c.enabled).map(cmd => (
               <button 
                 key={cmd.id}
+                disabled={!isStaffOrDirector}
                 onClick={() => handleSendMessage(cmd.command)}
-                className="bg-white hover:bg-sky-50 text-sky-700 border border-slate-200 px-3 py-1 rounded-lg text-xs font-semibold shadow-xs whitespace-nowrap transition-colors"
+                title={!isStaffOrDirector ? 'សម្រាប់តែបុគ្គលិក និងនាយកសាលា' : undefined}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold shadow-xs whitespace-nowrap transition-colors border ${
+                  isStaffOrDirector
+                    ? 'bg-white hover:bg-sky-50 text-sky-700 border-slate-200 cursor-pointer'
+                    : 'bg-slate-200/70 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
+                }`}
               >
                 {cmd.command}
               </button>
             ))}
           </div>
+
+          {/* Unauthorized Alert Banner for non-staff / non-director */}
+          {!isStaffOrDirector && (
+            <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-start gap-3 text-xs text-amber-900 shadow-xs">
+              <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <div className="font-bold text-amber-800 flex items-center gap-2">
+                  <span>កំណត់សិទ្ធិប្រើប្រាស់ឆាតបត (Access Restricted)</span>
+                  <span className="bg-amber-200 text-amber-900 text-[10px] px-2 py-0.5 rounded-full font-bold">បុគ្គលិក & នាយក</span>
+                </div>
+                <p className="leading-relaxed">
+                  អ្នកមានសិទ្ធិឆាតបត មានតែបុគ្គលិក (លោកគ្រូ-អ្នកគ្រូ, លេខាធិការ, បណ្ណារក្ស) និងនាយកសាលា/Super Admin ប៉ុណ្ណោះ។ គណនីបច្ចុប្បន្នរបស់អ្នក (<span className="font-semibold">{currentUser?.nameKhmer || 'គណនីសិស្ស'}</span> - {getRoleLabelKhmer(currentUser?.role)}) មិនត្រូវបានអនុញ្ញាតឱ្យបញ្ជូនសារ ឬប្រើប្រាស់ពាក្យបញ្ជាឡើយ។
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Messages Container */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50">
@@ -1221,16 +1286,25 @@ export const TelegramBotStudio: React.FC = () => {
               <input
                 type="text"
                 value={inputVal}
+                disabled={!isStaffOrDirector}
                 onChange={e => setInputVal(e.target.value)}
-                placeholder="វាយពាក្យបញ្ជា (ឧ. /start, /status, /students) ឬសួរសំណួរទៅកាន់ Telegram Bot..."
-                className="flex-1 px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 text-sm font-battambang"
+                placeholder={
+                  isStaffOrDirector
+                    ? "វាយពាក្យបញ្ជា (ឧ. /start, /status, /students) ឬសួរសំណួរទៅកាន់ Telegram Bot..."
+                    : "🔒 មុខងារឆាតបតត្រូវបានកំណត់សម្រាប់តែបុគ្គលិក និងនាយកសាលាប៉ុណ្ណោះ..."
+                }
+                className={`flex-1 px-4 py-3 rounded-xl border text-sm font-battambang transition-all ${
+                  isStaffOrDirector
+                    ? 'border-slate-300 focus:ring-2 focus:ring-sky-500 bg-white text-slate-800'
+                    : 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed'
+                }`}
               />
               <button
                 type="submit"
-                disabled={!inputVal.trim()}
-                className="bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition-all whitespace-nowrap"
+                disabled={!isStaffOrDirector || !inputVal.trim()}
+                className="bg-sky-600 hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition-all whitespace-nowrap cursor-pointer"
               >
-                <Send className="w-4 h-4" />
+                {isStaffOrDirector ? <Send className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                 បញ្ជូនសារ
               </button>
             </form>
