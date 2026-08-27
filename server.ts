@@ -157,7 +157,7 @@ async function startServer() {
   app.post('/api/telegram/webhook', async (req, res) => {
     try {
       const update = req.body;
-      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8946444884:AAHc1ESlanNspj6atsVCGlxto-q5ks-NKGg';
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc';
 
       if (!update || !botToken) {
         return res.status(200).json({ ok: true, note: 'No update or token' });
@@ -258,7 +258,7 @@ async function startServer() {
   app.post('/api/telegram/set-webhook', async (req, res) => {
     try {
       const { webhookUrl } = req.body;
-      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8946444884:AAHc1ESlanNspj6atsVCGlxto-q5ks-NKGg';
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc';
       
       if (!botToken) {
         return res.status(400).json({ success: false, error: 'Telegram Bot Token is required' });
@@ -398,7 +398,7 @@ async function startServer() {
   // GET /api/telegram/webhook-info - Get current Telegram webhook status
   app.get('/api/telegram/webhook-info', async (req, res) => {
     try {
-      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8946444884:AAHc1ESlanNspj6atsVCGlxto-q5ks-NKGg';
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc';
       const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`);
       const tgData = await tgRes.json();
       return res.json({
@@ -429,7 +429,7 @@ async function startServer() {
   // POST /api/telegram/scan-updates - Actively scan Telegram API for updates to discover new groups
   app.post('/api/telegram/scan-updates', async (req, res) => {
     try {
-      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8946444884:AAHc1ESlanNspj6atsVCGlxto-q5ks-NKGg';
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc';
       let fetchedUpdates: any[] = [];
       let source = 'memory';
 
@@ -478,7 +478,7 @@ async function startServer() {
         return res.status(400).json({ success: false, error: 'Chat ID is required' });
       }
 
-      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8946444884:AAHc1ESlanNspj6atsVCGlxto-q5ks-NKGg';
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc';
       const cleanId = String(chatId).trim();
 
       let chatInfo: any = null;
@@ -1057,7 +1057,7 @@ async function startServer() {
       const expires = Date.now() + 5 * 60 * 1000; // valid for 5 minutes
       telegramCodes.set(identifier, { code, expires });
 
-      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8946444884:AAHc1ESlanNspj6atsVCGlxto-q5ks-NKGg';
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc';
       const chatId = process.env.TELEGRAM_CHAT_ID || '240224709';
 
       let sentViaTelegram = false;
@@ -1104,7 +1104,7 @@ async function startServer() {
         return res.status(400).json({ success: false, error: 'Message text is required' });
       }
 
-      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8946444884:AAHc1ESlanNspj6atsVCGlxto-q5ks-NKGg';
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc';
       const chatId = targetChatId || process.env.TELEGRAM_CHAT_ID || '240224709';
 
       if (!botToken || !chatId) {

@@ -112,7 +112,7 @@ export const TelegramBotStudio: React.FC = () => {
   const isPrincipal = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
 
   // Bot Settings state
-  const [botToken, setBotToken] = useState('8946444884:AAHc1ESlanNspj6atsVCGlxto-q5ks-NKGg');
+  const [botToken, setBotToken] = useState('8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc');
   const [chatId, setChatId] = useState('240224709');
   const [isOnline, setIsOnline] = useState(true);
   const [webhookUrl, setWebhookUrl] = useState('https://ais-dev-2jmspxaqev7bavrmenfxlh-383767016415.asia-southeast1.run.app/api/telegram/webhook');
@@ -703,7 +703,7 @@ export const TelegramBotStudio: React.FC = () => {
       result: {
         message_id: 48920,
         from: {
-          id: 8946444884,
+          id: 8892382555,
           is_bot: true,
           first_name: 'Telegram_Notify_bot',
           username: 'TGPPTC_Notify_bot'
@@ -1819,7 +1819,7 @@ export const TelegramBotStudio: React.FC = () => {
                   value={isPrincipal ? botToken : "••••••••••••••••••••••••••••••••••••••••••••"}
                   onChange={e => isPrincipal && setBotToken(e.target.value)}
                   disabled={!isPrincipal}
-                  placeholder="8946444884:AAHc1ESlanNspj6atsVCGlxto-q5ks-NKGg"
+                  placeholder="8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc"
                   className={`w-full pl-11 pr-4 py-3 rounded-xl border font-mono text-sm ${
                     isPrincipal 
                       ? 'border-slate-300 focus:ring-2 focus:ring-indigo-500 bg-white' 
