@@ -130,7 +130,7 @@ export const TelegramGroupConfiguration: React.FC<TelegramGroupConfigurationProp
 
     try {
       const inspectRes = await inspectTelegramChat(rule.groupId);
-      const testMsg = `⚡ *ការផ្ទៀងផ្ទាត់ Notification Rule ជោគជ័យ!*\n\n• ក្រុម: *${rule.groupTitle}*\n• ប្រភេទ Rule: *${rule.ruleType}*\n• តួនាទីអនុញ្ញាត: ${rule.allowedRoles.join(', ')}\n• ម៉ោងបញ្ជូន: ${new Date().toLocaleTimeString('km-KH')}\n\n🤖 ប្រព័ន្ធ Bot (@TGPPTC_Notify_bot) បានកំណត់រចនាសម្ព័ន្ធរួចរាល់ ១០០%!`;
+      const testMsg = `⚡ *ការផ្ទៀងផ្ទាត់ Notification Rule ជោគជ័យ!*\n\n• ក្រុម: *${rule.groupTitle}*\n• ប្រភេទ Rule: *${rule.ruleType}*\n• តួនាទីអនុញ្ញាត: ${rule.allowedRoles.join(', ')}\n• ម៉ោងបញ្ជូន: ${new Date().toLocaleTimeString('km-KH')}\n\n🤖 ប្រព័ន្ធ Bot (@PPTC_Notify_bot) បានកំណត់រចនាសម្ព័ន្ធរួចរាល់ ១០០%!`;
 
       const sendRes = await sendTelegramDirectMessage(rule.groupId, testMsg);
 

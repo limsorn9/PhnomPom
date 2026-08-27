@@ -76,15 +76,15 @@ export const TelegramBotSummaryCard: React.FC<TelegramBotSummaryCardProps> = ({ 
     setIsSendingPing(true);
     try {
       const res = await sendTelegramNotification({
-        title: '⚡ [Quick Check] Telegram_Notify_bot Performance Ping',
+        title: '⚡ [Quick Check] PPTC_Notify_bot Performance Ping',
         message: `🤖 Bot Health: Connected (200 OK)\n• ក្រុមគ្រប់គ្រងសរុប: ${totalActiveGroups} ក្រុម\n• សារបញ្ជូនថ្ងៃនេះ: ${todaySentCount} សារ\n• កម្រិតជោគជ័យ: ${successRate}%\n• សាលារៀន: ${schoolProfile.nameKhmer}`,
         category: 'security',
       });
       if (res.success) {
-        showToast('តេស្តផ្ញើសារត្រួតពិនិត្យ Telegram Bot ជោគជ័យ!', 'success');
+        showToast('តេស្តការតភ្ជាប់ Telegram Bot ជោគជ័យ! សារ Ping ត្រូវបានផ្ញើរួចរាល់។', 'success');
         loadStats();
       } else {
-        showToast(res.message || 'ការផ្ញើសារតេស្តមិនបានសម្រេច', 'error');
+        showToast(res.error || res.message || 'ការផ្ញើសារតេស្តមិនបានសម្រេច', 'error');
       }
     } catch (err: any) {
       showToast('បរាជ័យក្នុងការតេស្ត Bot: ' + err?.message, 'error');
@@ -114,7 +114,7 @@ export const TelegramBotSummaryCard: React.FC<TelegramBotSummaryCardProps> = ({ 
             <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
               <span>ធ្វើបច្ចុប្បន្នភាពចុងក្រោយ: {lastCheckTime}</span>
               <span>•</span>
-              <span className="font-mono text-indigo-600 font-semibold">@TGPPTC_Notify_bot</span>
+              <span className="font-mono text-indigo-600 font-semibold">@PPTC_Notify_bot</span>
             </p>
           </div>
         </div>
@@ -136,10 +136,11 @@ export const TelegramBotSummaryCard: React.FC<TelegramBotSummaryCardProps> = ({ 
             type="button"
             onClick={handleTestPing}
             disabled={isSendingPing}
-            className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+            className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="ផ្ញើសារ Ping តេស្តការតភ្ជាប់ទៅកាន់ Telegram"
           >
-            <Zap className="w-3.5 h-3.5" />
-            <span>{isSendingPing ? 'កំពុង Ping...' : 'តេស្ត Ping'}</span>
+            <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+            <span>{isSendingPing ? 'កំពុង Ping...' : 'Test Connection'}</span>
           </button>
         </div>
       </div>

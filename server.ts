@@ -157,7 +157,7 @@ async function startServer() {
   app.post('/api/telegram/webhook', async (req, res) => {
     try {
       const update = req.body;
-      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc';
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8725240678:AAGWt5VL8CvgdKNsGHEM_-O2BHgvJFVx_3w';
 
       if (!update || !botToken) {
         return res.status(200).json({ ok: true, note: 'No update or token' });
@@ -258,7 +258,7 @@ async function startServer() {
   app.post('/api/telegram/set-webhook', async (req, res) => {
     try {
       const { webhookUrl } = req.body;
-      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc';
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8725240678:AAGWt5VL8CvgdKNsGHEM_-O2BHgvJFVx_3w';
       
       if (!botToken) {
         return res.status(400).json({ success: false, error: 'Telegram Bot Token is required' });
@@ -398,7 +398,7 @@ async function startServer() {
   // GET /api/telegram/webhook-info - Get current Telegram webhook status
   app.get('/api/telegram/webhook-info', async (req, res) => {
     try {
-      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc';
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8725240678:AAGWt5VL8CvgdKNsGHEM_-O2BHgvJFVx_3w';
       const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`);
       const tgData = await tgRes.json();
       return res.json({
@@ -429,7 +429,7 @@ async function startServer() {
   // POST /api/telegram/scan-updates - Actively scan Telegram API for updates to discover new groups
   app.post('/api/telegram/scan-updates', async (req, res) => {
     try {
-      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc';
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8725240678:AAGWt5VL8CvgdKNsGHEM_-O2BHgvJFVx_3w';
       let fetchedUpdates: any[] = [];
       let source = 'memory';
 
@@ -478,7 +478,7 @@ async function startServer() {
         return res.status(400).json({ success: false, error: 'Chat ID is required' });
       }
 
-      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc';
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8725240678:AAGWt5VL8CvgdKNsGHEM_-O2BHgvJFVx_3w';
       const cleanId = String(chatId).trim();
 
       let chatInfo: any = null;
@@ -1057,7 +1057,7 @@ async function startServer() {
       const expires = Date.now() + 5 * 60 * 1000; // valid for 5 minutes
       telegramCodes.set(identifier, { code, expires });
 
-      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc';
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8725240678:AAGWt5VL8CvgdKNsGHEM_-O2BHgvJFVx_3w';
       const chatId = process.env.TELEGRAM_CHAT_ID || '240224709';
 
       let sentViaTelegram = false;
@@ -1104,7 +1104,7 @@ async function startServer() {
         return res.status(400).json({ success: false, error: 'Message text is required' });
       }
 
-      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc';
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8725240678:AAGWt5VL8CvgdKNsGHEM_-O2BHgvJFVx_3w';
       const chatId = targetChatId || process.env.TELEGRAM_CHAT_ID || '240224709';
 
       if (!botToken || !chatId) {
@@ -1130,6 +1130,72 @@ async function startServer() {
       }
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err?.message || 'Failed to send notification via queue' });
+    }
+  });
+
+  // POST /api/telegram/admin-error-alert - Immediate dispatch of critical Bot & API error alerts to Administrator / Error Channel
+  app.post('/api/telegram/admin-error-alert', async (req, res) => {
+    try {
+      const {
+        errorCategory = 'persistent_api_error',
+        errorMessage = 'Unknown Telegram Bot Error',
+        adminChatId: targetAdminChatId,
+        details,
+        consecutiveFailures = 1,
+      } = req.body;
+
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '8725240678:AAGWt5VL8CvgdKNsGHEM_-O2BHgvJFVx_3w';
+      const adminChatId = targetAdminChatId || process.env.TELEGRAM_ADMIN_CHAT_ID || process.env.TELEGRAM_CHAT_ID || '240224709';
+
+      if (!botToken || !adminChatId) {
+        return res.status(400).json({ success: false, error: 'Missing Bot Token or Admin Chat ID' });
+      }
+
+      const categoryLabels: Record<string, { kh: string; icon: string }> = {
+        initialization_failure: { kh: 'បរាជ័យក្នុងការចាប់ផ្តើម (Initialization Failure)', icon: '🚨' },
+        persistent_api_error: { kh: 'កំហុសបណ្តាញ/API ជាប់ៗគ្នា (Persistent API Error)', icon: '⚠️' },
+        webhook_sync_error: { kh: 'កំហុស Webhook / SSL Sync', icon: '📡' },
+        rate_limit_error: { kh: 'បញ្ហាលើសកំណត់ Telegram Rate-Limit (429)', icon: '⏳' },
+        auth_token_error: { kh: 'Bot Token មិនត្រឹមត្រូវ ឬអស់សុពលភាព', icon: '🔑' },
+        network_timeout: { kh: 'ដាច់ការតភ្ជាប់ Network Timeout', icon: '🔌' },
+      };
+
+      const meta = categoryLabels[errorCategory] || { kh: 'កំហុស Bot API', icon: '🚨' };
+
+      const alertMessage = 
+`${meta.icon} *[CRITICAL ALERT] Telegram Bot Error Detection*
+══════════════════════
+🏫 *សាលាបឋមសិក្សាភ្នំពុំ - ប្រព័ន្ធប្រកាសអាសន្ន*
+
+⚠️ *ប្រភេទកំហុស:* ${meta.kh}
+🔴 *សេចក្តីលម្អិត:* \`${errorMessage.replace(/[`*]/g, '')}\`
+🔢 *បរាជ័យជាប់គ្នា:* ${consecutiveFailures} លើក
+🕒 *ម៉ោងកើតហេតុ:* _${new Date().toLocaleString('km-KH')}_
+🤖 *Bot:* @PPTC\\_Notify\\_bot
+📍 *Channel/Chat ID ទទួលរងផលប៉ះពាល់:* \`${details?.affectedChatId || adminChatId}\`
+
+💡 *សកម្មភាពណែនាំ:*
+• សូមពិនិត្យមើល Bot Token ក្នុង BotFather
+• ពិនិត្យមើលថាតើ Bot ត្រូវបាន Add ចូល Channel ជា Admin ឬនៅ
+• ពិនិត្យមើលស្ថានភាព Server Network / Ingress Webhook
+══════════════════════`;
+
+      const directRes = await enqueueTelegramMessage({
+        botToken,
+        chatId: adminChatId,
+        text: alertMessage,
+        parse_mode: 'Markdown',
+        delayMs: 0, // Bypass queue delay for emergency alerts
+      });
+
+      return res.json({
+        success: directRes.success,
+        alertSentTo: adminChatId,
+        message: directRes.success ? 'បានផ្ញើដំណឹងអាសន្នទៅកាន់ Telegram Administrator រួចរាល់' : directRes.error,
+      });
+    } catch (err: any) {
+      console.error('Failed to send admin error alert:', err);
+      return res.status(500).json({ success: false, error: err?.message || 'Failed to dispatch alert' });
     }
   });
 

@@ -1030,7 +1030,7 @@ export const TelegramClassroomGroupRouter: React.FC = () => {
                   className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-indigo-500"
                 />
                 <p className="text-[11px] text-slate-500 mt-1 font-battambang">
-                  💡 <b>គន្លឹះ៖</b> សូម Add Telegram Bot (<b><a href="https://t.me/TGPPTC_Notify_bot" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">@TGPPTC_Notify_bot</a></b> / Telegram_Notify_bot) ចូលទៅក្នុងក្រុមថ្នាក់ទី {editingClassroom.grade}{editingClassroom.section} និង Promote ជា Admin ទើបបតអាចផ្ញើសារចូលក្រុមបាន។
+                  💡 <b>គន្លឹះ៖</b> សូម Add Telegram Bot (<b><a href="https://t.me/PPTC_Notify_bot" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">@PPTC_Notify_bot</a></b> / PPTC_Notify_bot) ចូលទៅក្នុងក្រុមថ្នាក់ទី {editingClassroom.grade}{editingClassroom.section} និង Promote ជា Admin ទើបបតអាចផ្ញើសារចូលក្រុមបាន។
                 </p>
               </div>
 

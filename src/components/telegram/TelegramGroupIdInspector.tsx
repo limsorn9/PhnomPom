@@ -452,7 +452,7 @@ export const TelegramGroupIdInspector: React.FC<TelegramGroupIdInspectorProps> =
 
             <ol className="space-y-2.5 text-xs text-slate-600 leading-relaxed list-decimal list-inside pl-1">
               <li className="text-slate-700">
-                <span className="font-semibold text-slate-800">Add Bot ចូលក្រុម៖</span> អញ្ជើញ <a href="https://t.me/TGPPTC_Notify_bot" target="_blank" rel="noreferrer" className="bg-white border px-1 py-0.5 rounded text-blue-600 font-mono font-semibold hover:underline">@TGPPTC_Notify_bot</a> (Telegram_Notify_bot) ចូលក្នុង Telegram Group ហើយកែប្រែសិទ្ធិជា <strong className="text-emerald-700">Admin</strong>។
+                <span className="font-semibold text-slate-800">Add Bot ចូលក្រុម៖</span> អញ្ជើញ <a href="https://t.me/PPTC_Notify_bot" target="_blank" rel="noreferrer" className="bg-white border px-1 py-0.5 rounded text-blue-600 font-mono font-semibold hover:underline">@PPTC_Notify_bot</a> (PPTC_Notify_bot) ចូលក្នុង Telegram Group ហើយកែប្រែសិទ្ធិជា <strong className="text-emerald-700">Admin</strong>។
               </li>
               <li className="text-slate-700">
                 <span className="font-semibold text-slate-800">ផ្ញើសារសាកល្បង៖</span> វាយសារមួយម៉ាត់ក្នុងក្រុម (ឧ. «/start» ឬ «សួស្ដី»)។

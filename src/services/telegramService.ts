@@ -159,9 +159,25 @@ export async function sendTelegramNotification(payload: TelegramNotificationPayl
       // Non-blocking log recording
     }
 
+    if (data.success) {
+      recordApiSuccess();
+    } else {
+      recordApiFailure(
+        'persistent_api_error',
+        data.error || data.message || 'Transmission failed',
+        String(payload.chatId || '240224709'),
+        { title: payload.title }
+      );
+    }
+
     return data;
   } catch (err: any) {
     console.error('sendTelegramNotification failed:', err);
+    recordApiFailure(
+      'network_timeout',
+      err?.message || 'Network error',
+      String(payload.chatId || '240224709')
+    );
     return {
       success: false,
       message: 'ការតភ្ជាប់បណ្តាញ Telegram បរាជ័យ',
@@ -682,5 +698,301 @@ export async function inspectTelegramChat(chatId: string | number): Promise<{ su
     return { success: false, error: err?.message || 'Chat inspection failed' };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Automatic Admin Error Alert System (Bot Initialization & Persistent API Errors)
+// ---------------------------------------------------------------------------
+
+export type BotErrorCategory =
+  | 'initialization_failure'
+  | 'persistent_api_error'
+  | 'webhook_sync_error'
+  | 'rate_limit_error'
+  | 'auth_token_error'
+  | 'network_timeout';
+
+export interface AdminAlertConfig {
+  enabled: boolean;
+  adminChatId: string;
+  adminName: string;
+  failureThreshold: number; // e.g. 2 consecutive failures
+  cooldownMinutes: number; // e.g. 5 minutes throttle
+  alertOnInitializationFailure: boolean;
+  alertOnWebhookFailure: boolean;
+  alertOnPersistentErrors: boolean;
+  alertOnRateLimit: boolean;
+  lastAlertSentAt?: number;
+}
+
+export interface BotAlertLogRecord {
+  id: string;
+  timestamp: string;
+  timeMs: number;
+  category: BotErrorCategory;
+  titleKh: string;
+  errorMessage: string;
+  affectedChatId: string;
+  consecutiveFailures: number;
+  status: 'sent' | 'throttled' | 'failed';
+  adminChatId: string;
+  details?: Record<string, any>;
+}
+
+export const ADMIN_ALERT_CONFIG_KEY = 'telegram_bot_admin_alert_config';
+export const BOT_ALERT_HISTORY_KEY = 'telegram_bot_alert_history';
+
+let inMemoryConsecutiveFailures = 0;
+let inMemoryLastAlertSentAt = 0;
+
+export function getAdminAlertConfig(): AdminAlertConfig {
+  const defaultConfig: AdminAlertConfig = {
+    enabled: true,
+    adminChatId: '240224709',
+    adminName: 'លោក លឹម សន (Super Admin)',
+    failureThreshold: 2,
+    cooldownMinutes: 5,
+    alertOnInitializationFailure: true,
+    alertOnWebhookFailure: true,
+    alertOnPersistentErrors: true,
+    alertOnRateLimit: true,
+    lastAlertSentAt: 0,
+  };
+
+  try {
+    const raw = localStorage.getItem(ADMIN_ALERT_CONFIG_KEY);
+    if (!raw) return defaultConfig;
+    return { ...defaultConfig, ...JSON.parse(raw) };
+  } catch {
+    return defaultConfig;
+  }
+}
+
+export function saveAdminAlertConfig(config: Partial<AdminAlertConfig>): AdminAlertConfig {
+  try {
+    const current = getAdminAlertConfig();
+    const updated = { ...current, ...config };
+    localStorage.setItem(ADMIN_ALERT_CONFIG_KEY, JSON.stringify(updated));
+    return updated;
+  } catch (e) {
+    console.warn('Failed to save admin alert config:', e);
+    return getAdminAlertConfig();
+  }
+}
+
+export function getBotAlertHistory(): BotAlertLogRecord[] {
+  try {
+    const raw = localStorage.getItem(BOT_ALERT_HISTORY_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export function saveBotAlertHistory(logs: BotAlertLogRecord[]): void {
+  try {
+    // Keep last 50 logs
+    const trimmed = logs.slice(0, 50);
+    localStorage.setItem(BOT_ALERT_HISTORY_KEY, JSON.stringify(trimmed));
+  } catch (e) {
+    console.warn('Failed to save bot alert history:', e);
+  }
+}
+
+export function clearBotAlertHistory(): void {
+  try {
+    localStorage.removeItem(BOT_ALERT_HISTORY_KEY);
+  } catch {}
+}
+
+export function getConsecutiveApiFailures(): number {
+  return inMemoryConsecutiveFailures;
+}
+
+export function recordApiSuccess(): void {
+  inMemoryConsecutiveFailures = 0;
+}
+
+function getCategoryKhmerTitle(category: BotErrorCategory): string {
+  switch (category) {
+    case 'initialization_failure':
+      return 'បរាជ័យក្នុងការចាប់ផ្តើម Bot (Initialization Failure)';
+    case 'persistent_api_error':
+      return 'កំហុសបណ្តាញ/API ជាប់ៗគ្នា (Persistent API Error)';
+    case 'webhook_sync_error':
+      return 'កំហុស Webhook / SSL Sync';
+    case 'rate_limit_error':
+      return 'កំហុស Telegram Rate-Limit (429)';
+    case 'auth_token_error':
+      return 'Bot Token មិនត្រឹមត្រូវ';
+    case 'network_timeout':
+      return 'ដាច់ការតភ្ជាប់ Network Timeout';
+    default:
+      return 'កំហុស Bot API';
+  }
+}
+
+/**
+ * Triggers an immediate or rate-limited error notification to the administrator
+ */
+export async function triggerBotErrorAlert(params: {
+  category: BotErrorCategory;
+  errorMessage: string;
+  affectedChatId?: string;
+  details?: Record<string, any>;
+  isForced?: boolean;
+  consecutiveFailures?: number;
+}): Promise<{ success: boolean; throttled?: boolean; message: string }> {
+  const config = getAdminAlertConfig();
+  const failuresCount = params.consecutiveFailures ?? Math.max(1, inMemoryConsecutiveFailures);
+
+  if (!config.enabled && !params.isForced) {
+    return { success: false, message: 'ប្រព័ន្ធប្រកាសអាសន្នត្រូវបានបិទ (Alerts Disabled)' };
+  }
+
+  // Check specific condition flags
+  if (!params.isForced) {
+    if (params.category === 'initialization_failure' && !config.alertOnInitializationFailure) {
+      return { success: false, message: 'Initialization failure alerts disabled' };
+    }
+    if (params.category === 'webhook_sync_error' && !config.alertOnWebhookFailure) {
+      return { success: false, message: 'Webhook failure alerts disabled' };
+    }
+    if (params.category === 'persistent_api_error' && !config.alertOnPersistentErrors) {
+      return { success: false, message: 'Persistent error alerts disabled' };
+    }
+    if (params.category === 'rate_limit_error' && !config.alertOnRateLimit) {
+      return { success: false, message: 'Rate-limit alerts disabled' };
+    }
+  }
+
+  // Throttle cooldown check (except when forced for testing)
+  const now = Date.now();
+  const cooldownMs = config.cooldownMinutes * 60 * 1000;
+  const lastAlertTime = config.lastAlertSentAt || inMemoryLastAlertSentAt;
+
+  if (!params.isForced && lastAlertTime && (now - lastAlertTime < cooldownMs)) {
+    const remainingSec = Math.ceil((cooldownMs - (now - lastAlertTime)) / 1000);
+    const throttledLog: BotAlertLogRecord = {
+      id: `alert-throt-${now}`,
+      timestamp: new Date().toLocaleTimeString('km-KH'),
+      timeMs: now,
+      category: params.category,
+      titleKh: 'ដំណឹងកំហុស (ផ្អាកបណ្តោះអាសន្ន Throttled)',
+      errorMessage: params.errorMessage,
+      affectedChatId: params.affectedChatId || config.adminChatId,
+      consecutiveFailures: failuresCount,
+      status: 'throttled',
+      adminChatId: config.adminChatId,
+      details: params.details,
+    };
+    const history = getBotAlertHistory();
+    saveBotAlertHistory([throttledLog, ...history]);
+    return {
+      success: false,
+      throttled: true,
+      message: `សារប្រកាសអាសន្នត្រូវបានពន្យាពេលដោយស្វ័យប្រវត្តិ (នៅសល់ ${remainingSec} វិនាទី ក្នុង Cooldown)`
+    };
+  }
+
+  try {
+    const res = await fetch('/api/telegram/admin-error-alert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        errorCategory: params.category,
+        errorMessage: params.errorMessage,
+        adminChatId: config.adminChatId,
+        consecutiveFailures: failuresCount,
+        details: {
+          ...params.details,
+          affectedChatId: params.affectedChatId,
+          timestamp: new Date().toISOString(),
+        },
+      }),
+    });
+
+    const data = await res.json();
+    const isSuccess = data.success === true;
+
+    // Update timestamps
+    if (isSuccess) {
+      inMemoryLastAlertSentAt = now;
+      saveAdminAlertConfig({ lastAlertSentAt: now });
+    }
+
+    const alertLog: BotAlertLogRecord = {
+      id: `alert-${now}`,
+      timestamp: new Date().toLocaleTimeString('km-KH'),
+      timeMs: now,
+      category: params.category,
+      titleKh: getCategoryKhmerTitle(params.category),
+      errorMessage: params.errorMessage,
+      affectedChatId: params.affectedChatId || config.adminChatId,
+      consecutiveFailures: failuresCount,
+      status: isSuccess ? 'sent' : 'failed',
+      adminChatId: config.adminChatId,
+      details: params.details,
+    };
+
+    const history = getBotAlertHistory();
+    saveBotAlertHistory([alertLog, ...history]);
+
+    // Also record in bot activity log
+    try {
+      addBotActivityLog({
+        destinationChatId: config.adminChatId,
+        destinationName: `Admin Alert Channel (${config.adminName})`,
+        category: 'security',
+        triggeredByName: 'ប្រព័ន្ធតាមដានកំហុសស្វ័យប្រវត្ត (Alert System)',
+        triggeredByRole: 'System',
+        messageSnippet: `🚨 [ALERT] ${alertLog.titleKh}: ${params.errorMessage.substring(0, 60)}...`,
+        fullMessage: `Critical Error Alert dispatched to admin: ${params.errorMessage}`,
+        status: isSuccess ? 'success' : 'failed',
+        errorMessage: isSuccess ? undefined : data.error,
+        latencyMs: 40,
+      });
+    } catch {}
+
+    return {
+      success: isSuccess,
+      message: isSuccess
+        ? `បានបញ្ជូនសារដំណឹងអាសន្នទៅកាន់ Telegram Admin (${config.adminChatId}) ដោយជោគជ័យ!`
+        : (data.error || 'បរាជ័យក្នុងការផ្ញើ Alert ទៅកាន់ Admin'),
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: 'បរាជ័យក្នុងការតភ្ជាប់ទៅកាន់ Alert Endpoint: ' + (err?.message || 'Network error'),
+    };
+  }
+}
+
+/**
+ * Records an API transmission failure and automatically triggers an alert if the threshold is exceeded
+ */
+export async function recordApiFailure(
+  category: BotErrorCategory,
+  errorMessage: string,
+  affectedChatId?: string,
+  details?: Record<string, any>
+): Promise<{ triggeredAlert: boolean; alertResult?: { success: boolean; throttled?: boolean; message: string } }> {
+  inMemoryConsecutiveFailures++;
+  const config = getAdminAlertConfig();
+
+  if (config.enabled && inMemoryConsecutiveFailures >= config.failureThreshold) {
+    const alertResult = await triggerBotErrorAlert({
+      category,
+      errorMessage,
+      affectedChatId,
+      details,
+      consecutiveFailures: inMemoryConsecutiveFailures,
+    });
+    return { triggeredAlert: true, alertResult };
+  }
+
+  return { triggeredAlert: false };
+}
+
 
 

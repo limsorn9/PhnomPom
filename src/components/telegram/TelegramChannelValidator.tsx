@@ -67,7 +67,7 @@ export const TelegramChannelValidator: React.FC<TelegramChannelValidatorProps> =
       if (inspectRes.success && inspectRes.data) {
         // Step 2: Send test message to confirm bot has active write permissions
         const messageBody = customTestMessage.trim() ||
-          `⚡ *ការផ្ទៀងផ្ទាត់ការតភ្ជាប់ Telegram Channel/Group ជោគជ័យ!*\n\n• ឈ្មោះប៉ុស្តិ៍: *${inspectRes.data.title}*\n• ប្រភេទ: *${inspectRes.data.type}*\n• សមាជិក: *${inspectRes.data.memberCount} នាក់*\n• ស្ថានភាព Bot: *Administrator (សិទ្ធិពេញលេញ)*\n\n🤖 *Telegram_Notify_bot* (@TGPPTC_Notify_bot) បានតភ្ជាប់ និងមានសិទ្ធិចាក់ផ្សាយដោយជោគជ័យ!`;
+          `⚡ *ការផ្ទៀងផ្ទាត់ការតភ្ជាប់ Telegram Channel/Group ជោគជ័យ!*\n\n• ឈ្មោះប៉ុស្តិ៍: *${inspectRes.data.title}*\n• ប្រភេទ: *${inspectRes.data.type}*\n• សមាជិក: *${inspectRes.data.memberCount} នាក់*\n• ស្ថានភាព Bot: *Administrator (សិទ្ធិពេញលេញ)*\n\n🤖 *PPTC_Notify_bot* (@PPTC_Notify_bot) បានតភ្ជាប់ និងមានសិទ្ធិចាក់ផ្សាយដោយជោគជ័យ!`;
 
         const sendRes = await sendTelegramDirectMessage(cleanId, messageBody);
 
@@ -378,7 +378,7 @@ export const TelegramChannelValidator: React.FC<TelegramChannelValidatorProps> =
                 <p className="font-bold text-slate-800">💡 ជំហានដោះស្រាយដើម្បីតភ្ជាប់:</p>
                 <ol className="list-decimal list-inside space-y-1 text-slate-600 pl-2">
                   <li>បើកកម្មវិធី Telegram រួចចូលទៅកាន់ Group ឬ Channel របស់អ្នក។</li>
-                  <li>ចុចលើឈ្មោះក្រុម &gt; Add Member &gt; ស្វែងរក <b>@TGPPTC_Notify_bot</b> ហើយ Add ចូល។</li>
+                  <li>ចុចលើឈ្មោះក្រុម &gt; Add Member &gt; ស្វែងរក <b>@PPTC_Notify_bot</b> ហើយ Add ចូល។</li>
                   <li>
                     កំណត់សិទ្ធិ <b>Promote to Administrator</b> ឱ្យ Bot អាចផ្ញើសារបាន (Post Messages: ON)។
                   </li>

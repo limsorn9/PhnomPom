@@ -7,11 +7,15 @@ import {
   saveTelegramDelayMs,
   updateTelegramAntiSpamConfig,
   getTelegramAntiSpamStatus,
-  TelegramAntiSpamStatus
+  TelegramAntiSpamStatus,
+  recordApiSuccess,
+  recordApiFailure,
+  triggerBotErrorAlert
 } from '../services/telegramService';
 import { TelegramTemplateManager } from './telegram/TelegramTemplateManager';
 import { TelegramBotAnalytics } from './telegram/TelegramBotAnalytics';
 import { TelegramAutomatedTasks } from './telegram/TelegramAutomatedTasks';
+import { TelegramBotAlertSystem } from './telegram/TelegramBotAlertSystem';
 import { TelegramSmartAutoResponder, DEFAULT_AUTO_RESPONDER_RULES, AutoResponderRule } from './telegram/TelegramSmartAutoResponder';
 import { TelegramClassroomGroupRouter } from './telegram/TelegramClassroomGroupRouter';
 import { TelegramGroupIdInspector } from './telegram/TelegramGroupIdInspector';
@@ -106,13 +110,13 @@ interface BotCommandConfig {
 
 export const TelegramBotStudio: React.FC = () => {
   const { currentUser, schoolProfile, students, teachers, showToast } = useSchool();
-  const [activeTab, setActiveTab] = useState<'chat' | 'commands' | 'webhook_activity' | 'activity_log' | 'group_config' | 'channel_validator' | 'auto_responder' | 'group_router' | 'group_inspector' | 'templates' | 'analytics' | 'automated_tasks' | 'settings'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'commands' | 'webhook_activity' | 'activity_log' | 'group_config' | 'channel_validator' | 'auto_responder' | 'group_router' | 'group_inspector' | 'templates' | 'analytics' | 'automated_tasks' | 'alert_system' | 'settings'>('chat');
   
   // Strict Principal Access Check
   const isPrincipal = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
 
   // Bot Settings state
-  const [botToken, setBotToken] = useState('8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc');
+  const [botToken, setBotToken] = useState('8725240678:AAGWt5VL8CvgdKNsGHEM_-O2BHgvJFVx_3w');
   const [chatId, setChatId] = useState('240224709');
   const [isOnline, setIsOnline] = useState(true);
   const [webhookUrl, setWebhookUrl] = useState('https://ais-dev-2jmspxaqev7bavrmenfxlh-383767016415.asia-southeast1.run.app/api/telegram/webhook');
@@ -156,7 +160,7 @@ export const TelegramBotStudio: React.FC = () => {
       enabled: true,
       requiresAuth: false,
       responseType: 'text',
-      sampleResponse: `🙏 សួស្ដី! ខ្ញុំជា Telegram_Notify_bot (@TGPPTC_Notify_bot) នៃសាលារៀន ${schoolProfile.nameKhmer}។ តើខ្ញុំអាចជួយអ្វីដល់អ្នកថ្ងៃនេះ?`
+      sampleResponse: `🙏 សួស្ដី! ខ្ញុំជា PPTC_Notify_bot (@PPTC_Notify_bot) នៃសាលារៀន ${schoolProfile.nameKhmer}។ តើខ្ញុំអាចជួយអ្វីដល់អ្នកថ្ងៃនេះ?`
     },
     {
       id: 'cmd-status',
@@ -303,7 +307,7 @@ export const TelegramBotStudio: React.FC = () => {
     {
       id: 'msg-1',
       sender: 'bot',
-      text: `🤖 សួស្ដី! ខ្ញុំជា **Telegram_Notify_bot** ([@TGPPTC_Notify_bot](https://t.me/TGPPTC_Notify_bot)) ដែលបានតភ្ជាប់ជាមួយប្រព័ន្ធសាលារៀនរបស់អ្នកផ្ទាល់។\n\n🆔 Telegram ID: **240224709** | Owner: **@limsorn**\n\nសូមវាយបញ្ចូលពាក្យបញ្ជា (Commands) ឬសំណួររបស់អ្នកនៅខាងក្រោម៖\n• \`/start\` - ចាប់ផ្តើមប្រព័ន្ធ\n• \`/status\` - ពិនិត្យស្ថានភាពសាលា\n• \`/students\` - បញ្ជីសិស្សសរុប\n• \`/teachers\` - បញ្ជីគ្រូបង្រៀន\n• \`/attendance\` - របាយការណ៍វត្តមាន\n• \`/help\` - ជំនួយប្រព័ន្ធ`,
+      text: `🤖 សួស្ដី! ខ្ញុំជា **PPTC_Notify_bot** ([@PPTC_Notify_bot](https://t.me/PPTC_Notify_bot)) ដែលបានតភ្ជាប់ជាមួយប្រព័ន្ធសាលារៀនរបស់អ្នកផ្ទាល់។\n\n🆔 Telegram ID: **240224709** | Owner: **@limsorn**\n\nសូមវាយបញ្ចូលពាក្យបញ្ជា (Commands) ឬសំណួររបស់អ្នកនៅខាងក្រោម៖\n• \`/start\` - ចាប់ផ្តើមប្រព័ន្ធ\n• \`/status\` - ពិនិត្យស្ថានភាពសាលា\n• \`/students\` - បញ្ជីសិស្សសរុប\n• \`/teachers\` - បញ្ជីគ្រូបង្រៀន\n• \`/attendance\` - របាយការណ៍វត្តមាន\n• \`/help\` - ជំនួយប្រព័ន្ធ`,
       timestamp: new Date().toLocaleTimeString('km-KH', { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -406,7 +410,7 @@ export const TelegramBotStudio: React.FC = () => {
       if (isCommand && matchingCmd && !matchingCmd.enabled) {
         replyText = `⚠️ **សេចក្តីជូនដំណឹង៖** ពាក្យបញ្ជា \`${matchingCmd.command}\` ត្រូវបានបិទដំណើរការជាបណ្តោះអាសន្នដោយ Administrator តាមរយៈ Command Registry។`;
       } else if (lower === '/start' || lower === 'សួស្ដី' || lower === 'hello') {
-        replyText = `🙏 សួស្ដី ${currentUser?.nameKhmer || 'លោកគ្រូ អ្នកគ្រូ'}!\n\nអ្នកកំពុងប្រើប្រាស់ **Telegram_Notify_bot** (@TGPPTC_Notify_bot) ក្នុងប្រព័ន្ធផ្ទាល់។\nស្ថាប័ន៖ ${schoolProfile.nameKhmer}\nឆ្នាំសិក្សា៖ ${schoolProfile.academicYear}\n\nតើខ្ញុំអាចជួយអ្វីដល់អ្នកថ្ងៃនេះ?`;
+        replyText = `🙏 សួស្ដី ${currentUser?.nameKhmer || 'លោកគ្រូ អ្នកគ្រូ'}!\n\nអ្នកកំពុងប្រើប្រាស់ **PPTC_Notify_bot** (@PPTC_Notify_bot) ក្នុងប្រព័ន្ធផ្ទាល់។\nស្ថាប័ន៖ ${schoolProfile.nameKhmer}\nឆ្នាំសិក្សា៖ ${schoolProfile.academicYear}\n\nតើខ្ញុំអាចជួយអ្វីដល់អ្នកថ្ងៃនេះ?`;
       } else if (lower === '/status' || lower.includes('ស្ថានភាព')) {
         replyText = `📊 **ស្ថានភាពប្រព័ន្ធបច្ចុប្បន្ន៖**\n\n🏫 សាលារៀន៖ ${schoolProfile.nameKhmer}\n📍 ទីតាំង៖ ${schoolProfile.district}, ${schoolProfile.province}\n👥 សិស្សសរុប៖ ${students.length} នាក់\n👩‍🏫 គ្រូបង្រៀនសរុប៖ ${teachers.length} នាក់\n👑 Super Admin: @limsorn (ID: 240224709)\n🟢 Cloud DB: Active & Secure\n⚡ Webhook: Connected (Latency: 38ms)`;
       } else if (lower === '/students' || lower.includes('សិស្ស')) {
@@ -414,14 +418,14 @@ export const TelegramBotStudio: React.FC = () => {
       } else if (lower === '/teachers' || lower.includes('គ្រូ')) {
         replyText = `👩‍🏫 **បញ្ជីគ្រូបង្រៀនសរុប៖** ${teachers.length} នាក់\nនាយកសាលា៖ ${schoolProfile.principalName} (${schoolProfile.principalPhone})\n\nគ្រប់គ្រងដោយ Super Admin: @limsorn`;
       } else if (lower === '/attendance' || lower.includes('វត្តមាន')) {
-        replyText = `📋 **របាយការណ៍វត្តមានប្រចាំថ្ងៃ៖**\n• អត្រាវត្តមានសរុប៖ ៩៨.៥%\n• សិស្សមានច្បាប់៖ ២ នាក់\n• សិស្សអវត្តមានឥតច្បាប់៖ ០ នាក់\nទិន្នន័យត្រូវបានបញ្ជាក់ដោយប្រព័ន្ធ Telegram_Notify_bot (@TGPPTC_Notify_bot)`;
+        replyText = `📋 **របាយការណ៍វត្តមានប្រចាំថ្ងៃ៖**\n• អត្រាវត្តមានសរុប៖ ៩៨.៥%\n• សិស្សមានច្បាប់៖ ២ នាក់\n• សិស្សអវត្តមានឥតច្បាប់៖ ០ នាក់\nទិន្នន័យត្រូវបានបញ្ជាក់ដោយប្រព័ន្ធ PPTC_Notify_bot (@PPTC_Notify_bot)`;
       } else if (lower === '/help' || lower.includes('ជំនួយ')) {
         const activeCmdList = commands.filter(c => c.enabled).map(c => `• \`${c.command}\` - ${c.descriptionKh}`).join('\n');
         replyText = `❓ **បញ្ជីពាក្យបញ្ជា (Commands) ដែលដំណើរការ៖**\n\n${activeCmdList}\n\n💡 លោកអ្នកក៏អាចវាយសំណួរជាភាសាខ្មែរបានផងដែរ!`;
       } else if (lower === '/resetpassword' || lower.includes('ភ្លេចលេខសំងាត់')) {
         replyText = `🔐 **ការកំណត់ពាក្យសម្ងាត់៖**\nអ្នកអាចចូលទៅកាន់ផ្ទាំង **ការកំណត់គណនី (Accounts)** ឬ **UserProfile** ដើម្បីកែប្រែពាក្យសម្ងាត់ថ្មីដោយផ្ទាល់បានភ្លាមៗ!`;
       } else {
-        replyText = `🤖 **Telegram_Notify_bot Response:**\nខ្ញុំបានទទួលសាររបស់អ្នកថា: "${text}"។\nប្រព័ន្ធបានចងក្រងទិន្នន័យនេះសម្រាប់ស្ថាប័ន ${schoolProfile.nameKhmer} រួចរាល់ហើយ។ លោកអ្នកអាចប្រើប្រាស់ពាក្យបញ្ជា \`/help\` ដើម្បីមើលជំនួយបន្ថែម។`;
+        replyText = `🤖 **PPTC_Notify_bot Response:**\nខ្ញុំបានទទួលសាររបស់អ្នកថា: "${text}"។\nប្រព័ន្ធបានចងក្រងទិន្នន័យនេះសម្រាប់ស្ថាប័ន ${schoolProfile.nameKhmer} រួចរាល់ហើយ។ លោកអ្នកអាចប្រើប្រាស់ពាក្យបញ្ជា \`/help\` ដើម្បីមើលជំនួយបន្ថែម។`;
       }
 
       const botMsg: ChatMessage = {
@@ -436,20 +440,22 @@ export const TelegramBotStudio: React.FC = () => {
     }, 700);
   };
 
-  // Test Telegram Bot Configuration
-  const handleTestConfiguration = async () => {
-    if (!isPrincipal) {
-      showToast('🔒 មានតែនាយកសាលាប៉ុណ្ណោះដែលអាចធ្វើតេស្ត Bot Token Configuration បាន!', 'error');
+  // Test Connection to Configured Telegram Channel / Chat ID with Ping and Toast Feedback
+  const handleTestConnection = async (customTargetChatId?: string) => {
+    const targetId = customTargetChatId || chatId;
+    if (!targetId) {
+      showToast('⚠️ សូមបញ្ចូល Telegram Channel ID ឬ Chat ID ជាមុនសិន!', 'warning');
       return;
     }
     setIsTestingConfig(true);
     setTestResult(null);
 
     try {
-      const pingPayload: { title: string; message: string; category: 'security' | 'announcement' } = {
-        title: '⚡ [System Check] Telegram_Notify_bot Diagnostic Ping',
-        message: `🤖 **ការធ្វើតេស្តកំណត់រចនាសម្ព័ន្ធ Bot ជោគជ័យ!**\n\n• Token: ${botToken.substring(0, 10)}...${botToken.substring(botToken.length - 6)}\n• Target Chat ID: ${chatId}\n• ម៉ោងបញ្ជូន: ${new Date().toLocaleString('km-KH')}\n• ស្ថានភាពប្រព័ន្ធ: Normal (Active Webhook)\n• សាលារៀន: ${schoolProfile.nameKhmer}\n\nប្រព័ន្ធ Telegram_Notify_bot (@TGPPTC_Notify_bot) បានភ្ជាប់ទំនាក់ទំនងរវាងវេបសាយ និង Telegram ដោយជោគជ័យ ១០០%!`,
-        category: 'security'
+      const pingPayload: { title: string; message: string; category: 'security' | 'announcement'; chatId?: string } = {
+        title: '⚡ [Test Connection] PPTC_Notify_bot Diagnostic Ping',
+        message: `🤖 **ការផ្ទៀងផ្ទាត់ការតភ្ជាប់ Telegram Channel ជោគជ័យ!**\n\n• Bot: PPTC_Notify_bot (@PPTC_Notify_bot)\n• Chat ID គោលដៅ: ${targetId}\n• ម៉ោងបញ្ជូន: ${new Date().toLocaleTimeString('km-KH')}\n• ស្ថានភាព: ការតភ្ជាប់សកម្ម (200 OK)\n• សាលារៀន: ${schoolProfile.nameKhmer}`,
+        category: 'security',
+        chatId: targetId
       };
 
       const res = await sendTelegramNotification(pingPayload);
@@ -459,17 +465,17 @@ export const TelegramBotStudio: React.FC = () => {
         id: `log-ping-${Date.now()}`,
         updateId: Math.floor(10000000 + Math.random() * 90000000),
         eventType: 'system_ping',
-        senderName: 'System Diagnostic Test',
+        senderName: 'Test Connection (Ping)',
         username: 'system_checker',
-        chatId: chatId,
-        messageText: 'PING: Diagnostic System Check -> ' + (res.success ? 'ACK_OK' : 'FAIL'),
+        chatId: targetId,
+        messageText: 'PING: Test Connection -> ' + (res.success ? 'ACK_OK' : 'FAIL'),
         timestamp: new Date().toLocaleTimeString('km-KH'),
         fullDate: new Date().toISOString(),
         status: res.success ? 'success' : 'warning',
         latencyMs: 32,
         rawPayload: {
-          event: 'system_configuration_ping',
-          target_chat_id: chatId,
+          event: 'test_connection_ping',
+          target_chat_id: targetId,
           token_prefix: botToken.substring(0, 12),
           status: res.success ? 200 : 500,
           response: res
@@ -478,31 +484,43 @@ export const TelegramBotStudio: React.FC = () => {
       setWebhookLogs(prev => [systemLog, ...prev]);
 
       if (res.success) {
+        setIsOnline(true);
+        recordApiSuccess();
+        setLastHeartbeat(new Date().toLocaleTimeString('km-KH'));
         setTestResult({
           success: true,
-          message: `ការផ្ញើសារសាកល្បងទៅកាន់ Telegram ID (${chatId}) ជោគជ័យ! Token និង Chat ID មានសុពលភាពត្រឹមត្រូវ។`,
+          message: `ការផ្ញើសារសាកល្បងទៅកាន់ Telegram Channel / Chat ID (${targetId}) ជោគជ័យ! Token និងសិទ្ធិដំណើរការត្រឹមត្រូវ។`,
           timestamp: new Date().toLocaleTimeString('km-KH')
         });
-        showToast('តេស្ត Telegram Bot ជោគជ័យ! សារត្រូវបានផ្ញើទៅ Telegram រួចរាល់។', 'success');
+        showToast(`តេស្តការតភ្ជាប់ជោគជ័យ! សារ Ping ត្រូវបានផ្ញើទៅកាន់ ${targetId} រួចរាល់ (Bot Status: Online)។`, 'success');
       } else {
+        setIsOnline(false);
+        const errorDetail = res.error || res.message || 'ការផ្ញើសារតេស្តមិនបានជោគជ័យទេ។ សូមពិនិត្យ Bot Token ឬសិទ្ធិរបស់ Bot ក្នុង Channel។';
+        recordApiFailure('persistent_api_error', errorDetail, targetId);
         setTestResult({
           success: false,
-          message: res.error || 'ការផ្ញើសារតេស្តមិនបានជោគជ័យទេ។ សូមពិនិត្យ Bot Token ឬ Chat ID ម្តងទៀត។',
+          message: errorDetail,
           timestamp: new Date().toLocaleTimeString('km-KH')
         });
-        showToast(res.error || 'បរាជ័យក្នុងការតេស្ត Bot Token', 'error');
+        showToast(`បរាជ័យក្នុងការតេស្តការតភ្ជាប់: ${errorDetail} (Bot Status: Offline)`, 'error');
       }
     } catch (err: any) {
+      setIsOnline(false);
+      const errMsg = err?.message || 'មានបញ្ហាបច្ចេកទេសក្នុងការតភ្ជាប់បណ្តាញ Telegram API';
+      recordApiFailure('network_timeout', errMsg, targetId);
       setTestResult({
         success: false,
-        message: err?.message || 'មានបញ្ហាបច្ចេកទេសក្នុងការតភ្ជាប់បណ្តាញ Telegram API',
+        message: errMsg,
         timestamp: new Date().toLocaleTimeString('km-KH')
       });
-      showToast('បរាជ័យក្នុងការតេស្ត Bot Token', 'error');
+      showToast(`បរាជ័យក្នុងការតេស្តការតភ្ជាប់: ${errMsg} (Bot Status: Offline)`, 'error');
     } finally {
       setIsTestingConfig(false);
     }
   };
+
+  // Alias for backward compatibility
+  const handleTestConfiguration = () => handleTestConnection();
 
   // Check Webhook Status
   const checkWebhookStatus = async () => {
@@ -566,6 +584,21 @@ export const TelegramBotStudio: React.FC = () => {
   useEffect(() => {
     checkWebhookStatus();
     loadAntiSpamStatus();
+
+    // Verify Bot initialization and report any startup issues automatically
+    fetch('/api/telegram/webhook-info')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success || (data.info && data.info.last_error_message)) {
+          const errorMsg = data.info?.last_error_message || data.error || 'Webhook initial check failed';
+          recordApiFailure('initialization_failure', errorMsg, chatId);
+        } else {
+          recordApiSuccess();
+        }
+      })
+      .catch(err => {
+        recordApiFailure('initialization_failure', 'Network initialization error: ' + err?.message, chatId);
+      });
   }, []);
 
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -645,8 +678,8 @@ export const TelegramBotStudio: React.FC = () => {
           id: `log-reply-${Date.now()}`,
           updateId: Math.floor(10000000 + Math.random() * 90000000),
           eventType: 'message',
-          senderName: 'Telegram_Notify_bot (ឆ្លើយតបផ្ទាល់)',
-          username: 'TGPPTC_Notify_bot',
+          senderName: 'PPTC_Notify_bot (ឆ្លើយតបផ្ទាល់)',
+          username: 'PPTC_Notify_bot',
           chatId: replyTargetLog.chatId,
           messageText: `[ឆ្លើយតបទៅ @${replyTargetLog.username || replyTargetLog.senderName}]: ${replyText}`,
           timestamp: new Date().toLocaleTimeString('km-KH'),
@@ -703,10 +736,10 @@ export const TelegramBotStudio: React.FC = () => {
       result: {
         message_id: 48920,
         from: {
-          id: 8892382555,
+          id: 8725240678,
           is_bot: true,
-          first_name: 'Telegram_Notify_bot',
-          username: 'TGPPTC_Notify_bot'
+          first_name: 'PPTC_Notify_bot',
+          username: 'PPTC_Notify_bot'
         },
         chat: {
           id: Number(chatId) || 240224709,
@@ -746,7 +779,7 @@ export const TelegramBotStudio: React.FC = () => {
           <div>
             <div className="inline-flex items-center gap-1.5 bg-sky-500/30 text-sky-200 px-3 py-1 rounded-full text-xs font-semibold mb-1 border border-sky-400/30">
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              Telegram Bot Studio & Webhook Manager (<a href="https://t.me/TGPPTC_Notify_bot" target="_blank" rel="noreferrer" className="underline hover:text-white">@TGPPTC_Notify_bot</a>)
+              Telegram Bot Studio & Webhook Manager (<a href="https://t.me/PPTC_Notify_bot" target="_blank" rel="noreferrer" className="underline hover:text-white">@PPTC_Notify_bot</a>)
             </div>
             <h1 className="text-2xl font-bold font-moul">ផ្ទាំងគ្រប់គ្រងតេលេក្រាមឆាតបត</h1>
             <p className="text-sky-100 text-sm">
@@ -755,77 +788,114 @@ export const TelegramBotStudio: React.FC = () => {
           </div>
         </div>
 
-        {/* Persistent Bot Health LED Indicator */}
-        <div className="relative">
-          <div 
-            onMouseEnter={() => setShowHealthTooltip(true)}
-            onMouseLeave={() => setShowHealthTooltip(false)}
-            className="flex items-center gap-3 bg-slate-900/60 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/15 cursor-pointer shadow-lg hover:border-white/30 transition-all"
+        {/* Header Action Controls & Bot Health Indicator */}
+        <div className="flex items-center gap-3 flex-wrap justify-end">
+          {/* Test Connection Button */}
+          <button
+            type="button"
+            id="telegram-header-test-connection-btn"
+            onClick={() => handleTestConnection()}
+            disabled={isTestingConfig}
+            className="flex items-center gap-2 bg-white/20 hover:bg-white/30 active:scale-95 text-white text-xs font-bold px-4 py-2.5 rounded-2xl border border-white/30 backdrop-blur-md shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            title="ផ្ញើសារ Ping តេស្តការតភ្ជាប់ទៅកាន់ Telegram Channel / Chat ID ដែលបានកំណត់"
           >
-            {/* Pulsing LED Dot */}
-            <div className="relative flex items-center justify-center">
-              <span className={`absolute w-4 h-4 rounded-full ${isOnline ? 'bg-emerald-400 opacity-75 animate-ping' : 'bg-rose-500 opacity-75 animate-ping'}`}></span>
-              <span className={`relative w-3.5 h-3.5 rounded-full ${isOnline ? 'bg-emerald-400 shadow-[0_0_12px_#34d399]' : 'bg-rose-500 shadow-[0_0_12px_#f43f5e]'}`}></span>
-            </div>
+            {isTestingConfig ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-300" />
+                <span>កំពុងតេស្ត...</span>
+              </>
+            ) : (
+              <>
+                <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                <span>Test Connection</span>
+              </>
+            )}
+          </button>
 
-            <div className="text-left">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] uppercase font-bold text-slate-300 tracking-wider">Bot Health:</span>
-                <span className={`text-xs font-bold ${isOnline ? 'text-emerald-300' : 'text-rose-300'}`}>
-                  {isOnline ? 'Connected' : 'Disconnected'}
-                </span>
+          {/* Persistent Bot Status LED Indicator */}
+          <div className="relative">
+            <div 
+              id="telegram-header-bot-status-indicator"
+              onMouseEnter={() => setShowHealthTooltip(true)}
+              onMouseLeave={() => setShowHealthTooltip(false)}
+              onClick={() => handleTestConnection()}
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl border backdrop-blur-md cursor-pointer shadow-lg transition-all ${
+                isOnline 
+                  ? 'bg-emerald-950/40 border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-900/50 text-emerald-100 shadow-emerald-950/50' 
+                  : 'bg-rose-950/40 border-rose-500/40 hover:border-rose-400 hover:bg-rose-900/50 text-rose-100 shadow-rose-950/50'
+              }`}
+              title="ចុចដើម្បីធ្វើតេស្ត Ping ការតភ្ជាប់ឡើងវិញ"
+            >
+              {/* Pulsing LED Dot */}
+              <div className="relative flex items-center justify-center">
+                <span className={`absolute w-4 h-4 rounded-full ${isOnline ? 'bg-emerald-400 opacity-75 animate-ping' : 'bg-rose-500 opacity-75 animate-ping'}`}></span>
+                <span className={`relative w-3.5 h-3.5 rounded-full ${isOnline ? 'bg-emerald-400 shadow-[0_0_12px_#34d399]' : 'bg-rose-500 shadow-[0_0_12px_#f43f5e]'}`}></span>
               </div>
-              <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                <Clock className="w-3 h-3 text-slate-400" />
-                <span>Sync: {lastHeartbeat}</span>
-              </div>
-            </div>
-            <Info className="w-4 h-4 text-slate-400 hover:text-white transition-colors" />
-          </div>
 
-          {/* Health Details Tooltip */}
-          {showHealthTooltip && (
-            <div className="absolute right-0 top-full mt-2 w-72 bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-slate-700 z-50 text-xs space-y-2 animate-in fade-in zoom-in duration-150">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                  <Activity className="w-4 h-4 text-indigo-400" />
-                  Bot Health Diagnostics
-                </span>
-                <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${isOnline ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`}>
-                  {isOnline ? 'Webhook Active' : 'Offline'}
-                </span>
-              </div>
-              <div className="space-y-1.5 text-slate-300">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Status:</span>
-                  <span className="font-semibold text-emerald-400">{isOnline ? '🟢 Connected (200 OK)' : '🔴 Service Down'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Response Latency:</span>
-                  <span className="font-mono font-bold text-amber-300">~38 ms</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Target Chat ID:</span>
-                  <span className="font-mono text-slate-200">{chatId} (@limsorn)</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Active Webhook:</span>
-                  <span className="text-sky-300 text-[11px] truncate max-w-[140px]" title={webhookUrl}>
-                    /api/telegram/webhook
+              <div className="text-left">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] uppercase font-extrabold tracking-wider opacity-80">Bot Status:</span>
+                  <span className={`text-xs font-black px-2 py-0.5 rounded-full border ${
+                    isOnline 
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40 shadow-sm shadow-emerald-500/20' 
+                      : 'bg-rose-500/20 text-rose-300 border-rose-400/40 shadow-sm shadow-rose-500/20'
+                  }`}>
+                    {isOnline ? 'Online' : 'Offline'}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Total Commands:</span>
-                  <span className="font-semibold text-indigo-300">{commands.filter(c => c.enabled).length} Enabled</span>
+                <div className="text-[10px] opacity-75 flex items-center gap-1 mt-0.5">
+                  <Clock className="w-3 h-3" />
+                  <span>Ping: {lastHeartbeat}</span>
                 </div>
               </div>
-              <p className="text-[10px] text-slate-400 pt-1 border-t border-slate-800">
-                💡 សញ្ញាភ្លើង LED បង្ហាញការតភ្ជាប់រវាងម៉ាស៊ីនបម្រើ Telegram API និងកម្មវិធី។
-              </p>
+              <Info className="w-4 h-4 opacity-60 hover:opacity-100 transition-opacity ml-0.5" />
             </div>
-          )}
-        </div>
+
+            {/* Health & Ping Diagnostics Tooltip */}
+            {showHealthTooltip && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-slate-700 z-50 text-xs space-y-2 animate-in fade-in zoom-in duration-150">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                    <Activity className="w-4 h-4 text-indigo-400" />
+                    Bot Connection Diagnostics
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${isOnline ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`}>
+                    {isOnline ? '🟢 Online (200 OK)' : '🔴 Offline'}
+                  </span>
+                </div>
+                <div className="space-y-1.5 text-slate-300">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Connection State:</span>
+                    <span className={`font-semibold ${isOnline ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {isOnline ? 'Verified Active (Online)' : 'Disconnected (Offline)'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Latest Ping Check:</span>
+                    <span className="font-mono font-bold text-amber-300">{lastHeartbeat}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Target Chat / Channel:</span>
+                    <span className="font-mono text-slate-200">{chatId}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Bot Username:</span>
+                    <span className="font-mono text-indigo-300">@PPTC_Notify_bot</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Enabled Commands:</span>
+                    <span className="font-semibold text-sky-300">{commands.filter(c => c.enabled).length} Commands</span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-400 pt-1 border-t border-slate-800 flex items-center justify-between">
+                  <span>💡 ចុចលើ Status ដើម្បី Ping ឡើងវិញ</span>
+                  <span className="text-indigo-400 font-semibold underline cursor-pointer" onClick={() => handleTestConnection()}>Ping Now</span>
+                </p>
+              </div>
+            )}
+          </div>
       </div>
+    </div>
 
       {/* 1. Telegram Bot Live Performance Summary Card */}
       <TelegramBotSummaryCard onNavigateTab={(tab) => setActiveTab(tab as any)} />
@@ -1001,6 +1071,21 @@ export const TelegramBotStudio: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('alert_system')}
+          className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'alert_system'
+              ? 'bg-white text-rose-600 border-b-2 border-rose-600 shadow-sm'
+              : 'text-slate-600 hover:text-rose-600 hover:bg-slate-50'
+          }`}
+        >
+          <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+          ប្រព័ន្ធប្រកាសអាសន្ន (Error Alerts)
+          <span className="bg-rose-100 text-rose-800 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+            Auto Alert
+          </span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('settings')}
           className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'settings'
@@ -1024,17 +1109,17 @@ export const TelegramBotStudio: React.FC = () => {
               </div>
               <div>
                 <div className="font-bold text-slate-800 flex items-center gap-2">
-                  Telegram_Notify_bot <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">Verified</span>
+                  PPTC_Notify_bot <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">Verified</span>
                 </div>
-                <div className="text-xs text-slate-500">bot active • <a href="https://t.me/TGPPTC_Notify_bot" target="_blank" rel="noreferrer" className="text-sky-600 hover:underline font-semibold">@TGPPTC_Notify_bot</a> • Owner: @limsorn (ID: {chatId})</div>
+                <div className="text-xs text-slate-500">bot active • <a href="https://t.me/PPTC_Notify_bot" target="_blank" rel="noreferrer" className="text-sky-600 hover:underline font-semibold">@PPTC_Notify_bot</a> • Owner: @limsorn (ID: {chatId})</div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={async () => {
                   const res = await sendTelegramNotification({
-                    title: 'តេស្តសារពី Telegram_Notify_bot',
-                    message: 'សារផ្ញើចេញពី Telegram Bot Studio (@TGPPTC_Notify_bot) ទៅកាន់ Telegram Group ជោគជ័យ!',
+                    title: 'តេស្តសារពី PPTC_Notify_bot',
+                    message: 'សារផ្ញើចេញពី Telegram Bot Studio (@PPTC_Notify_bot) ទៅកាន់ Telegram Group ជោគជ័យ!',
                     category: 'announcement'
                   });
                   if (res.success) {
@@ -1819,7 +1904,7 @@ export const TelegramBotStudio: React.FC = () => {
                   value={isPrincipal ? botToken : "••••••••••••••••••••••••••••••••••••••••••••"}
                   onChange={e => isPrincipal && setBotToken(e.target.value)}
                   disabled={!isPrincipal}
-                  placeholder="8892382555:AAFYD9215dmEGmaWJLT8-j6MIGKu3_rRSzc"
+                  placeholder="8725240678:AAGWt5VL8CvgdKNsGHEM_-O2BHgvJFVx_3w"
                   className={`w-full pl-11 pr-4 py-3 rounded-xl border font-mono text-sm ${
                     isPrincipal 
                       ? 'border-slate-300 focus:ring-2 focus:ring-indigo-500 bg-white' 
@@ -1829,7 +1914,7 @@ export const TelegramBotStudio: React.FC = () => {
               </div>
               <p className="text-[11px] text-slate-400 mt-1">
                 {isPrincipal ? (
-                  <>Token បច្ចុប្បន្នត្រូវបានតភ្ជាប់ជាមួយ Bot: <b>Telegram_Notify_bot</b> (<a href="https://t.me/TGPPTC_Notify_bot" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">@TGPPTC_Notify_bot</a>)</>
+                  <>Token បច្ចុប្បន្នត្រូវបានតភ្ជាប់ជាមួយ Bot: <b>PPTC_Notify_bot</b> (<a href="https://t.me/PPTC_Notify_bot" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">@PPTC_Notify_bot</a>)</>
                 ) : (
                   <>លេខសម្ងាត់ Bot API Token ត្រូវបានលាក់ដោយសុវត្ថិភាព</>
                 )}
@@ -1902,7 +1987,7 @@ export const TelegramBotStudio: React.FC = () => {
                     ដំណើរការអូតូជាមួយ Telegram ផ្ទាល់ (Live Webhook Activation)
                   </h4>
                   <p className="text-xs text-indigo-800/80">
-                    ចុចប៊ូតុងនេះដើម្បីភ្ជាប់ Server Webhook ទៅ Telegram API ឱ្យ Bot អាចឆ្លើយតបអូតូពេលមានអ្នកឆាតទៅ (<a href="https://t.me/TGPPTC_Notify_bot" target="_blank" rel="noreferrer" className="font-semibold underline">@TGPPTC_Notify_bot</a>)
+                    ចុចប៊ូតុងនេះដើម្បីភ្ជាប់ Server Webhook ទៅ Telegram API ឱ្យ Bot អាចឆ្លើយតបអូតូពេលមានអ្នកឆាតទៅ (<a href="https://t.me/PPTC_Notify_bot" target="_blank" rel="noreferrer" className="font-semibold underline">@PPTC_Notify_bot</a>)
                   </p>
                 </div>
 
@@ -2134,24 +2219,25 @@ export const TelegramBotStudio: React.FC = () => {
             {/* 4. Transmission Timeline & Delay Verification Chart (Recharts) */}
             <TelegramTransmissionTimelineChart currentSliderDelayMs={delayIntervalMs} />
 
-            {/* Test Configuration Diagnostic Card */}
+            {/* Test Connection Diagnostic Card */}
             <div className="p-4 bg-sky-50 rounded-2xl border border-sky-200 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-bold text-sky-950 text-sm flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-sky-600" />
-                    ផ្ទៀងផ្ទាត់ការកំណត់រចនាសម្ព័ន្ធ (Test Configuration)
+                    ផ្ទៀងផ្ទាត់ការតភ្ជាប់ (Test Connection)
                   </h4>
                   <p className="text-xs text-sky-800/80">
-                    ផ្ញើសារ 'System Check' ទៅកាន់ Telegram Chat ID <b>{isPrincipal ? chatId : '•••••••••'}</b> ដើម្បីធានាថា Token ដំណើរការត្រឹមត្រូវ
+                    ផ្ញើសារ Ping ទៅកាន់ Telegram Channel / Chat ID <b>{isPrincipal ? chatId : '•••••••••'}</b> ដើម្បីធានាថា Bot ដំណើរការត្រឹមត្រូវ
                   </p>
                 </div>
 
                 <button
                   type="button"
-                  onClick={handleTestConfiguration}
+                  id="telegram-settings-test-connection-btn"
+                  onClick={() => handleTestConnection()}
                   disabled={isTestingConfig || !isPrincipal}
-                  className="px-4 py-2.5 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all whitespace-nowrap shrink-0"
+                  className="px-4 py-2.5 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   {isTestingConfig ? (
                     <>
@@ -2160,8 +2246,8 @@ export const TelegramBotStudio: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      Test Configuration
+                      <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                      Test Connection
                     </>
                   )}
                 </button>
@@ -2174,7 +2260,7 @@ export const TelegramBotStudio: React.FC = () => {
                   {testResult.success ? <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" /> : <AlertCircle className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />}
                   <div>
                     <span className="font-bold block">
-                      {testResult.success ? 'System Check ជោគជ័យ (Valid Token & Chat ID)' : 'ការធ្វើតេស្តបរាជ័យ'}
+                      {testResult.success ? 'Test Connection ជោគជ័យ (Valid Token & Connected)' : 'ការធ្វើតេស្តបរាជ័យ'}
                     </span>
                     <span className="text-[11px] leading-relaxed">{testResult.message}</span>
                     <span className="text-[10px] block opacity-75 mt-0.5">ម៉ោងធ្វើតេស្ត៖ {testResult.timestamp}</span>
@@ -2195,6 +2281,11 @@ export const TelegramBotStudio: React.FC = () => {
             </div>
           </form>
         </div>
+      )}
+
+      {/* Tab: Automatic Error Alert System */}
+      {activeTab === 'alert_system' && (
+        <TelegramBotAlertSystem onShowToast={showToast} isPrincipal={isPrincipal} />
       )}
     </div>
   );

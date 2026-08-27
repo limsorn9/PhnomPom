@@ -503,7 +503,7 @@ export const TelegramBotActivityLog: React.FC<TelegramBotActivityLogProps> = ({ 
                   {selectedLogForModal.errorMessage || 'Unknown transmission error'}
                 </p>
                 <p className="text-[11px] text-rose-700 leading-relaxed font-battambang">
-                  💡 <b>ដំណោះស្រាយ:</b> សូមប្រាកដថាបាន Add Telegram Bot (<b>@TGPPTC_Notify_bot</b>) ចូលក្នុងក្រុមនេះ និងផ្តល់សិទ្ធិជា <b>Administrator</b> រួចចុចប៊ូតុង Retry ខាងក្រោម។
+                  💡 <b>ដំណោះស្រាយ:</b> សូមប្រាកដថាបាន Add Telegram Bot (<b>@PPTC_Notify_bot</b>) ចូលក្នុងក្រុមនេះ និងផ្តល់សិទ្ធិជា <b>Administrator</b> រួចចុចប៊ូតុង Retry ខាងក្រោម។
                 </p>
               </div>
             )}
