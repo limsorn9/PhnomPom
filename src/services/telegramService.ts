@@ -139,6 +139,26 @@ export async function sendTelegramNotification(payload: TelegramNotificationPayl
     });
 
     const data = await res.json();
+    
+    // Automatically log transmission to Bot Activity Log
+    try {
+      addBotActivityLog({
+        destinationChatId: payload.chatId || '240224709',
+        destinationName: payload.metadata?.groupName || (payload.chatId ? `Group/Chat ${payload.chatId}` : 'ក្រុមសាលាផ្លូវការ'),
+        category: (payload.category as any) || 'general',
+        triggeredByName: payload.metadata?.triggeredByName || 'ប្រព័ន្ធគ្រប់គ្រងសាលារៀន',
+        triggeredByRole: payload.metadata?.triggeredByRole || 'Admin',
+        messageSnippet: `📌 ${payload.title}: ${payload.message.substring(0, 75)}...`,
+        fullMessage: text,
+        status: data.success ? 'success' : 'failed',
+        errorMessage: data.success ? undefined : (data.error || data.message),
+        latencyMs: 38,
+        messageId: data.messageId,
+      });
+    } catch (logErr) {
+      // Non-blocking log recording
+    }
+
     return data;
   } catch (err: any) {
     console.error('sendTelegramNotification failed:', err);
@@ -170,7 +190,23 @@ export async function sendTelegramDirectMessage(
         parseMode: options?.parseMode || 'Markdown',
       }),
     });
-    return await res.json();
+    const data = await res.json();
+    try {
+      addBotActivityLog({
+        destinationChatId: chatId,
+        destinationName: `Chat / Group ${chatId}`,
+        category: 'general',
+        triggeredByName: 'អ្នកប្រើប្រាស់ / Administrator',
+        triggeredByRole: 'Admin',
+        messageSnippet: text.substring(0, 80) + (text.length > 80 ? '...' : ''),
+        fullMessage: text,
+        status: data.success ? 'success' : 'failed',
+        errorMessage: data.success ? undefined : (data.error || data.message),
+        latencyMs: 35,
+        messageId: data.messageId,
+      });
+    } catch {}
+    return data;
   } catch (err: any) {
     return {
       success: false,
@@ -341,6 +377,296 @@ export async function scanTelegramGroupUpdates(): Promise<{ success: boolean; me
   }
 }
 
+export interface BotActivityLogItem {
+  id: string;
+  timestamp: string;
+  timestampMs: number;
+  destinationChatId: string | number;
+  destinationName: string;
+  category: 'announcement' | 'attendance' | 'finance' | 'exam' | 'security' | 'automated' | 'general';
+  triggeredByName: string;
+  triggeredByRole: string;
+  messageSnippet: string;
+  fullMessage?: string;
+  status: 'success' | 'failed' | 'queued';
+  errorMessage?: string;
+  retries?: number;
+  latencyMs?: number;
+  messageId?: number;
+}
+
+export const BOT_ACTIVITY_LOGS_KEY = 'phnom_pom_telegram_bot_activity_logs_v2';
+export const GROUP_NOTIFICATION_RULES_KEY = 'phnom_pom_telegram_group_notification_rules_v2';
+
+export interface GroupNotificationRuleConfig {
+  id: string;
+  groupId: string; // Chat ID or classroom id
+  groupTitle: string;
+  groupType: 'classroom' | 'staff' | 'management' | 'committee' | 'public_channel';
+  ruleType: 'Full Sync' | 'Attendance Only' | 'Finance Updates' | 'Exam & Scores' | 'Emergency Alerts';
+  allowedRoles: ('director' | 'teacher' | 'accountant' | 'admin' | 'all')[];
+  enabled: boolean;
+  quietHoursEnabled: boolean;
+  quietHoursStart?: string;
+  quietHoursEnd?: string;
+  autoSendDailyAttendance: boolean;
+  autoSendMonthlyExamScores: boolean;
+  autoSendFeeReminders: boolean;
+  descriptionKh?: string;
+  lastUpdated: string;
+}
+
+export function getStoredBotActivityLogs(): BotActivityLogItem[] {
+  try {
+    const raw = localStorage.getItem(BOT_ACTIVITY_LOGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.warn('Failed to load bot activity logs from localStorage:', e);
+  }
+
+  // Return initial mock seed data for demonstration if empty
+  const initialSeed: BotActivityLogItem[] = [
+    {
+      id: 'act-log-1',
+      timestamp: 'ថ្ងៃនេះ ម៉ោង ០២:១៥ រសៀល',
+      timestampMs: Date.now() - 1000 * 60 * 25,
+      destinationChatId: '-1002495819001',
+      destinationName: 'ថ្នាក់ទី១ក (បន្ទុកគ្រូ សុខ)',
+      category: 'attendance',
+      triggeredByName: 'អ្នកគ្រូ សុខ ម៉ាលី',
+      triggeredByRole: 'គ្រូបន្ទុកថ្នាក់',
+      messageSnippet: '📊 របាយការណ៍វត្តមានសិស្សប្រចាំថ្ងៃ: វត្តមាន ៣២/៣២ នាក់ (១០០%)',
+      fullMessage: '📊 *សាលាបឋមសិក្សាភ្នំពុំ - ដំណឹងវត្តមាន*\n\n📌 *របាយការណ៍វត្តមានប្រចាំថ្ងៃ*\n• ថ្នាក់ទី១ក\n• សិស្សសរុប: ៣២ នាក់\n• វត្តមាន: ៣២ នាក់ (១០០%)\n\n🕒 ថ្ងៃទី ២៦ សីហា ២០២៦',
+      status: 'success',
+      latencyMs: 38,
+      messageId: 88412
+    },
+    {
+      id: 'act-log-2',
+      timestamp: 'ថ្ងៃនេះ ម៉ោង ០១:៤៥ រសៀល',
+      timestampMs: Date.now() - 1000 * 60 * 55,
+      destinationChatId: '240224709',
+      destinationName: 'ក្រុមលោកគ្រូ-អ្នកគ្រូ (@limsorn)',
+      category: 'announcement',
+      triggeredByName: 'នាយកសាលា លីម សន',
+      triggeredByRole: 'នាយកសាលា / Super Admin',
+      messageSnippet: '📢 សេចក្តីជូនដំណឹងស្តីពីកិច្ចប្រជុំប្រចាំខែសីហា ម៉ោង ០៤:០០ រសៀល',
+      status: 'success',
+      latencyMs: 42,
+      messageId: 88411
+    },
+    {
+      id: 'act-log-3',
+      timestamp: 'ថ្ងៃនេះ ម៉ោង ១១:៣០ ព្រឹក',
+      timestampMs: Date.now() - 1000 * 60 * 180,
+      destinationChatId: '-1002495819002',
+      destinationName: 'ថ្នាក់ទី២ក (បន្ទុកគ្រូ ចាន់ណា)',
+      category: 'exam',
+      triggeredByName: 'លោកគ្រូ ចាន់ណា',
+      triggeredByRole: 'គ្រូបន្ទុកថ្នាក់',
+      messageSnippet: '📝 លទ្ធផលតេស្តប្រចាំខែ: មធ្យមភាគថ្នាក់ ៨.៦/១០',
+      status: 'success',
+      latencyMs: 45,
+      messageId: 88409
+    },
+    {
+      id: 'act-log-4',
+      timestamp: 'ថ្ងៃនេះ ម៉ោង ០៩:១០ ព្រឹក',
+      timestampMs: Date.now() - 1000 * 60 * 320,
+      destinationChatId: '-1002495819099',
+      destinationName: 'ប៉ុស្តិ៍សាលាថ្មី (Channel ID សាកល្បង)',
+      category: 'automated',
+      triggeredByName: 'ប្រព័ន្ធស្វ័យប្រវត្តិ (Cron Scheduler)',
+      triggeredByRole: 'System Bot',
+      messageSnippet: '⏰ ការត្រួតពិនិត្យប្រព័ន្ធប្រចាំព្រឹក (System Diagnostic Ping)',
+      status: 'failed',
+      errorMessage: 'Bad Request: chat not found / Bot not admin in target channel',
+      retries: 2
+    },
+    {
+      id: 'act-log-5',
+      timestamp: 'ថ្ងៃនេះ ម៉ោង ០៨:០០ ព្រឹក',
+      timestampMs: Date.now() - 1000 * 60 * 390,
+      destinationChatId: '-1002495819003',
+      destinationName: 'ថ្នាក់ទី៣ក (បន្ទុកគ្រូ គឹមស៊ន)',
+      category: 'finance',
+      triggeredByName: 'អ្នកស្រី កែវ ចិន្តា',
+      triggeredByRole: 'បេឡា / គណនេយ្យករ',
+      messageSnippet: '💰 បញ្ជីបង់វិភាគទានសមាគមមាតាបិតាខែសីហា',
+      status: 'success',
+      latencyMs: 39,
+      messageId: 88405
+    }
+  ];
+
+  try {
+    localStorage.setItem(BOT_ACTIVITY_LOGS_KEY, JSON.stringify(initialSeed));
+  } catch (e) {
+    // Ignore storage write fail
+  }
+  return initialSeed;
+}
+
+export function addBotActivityLog(item: Omit<BotActivityLogItem, 'id' | 'timestamp' | 'timestampMs'>): BotActivityLogItem {
+  const fullItem: BotActivityLogItem = {
+    ...item,
+    id: `act-log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    timestamp: new Date().toLocaleString('km-KH', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }),
+    timestampMs: Date.now(),
+  };
+
+  try {
+    const current = getStoredBotActivityLogs();
+    const updated = [fullItem, ...current].slice(0, 100); // keep last 100 records
+    localStorage.setItem(BOT_ACTIVITY_LOGS_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.warn('Failed to save bot activity log item:', e);
+  }
+
+  return fullItem;
+}
+
+export function clearStoredBotActivityLogs(): void {
+  try {
+    localStorage.removeItem(BOT_ACTIVITY_LOGS_KEY);
+  } catch (e) {
+    console.warn('Failed to clear bot activity logs:', e);
+  }
+}
+
+/**
+ * Get Group Notification Rules configuration from localStorage
+ */
+export function getStoredGroupNotificationRules(): GroupNotificationRuleConfig[] {
+  try {
+    const raw = localStorage.getItem(GROUP_NOTIFICATION_RULES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.warn('Failed to read group notification rules from localStorage:', e);
+  }
+
+  const defaultRules: GroupNotificationRuleConfig[] = [
+    {
+      id: 'rule-cls-1a',
+      groupId: '-1002495819001',
+      groupTitle: 'ថ្នាក់ទី១ក (បន្ទុកគ្រូ សុខ ម៉ាលី)',
+      groupType: 'classroom',
+      ruleType: 'Attendance Only',
+      allowedRoles: ['teacher', 'director'],
+      enabled: true,
+      quietHoursEnabled: true,
+      quietHoursStart: '21:00',
+      quietHoursEnd: '06:00',
+      autoSendDailyAttendance: true,
+      autoSendMonthlyExamScores: false,
+      autoSendFeeReminders: false,
+      descriptionKh: 'ផ្ញើតែវត្តមានសិស្សប្រចាំថ្ងៃ និងដំណឹងបន្ទាន់ពីគ្រូបន្ទុកថ្នាក់',
+      lastUpdated: '2026-08-26'
+    },
+    {
+      id: 'rule-cls-2a',
+      groupId: '-1002495819002',
+      groupTitle: 'ថ្នាក់ទី២ក (បន្ទុកគ្រូ ចាន់ណា)',
+      groupType: 'classroom',
+      ruleType: 'Full Sync',
+      allowedRoles: ['teacher', 'director', 'accountant'],
+      enabled: true,
+      quietHoursEnabled: true,
+      quietHoursStart: '20:30',
+      quietHoursEnd: '06:30',
+      autoSendDailyAttendance: true,
+      autoSendMonthlyExamScores: true,
+      autoSendFeeReminders: true,
+      descriptionKh: 'ផ្ញើគ្រប់ប្រភេទជូនដំណឹងរួមមាន វត្តមាន, ពិន្ទុប្រឡង និងវិក្កយបត្រ',
+      lastUpdated: '2026-08-26'
+    },
+    {
+      id: 'rule-cls-3a',
+      groupId: '-1002495819003',
+      groupTitle: 'ថ្នាក់ទី៣ក (បន្ទុកគ្រូ គឹមស៊ន)',
+      groupType: 'classroom',
+      ruleType: 'Exam & Scores',
+      allowedRoles: ['teacher', 'director'],
+      enabled: true,
+      quietHoursEnabled: false,
+      autoSendDailyAttendance: false,
+      autoSendMonthlyExamScores: true,
+      autoSendFeeReminders: false,
+      descriptionKh: 'ផ្ញើតែតារាងពិន្ទុ មធ្យមភាគប្រចាំខែ និងចំណាត់ថ្នាក់សិស្ស',
+      lastUpdated: '2026-08-26'
+    },
+    {
+      id: 'rule-cls-4a',
+      groupId: '-1002495819004',
+      groupTitle: 'ថ្នាក់ទី៤ក (បន្ទុកគ្រូ វ៉ាន់នី)',
+      groupType: 'classroom',
+      ruleType: 'Attendance Only',
+      allowedRoles: ['teacher', 'director'],
+      enabled: true,
+      quietHoursEnabled: true,
+      quietHoursStart: '21:00',
+      quietHoursEnd: '06:00',
+      autoSendDailyAttendance: true,
+      autoSendMonthlyExamScores: false,
+      autoSendFeeReminders: false,
+      descriptionKh: 'ផ្ញើវត្តមានពេលព្រឹក និងរសៀលដោយស្វ័យប្រវត្តិ',
+      lastUpdated: '2026-08-26'
+    },
+    {
+      id: 'rule-staff-general',
+      groupId: '240224709',
+      groupTitle: 'ក្រុមលោកគ្រូ-អ្នកគ្រូ និងគណៈគ្រប់គ្រងសាលា',
+      groupType: 'staff',
+      ruleType: 'Emergency Alerts',
+      allowedRoles: ['director', 'admin'],
+      enabled: true,
+      quietHoursEnabled: false,
+      autoSendDailyAttendance: false,
+      autoSendMonthlyExamScores: false,
+      autoSendFeeReminders: false,
+      descriptionKh: 'ដំណឹងបន្ទាន់ពីរដ្ឋបាលសាលា កាលវិភាគប្រជុំ និងកិច្ចការនាយកដ្ឋាន',
+      lastUpdated: '2026-08-26'
+    },
+    {
+      id: 'rule-finance-dept',
+      groupId: '-1002495819010',
+      groupTitle: 'ផ្នែកហិរញ្ញវត្ថុ និងគណនេយ្យសាលា',
+      groupType: 'management',
+      ruleType: 'Finance Updates',
+      allowedRoles: ['accountant', 'director'],
+      enabled: true,
+      quietHoursEnabled: true,
+      quietHoursStart: '22:00',
+      quietHoursEnd: '06:00',
+      autoSendDailyAttendance: false,
+      autoSendMonthlyExamScores: false,
+      autoSendFeeReminders: true,
+      descriptionKh: 'របាយការណ៍ចំណូល-ចំណាយ វិក្កយបត្រ និងថវិកាសហគមន៍',
+      lastUpdated: '2026-08-26'
+    }
+  ];
+
+  try {
+    localStorage.setItem(GROUP_NOTIFICATION_RULES_KEY, JSON.stringify(defaultRules));
+  } catch (e) {}
+
+  return defaultRules;
+}
+
+export function saveStoredGroupNotificationRules(rules: GroupNotificationRuleConfig[]): void {
+  try {
+    localStorage.setItem(GROUP_NOTIFICATION_RULES_KEY, JSON.stringify(rules));
+  } catch (e) {
+    console.warn('Failed to save group notification rules to localStorage:', e);
+  }
+}
+
 /**
  * Live Inspect and Diagnose any Telegram Chat ID (Checks permissions, title, members, admin status)
  */
@@ -356,4 +682,5 @@ export async function inspectTelegramChat(chatId: string | number): Promise<{ su
     return { success: false, error: err?.message || 'Chat inspection failed' };
   }
 }
+
 

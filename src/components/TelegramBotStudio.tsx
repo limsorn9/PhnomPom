@@ -16,6 +16,10 @@ import { TelegramSmartAutoResponder, DEFAULT_AUTO_RESPONDER_RULES, AutoResponder
 import { TelegramClassroomGroupRouter } from './telegram/TelegramClassroomGroupRouter';
 import { TelegramGroupIdInspector } from './telegram/TelegramGroupIdInspector';
 import { TelegramTransmissionTimelineChart } from './telegram/TelegramTransmissionTimelineChart';
+import { TelegramBotSummaryCard } from './telegram/TelegramBotSummaryCard';
+import { TelegramBotActivityLog } from './telegram/TelegramBotActivityLog';
+import { TelegramGroupConfiguration } from './telegram/TelegramGroupConfiguration';
+import { TelegramChannelValidator } from './telegram/TelegramChannelValidator';
 import { 
   Send, 
   Bot, 
@@ -102,7 +106,7 @@ interface BotCommandConfig {
 
 export const TelegramBotStudio: React.FC = () => {
   const { currentUser, schoolProfile, students, teachers, showToast } = useSchool();
-  const [activeTab, setActiveTab] = useState<'chat' | 'commands' | 'webhook_activity' | 'auto_responder' | 'group_router' | 'group_inspector' | 'templates' | 'analytics' | 'automated_tasks' | 'settings'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'commands' | 'webhook_activity' | 'activity_log' | 'group_config' | 'channel_validator' | 'auto_responder' | 'group_router' | 'group_inspector' | 'templates' | 'analytics' | 'automated_tasks' | 'settings'>('chat');
   
   // Strict Principal Access Check
   const isPrincipal = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
@@ -823,6 +827,9 @@ export const TelegramBotStudio: React.FC = () => {
         </div>
       </div>
 
+      {/* 1. Telegram Bot Live Performance Summary Card */}
+      <TelegramBotSummaryCard onNavigateTab={(tab) => setActiveTab(tab as any)} />
+
       {/* Sub Navigation Tabs */}
       <div className="flex border-b border-slate-200 gap-1.5 overflow-x-auto pb-px">
         <button
@@ -835,6 +842,51 @@ export const TelegramBotStudio: React.FC = () => {
         >
           <MessageSquare className="w-3.5 h-3.5" />
           ជជែកផ្ទាល់ (Simulator)
+        </button>
+
+        <button
+          onClick={() => setActiveTab('activity_log')}
+          className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'activity_log'
+              ? 'bg-white text-indigo-600 border-b-2 border-indigo-600 shadow-sm'
+              : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+          }`}
+        >
+          <Activity className="w-3.5 h-3.5 text-indigo-600" />
+          Bot Activity Log (កំណត់ត្រា)
+          <span className="bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+            Live
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('group_config')}
+          className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'group_config'
+              ? 'bg-white text-indigo-600 border-b-2 border-indigo-600 shadow-sm'
+              : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+          }`}
+        >
+          <Sliders className="w-3.5 h-3.5 text-purple-600" />
+          Group Configuration (ច្បាប់ក្រុម)
+          <span className="bg-purple-100 text-purple-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+            Rules
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('channel_validator')}
+          className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'channel_validator'
+              ? 'bg-white text-emerald-600 border-b-2 border-emerald-600 shadow-sm'
+              : 'text-slate-600 hover:text-emerald-600 hover:bg-slate-50'
+          }`}
+        >
+          <Radio className="w-3.5 h-3.5 text-emerald-600" />
+          Verify Connection (ផ្ទៀងផ្ទាត់ប៉ុស្តិ៍)
+          <span className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+            Tester
+          </span>
         </button>
 
         <button
@@ -1099,6 +1151,33 @@ export const TelegramBotStudio: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Tab: Bot Activity Log (Automated message transmissions & Troubleshooting) */}
+      {activeTab === 'activity_log' && (
+        <TelegramBotActivityLog
+          onSelectGroup={(groupId) => {
+            setActiveTab('channel_validator');
+          }}
+        />
+      )}
+
+      {/* Tab: Group Configuration & Role Mapping */}
+      {activeTab === 'group_config' && (
+        <TelegramGroupConfiguration
+          onInspectGroup={(chatId) => {
+            setActiveTab('channel_validator');
+          }}
+        />
+      )}
+
+      {/* Tab: Channel / Group Validator & Connection Verifier */}
+      {activeTab === 'channel_validator' && (
+        <TelegramChannelValidator
+          onAssignToClassroom={(chatId, classroomId) => {
+            setActiveTab('group_config');
+          }}
+        />
       )}
 
       {/* Tab 2: Command Registry & JSON Structure Preview */}
