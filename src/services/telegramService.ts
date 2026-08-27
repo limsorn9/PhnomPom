@@ -280,3 +280,80 @@ export async function simulateTestTransmissionBurst(
   }
 }
 
+export interface DetectedTelegramGroup {
+  chatId: string;
+  title: string;
+  type: 'group' | 'supergroup' | 'channel' | 'private';
+  username?: string;
+  lastActive: string;
+  lastMessageSnippet?: string;
+  memberCount?: number;
+  isBotAdmin?: boolean;
+  canSendMessages?: boolean;
+  discoveredVia: 'webhook' | 'polling' | 'manual_check';
+}
+
+export interface TelegramChatInspectionData {
+  chatId: string;
+  title: string;
+  type: 'group' | 'supergroup' | 'channel' | 'private';
+  username?: string;
+  description?: string;
+  memberCount?: number;
+  isBotAdmin: boolean;
+  botStatus: string;
+  canSendMessages: boolean;
+  permissions?: {
+    canPostMessages?: boolean;
+    canEditMessages?: boolean;
+    canDeleteMessages?: boolean;
+    canInviteUsers?: boolean;
+    canPinMessages?: boolean;
+  };
+  inviteLink?: string;
+  lastInspectedAt: string;
+  statusAssessment: string;
+}
+
+/**
+ * Fetch all automatically detected/discovered Telegram groups & channels
+ */
+export async function getDetectedTelegramGroups(): Promise<{ success: boolean; groups: DetectedTelegramGroup[]; total: number }> {
+  try {
+    const res = await fetch('/api/telegram/detected-groups');
+    if (!res.ok) throw new Error('Failed to fetch detected groups');
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, groups: [], total: 0 };
+  }
+}
+
+/**
+ * Actively scan Telegram API updates for newly joined groups or incoming messages
+ */
+export async function scanTelegramGroupUpdates(): Promise<{ success: boolean; message: string; groups: DetectedTelegramGroup[]; total: number }> {
+  try {
+    const res = await fetch('/api/telegram/scan-updates', { method: 'POST' });
+    if (!res.ok) throw new Error('Failed to scan telegram updates');
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err?.message || 'Scan failed', groups: [], total: 0 };
+  }
+}
+
+/**
+ * Live Inspect and Diagnose any Telegram Chat ID (Checks permissions, title, members, admin status)
+ */
+export async function inspectTelegramChat(chatId: string | number): Promise<{ success: boolean; isLiveTelegramVerified?: boolean; data?: TelegramChatInspectionData; error?: string }> {
+  try {
+    const res = await fetch('/api/telegram/inspect-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Chat inspection failed' };
+  }
+}
+

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useSchool } from '../../context/SchoolContext';
 import { sendTelegramDirectMessage, sendTelegramNotification, getTelegramDelayMs } from '../../services/telegramService';
 import { Classroom } from '../../types';
+import { TelegramGroupIdInspector } from './TelegramGroupIdInspector';
 import {
   Send,
   Users,
@@ -58,6 +59,9 @@ export const TelegramClassroomGroupRouter: React.FC = () => {
   } = useSchool();
 
   const isPrincipal = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
+
+  // Group ID Inspector Modal State
+  const [showInspectorModal, setShowInspectorModal] = useState(false);
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -452,19 +456,27 @@ export const TelegramClassroomGroupRouter: React.FC = () => {
                 </p>
               </div>
 
-              {/* Grade Filter */}
-              <div className="flex items-center gap-2">
-                <select
-                  value={filterGrade}
-                  onChange={e => setFilterGrade(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700"
-                >
-                  <option value="all">គ្រប់កម្រិតថ្នាក់</option>
-                  {[1, 2, 3, 4, 5, 6].map(g => (
-                    <option key={g} value={g}>ថ្នាក់ទី {g}</option>
-                  ))}
-                </select>
-              </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowInspectorModal(true)}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span>🔍 ស្កេន & ឆែកអាយឌីក្រុម</span>
+              </button>
+
+              <select
+                value={filterGrade}
+                onChange={e => setFilterGrade(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700"
+              >
+                <option value="all">គ្រប់កម្រិតថ្នាក់</option>
+                {[1, 2, 3, 4, 5, 6].map(g => (
+                  <option key={g} value={g}>ថ្នាក់ទី {g}</option>
+                ))}
+              </select>
+            </div>
             </div>
 
             {/* Search Input */}
@@ -1018,7 +1030,7 @@ export const TelegramClassroomGroupRouter: React.FC = () => {
                   className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-indigo-500"
                 />
                 <p className="text-[11px] text-slate-500 mt-1 font-battambang">
-                  💡 <b>គន្លឹះ៖</b> សូម Add Telegram Bot (<b>@PPTC_Notify_bot</b>) ចូលទៅក្នុងក្រុមថ្នាក់ទី {editingClassroom.grade}{editingClassroom.section} និង Promote ជា Admin ទើបបតអាចផ្ញើសារចូលក្រុមបាន។
+                  💡 <b>គន្លឹះ៖</b> សូម Add Telegram Bot (<b><a href="https://t.me/TGPPTC_Notify_bot" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">@TGPPTC_Notify_bot</a></b> / Telegram_Notify_bot) ចូលទៅក្នុងក្រុមថ្នាក់ទី {editingClassroom.grade}{editingClassroom.section} និង Promote ជា Admin ទើបបតអាចផ្ញើសារចូលក្រុមបាន។
                 </p>
               </div>
 
@@ -1105,6 +1117,39 @@ export const TelegramClassroomGroupRouter: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* MODAL: Telegram Group ID Inspector & Live Scanner     */}
+      {/* ---------------------------------------------------- */}
+      {showInspectorModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-100 rounded-3xl max-w-5xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold">
+                  🔍
+                </div>
+                <h3 className="font-bold text-slate-800 text-base">
+                  ផ្ទាំងស្កេន & ឆែកអាយឌីក្រុម Telegram (Group ID Inspector)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowInspectorModal(false)}
+                className="p-1.5 rounded-xl bg-white hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <TelegramGroupIdInspector
+              onAssignChatId={(chatId, title) => {
+                showToast(`បានភ្ជាប់ Chat ID «${chatId}» រួចរាល់!`, 'success');
+              }}
+            />
           </div>
         </div>
       )}

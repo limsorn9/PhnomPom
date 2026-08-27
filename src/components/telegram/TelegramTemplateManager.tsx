@@ -76,7 +76,7 @@ const INITIAL_PRESET_TEMPLATES: TelegramTemplate[] = [
 ❌ *សិស្សអវត្តមានឥតច្បាប់:* ០ នាក់
 
 👩‍🏫 *លោកគ្រូ-អ្នកគ្រូប្រចាំការ:* {{teacher_count}} នាក់
-រាយការណ៍ដោយប្រព័ន្ធ *PPTC_Notify* ស្វ័យប្រវត្តិ។`,
+រាយការណ៍ដោយប្រព័ន្ធ *Telegram_Notify_bot* ស្វ័យប្រវត្តិ។`,
     isPreset: true,
     createdAt: '2026-08-20'
   },

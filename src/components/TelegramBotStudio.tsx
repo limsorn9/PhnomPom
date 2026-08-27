@@ -14,6 +14,7 @@ import { TelegramBotAnalytics } from './telegram/TelegramBotAnalytics';
 import { TelegramAutomatedTasks } from './telegram/TelegramAutomatedTasks';
 import { TelegramSmartAutoResponder, DEFAULT_AUTO_RESPONDER_RULES, AutoResponderRule } from './telegram/TelegramSmartAutoResponder';
 import { TelegramClassroomGroupRouter } from './telegram/TelegramClassroomGroupRouter';
+import { TelegramGroupIdInspector } from './telegram/TelegramGroupIdInspector';
 import { TelegramTransmissionTimelineChart } from './telegram/TelegramTransmissionTimelineChart';
 import { 
   Send, 
@@ -101,7 +102,7 @@ interface BotCommandConfig {
 
 export const TelegramBotStudio: React.FC = () => {
   const { currentUser, schoolProfile, students, teachers, showToast } = useSchool();
-  const [activeTab, setActiveTab] = useState<'chat' | 'commands' | 'webhook_activity' | 'auto_responder' | 'group_router' | 'templates' | 'analytics' | 'automated_tasks' | 'settings'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'commands' | 'webhook_activity' | 'auto_responder' | 'group_router' | 'group_inspector' | 'templates' | 'analytics' | 'automated_tasks' | 'settings'>('chat');
   
   // Strict Principal Access Check
   const isPrincipal = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
@@ -151,7 +152,7 @@ export const TelegramBotStudio: React.FC = () => {
       enabled: true,
       requiresAuth: false,
       responseType: 'text',
-      sampleResponse: `🙏 សួស្ដី! ខ្ញុំជា PPTC_Notify នៃសាលារៀន ${schoolProfile.nameKhmer}។ តើខ្ញុំអាចជួយអ្វីដល់អ្នកថ្ងៃនេះ?`
+      sampleResponse: `🙏 សួស្ដី! ខ្ញុំជា Telegram_Notify_bot (@TGPPTC_Notify_bot) នៃសាលារៀន ${schoolProfile.nameKhmer}។ តើខ្ញុំអាចជួយអ្វីដល់អ្នកថ្ងៃនេះ?`
     },
     {
       id: 'cmd-status',
@@ -298,7 +299,7 @@ export const TelegramBotStudio: React.FC = () => {
     {
       id: 'msg-1',
       sender: 'bot',
-      text: `🤖 សួស្ដី! ខ្ញុំជា **PPTC_Notify** (@PPTC_Notify_bot) ដែលបានតភ្ជាប់ជាមួយប្រព័ន្ធសាលារៀនរបស់អ្នកផ្ទាល់។\n\n🆔 Telegram ID: **240224709** | Owner: **@limsorn**\n\nសូមវាយបញ្ចូលពាក្យបញ្ជា (Commands) ឬសំណួររបស់អ្នកនៅខាងក្រោម៖\n• \`/start\` - ចាប់ផ្តើមប្រព័ន្ធ\n• \`/status\` - ពិនិត្យស្ថានភាពសាលា\n• \`/students\` - បញ្ជីសិស្សសរុប\n• \`/teachers\` - បញ្ជីគ្រូបង្រៀន\n• \`/attendance\` - របាយការណ៍វត្តមាន\n• \`/help\` - ជំនួយប្រព័ន្ធ`,
+      text: `🤖 សួស្ដី! ខ្ញុំជា **Telegram_Notify_bot** ([@TGPPTC_Notify_bot](https://t.me/TGPPTC_Notify_bot)) ដែលបានតភ្ជាប់ជាមួយប្រព័ន្ធសាលារៀនរបស់អ្នកផ្ទាល់។\n\n🆔 Telegram ID: **240224709** | Owner: **@limsorn**\n\nសូមវាយបញ្ចូលពាក្យបញ្ជា (Commands) ឬសំណួររបស់អ្នកនៅខាងក្រោម៖\n• \`/start\` - ចាប់ផ្តើមប្រព័ន្ធ\n• \`/status\` - ពិនិត្យស្ថានភាពសាលា\n• \`/students\` - បញ្ជីសិស្សសរុប\n• \`/teachers\` - បញ្ជីគ្រូបង្រៀន\n• \`/attendance\` - របាយការណ៍វត្តមាន\n• \`/help\` - ជំនួយប្រព័ន្ធ`,
       timestamp: new Date().toLocaleTimeString('km-KH', { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -401,7 +402,7 @@ export const TelegramBotStudio: React.FC = () => {
       if (isCommand && matchingCmd && !matchingCmd.enabled) {
         replyText = `⚠️ **សេចក្តីជូនដំណឹង៖** ពាក្យបញ្ជា \`${matchingCmd.command}\` ត្រូវបានបិទដំណើរការជាបណ្តោះអាសន្នដោយ Administrator តាមរយៈ Command Registry។`;
       } else if (lower === '/start' || lower === 'សួស្ដី' || lower === 'hello') {
-        replyText = `🙏 សួស្ដី ${currentUser?.nameKhmer || 'លោកគ្រូ អ្នកគ្រូ'}!\n\nអ្នកកំពុងប្រើប្រាស់ **PPTC_Notify** ក្នុងប្រព័ន្ធផ្ទាល់។\nស្ថាប័ន៖ ${schoolProfile.nameKhmer}\nឆ្នាំសិក្សា៖ ${schoolProfile.academicYear}\n\nតើខ្ញុំអាចជួយអ្វីដល់អ្នកថ្ងៃនេះ?`;
+        replyText = `🙏 សួស្ដី ${currentUser?.nameKhmer || 'លោកគ្រូ អ្នកគ្រូ'}!\n\nអ្នកកំពុងប្រើប្រាស់ **Telegram_Notify_bot** (@TGPPTC_Notify_bot) ក្នុងប្រព័ន្ធផ្ទាល់។\nស្ថាប័ន៖ ${schoolProfile.nameKhmer}\nឆ្នាំសិក្សា៖ ${schoolProfile.academicYear}\n\nតើខ្ញុំអាចជួយអ្វីដល់អ្នកថ្ងៃនេះ?`;
       } else if (lower === '/status' || lower.includes('ស្ថានភាព')) {
         replyText = `📊 **ស្ថានភាពប្រព័ន្ធបច្ចុប្បន្ន៖**\n\n🏫 សាលារៀន៖ ${schoolProfile.nameKhmer}\n📍 ទីតាំង៖ ${schoolProfile.district}, ${schoolProfile.province}\n👥 សិស្សសរុប៖ ${students.length} នាក់\n👩‍🏫 គ្រូបង្រៀនសរុប៖ ${teachers.length} នាក់\n👑 Super Admin: @limsorn (ID: 240224709)\n🟢 Cloud DB: Active & Secure\n⚡ Webhook: Connected (Latency: 38ms)`;
       } else if (lower === '/students' || lower.includes('សិស្ស')) {
@@ -409,14 +410,14 @@ export const TelegramBotStudio: React.FC = () => {
       } else if (lower === '/teachers' || lower.includes('គ្រូ')) {
         replyText = `👩‍🏫 **បញ្ជីគ្រូបង្រៀនសរុប៖** ${teachers.length} នាក់\nនាយកសាលា៖ ${schoolProfile.principalName} (${schoolProfile.principalPhone})\n\nគ្រប់គ្រងដោយ Super Admin: @limsorn`;
       } else if (lower === '/attendance' || lower.includes('វត្តមាន')) {
-        replyText = `📋 **របាយការណ៍វត្តមានប្រចាំថ្ងៃ៖**\n• អត្រាវត្តមានសរុប៖ ៩៨.៥%\n• សិស្សមានច្បាប់៖ ២ នាក់\n• សិស្សអវត្តមានឥតច្បាប់៖ ០ នាក់\nទិន្នន័យត្រូវបានបញ្ជាក់ដោយប្រព័ន្ធ PPTC_Notify`;
+        replyText = `📋 **របាយការណ៍វត្តមានប្រចាំថ្ងៃ៖**\n• អត្រាវត្តមានសរុប៖ ៩៨.៥%\n• សិស្សមានច្បាប់៖ ២ នាក់\n• សិស្សអវត្តមានឥតច្បាប់៖ ០ នាក់\nទិន្នន័យត្រូវបានបញ្ជាក់ដោយប្រព័ន្ធ Telegram_Notify_bot (@TGPPTC_Notify_bot)`;
       } else if (lower === '/help' || lower.includes('ជំនួយ')) {
         const activeCmdList = commands.filter(c => c.enabled).map(c => `• \`${c.command}\` - ${c.descriptionKh}`).join('\n');
         replyText = `❓ **បញ្ជីពាក្យបញ្ជា (Commands) ដែលដំណើរការ៖**\n\n${activeCmdList}\n\n💡 លោកអ្នកក៏អាចវាយសំណួរជាភាសាខ្មែរបានផងដែរ!`;
       } else if (lower === '/resetpassword' || lower.includes('ភ្លេចលេខសំងាត់')) {
         replyText = `🔐 **ការកំណត់ពាក្យសម្ងាត់៖**\nអ្នកអាចចូលទៅកាន់ផ្ទាំង **ការកំណត់គណនី (Accounts)** ឬ **UserProfile** ដើម្បីកែប្រែពាក្យសម្ងាត់ថ្មីដោយផ្ទាល់បានភ្លាមៗ!`;
       } else {
-        replyText = `🤖 **PPTC_Notify Bot Response:**\nខ្ញុំបានទទួលសាររបស់អ្នកថា: "${text}"។\nប្រព័ន្ធបានចងក្រងទិន្នន័យនេះសម្រាប់ស្ថាប័ន ${schoolProfile.nameKhmer} រួចរាល់ហើយ។ លោកអ្នកអាចប្រើប្រាស់ពាក្យបញ្ជា \`/help\` ដើម្បីមើលជំនួយបន្ថែម។`;
+        replyText = `🤖 **Telegram_Notify_bot Response:**\nខ្ញុំបានទទួលសាររបស់អ្នកថា: "${text}"។\nប្រព័ន្ធបានចងក្រងទិន្នន័យនេះសម្រាប់ស្ថាប័ន ${schoolProfile.nameKhmer} រួចរាល់ហើយ។ លោកអ្នកអាចប្រើប្រាស់ពាក្យបញ្ជា \`/help\` ដើម្បីមើលជំនួយបន្ថែម។`;
       }
 
       const botMsg: ChatMessage = {
@@ -442,8 +443,8 @@ export const TelegramBotStudio: React.FC = () => {
 
     try {
       const pingPayload: { title: string; message: string; category: 'security' | 'announcement' } = {
-        title: '⚡ [System Check] PPTC_Notify Diagnostic Ping',
-        message: `🤖 **ការធ្វើតេស្តកំណត់រចនាសម្ព័ន្ធ Bot ជោគជ័យ!**\n\n• Token: ${botToken.substring(0, 10)}...${botToken.substring(botToken.length - 6)}\n• Target Chat ID: ${chatId}\n• ម៉ោងបញ្ជូន: ${new Date().toLocaleString('km-KH')}\n• ស្ថានភាពប្រព័ន្ធ: Normal (Active Webhook)\n• សាលារៀន: ${schoolProfile.nameKhmer}\n\nប្រព័ន្ធ PPTC_Notify បានភ្ជាប់ទំនាក់ទំនងរវាងវេបសាយ និង Telegram ដោយជោគជ័យ ១០០%!`,
+        title: '⚡ [System Check] Telegram_Notify_bot Diagnostic Ping',
+        message: `🤖 **ការធ្វើតេស្តកំណត់រចនាសម្ព័ន្ធ Bot ជោគជ័យ!**\n\n• Token: ${botToken.substring(0, 10)}...${botToken.substring(botToken.length - 6)}\n• Target Chat ID: ${chatId}\n• ម៉ោងបញ្ជូន: ${new Date().toLocaleString('km-KH')}\n• ស្ថានភាពប្រព័ន្ធ: Normal (Active Webhook)\n• សាលារៀន: ${schoolProfile.nameKhmer}\n\nប្រព័ន្ធ Telegram_Notify_bot (@TGPPTC_Notify_bot) បានភ្ជាប់ទំនាក់ទំនងរវាងវេបសាយ និង Telegram ដោយជោគជ័យ ១០០%!`,
         category: 'security'
       };
 
@@ -640,8 +641,8 @@ export const TelegramBotStudio: React.FC = () => {
           id: `log-reply-${Date.now()}`,
           updateId: Math.floor(10000000 + Math.random() * 90000000),
           eventType: 'message',
-          senderName: 'PPTC_Notify (ឆ្លើយតបផ្ទាល់)',
-          username: 'PPTC_Notify_bot',
+          senderName: 'Telegram_Notify_bot (ឆ្លើយតបផ្ទាល់)',
+          username: 'TGPPTC_Notify_bot',
           chatId: replyTargetLog.chatId,
           messageText: `[ឆ្លើយតបទៅ @${replyTargetLog.username || replyTargetLog.senderName}]: ${replyText}`,
           timestamp: new Date().toLocaleTimeString('km-KH'),
@@ -700,8 +701,8 @@ export const TelegramBotStudio: React.FC = () => {
         from: {
           id: 8946444884,
           is_bot: true,
-          first_name: 'PPTC_Notify',
-          username: 'PPTC_Notify_bot'
+          first_name: 'Telegram_Notify_bot',
+          username: 'TGPPTC_Notify_bot'
         },
         chat: {
           id: Number(chatId) || 240224709,
@@ -741,7 +742,7 @@ export const TelegramBotStudio: React.FC = () => {
           <div>
             <div className="inline-flex items-center gap-1.5 bg-sky-500/30 text-sky-200 px-3 py-1 rounded-full text-xs font-semibold mb-1 border border-sky-400/30">
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              Telegram Bot Studio & Webhook Manager (@PPTC_Notify_bot)
+              Telegram Bot Studio & Webhook Manager (<a href="https://t.me/TGPPTC_Notify_bot" target="_blank" rel="noreferrer" className="underline hover:text-white">@TGPPTC_Notify_bot</a>)
             </div>
             <h1 className="text-2xl font-bold font-moul">ផ្ទាំងគ្រប់គ្រងតេលេក្រាមឆាតបត</h1>
             <p className="text-sky-100 text-sm">
@@ -897,6 +898,21 @@ export const TelegramBotStudio: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('group_inspector')}
+          className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'group_inspector'
+              ? 'bg-white text-blue-600 border-b-2 border-blue-600 shadow-sm'
+              : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+          }`}
+        >
+          <Search className="w-3.5 h-3.5 text-blue-600" />
+          ស្កេន & ឆែកអាយឌីក្រុម (Inspector)
+          <span className="bg-blue-100 text-blue-800 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+            Scan
+          </span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('templates')}
           className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'templates'
@@ -956,17 +972,17 @@ export const TelegramBotStudio: React.FC = () => {
               </div>
               <div>
                 <div className="font-bold text-slate-800 flex items-center gap-2">
-                  PPTC_Notify <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">Verified</span>
+                  Telegram_Notify_bot <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">Verified</span>
                 </div>
-                <div className="text-xs text-slate-500">bot active • @PPTC_Notify_bot • Owner: @limsorn (ID: {chatId})</div>
+                <div className="text-xs text-slate-500">bot active • <a href="https://t.me/TGPPTC_Notify_bot" target="_blank" rel="noreferrer" className="text-sky-600 hover:underline font-semibold">@TGPPTC_Notify_bot</a> • Owner: @limsorn (ID: {chatId})</div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={async () => {
                   const res = await sendTelegramNotification({
-                    title: 'តេស្តសារពី PPTC_Notify',
-                    message: 'សារផ្ញើចេញពី Telegram Bot Studio (@PPTC_Notify_bot) ទៅកាន់ Telegram Group ជោគជ័យ!',
+                    title: 'តេស្តសារពី Telegram_Notify_bot',
+                    message: 'សារផ្ញើចេញពី Telegram Bot Studio (@TGPPTC_Notify_bot) ទៅកាន់ Telegram Group ជោគជ័យ!',
                     category: 'announcement'
                   });
                   if (res.success) {
@@ -1660,6 +1676,9 @@ export const TelegramBotStudio: React.FC = () => {
       {/* Tab: Classroom & Group Channels Router */}
       {activeTab === 'group_router' && <TelegramClassroomGroupRouter />}
 
+      {/* Tab: Group ID Inspector & Diagnostic Hub */}
+      {activeTab === 'group_inspector' && <TelegramGroupIdInspector />}
+
       {/* Tab: Template Manager */}
       {activeTab === 'templates' && <TelegramTemplateManager />}
 
@@ -1731,7 +1750,7 @@ export const TelegramBotStudio: React.FC = () => {
               </div>
               <p className="text-[11px] text-slate-400 mt-1">
                 {isPrincipal ? (
-                  <>Token បច្ចុប្បន្នត្រូវបានតភ្ជាប់ជាមួយ Bot: <b>PPTC_Notify</b> (@PPTC_Notify_bot)</>
+                  <>Token បច្ចុប្បន្នត្រូវបានតភ្ជាប់ជាមួយ Bot: <b>Telegram_Notify_bot</b> (<a href="https://t.me/TGPPTC_Notify_bot" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">@TGPPTC_Notify_bot</a>)</>
                 ) : (
                   <>លេខសម្ងាត់ Bot API Token ត្រូវបានលាក់ដោយសុវត្ថិភាព</>
                 )}
@@ -1804,7 +1823,7 @@ export const TelegramBotStudio: React.FC = () => {
                     ដំណើរការអូតូជាមួយ Telegram ផ្ទាល់ (Live Webhook Activation)
                   </h4>
                   <p className="text-xs text-indigo-800/80">
-                    ចុចប៊ូតុងនេះដើម្បីភ្ជាប់ Server Webhook ទៅ Telegram API ឱ្យ Bot អាចឆ្លើយតបអូតូពេលមានអ្នកឆាតទៅ (@PPTC_Notify_bot)
+                    ចុចប៊ូតុងនេះដើម្បីភ្ជាប់ Server Webhook ទៅ Telegram API ឱ្យ Bot អាចឆ្លើយតបអូតូពេលមានអ្នកឆាតទៅ (<a href="https://t.me/TGPPTC_Notify_bot" target="_blank" rel="noreferrer" className="font-semibold underline">@TGPPTC_Notify_bot</a>)
                   </p>
                 </div>
 
