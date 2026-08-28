@@ -58,6 +58,7 @@ import { StudentBadgeShowcaseModal } from './badges/StudentBadgeShowcaseModal';
 import { CertificateModal } from './badges/CertificateModal';
 import { useFormAutoSave } from '../hooks/useFormAutoSave';
 import { FormAutoSaveIndicator } from './common/FormAutoSaveIndicator';
+import { ConfirmDeleteDialog } from './common/ConfirmDeleteDialog';
 import { StudentProgressTrendChart } from './StudentProgressTrendChart';
 import { MultiStudentProfileSummaryPdfModal } from './MultiStudentProfileSummaryPdfModal';
 import { StudentProfilePdfModal } from './StudentProfilePdfModal';
@@ -121,6 +122,8 @@ export const StudentManagement: React.FC = () => {
   const [localSearch, setLocalSearch] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
+  const [isSingleDeleteDialogOpen, setIsSingleDeleteDialogOpen] = useState(false);
   const [isMoeyMasterModalOpen, setIsMoeyMasterModalOpen] = useState(false);
   const [selectedStudentForView, setSelectedStudentForView] = useState<Student | null>(null);
   const [selectedStudentForPdfPrint, setSelectedStudentForPdfPrint] = useState<Student | null>(null);
@@ -769,7 +772,7 @@ export const StudentManagement: React.FC = () => {
                 <span>លុបសិស្សទាំងអស់</span>
               </button>
             )}
-            {isDirector ? (
+            {(isDirector || isSecretary) ? (
               <button
                 id="add-student-btn"
                 onClick={() => {
@@ -778,7 +781,7 @@ export const StudentManagement: React.FC = () => {
                   setIsAddModalOpen(true);
                 }}
                 className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-blue-300"
-                title="ចុះឈ្មោះបង្កើតសិស្សថ្មីក្នុងប្រព័ន្ធ (សិទ្ធិផ្តាច់មុខរបស់នាយកសាលា)"
+                title="ចុះឈ្មោះបង្កើតសិស្សថ្មីក្នុងប្រព័ន្ធ"
               >
                 <UserPlus className="w-4 h-4" />
                 <span>+ ចុះឈ្មោះសិស្សថ្មី (MoEYS)</span>
@@ -1345,16 +1348,15 @@ export const StudentManagement: React.FC = () => {
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          {isDirector && (
+                          {(isDirector || isSecretary) && (
                             <button
                               id={`delete-student-${student.id}`}
                               onClick={() => {
-                                if (window.confirm(`តើអ្នកពិតជាចង់លុបសិស្ស «${student.nameKhmer}» ឬទេ?`)) {
-                                  deleteStudent(student.id);
-                                }
+                                setStudentToDelete(student);
+                                setIsSingleDeleteDialogOpen(true);
                               }}
-                              title="លុប (សិទ្ធិនាយកសាលា)"
-                              className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              title="លុបទិន្នន័យ (មានការបញ្ជាក់សុវត្ថិភាព)"
+                              className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
