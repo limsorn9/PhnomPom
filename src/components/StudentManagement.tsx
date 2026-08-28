@@ -91,6 +91,14 @@ export const StudentManagement: React.FC = () => {
   const teacherGrade = currentUser?.assignedGrade || 1;
   const teacherSection = currentUser?.assignedSection || 'ក';
 
+  // Base list of students accessible by the current user
+  const accessibleStudents = useMemo(() => {
+    if (isTeacher) {
+      return students.filter(s => s.grade === teacherGrade && s.section === teacherSection);
+    }
+    return students;
+  }, [students, isTeacher, teacherGrade, teacherSection]);
+
   // Pull Students To Class State (for Teacher)
   const [isPullModalOpen, setIsPullModalOpen] = useState(false);
   const [selectedPullStudentIds, setSelectedPullStudentIds] = useState<string[]>([]);
@@ -104,7 +112,7 @@ export const StudentManagement: React.FC = () => {
   const [selectedStudentForAwardBadge, setSelectedStudentForAwardBadge] = useState<Student | null>(null);
   const [selectedCertificateForView, setSelectedCertificateForView] = useState<any | null>(null);
 
-  const [selectedGrade, setSelectedGrade] = useState<number | 'all'>('all');
+  const [selectedGrade, setSelectedGrade] = useState<number | 'all'>(isTeacher ? teacherGrade : 'all');
   const [selectedGender, setSelectedGender] = useState<Gender | 'all'>('all');
   const [selectedVulnerability, setSelectedVulnerability] = useState<'all' | 'idpoor' | 'scholarship' | 'orphan' | 'disability' | 'repeater'>('all');
   const [selectedRiskFilter, setSelectedRiskFilter] = useState<'all' | 'at_risk' | 'consecutive_absent' | 'score_drop' | 'normal'>('all');
@@ -242,15 +250,15 @@ export const StudentManagement: React.FC = () => {
     enabled: isAddModalOpen && !editingStudent
   });
 
-  // Build and memoize Fuzzy Search Index for students
+  // Build and memoize Fuzzy Search Index for students (scoped to accessibleStudents)
   const studentSearchIndex = useMemo(() => {
-    return new StudentSearchIndex(students);
-  }, [students]);
+    return new StudentSearchIndex(accessibleStudents);
+  }, [accessibleStudents]);
 
-  // Compute Risk Alerts Map for all students (>3 consecutive absences or score drop)
+  // Compute Risk Alerts Map for accessible students (>3 consecutive absences or score drop)
   const studentAlertsMap = useMemo(() => {
-    return getAllStudentRiskAlerts(students, scores, attendanceRecords || []);
-  }, [students, scores, attendanceRecords]);
+    return getAllStudentRiskAlerts(accessibleStudents, scores, attendanceRecords || []);
+  }, [accessibleStudents, scores, attendanceRecords]);
 
   const atRiskCount = useMemo(() => {
     let count = 0;
@@ -281,7 +289,7 @@ export const StudentManagement: React.FC = () => {
     const query = (searchQuery || localSearch).trim();
     
     // Step 1: Apply Fuzzy Search Index if query exists
-    let candidateStudents = students;
+    let candidateStudents = accessibleStudents;
     if (query) {
       const searchResults = studentSearchIndex.search(query);
       candidateStudents = searchResults.map(res => res.item);
@@ -289,7 +297,9 @@ export const StudentManagement: React.FC = () => {
 
     // Step 2: Apply categorical filters (Grade, Gender, Vulnerability, Risk Alerts)
     return candidateStudents.filter(student => {
-      const matchesGrade = selectedGrade === 'all' || student.grade === selectedGrade;
+      const matchesGrade = isTeacher
+        ? (student.grade === teacherGrade && student.section === teacherSection)
+        : (selectedGrade === 'all' || student.grade === selectedGrade);
       const matchesGender = selectedGender === 'all' || student.gender === selectedGender;
 
       let matchesVulnerability = true;
@@ -319,7 +329,7 @@ export const StudentManagement: React.FC = () => {
 
       return matchesGrade && matchesGender && matchesVulnerability && matchesRisk;
     });
-  }, [students, studentSearchIndex, searchQuery, localSearch, selectedGrade, selectedGender, selectedVulnerability, selectedRiskFilter, studentAlertsMap]);
+  }, [accessibleStudents, isTeacher, teacherGrade, teacherSection, studentSearchIndex, searchQuery, localSearch, selectedGrade, selectedGender, selectedVulnerability, selectedRiskFilter, studentAlertsMap]);
 
   const handleCreateStudent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -981,19 +991,26 @@ export const StudentManagement: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2.5 w-full sm:w-auto">
-            <select
-              value={selectedGrade}
-              onChange={e => setSelectedGrade(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-              className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">គ្រប់កម្រិតថ្នាក់</option>
-              <option value="1">ថ្នាក់ទី១</option>
-              <option value="2">ថ្នាក់ទី២</option>
-              <option value="3">ថ្នាក់ទី៣</option>
-              <option value="4">ថ្នាក់ទី៤</option>
-              <option value="5">ថ្នាក់ទី៥</option>
-              <option value="6">ថ្នាក់ទី៦</option>
-            </select>
+            {isTeacher ? (
+              <div className="px-3.5 py-2 bg-blue-50 border border-blue-200 text-blue-900 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                <span>ថ្នាក់ទី {teacherGrade}«{teacherSection}»</span>
+              </div>
+            ) : (
+              <select
+                value={selectedGrade}
+                onChange={e => setSelectedGrade(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">គ្រប់កម្រិតថ្នាក់</option>
+                <option value="1">ថ្នាក់ទី១</option>
+                <option value="2">ថ្នាក់ទី២</option>
+                <option value="3">ថ្នាក់ទី៣</option>
+                <option value="4">ថ្នាក់ទី៤</option>
+                <option value="5">ថ្នាក់ទី៥</option>
+                <option value="6">ថ្នាក់ទី៦</option>
+              </select>
+            )}
 
             <select
               value={selectedGender}

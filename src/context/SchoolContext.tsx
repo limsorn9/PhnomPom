@@ -172,6 +172,8 @@ interface SchoolContextType {
   clearAccountAuditLogs: () => void;
   canAccessTab: (tab: ActiveTab) => boolean;
   canAccessStudentDashboard: (student?: Student | string | null) => { allowed: boolean; reason: string };
+  canTeacherAccessClass: (grade?: number, section?: string) => boolean;
+  getTeacherAssignedClass: () => { grade: number; section: string } | null;
 
   // Academic Years (២០២១ - បច្ចុប្បន្ន)
   academicYears: string[];
@@ -2649,12 +2651,61 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.setItem(`${LOCAL_STORAGE_KEY}_school_groups`, JSON.stringify(schoolGroups));
   }, [schoolGroups]);
 
-  // Cloud Firestore Sync State
+  // Cloud Firestore Sync State & Timestamps
   const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
   const [lastCloudSyncTime, setLastCloudSyncTime] = useState<string | null>(() => {
     return localStorage.getItem(`${LOCAL_STORAGE_KEY}_last_cloud_sync_time`);
   });
   const isRemoteUpdateRef = useRef<boolean>(false);
+  const LAST_LOCAL_MUTATION_KEY = `${LOCAL_STORAGE_KEY}_last_local_mutation`;
+
+  // Helper to get all school payload for cloud sync
+  const getFullSchoolPayload = () => ({
+    schoolProfile,
+    students,
+    teachers,
+    classrooms,
+    scores,
+    budgetTransactions,
+    attendanceRecords,
+    calendarEvents,
+    transfers,
+    academicYears,
+    examSubjects,
+    profileEditRequests,
+    releasedResults,
+    villages,
+    households,
+    libraryBooks,
+    readingLogs,
+    printSettings,
+    studentFeedbacks,
+    lessonPlans,
+    parentMeetings,
+    parentRequests,
+    classCouncils,
+    atRiskStudents,
+    dailyClassLogs,
+    studentBadgeDefinitions,
+    studentBadgeAssignments,
+    correspondences,
+    staffAdminRecords,
+    schoolCommittees,
+    schoolStrategicPlans,
+    modelSchoolStandards,
+    schoolAssets,
+    schoolGroups,
+    activityLogs,
+    appUsers,
+    equipmentItems,
+    equipmentLoans,
+    teacherDailyTasks,
+    teacherMeetings,
+    teachingResources,
+    dailyHealthChecks,
+    qrScanVerificationLogs,
+    updatedBy: currentUser?.nameKhmer || 'Admin'
+  });
 
   // Pull All Data from Firestore Cloud
   const pullAllFromCloud = async (): Promise<boolean> => {
@@ -2664,44 +2715,52 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (cloudData) {
         isRemoteUpdateRef.current = true;
         if (cloudData.schoolProfile) setSchoolProfile(cloudData.schoolProfile);
-        if (cloudData.students) setStudents(cloudData.students);
-        if (cloudData.teachers) setTeachers(cloudData.teachers);
-        if (cloudData.classrooms) setClassrooms(cloudData.classrooms);
-        if (cloudData.scores) setScores(cloudData.scores);
-        if (cloudData.budgetTransactions) setBudgetTransactions(cloudData.budgetTransactions);
-        if (cloudData.attendanceRecords) setAttendanceRecords(cloudData.attendanceRecords);
-        if (cloudData.calendarEvents) setCalendarEvents(cloudData.calendarEvents);
-        if (cloudData.transfers) setTransfers(cloudData.transfers);
-        if (cloudData.academicYears) setAcademicYears(cloudData.academicYears);
-        if (cloudData.examSubjects) setExamSubjects(cloudData.examSubjects);
-        if (cloudData.profileEditRequests) setProfileEditRequests(cloudData.profileEditRequests);
-        if (cloudData.releasedResults) setReleasedResults(cloudData.releasedResults);
-        if (cloudData.villages) setVillages(cloudData.villages);
-        if (cloudData.households) setHouseholds(cloudData.households);
-        if (cloudData.libraryBooks) setLibraryBooks(cloudData.libraryBooks);
-        if (cloudData.readingLogs) setReadingLogs(cloudData.readingLogs);
+        if (cloudData.students && Array.isArray(cloudData.students)) setStudents(cloudData.students);
+        if (cloudData.teachers && Array.isArray(cloudData.teachers)) setTeachers(cloudData.teachers);
+        if (cloudData.classrooms && Array.isArray(cloudData.classrooms)) setClassrooms(cloudData.classrooms);
+        if (cloudData.scores && Array.isArray(cloudData.scores)) setScores(cloudData.scores);
+        if (cloudData.budgetTransactions && Array.isArray(cloudData.budgetTransactions)) setBudgetTransactions(cloudData.budgetTransactions);
+        if (cloudData.attendanceRecords && Array.isArray(cloudData.attendanceRecords)) setAttendanceRecords(cloudData.attendanceRecords);
+        if (cloudData.calendarEvents && Array.isArray(cloudData.calendarEvents)) setCalendarEvents(cloudData.calendarEvents);
+        if (cloudData.transfers && Array.isArray(cloudData.transfers)) setTransfers(cloudData.transfers);
+        if (cloudData.academicYears && Array.isArray(cloudData.academicYears)) setAcademicYears(cloudData.academicYears);
+        if (cloudData.examSubjects && Array.isArray(cloudData.examSubjects)) setExamSubjects(cloudData.examSubjects);
+        if (cloudData.profileEditRequests && Array.isArray(cloudData.profileEditRequests)) setProfileEditRequests(cloudData.profileEditRequests);
+        if (cloudData.releasedResults && typeof cloudData.releasedResults === 'object') setReleasedResults(cloudData.releasedResults);
+        if (cloudData.villages && Array.isArray(cloudData.villages)) setVillages(cloudData.villages);
+        if (cloudData.households && Array.isArray(cloudData.households)) setHouseholds(cloudData.households);
+        if (cloudData.libraryBooks && Array.isArray(cloudData.libraryBooks)) setLibraryBooks(cloudData.libraryBooks);
+        if (cloudData.readingLogs && Array.isArray(cloudData.readingLogs)) setReadingLogs(cloudData.readingLogs);
         if (cloudData.printSettings) setPrintSettings(cloudData.printSettings);
-        if (cloudData.studentFeedbacks) setStudentFeedbacks(cloudData.studentFeedbacks);
-        if (cloudData.lessonPlans) setLessonPlans(cloudData.lessonPlans);
-        if (cloudData.parentMeetings) setParentMeetings(cloudData.parentMeetings);
-        if (cloudData.parentRequests) setParentRequests(cloudData.parentRequests);
-        if (cloudData.classCouncils) setClassCouncils(cloudData.classCouncils);
-        if (cloudData.atRiskStudents) setAtRiskStudents(cloudData.atRiskStudents);
-        if (cloudData.dailyClassLogs) setDailyClassLogs(cloudData.dailyClassLogs);
-        if (cloudData.studentBadgeDefinitions) setStudentBadgeDefinitions(cloudData.studentBadgeDefinitions);
-        if (cloudData.studentBadgeAssignments) setStudentBadgeAssignments(cloudData.studentBadgeAssignments);
-        if (cloudData.correspondences) setCorrespondences(cloudData.correspondences);
-        if (cloudData.staffAdminRecords) setStaffAdminRecords(cloudData.staffAdminRecords);
-        if (cloudData.schoolCommittees) setSchoolCommittees(cloudData.schoolCommittees);
-        if (cloudData.schoolStrategicPlans) setSchoolStrategicPlans(cloudData.schoolStrategicPlans);
-        if (cloudData.modelSchoolStandards) setModelSchoolStandards(cloudData.modelSchoolStandards);
-        if (cloudData.schoolAssets) setSchoolAssets(cloudData.schoolAssets);
+        if (cloudData.studentFeedbacks && Array.isArray(cloudData.studentFeedbacks)) setStudentFeedbacks(cloudData.studentFeedbacks);
+        if (cloudData.lessonPlans && Array.isArray(cloudData.lessonPlans)) setLessonPlans(cloudData.lessonPlans);
+        if (cloudData.parentMeetings && Array.isArray(cloudData.parentMeetings)) setParentMeetings(cloudData.parentMeetings);
+        if (cloudData.parentRequests && Array.isArray(cloudData.parentRequests)) setParentRequests(cloudData.parentRequests);
+        if (cloudData.classCouncils && Array.isArray(cloudData.classCouncils)) setClassCouncils(cloudData.classCouncils);
+        if (cloudData.atRiskStudents && Array.isArray(cloudData.atRiskStudents)) setAtRiskStudents(cloudData.atRiskStudents);
+        if (cloudData.dailyClassLogs && Array.isArray(cloudData.dailyClassLogs)) setDailyClassLogs(cloudData.dailyClassLogs);
+        if (cloudData.studentBadgeDefinitions && Array.isArray(cloudData.studentBadgeDefinitions)) setStudentBadgeDefinitions(cloudData.studentBadgeDefinitions);
+        if (cloudData.studentBadgeAssignments && Array.isArray(cloudData.studentBadgeAssignments)) setStudentBadgeAssignments(cloudData.studentBadgeAssignments);
+        if (cloudData.correspondences && Array.isArray(cloudData.correspondences)) setCorrespondences(cloudData.correspondences);
+        if (cloudData.staffAdminRecords && Array.isArray(cloudData.staffAdminRecords)) setStaffAdminRecords(cloudData.staffAdminRecords);
+        if (cloudData.schoolCommittees && Array.isArray(cloudData.schoolCommittees)) setSchoolCommittees(cloudData.schoolCommittees);
+        if (cloudData.schoolStrategicPlans && Array.isArray(cloudData.schoolStrategicPlans)) setSchoolStrategicPlans(cloudData.schoolStrategicPlans);
+        if (cloudData.modelSchoolStandards && Array.isArray(cloudData.modelSchoolStandards)) setModelSchoolStandards(cloudData.modelSchoolStandards);
+        if (cloudData.schoolAssets && Array.isArray(cloudData.schoolAssets)) setSchoolAssets(cloudData.schoolAssets);
         if (cloudData.schoolGroups && Array.isArray(cloudData.schoolGroups)) setSchoolGroups(cloudData.schoolGroups);
-        if (cloudData.appUsers) setAppUsers(cloudData.appUsers);
+        if (cloudData.appUsers && Array.isArray(cloudData.appUsers)) setAppUsers(cloudData.appUsers);
+        if (cloudData.equipmentItems && Array.isArray(cloudData.equipmentItems)) setEquipmentItems(cloudData.equipmentItems);
+        if (cloudData.equipmentLoans && Array.isArray(cloudData.equipmentLoans)) setEquipmentLoans(cloudData.equipmentLoans);
+        if (cloudData.teacherDailyTasks && Array.isArray(cloudData.teacherDailyTasks)) setTeacherDailyTasks(cloudData.teacherDailyTasks);
+        if (cloudData.teacherMeetings && Array.isArray(cloudData.teacherMeetings)) setTeacherMeetings(cloudData.teacherMeetings);
+        if (cloudData.teachingResources && Array.isArray(cloudData.teachingResources)) setTeachingResources(cloudData.teachingResources);
+        if (cloudData.dailyHealthChecks && Array.isArray(cloudData.dailyHealthChecks)) setDailyHealthChecks(cloudData.dailyHealthChecks);
+        if (cloudData.qrScanVerificationLogs && Array.isArray(cloudData.qrScanVerificationLogs)) setQrScanVerificationLogs(cloudData.qrScanVerificationLogs);
 
         const now = new Date().toISOString();
         setLastCloudSyncTime(now);
         localStorage.setItem(`${LOCAL_STORAGE_KEY}_last_cloud_sync_time`, now);
+        localStorage.setItem(LAST_LOCAL_MUTATION_KEY, Date.now().toString());
         showToast('បានទាញយកទិន្នន័យពី Cloud Firestore ជោគជ័យ!', 'success');
         return true;
       }
@@ -2719,51 +2778,13 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const syncAllToCloud = async (): Promise<boolean> => {
     setIsCloudSyncing(true);
     try {
-      const payload = {
-        schoolProfile,
-        students,
-        teachers,
-        classrooms,
-        scores,
-        budgetTransactions,
-        attendanceRecords,
-        calendarEvents,
-        transfers,
-        academicYears,
-        examSubjects,
-        profileEditRequests,
-        releasedResults,
-        villages,
-        households,
-        libraryBooks,
-        readingLogs,
-        printSettings,
-        studentFeedbacks,
-        lessonPlans,
-        parentMeetings,
-        parentRequests,
-        classCouncils,
-        atRiskStudents,
-        dailyClassLogs,
-        studentBadgeDefinitions,
-        studentBadgeAssignments,
-        correspondences,
-        staffAdminRecords,
-        schoolCommittees,
-        schoolStrategicPlans,
-        modelSchoolStandards,
-        schoolAssets,
-        schoolGroups,
-        activityLogs,
-        appUsers,
-        updatedBy: currentUser?.nameKhmer || 'Admin'
-      };
-
+      const payload = getFullSchoolPayload();
       const success = await syncSchoolDataToFirestore(payload, true);
       if (success) {
         const now = new Date().toISOString();
         setLastCloudSyncTime(now);
         localStorage.setItem(`${LOCAL_STORAGE_KEY}_last_cloud_sync_time`, now);
+        localStorage.setItem(LAST_LOCAL_MUTATION_KEY, Date.now().toString());
         showToast('បានរក្សាទុកទិន្នន័យឡើង Cloud Firestore ដោយជោគជ័យ!', 'success');
         return true;
       } else {
@@ -2786,22 +2807,13 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
+    // Mark local mutation timestamp
+    localStorage.setItem(LAST_LOCAL_MUTATION_KEY, Date.now().toString());
+
     const timer = setTimeout(() => {
-      syncSchoolDataToFirestore({
-        schoolProfile,
-        students,
-        teachers,
-        classrooms,
-        scores,
-        budgetTransactions,
-        attendanceRecords,
-        calendarEvents,
-        transfers,
-        schoolGroups,
-        activityLogs,
-        appUsers
-      }).catch(err => console.warn('Background firestore sync notice:', err));
-    }, 3500);
+      const payload = getFullSchoolPayload();
+      syncSchoolDataToFirestore(payload).catch(err => console.warn('Background firestore sync notice:', err));
+    }, 1200);
 
     return () => clearTimeout(timer);
   }, [
@@ -2816,101 +2828,175 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     transfers,
     schoolGroups,
     activityLogs,
-    appUsers
+    appUsers,
+    academicYears,
+    examSubjects,
+    profileEditRequests,
+    releasedResults,
+    villages,
+    households,
+    libraryBooks,
+    readingLogs,
+    printSettings,
+    studentFeedbacks,
+    lessonPlans,
+    parentMeetings,
+    parentRequests,
+    classCouncils,
+    atRiskStudents,
+    dailyClassLogs,
+    studentBadgeDefinitions,
+    studentBadgeAssignments,
+    correspondences,
+    staffAdminRecords,
+    schoolCommittees,
+    schoolStrategicPlans,
+    modelSchoolStandards,
+    schoolAssets,
+    equipmentItems,
+    equipmentLoans,
+    teacherDailyTasks,
+    teacherMeetings,
+    teachingResources,
+    dailyHealthChecks,
+    qrScanVerificationLogs
   ]);
 
-  // Initial Real-time Listener & Cloud pull on mount
+  // Flush to Firestore on page hide / unload
   useEffect(() => {
-    // Check if cloud has newer data on startup
+    const handleBeforeUnload = () => {
+      const payload = getFullSchoolPayload();
+      syncSchoolDataToFirestore(payload).catch(() => {});
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        handleBeforeUnload();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [
+    schoolProfile,
+    students,
+    teachers,
+    classrooms,
+    scores,
+    budgetTransactions,
+    attendanceRecords,
+    calendarEvents,
+    transfers,
+    schoolGroups,
+    activityLogs,
+    appUsers,
+    equipmentItems,
+    equipmentLoans,
+    teacherDailyTasks,
+    teacherMeetings,
+    teachingResources,
+    dailyHealthChecks,
+    qrScanVerificationLogs
+  ]);
+
+  // Initial Real-time Listener & Cloud pull on mount with timestamp conflict resolution
+  useEffect(() => {
+    const applyCloudDataIfNewer = (cloudData: any, isInitialFetch = false) => {
+      if (!cloudData) return;
+
+      const localSavedStudents = localStorage.getItem(`${LOCAL_STORAGE_KEY}_students`);
+      const localLastMutation = Number(localStorage.getItem(LAST_LOCAL_MUTATION_KEY) || '0');
+      const cloudLastUpdatedTime = cloudData.lastUpdated ? new Date(cloudData.lastUpdated).getTime() : 0;
+
+      // Conflict Resolution:
+      // If local data exists and was modified after the cloud snapshot, keep local data and push to cloud instead
+      if (localSavedStudents && localLastMutation > cloudLastUpdatedTime) {
+        console.info('Local data is newer than Cloud Firestore data. Retaining local data and syncing to Cloud.');
+        const payload = getFullSchoolPayload();
+        syncSchoolDataToFirestore(payload).catch(console.warn);
+        return;
+      }
+
+      // Cloud data is newer or first load: apply safely
+      isRemoteUpdateRef.current = true;
+      if (cloudData.schoolProfile) setSchoolProfile(prev => ({ ...prev, ...cloudData.schoolProfile }));
+      if (cloudData.students && Array.isArray(cloudData.students)) setStudents(cloudData.students);
+      if (cloudData.teachers && Array.isArray(cloudData.teachers)) {
+        setTeachers(prev => {
+          const cloudIds = new Set(cloudData.teachers.map((t: Teacher) => t.id || t.staffCode || t.email));
+          const localOnly = prev.filter(t => !cloudIds.has(t.id) && !cloudIds.has(t.staffCode) && (!t.email || !cloudIds.has(t.email)));
+          return [...cloudData.teachers, ...localOnly];
+        });
+      }
+      if (cloudData.classrooms && Array.isArray(cloudData.classrooms)) setClassrooms(cloudData.classrooms);
+      if (cloudData.scores && Array.isArray(cloudData.scores)) setScores(cloudData.scores);
+      if (cloudData.budgetTransactions && Array.isArray(cloudData.budgetTransactions)) setBudgetTransactions(cloudData.budgetTransactions);
+      if (cloudData.attendanceRecords && Array.isArray(cloudData.attendanceRecords)) setAttendanceRecords(cloudData.attendanceRecords);
+      if (cloudData.calendarEvents && Array.isArray(cloudData.calendarEvents)) setCalendarEvents(cloudData.calendarEvents);
+      if (cloudData.transfers && Array.isArray(cloudData.transfers)) setTransfers(cloudData.transfers);
+      if (cloudData.activityLogs && Array.isArray(cloudData.activityLogs)) setActivityLogs(cloudData.activityLogs);
+      if (cloudData.appUsers && Array.isArray(cloudData.appUsers) && cloudData.appUsers.length > 0) {
+        setAppUsers(prev => {
+          const cloudKeys = new Set(cloudData.appUsers.map((u: AppUser) => u.id || u.email?.toLowerCase() || u.username?.toLowerCase()));
+          const localOnly = prev.filter(u => !cloudKeys.has(u.id) && (!u.email || !cloudKeys.has(u.email.toLowerCase())) && (!u.username || !cloudKeys.has(u.username.toLowerCase())));
+          return [...cloudData.appUsers, ...localOnly];
+        });
+      }
+      if (cloudData.academicYears && Array.isArray(cloudData.academicYears)) setAcademicYears(cloudData.academicYears);
+      if (cloudData.examSubjects && Array.isArray(cloudData.examSubjects)) setExamSubjects(cloudData.examSubjects);
+      if (cloudData.profileEditRequests && Array.isArray(cloudData.profileEditRequests)) setProfileEditRequests(cloudData.profileEditRequests);
+      if (cloudData.releasedResults && typeof cloudData.releasedResults === 'object') setReleasedResults(cloudData.releasedResults);
+      if (cloudData.villages && Array.isArray(cloudData.villages)) setVillages(cloudData.villages);
+      if (cloudData.households && Array.isArray(cloudData.households)) setHouseholds(cloudData.households);
+      if (cloudData.libraryBooks && Array.isArray(cloudData.libraryBooks)) setLibraryBooks(cloudData.libraryBooks);
+      if (cloudData.readingLogs && Array.isArray(cloudData.readingLogs)) setReadingLogs(cloudData.readingLogs);
+      if (cloudData.printSettings) setPrintSettings(cloudData.printSettings);
+      if (cloudData.studentFeedbacks && Array.isArray(cloudData.studentFeedbacks)) setStudentFeedbacks(cloudData.studentFeedbacks);
+      if (cloudData.lessonPlans && Array.isArray(cloudData.lessonPlans)) setLessonPlans(cloudData.lessonPlans);
+      if (cloudData.parentMeetings && Array.isArray(cloudData.parentMeetings)) setParentMeetings(cloudData.parentMeetings);
+      if (cloudData.parentRequests && Array.isArray(cloudData.parentRequests)) setParentRequests(cloudData.parentRequests);
+      if (cloudData.classCouncils && Array.isArray(cloudData.classCouncils)) setClassCouncils(cloudData.classCouncils);
+      if (cloudData.atRiskStudents && Array.isArray(cloudData.atRiskStudents)) setAtRiskStudents(cloudData.atRiskStudents);
+      if (cloudData.dailyClassLogs && Array.isArray(cloudData.dailyClassLogs)) setDailyClassLogs(cloudData.dailyClassLogs);
+      if (cloudData.studentBadgeDefinitions && Array.isArray(cloudData.studentBadgeDefinitions)) setStudentBadgeDefinitions(cloudData.studentBadgeDefinitions);
+      if (cloudData.studentBadgeAssignments && Array.isArray(cloudData.studentBadgeAssignments)) setStudentBadgeAssignments(cloudData.studentBadgeAssignments);
+      if (cloudData.correspondences && Array.isArray(cloudData.correspondences)) setCorrespondences(cloudData.correspondences);
+      if (cloudData.staffAdminRecords && Array.isArray(cloudData.staffAdminRecords)) setStaffAdminRecords(cloudData.staffAdminRecords);
+      if (cloudData.schoolCommittees && Array.isArray(cloudData.schoolCommittees)) setSchoolCommittees(cloudData.schoolCommittees);
+      if (cloudData.schoolStrategicPlans && Array.isArray(cloudData.schoolStrategicPlans)) setSchoolStrategicPlans(cloudData.schoolStrategicPlans);
+      if (cloudData.modelSchoolStandards && Array.isArray(cloudData.modelSchoolStandards)) setModelSchoolStandards(cloudData.modelSchoolStandards);
+      if (cloudData.schoolAssets && Array.isArray(cloudData.schoolAssets)) setSchoolAssets(cloudData.schoolAssets);
+      if (cloudData.schoolGroups && Array.isArray(cloudData.schoolGroups)) setSchoolGroups(cloudData.schoolGroups);
+      if (cloudData.equipmentItems && Array.isArray(cloudData.equipmentItems)) setEquipmentItems(cloudData.equipmentItems);
+      if (cloudData.equipmentLoans && Array.isArray(cloudData.equipmentLoans)) setEquipmentLoans(cloudData.equipmentLoans);
+      if (cloudData.teacherDailyTasks && Array.isArray(cloudData.teacherDailyTasks)) setTeacherDailyTasks(cloudData.teacherDailyTasks);
+      if (cloudData.teacherMeetings && Array.isArray(cloudData.teacherMeetings)) setTeacherMeetings(cloudData.teacherMeetings);
+      if (cloudData.teachingResources && Array.isArray(cloudData.teachingResources)) setTeachingResources(cloudData.teachingResources);
+      if (cloudData.dailyHealthChecks && Array.isArray(cloudData.dailyHealthChecks)) setDailyHealthChecks(cloudData.dailyHealthChecks);
+      if (cloudData.qrScanVerificationLogs && Array.isArray(cloudData.qrScanVerificationLogs)) setQrScanVerificationLogs(cloudData.qrScanVerificationLogs);
+
+      if (cloudData.lastUpdated) {
+        localStorage.setItem(LAST_LOCAL_MUTATION_KEY, cloudLastUpdatedTime.toString());
+      }
+    };
+
+    // 1. Initial Fetch on startup
     fetchSchoolDataFromFirestore().then(cloudData => {
       if (cloudData) {
-        // If local is default empty/first time or cloud has updated data, sync it
-        const localSavedStudents = localStorage.getItem(`${LOCAL_STORAGE_KEY}_students`);
-        if (!localSavedStudents || (cloudData.appUsers && cloudData.appUsers.length > 0)) {
-          isRemoteUpdateRef.current = true;
-          if (cloudData.schoolProfile) setSchoolProfile(cloudData.schoolProfile);
-          if (cloudData.students && Array.isArray(cloudData.students)) setStudents(cloudData.students);
-          if (cloudData.teachers && Array.isArray(cloudData.teachers)) {
-            setTeachers(prev => {
-              const cloudIds = new Set(cloudData.teachers.map((t: Teacher) => t.id || t.staffCode || t.email));
-              const localOnly = prev.filter(t => !cloudIds.has(t.id) && !cloudIds.has(t.staffCode) && (!t.email || !cloudIds.has(t.email)));
-              return [...cloudData.teachers, ...localOnly];
-            });
-          }
-          if (cloudData.classrooms && Array.isArray(cloudData.classrooms)) setClassrooms(cloudData.classrooms);
-          if (cloudData.scores && Array.isArray(cloudData.scores)) setScores(cloudData.scores);
-          if (cloudData.budgetTransactions && Array.isArray(cloudData.budgetTransactions)) setBudgetTransactions(cloudData.budgetTransactions);
-          if (cloudData.attendanceRecords && Array.isArray(cloudData.attendanceRecords)) setAttendanceRecords(cloudData.attendanceRecords);
-          if (cloudData.calendarEvents && Array.isArray(cloudData.calendarEvents)) setCalendarEvents(cloudData.calendarEvents);
-          if (cloudData.transfers && Array.isArray(cloudData.transfers)) setTransfers(cloudData.transfers);
-          if (cloudData.activityLogs && Array.isArray(cloudData.activityLogs)) setActivityLogs(cloudData.activityLogs);
-          if (cloudData.appUsers && Array.isArray(cloudData.appUsers) && cloudData.appUsers.length > 0) {
-            setAppUsers(prev => {
-              const cloudKeys = new Set(cloudData.appUsers.map((u: AppUser) => u.id || u.email?.toLowerCase() || u.username?.toLowerCase()));
-              const localOnly = prev.filter(u => !cloudKeys.has(u.id) && (!u.email || !cloudKeys.has(u.email.toLowerCase())) && (!u.username || !cloudKeys.has(u.username.toLowerCase())));
-              return [...cloudData.appUsers, ...localOnly];
-            });
-          }
-        }
+        applyCloudDataIfNewer(cloudData, true);
       }
     });
 
-    // Real-time Firestore Subscription across active clients
+    // 2. Real-time Firestore Subscription across active clients
     const unsubscribe = subscribeToSchoolData((cloudData) => {
       if (cloudData) {
-        isRemoteUpdateRef.current = true;
-        if (cloudData.schoolProfile) setSchoolProfile(prev => ({ ...prev, ...cloudData.schoolProfile }));
-        if (cloudData.students && Array.isArray(cloudData.students)) setStudents(cloudData.students);
-        if (cloudData.teachers && Array.isArray(cloudData.teachers)) {
-          setTeachers(prev => {
-            const cloudIds = new Set(cloudData.teachers.map((t: Teacher) => t.id || t.staffCode || t.email));
-            const localOnly = prev.filter(t => !cloudIds.has(t.id) && !cloudIds.has(t.staffCode) && (!t.email || !cloudIds.has(t.email)));
-            return [...cloudData.teachers, ...localOnly];
-          });
-        }
-        if (cloudData.classrooms && Array.isArray(cloudData.classrooms)) setClassrooms(cloudData.classrooms);
-        if (cloudData.scores && Array.isArray(cloudData.scores)) setScores(cloudData.scores);
-        if (cloudData.budgetTransactions && Array.isArray(cloudData.budgetTransactions)) setBudgetTransactions(cloudData.budgetTransactions);
-        if (cloudData.attendanceRecords && Array.isArray(cloudData.attendanceRecords)) setAttendanceRecords(cloudData.attendanceRecords);
-        if (cloudData.calendarEvents && Array.isArray(cloudData.calendarEvents)) setCalendarEvents(cloudData.calendarEvents);
-        if (cloudData.transfers && Array.isArray(cloudData.transfers)) setTransfers(cloudData.transfers);
-        if (cloudData.activityLogs && Array.isArray(cloudData.activityLogs)) setActivityLogs(cloudData.activityLogs);
-        if (cloudData.appUsers && Array.isArray(cloudData.appUsers) && cloudData.appUsers.length > 0) {
-          setAppUsers(prev => {
-            const cloudKeys = new Set(cloudData.appUsers.map((u: AppUser) => u.id || u.email?.toLowerCase() || u.username?.toLowerCase()));
-            const localOnly = prev.filter(u => !cloudKeys.has(u.id) && (!u.email || !cloudKeys.has(u.email.toLowerCase())) && (!u.username || !cloudKeys.has(u.username.toLowerCase())));
-            return [...cloudData.appUsers, ...localOnly];
-          });
-        }
-        if (cloudData.academicYears && Array.isArray(cloudData.academicYears)) setAcademicYears(cloudData.academicYears);
-        if (cloudData.examSubjects && Array.isArray(cloudData.examSubjects)) setExamSubjects(cloudData.examSubjects);
-        if (cloudData.profileEditRequests && Array.isArray(cloudData.profileEditRequests)) setProfileEditRequests(cloudData.profileEditRequests);
-        if (cloudData.releasedResults && Array.isArray(cloudData.releasedResults)) setReleasedResults(cloudData.releasedResults);
-        if (cloudData.villages && Array.isArray(cloudData.villages)) setVillages(cloudData.villages);
-        if (cloudData.households && Array.isArray(cloudData.households)) setHouseholds(cloudData.households);
-        if (cloudData.libraryBooks && Array.isArray(cloudData.libraryBooks)) setLibraryBooks(cloudData.libraryBooks);
-        if (cloudData.readingLogs && Array.isArray(cloudData.readingLogs)) setReadingLogs(cloudData.readingLogs);
-        if (cloudData.printSettings) setPrintSettings(cloudData.printSettings);
-        if (cloudData.studentFeedbacks && Array.isArray(cloudData.studentFeedbacks)) setStudentFeedbacks(cloudData.studentFeedbacks);
-        if (cloudData.lessonPlans && Array.isArray(cloudData.lessonPlans)) setLessonPlans(cloudData.lessonPlans);
-        if (cloudData.parentMeetings && Array.isArray(cloudData.parentMeetings)) setParentMeetings(cloudData.parentMeetings);
-        if (cloudData.parentRequests && Array.isArray(cloudData.parentRequests)) setParentRequests(cloudData.parentRequests);
-        if (cloudData.classCouncils && Array.isArray(cloudData.classCouncils)) setClassCouncils(cloudData.classCouncils);
-        if (cloudData.atRiskStudents && Array.isArray(cloudData.atRiskStudents)) setAtRiskStudents(cloudData.atRiskStudents);
-        if (cloudData.dailyClassLogs && Array.isArray(cloudData.dailyClassLogs)) setDailyClassLogs(cloudData.dailyClassLogs);
-        if (cloudData.studentBadgeDefinitions && Array.isArray(cloudData.studentBadgeDefinitions)) setStudentBadgeDefinitions(cloudData.studentBadgeDefinitions);
-        if (cloudData.studentBadgeAssignments && Array.isArray(cloudData.studentBadgeAssignments)) setStudentBadgeAssignments(cloudData.studentBadgeAssignments);
-        if (cloudData.correspondences && Array.isArray(cloudData.correspondences)) setCorrespondences(cloudData.correspondences);
-        if (cloudData.staffAdminRecords && Array.isArray(cloudData.staffAdminRecords)) setStaffAdminRecords(cloudData.staffAdminRecords);
-        if (cloudData.schoolCommittees && Array.isArray(cloudData.schoolCommittees)) setSchoolCommittees(cloudData.schoolCommittees);
-        if (cloudData.schoolStrategicPlans && Array.isArray(cloudData.schoolStrategicPlans)) setSchoolStrategicPlans(cloudData.schoolStrategicPlans);
-        if (cloudData.modelSchoolStandards && Array.isArray(cloudData.modelSchoolStandards)) setModelSchoolStandards(cloudData.modelSchoolStandards);
-        if (cloudData.schoolAssets && Array.isArray(cloudData.schoolAssets)) setSchoolAssets(cloudData.schoolAssets);
-        if (cloudData.schoolGroups && Array.isArray(cloudData.schoolGroups)) setSchoolGroups(cloudData.schoolGroups);
+        applyCloudDataIfNewer(cloudData, false);
       }
     });
 
-    // Auto Background Sync from IndexedDB to Firestore once online
+    // 3. Auto Background Sync from IndexedDB to Firestore once online
     const cleanupOfflineSync = setupOfflineAutoSync((syncedCount) => {
       showToast(`បានធ្វើសមកាលកម្មស្វ័យប្រវត្តិ (Auto-sync) របាយការណ៍សិស្ស ${syncedCount} ឡើង Cloud Firestore ជោគជ័យ!`, 'success');
     });
@@ -4367,7 +4453,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     if (role === 'teacher') {
-      return ['homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'dashboard', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'classrooms', 'scores', 'attendance_health', 'calendar', 'reports_qr', 'library', 'learning_resources', 'telegram_bot'].includes(tab);
+      return ['homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'dashboard', 'ai_teacher', 'activity_logs', 'official_documents', 'students', 'transfers', 'household_census', 'classrooms', 'scores', 'attendance_health', 'calendar', 'reports_qr', 'library', 'learning_resources', 'telegram_bot', 'accounts'].includes(tab);
     }
 
     if (role === 'student') {
@@ -4375,6 +4461,22 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     return false;
+  };
+
+  const getTeacherAssignedClass = (): { grade: number; section: string } | null => {
+    if (currentUser?.role === 'teacher' && currentUser.assignedGrade && currentUser.assignedSection) {
+      return { grade: currentUser.assignedGrade, section: currentUser.assignedSection };
+    }
+    return null;
+  };
+
+  const canTeacherAccessClass = (grade?: number, section?: string): boolean => {
+    if (!currentUser) return false;
+    if (currentUser.role !== 'teacher') return true;
+    if (!currentUser.assignedGrade || !currentUser.assignedSection) return false;
+    if (grade !== undefined && grade !== currentUser.assignedGrade) return false;
+    if (section !== undefined && section !== currentUser.assignedSection) return false;
+    return true;
   };
 
   const canAccessStudentDashboard = (student?: Student | string | null): { allowed: boolean; reason: string } => {
@@ -4520,6 +4622,17 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const pullStudentsToClass = (studentIds: string[], targetGrade: number, targetSection: string) => {
     if (!studentIds || studentIds.length === 0) return { count: 0 };
 
+    if (currentUser?.role === 'teacher') {
+      const teacherGrade = currentUser.assignedGrade;
+      const teacherSection = currentUser.assignedSection;
+      if (!teacherGrade || !teacherSection) {
+        showToast('លោកគ្រូ-អ្នកគ្រូពុំទាន់មានបន្ទុកថ្នាក់ដែលបានចាត់តាំងនៅឡើយទេ!', 'error');
+        return { count: 0 };
+      }
+      targetGrade = teacherGrade;
+      targetSection = teacherSection;
+    }
+
     let count = 0;
     setStudents(prev =>
       prev.map(s => {
@@ -4552,6 +4665,22 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const updateStudent = (id: string, updated: Partial<Student>) => {
     const existing = students.find(s => s.id === id);
+    if (!existing) return;
+
+    if (currentUser?.role === 'teacher') {
+      if (existing.grade !== currentUser.assignedGrade || existing.section !== currentUser.assignedSection) {
+        showToast(`⚠️ លោកគ្រូ-អ្នកគ្រូមានសិទ្ធិកែប្រែតែព័ត៌មានសិស្សក្នុងបន្ទុកថ្នាក់ទី ${currentUser.assignedGrade}«${currentUser.assignedSection}» ប៉ុណ្ណោះ!`, 'error');
+        return;
+      }
+      // Ensure teacher cannot move student to another class
+      if (updated.grade && updated.grade !== currentUser.assignedGrade) {
+        updated.grade = currentUser.assignedGrade;
+      }
+      if (updated.section && updated.section !== currentUser.assignedSection) {
+        updated.section = currentUser.assignedSection;
+      }
+    }
+
     setStudents(prev => prev.map(s => (s.id === id ? { ...s, ...updated } : s)));
     showToast('បានកែប្រែព័ត៌មានសិស្សជោគជ័យ!');
 
@@ -4583,6 +4712,13 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const deleteStudent = (id: string) => {
     const existing = students.find(s => s.id === id);
+    if (!existing) return;
+
+    if (currentUser?.role === 'teacher') {
+      showToast('⚠️ សិទ្ធិលុបទិន្នន័យសិស្សជាផ្លូវការចេញពីប្រព័ន្ធ គឺសម្រាប់តែលោកនាយកសាលា ឬលេខាធិការប៉ុណ្ណោះ!', 'error');
+      return;
+    }
+
     setStudents(prev => prev.filter(s => s.id !== id));
     showToast('បានលុបទិន្នន័យសិស្សចេញពីប្រព័ន្ធ!', 'info');
 
@@ -4824,6 +4960,13 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }) => {
     const student = getStudentById(scoreData.studentId);
     if (!student) return;
+
+    if (currentUser?.role === 'teacher') {
+      if (student.grade !== currentUser.assignedGrade || student.section !== currentUser.assignedSection) {
+        showToast(`⚠️ លោកគ្រូ-អ្នកគ្រូមានសិទ្ធិកត់ត្រាពិន្ទុបានតែសិស្សក្នុងបន្ទុកថ្នាក់ទី ${currentUser.assignedGrade}«${currentUser.assignedSection}» ប៉ុណ្ណោះ!`, 'error');
+        return;
+      }
+    }
 
     const sub = scoreData.scores;
     const totalScore =
@@ -5382,6 +5525,8 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         clearAccountAuditLogs,
         canAccessTab,
         canAccessStudentDashboard,
+        canTeacherAccessClass,
+        getTeacherAssignedClass,
         academicYears,
         selectedAcademicYear,
         setSelectedAcademicYear,

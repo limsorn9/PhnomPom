@@ -559,7 +559,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({
           <div className="text-center">
             <p className="font-bold">អ្នករៀបចំ</p>
             <div className="h-16" />
-            <p>លេខាធិការដ្ឋាន</p>
+            <p>លេខាធិការ</p>
           </div>
           <div className="text-center">
             <p className="font-bold">បានឃើញ និងពិនិត្យត្រឹមត្រូវ</p>

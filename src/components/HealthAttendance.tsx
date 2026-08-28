@@ -51,17 +51,30 @@ export const HealthAttendance: React.FC = () => {
     updateStudent,
     schoolProfile,
     teachers,
+    currentUser,
     showToast
   } = useSchool();
+
+  const isTeacher = currentUser?.role === 'teacher';
+  const teacherGrade = currentUser?.assignedGrade || 1;
+  const teacherSection = currentUser?.assignedSection || 'ក';
 
   const [activeSubTab, setActiveSubTab] = useState<'attendance' | 'daily_health' | 'trends' | 'health'>('attendance');
   const [showInlineTrend, setShowInlineTrend] = useState<boolean>(true);
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
-  const [selectedGrade, setSelectedGrade] = useState<number>(6);
-  const [selectedSection, setSelectedSection] = useState<string>('ក');
+  const [selectedGrade, setSelectedGrade] = useState<number>(isTeacher ? teacherGrade : 6);
+  const [selectedSection, setSelectedSection] = useState<string>(isTeacher ? teacherSection : 'ក');
   const [session, setSession] = useState<'morning' | 'afternoon'>('morning');
+
+  // Sync teacher class if currentUser changes
+  React.useEffect(() => {
+    if (isTeacher) {
+      setSelectedGrade(teacherGrade);
+      setSelectedSection(teacherSection);
+    }
+  }, [isTeacher, teacherGrade, teacherSection]);
 
   // Official Modals State
   const [healthBookletStudent, setHealthBookletStudent] = useState<Student | null>(null);
@@ -608,33 +621,45 @@ export const HealthAttendance: React.FC = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">កម្រិតថ្នាក់</label>
-              <select
-                value={selectedGrade}
-                onChange={(e) => setSelectedGrade(Number(e.target.value))}
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800"
-              >
-                {[1, 2, 3, 4, 5, 6].map(g => (
-                  <option key={g} value={g}>
-                    ថ្នាក់ទី {g}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {isTeacher ? (
+              <div className="col-span-1 sm:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1">បន្ទុកថ្នាក់បង្រៀន</label>
+                <div className="w-full px-3.5 py-2 bg-blue-50 border border-blue-200 rounded-xl text-xs font-bold text-blue-900 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                  <span>ថ្នាក់ទី {teacherGrade} «{teacherSection}»</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">កម្រិតថ្នាក់</label>
+                  <select
+                    value={selectedGrade}
+                    onChange={(e) => setSelectedGrade(Number(e.target.value))}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800"
+                  >
+                    {[1, 2, 3, 4, 5, 6].map(g => (
+                      <option key={g} value={g}>
+                        ថ្នាក់ទី {g}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">បន្ទប់</label>
-              <select
-                value={selectedSection}
-                onChange={(e) => setSelectedSection(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800"
-              >
-                <option value="ក">បន្ទប់ ក</option>
-                <option value="ខ">បន្ទប់ ខ</option>
-                <option value="គ">បន្ទប់ គ</option>
-              </select>
-            </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">បន្ទប់</label>
+                  <select
+                    value={selectedSection}
+                    onChange={(e) => setSelectedSection(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800"
+                  >
+                    <option value="ក">បន្ទប់ ក</option>
+                    <option value="ខ">បន្ទប់ ខ</option>
+                    <option value="គ">បន្ទប់ គ</option>
+                  </select>
+                </div>
+              </>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">ពេល</label>
@@ -882,33 +907,45 @@ export const HealthAttendance: React.FC = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">កម្រិតថ្នាក់</label>
-              <select
-                value={selectedGrade}
-                onChange={(e) => setSelectedGrade(Number(e.target.value))}
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-              >
-                {[1, 2, 3, 4, 5, 6].map(g => (
-                  <option key={g} value={g}>
-                    ថ្នាក់ទី {g}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {isTeacher ? (
+              <div className="col-span-1 sm:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1">បន្ទុកថ្នាក់បង្រៀន</label>
+                <div className="w-full px-3.5 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-900 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                  <span>ថ្នាក់ទី {teacherGrade} «{teacherSection}»</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">កម្រិតថ្នាក់</label>
+                  <select
+                    value={selectedGrade}
+                    onChange={(e) => setSelectedGrade(Number(e.target.value))}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  >
+                    {[1, 2, 3, 4, 5, 6].map(g => (
+                      <option key={g} value={g}>
+                        ថ្នាក់ទី {g}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">បន្ទប់</label>
-              <select
-                value={selectedSection}
-                onChange={(e) => setSelectedSection(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-              >
-                <option value="ក">បន្ទប់ ក</option>
-                <option value="ខ">បន្ទប់ ខ</option>
-                <option value="គ">បន្ទប់ គ</option>
-              </select>
-            </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">បន្ទប់</label>
+                  <select
+                    value={selectedSection}
+                    onChange={(e) => setSelectedSection(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  >
+                    <option value="ក">បន្ទប់ ក</option>
+                    <option value="ខ">បន្ទប់ ខ</option>
+                    <option value="គ">បន្ទប់ គ</option>
+                  </select>
+                </div>
+              </>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">វេនពិនិត្យសុខភាព</label>

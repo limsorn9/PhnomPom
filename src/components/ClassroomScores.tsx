@@ -112,12 +112,24 @@ export const ClassroomScores: React.FC = () => {
     printSettings
   } = useSchool();
 
-  // If teacher, default to their assigned grade & section
-  const initialGrade = currentUser?.role === 'teacher' && currentUser.assignedGrade ? currentUser.assignedGrade : 6;
-  const initialSection = currentUser?.role === 'teacher' && currentUser.assignedSection ? currentUser.assignedSection : 'ក';
+  // If teacher, default and lock to their assigned grade & section
+  const isTeacher = currentUser?.role === 'teacher';
+  const teacherGrade = currentUser?.assignedGrade || 1;
+  const teacherSection = currentUser?.assignedSection || 'ក';
+
+  const initialGrade = isTeacher ? teacherGrade : 6;
+  const initialSection = isTeacher ? teacherSection : 'ក';
 
   const [selectedGrade, setSelectedGrade] = useState<number>(initialGrade);
   const [selectedSection, setSelectedSection] = useState<string>(initialSection);
+
+  // Sync if teacher grade/section changes
+  useEffect(() => {
+    if (isTeacher) {
+      setSelectedGrade(teacherGrade);
+      setSelectedSection(teacherSection);
+    }
+  }, [isTeacher, teacherGrade, teacherSection]);
   const [selectedMonth, setSelectedMonth] = useState<string>('មករា');
   const [selectedStudentForReportCard, setSelectedStudentForReportCard] = useState<Student | null>(null);
   const [selectedStudentForHonor, setSelectedStudentForHonor] = useState<StudentScoreRecord | null>(null);
@@ -517,31 +529,40 @@ export const ClassroomScores: React.FC = () => {
               </select>
             </div>
 
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl">
-              {[1, 2, 3, 4, 5, 6].map(g => (
-                <button
-                  key={g}
-                  onClick={() => setSelectedGrade(g)}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                    selectedGrade === g
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  ថ្នាក់ទី {g}
-                </button>
-              ))}
-            </div>
+            {isTeacher ? (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-900 rounded-xl text-xs font-bold shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                <span>ថ្នាក់ទី {teacherGrade}«{teacherSection}»</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl">
+                  {[1, 2, 3, 4, 5, 6].map(g => (
+                    <button
+                      key={g}
+                      onClick={() => setSelectedGrade(g)}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                        selectedGrade === g
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      ថ្នាក់ទី {g}
+                    </button>
+                  ))}
+                </div>
 
-            <select
-              value={selectedSection}
-              onChange={(e) => setSelectedSection(e.target.value)}
-              className="px-3 py-1.5 text-xs font-bold bg-slate-100 border border-slate-200 rounded-xl text-slate-800 focus:bg-white"
-            >
-              <option value="ក">បន្ទប់ ក</option>
-              <option value="ខ">បន្ទប់ ខ</option>
-              <option value="គ">បន្ទប់ គ</option>
-            </select>
+                <select
+                  value={selectedSection}
+                  onChange={(e) => setSelectedSection(e.target.value)}
+                  className="px-3 py-1.5 text-xs font-bold bg-slate-100 border border-slate-200 rounded-xl text-slate-800 focus:bg-white"
+                >
+                  <option value="ក">បន្ទប់ ក</option>
+                  <option value="ខ">បន្ទប់ ខ</option>
+                  <option value="គ">បន្ទប់ គ</option>
+                </select>
+              </>
+            )}
 
             <select
               value={selectedMonth}

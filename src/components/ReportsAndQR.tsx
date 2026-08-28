@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { Student, Teacher, SignatureQRStyle, QRScanVerificationLog } from '../types';
 import {
@@ -91,25 +91,40 @@ export const ReportsAndQR: React.FC = () => {
     clearQRScanVerificationLogs
   } = useSchool();
 
+  const isTeacher = currentUser?.role === 'teacher';
+  const teacherGrade = currentUser?.assignedGrade || 1;
+  const teacherSection = currentUser?.assignedSection || 'ក';
+
   const [activeReportType, setActiveReportType] = useState<
     'census' | 'score_sheet' | 'finance' | 'student_qr_cards' | 'student_qr_grid' | 'staff_qr_cards' | 'school_profile' | 'report_cards' | 'scan_history'
-  >('census');
+  >(isTeacher ? 'report_cards' : 'census');
 
-  const [selectedGrade, setSelectedGrade] = useState<number>(6);
-  const [selectedSection, setSelectedSection] = useState<string>('ក');
+  const [selectedGrade, setSelectedGrade] = useState<number>(isTeacher ? teacherGrade : 6);
+  const [selectedSection, setSelectedSection] = useState<string>(isTeacher ? teacherSection : 'ក');
   const [selectedMonth, setSelectedMonth] = useState<string>('មករា');
   const [cardsPerA4, setCardsPerA4] = useState<6 | 8 | 12>(8);
   const [gridDensityPerA4, setGridDensityPerA4] = useState<12 | 16 | 20 | 24 | 30>(24);
   const [selectedStudentBatchIds, setSelectedStudentBatchIds] = useState<string[]>([]);
-  const [batchGradeFilter, setBatchGradeFilter] = useState<string>('all');
+  const [batchGradeFilter, setBatchGradeFilter] = useState<string>(isTeacher ? String(teacherGrade) : 'all');
   const [batchSearchQuery, setBatchSearchQuery] = useState<string>('');
 
   // Report Card Mode: Single Student vs Batch Concatenated PDF
   const [reportCardMode, setReportCardMode] = useState<'single' | 'batch_concatenated'>('single');
   const [selectedBatchReportCardStudentIds, setSelectedBatchReportCardStudentIds] = useState<string[]>([]);
-  const [batchReportCardGradeFilter, setBatchReportCardGradeFilter] = useState<string>('all');
-  const [batchReportCardSectionFilter, setBatchReportCardSectionFilter] = useState<string>('all');
+  const [batchReportCardGradeFilter, setBatchReportCardGradeFilter] = useState<string>(isTeacher ? String(teacherGrade) : 'all');
+  const [batchReportCardSectionFilter, setBatchReportCardSectionFilter] = useState<string>(isTeacher ? teacherSection : 'all');
   const [batchReportCardSearch, setBatchReportCardSearch] = useState<string>('');
+
+  // Synchronize teacher grade & section
+  useEffect(() => {
+    if (isTeacher) {
+      setSelectedGrade(teacherGrade);
+      setSelectedSection(teacherSection);
+      setBatchGradeFilter(String(teacherGrade));
+      setBatchReportCardGradeFilter(String(teacherGrade));
+      setBatchReportCardSectionFilter(teacherSection);
+    }
+  }, [isTeacher, teacherGrade, teacherSection]);
   
   // Custom renewal timestamp map for re-generating expired signature QR codes
   const [signatureRenewalTimestamps, setSignatureRenewalTimestamps] = useState<Record<string, string>>({});
@@ -489,16 +504,18 @@ export const ReportsAndQR: React.FC = () => {
 
         {/* Tab Selection */}
         <div className="mt-5 flex flex-wrap gap-2 pt-4 border-t border-slate-100">
-          <button
-            onClick={() => setActiveReportType('census')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeReportType === 'census'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            ១. តារាងស្ថិតិសិស្សដើមឆ្នាំ (Census)
-          </button>
+          {!isTeacher && (
+            <button
+              onClick={() => setActiveReportType('census')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeReportType === 'census'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              ១. តារាងស្ថិតិសិស្សដើមឆ្នាំ (Census)
+            </button>
+          )}
 
           <button
             onClick={() => setActiveReportType('score_sheet')}
@@ -508,64 +525,7 @@ export const ReportsAndQR: React.FC = () => {
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
           >
-            ២. តារាងស្រង់ពិន្ទុប្រចាំខែ (Scores)
-          </button>
-
-          <button
-            onClick={() => setActiveReportType('finance')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeReportType === 'finance'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            ៣. របាយការណ៍ហិរញ្ញវត្ថុ (PB)
-          </button>
-
-          <button
-            onClick={() => setActiveReportType('student_qr_cards')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeReportType === 'student_qr_cards'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            ៤. កាតសិស្សជាមួយ QR Code
-          </button>
-
-          <button
-            onClick={() => setActiveReportType('student_qr_grid')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeReportType === 'student_qr_grid'
-                ? 'bg-purple-600 text-white shadow-sm ring-2 ring-purple-600/30'
-                : 'bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200'
-            }`}
-          >
-            <QrCode className="w-3.5 h-3.5" />
-            <span>៥. តារាងក្រឡា QR Code សុទ្ធ (Printable Sheet)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveReportType('staff_qr_cards')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeReportType === 'staff_qr_cards'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            ៦. ប័ណ្ណសម្គាល់បុគ្គលិក (Staff Badge)
-          </button>
-
-          <button
-            onClick={() => setActiveReportType('school_profile')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeReportType === 'school_profile'
-                ? 'bg-blue-900 text-white shadow-sm ring-2 ring-blue-900/30'
-                : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100 border border-indigo-200'
-            }`}
-          >
-            <School className="w-3.5 h-3.5" />
-            <span>៧. កម្រងប្រវត្តិរូបសាលារៀន (School Profile)</span>
+            {isTeacher ? '១. តារាងស្រង់ពិន្ទុប្រចាំខែ (Scores)' : '២. តារាងស្រង់ពិន្ទុប្រចាំខែ (Scores)'}
           </button>
 
           <button
@@ -585,8 +545,69 @@ export const ReportsAndQR: React.FC = () => {
             }`}
           >
             <Award className="w-3.5 h-3.5" />
-            <span>៨. ព្រឹត្តិបត្រពិន្ទុ & QR ហត្ថលេខាឌីជីថល (Report Cards)</span>
+            <span>{isTeacher ? '២. ព្រឹត្តិបត្រពិន្ទុ & QR ហត្ថលេខាឌីជីថល' : '៨. ព្រឹត្តិបត្រពិន្ទុ & QR ហត្ថលេខាឌីជីថល (Report Cards)'}</span>
           </button>
+
+          <button
+            onClick={() => setActiveReportType('student_qr_cards')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeReportType === 'student_qr_cards'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            {isTeacher ? '៣. កាតសិស្សក្នុងថ្នាក់ជាមួយ QR Code' : '៤. កាតសិស្សជាមួយ QR Code'}
+          </button>
+
+          <button
+            onClick={() => setActiveReportType('student_qr_grid')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeReportType === 'student_qr_grid'
+                ? 'bg-purple-600 text-white shadow-sm ring-2 ring-purple-600/30'
+                : 'bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200'
+            }`}
+          >
+            <QrCode className="w-3.5 h-3.5" />
+            <span>{isTeacher ? '៤. តារាងក្រឡា QR Code សិស្សក្នុងថ្នាក់' : '៥. តារាងក្រឡា QR Code សុទ្ធ (Printable Sheet)'}</span>
+          </button>
+
+          {!isTeacher && (
+            <>
+              <button
+                onClick={() => setActiveReportType('finance')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeReportType === 'finance'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                ៣. របាយការណ៍ហិរញ្ញវត្ថុ (PB)
+              </button>
+
+              <button
+                onClick={() => setActiveReportType('staff_qr_cards')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeReportType === 'staff_qr_cards'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                ៦. ប័ណ្ណសម្គាល់បុគ្គលិក (Staff Badge)
+              </button>
+
+              <button
+                onClick={() => setActiveReportType('school_profile')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  activeReportType === 'school_profile'
+                    ? 'bg-blue-900 text-white shadow-sm ring-2 ring-blue-900/30'
+                    : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100 border border-indigo-200'
+                }`}
+              >
+                <School className="w-3.5 h-3.5" />
+                <span>៧. កម្រងប្រវត្តិរូបសាលារៀន (School Profile)</span>
+              </button>
+            </>
+          )}
 
           <button
             id="tab-webcam-qr-scanner-btn"
@@ -594,7 +615,7 @@ export const ReportsAndQR: React.FC = () => {
             className="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-xs hover:from-indigo-600 hover:to-blue-700 cursor-pointer"
           >
             <Camera className="w-3.5 h-3.5 animate-pulse" />
-            <span>៩. ស្កេន QR តាម Webcam (Live Scanner)</span>
+            <span>{isTeacher ? '៥. ស្កេន QR សិស្សតាម Webcam' : '៩. ស្កេន QR តាម Webcam (Live Scanner)'}</span>
           </button>
 
           <button
@@ -607,7 +628,7 @@ export const ReportsAndQR: React.FC = () => {
             }`}
           >
             <History className="w-3.5 h-3.5 text-indigo-500" />
-            <span>១០. ប្រវត្តិស្កេនផ្ទៀងផ្ទាត់ QR ({qrScanVerificationLogs.length})</span>
+            <span>{isTeacher ? `៦. ប្រវត្តិស្កេន QR (${qrScanVerificationLogs.length})` : `១០. ប្រវត្តិស្កេនផ្ទៀងផ្ទាត់ QR (${qrScanVerificationLogs.length})`}</span>
           </button>
         </div>
 

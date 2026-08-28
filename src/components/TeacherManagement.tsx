@@ -412,7 +412,7 @@ export const TeacherManagement: React.FC = () => {
               <option value="នាយក">គណៈគ្រប់គ្រង (នាយក/នាយករង)</option>
               <option value="គ្រូបន្ទុកថ្នាក់">គ្រូបន្ទុកថ្នាក់</option>
               <option value="បណ្ណារក្ស">បណ្ណារក្ស</option>
-              <option value="លេខាធិការ">លេខាធិការដ្ឋាន</option>
+              <option value="លេខាធិការ">លេខាធិការ</option>
             </select>
           </div>
 

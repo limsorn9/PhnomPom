@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import {
   MoEYSRoyalHeader,
@@ -378,8 +378,13 @@ export const OfficialDocumentCenter: React.FC = () => {
     selectedAcademicYear,
     parentMeetings,
     classCouncils,
-    atRiskStudents
+    atRiskStudents,
+    currentUser
   } = useSchool();
+
+  const isTeacher = currentUser?.role === 'teacher';
+  const teacherGrade = currentUser?.assignedGrade || 1;
+  const teacherSection = currentUser?.assignedSection || 'ក';
 
   const printCanvasRef = useRef<HTMLDivElement>(null);
 
@@ -388,15 +393,32 @@ export const OfficialDocumentCenter: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDoc, setSelectedDoc] = useState<DocumentType>('parent_agreement');
 
+  // Accessible students list
+  const accessibleStudents = useMemo(() => {
+    return isTeacher
+      ? students.filter(s => s.grade === teacherGrade && s.section === teacherSection)
+      : students;
+  }, [isTeacher, teacherGrade, teacherSection, students]);
+
   // Selected Entities for dynamic database binding
-  const [selectedStudentId, setSelectedStudentId] = useState<string>(students[0]?.id || '');
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(accessibleStudents[0]?.id || students[0]?.id || '');
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>(teachers[0]?.id || '');
-  const [selectedGrade, setSelectedGrade] = useState<number>(1);
-  const [selectedSection, setSelectedSection] = useState<string>('ក');
+  const [selectedGrade, setSelectedGrade] = useState<number>(isTeacher ? teacherGrade : 1);
+  const [selectedSection, setSelectedSection] = useState<string>(isTeacher ? teacherSection : 'ក');
   const [selectedMonth, setSelectedMonth] = useState<string>('ឆមាសទី១');
   const [showCommitteeModal, setShowCommitteeModal] = useState<boolean>(false);
   const [showPriModal, setShowPriModal] = useState<boolean>(false);
   const [showHealthBookletModal, setShowHealthBookletModal] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isTeacher) {
+      setSelectedGrade(teacherGrade);
+      setSelectedSection(teacherSection);
+      if (accessibleStudents.length > 0 && !accessibleStudents.some(s => s.id === selectedStudentId)) {
+        setSelectedStudentId(accessibleStudents[0].id);
+      }
+    }
+  }, [isTeacher, teacherGrade, teacherSection, accessibleStudents]);
 
   // Paper & Print configuration
   const [paperSize, setPaperSize] = useState<'a4' | 'letter'>('a4');
@@ -766,14 +788,14 @@ export const OfficialDocumentCenter: React.FC = () => {
                     onChange={e => {
                       setSelectedStudentId(e.target.value);
                       const s = students.find(item => item.id === e.target.value);
-                      if (s) {
+                      if (s && !isTeacher) {
                         setSelectedGrade(s.grade);
                         setSelectedSection(s.section);
                       }
                     }}
                     className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
                   >
-                    {students.map(s => (
+                    {accessibleStudents.map(s => (
                       <option key={s.id} value={s.id}>
                         {s.nameKhmer} ({s.gender === 'female' ? 'ស្រី' : 'ប្រុស'}) - ថ្នាក់ទី{s.grade}{s.section} [{s.code}]
                       </option>
@@ -833,32 +855,42 @@ export const OfficialDocumentCenter: React.FC = () => {
 
             {/* Target 3: Classroom / Grade Selection */}
             {(activeTemplateMeta.targetType === 'classroom' || activeTemplateMeta.id === 'student_scorecard') && (
-              <div className="grid grid-cols-2 gap-2">
+              isTeacher ? (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">កម្រិតថ្នាក់</label>
-                  <select
-                    value={selectedGrade}
-                    onChange={e => setSelectedGrade(Number(e.target.value))}
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
-                  >
-                    {[1, 2, 3, 4, 5, 6].map(g => (
-                      <option key={g} value={g}>ថ្នាក់ទី {g}</option>
-                    ))}
-                  </select>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">បន្ទុកថ្នាក់បង្រៀន</label>
+                  <div className="w-full px-3.5 py-2 bg-blue-50 border border-blue-200 rounded-xl text-xs font-bold text-blue-900 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                    <span>ថ្នាក់ទី {teacherGrade} «{teacherSection}»</span>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">បន្ទប់</label>
-                  <select
-                    value={selectedSection}
-                    onChange={e => setSelectedSection(e.target.value)}
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
-                  >
-                    {['ក', 'ខ', 'គ', 'A', 'B'].map(s => (
-                      <option key={s} value={s}>បន្ទប់ «{s}»</option>
-                    ))}
-                  </select>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">កម្រិតថ្នាក់</label>
+                    <select
+                      value={selectedGrade}
+                      onChange={e => setSelectedGrade(Number(e.target.value))}
+                      className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
+                    >
+                      {[1, 2, 3, 4, 5, 6].map(g => (
+                        <option key={g} value={g}>ថ្នាក់ទី {g}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">បន្ទប់</label>
+                    <select
+                      value={selectedSection}
+                      onChange={e => setSelectedSection(e.target.value)}
+                      className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
+                    >
+                      {['ក', 'ខ', 'គ', 'A', 'B'].map(s => (
+                        <option key={s} value={s}>បន្ទប់ «{s}»</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )
             )}
 
             {/* Target: Month/Semester for Scorecards */}

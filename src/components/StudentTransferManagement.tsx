@@ -45,9 +45,13 @@ export const StudentTransferManagement: React.FC = () => {
     currentUser
   } = useSchool();
 
+  const isTeacher = currentUser?.role === 'teacher';
+  const teacherGrade = currentUser?.assignedGrade || 1;
+  const teacherSection = currentUser?.assignedSection || 'ក';
+
   const [activeSubTab, setActiveSubTab] = useState<'all' | 'out' | 'in'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGrade, setSelectedGrade] = useState<string>('all');
+  const [selectedGrade, setSelectedGrade] = useState<string>(isTeacher ? String(teacherGrade) : 'all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
 
   // Modal states
@@ -65,8 +69,8 @@ export const StudentTransferManagement: React.FC = () => {
     studentCode: '',
     gender: 'M',
     dob: '2014-01-01',
-    grade: 1,
-    section: 'ក',
+    grade: isTeacher ? teacherGrade : 1,
+    section: isTeacher ? teacherSection : 'ក',
     academicYear: schoolProfile.academicYear,
     fromSchool: schoolProfile.nameKhmer,
     fromSchoolCode: schoolProfile.schoolCode,
@@ -82,10 +86,17 @@ export const StudentTransferManagement: React.FC = () => {
     notes: ''
   });
 
+  // Accessible students for teacher
+  const accessibleStudents = isTeacher
+    ? students.filter(s => s.grade === teacherGrade && s.section === teacherSection)
+    : students;
+
   // Filter transfers
   const filteredTransfers = transfers.filter(t => {
     const matchesTab = activeSubTab === 'all' || t.transferType === activeSubTab;
-    const matchesGrade = selectedGrade === 'all' || t.grade.toString() === selectedGrade;
+    const matchesGrade = isTeacher
+      ? (t.grade === teacherGrade && (!t.section || t.section === teacherSection))
+      : (selectedGrade === 'all' || t.grade.toString() === selectedGrade);
     const matchesStatus = selectedStatus === 'all' || t.status === selectedStatus;
     const matchesSearch =
       searchQuery.trim() === '' ||
@@ -615,7 +626,7 @@ export const StudentTransferManagement: React.FC = () => {
                     className="w-full px-3 py-2 bg-white border border-blue-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="" disabled>-- ជ្រើសរើសសិស្សដែលត្រូវផ្ទេរចេញ --</option>
-                    {students.map(s => (
+                    {accessibleStudents.map(s => (
                       <option key={s.id} value={s.id}>
                         {s.nameKhmer} ({s.gender === 'F' ? 'ស្រី' : 'ប្រុស'}) - ថ្នាក់ទី{s.grade}{s.section} [អត្តលេខ: {s.code}]
                       </option>

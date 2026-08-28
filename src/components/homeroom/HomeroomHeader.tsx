@@ -140,34 +140,41 @@ export const HomeroomHeader: React.FC<HomeroomHeaderProps> = ({
             </button>
           )}
 
-          <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
-            <span className="text-xs font-medium text-slate-500 pl-2">ជ្រើសរើសថ្នាក់៖</span>
-            {/* Grade select */}
-            <select
-              value={selectedGrade}
-              onChange={(e) => setSelectedGrade(Number(e.target.value))}
-              className="text-xs font-bold bg-white text-slate-800 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-            >
-              {[1, 2, 3, 4, 5, 6].map((g) => (
-                <option key={g} value={g}>
-                  ថ្នាក់ទី {g}
-                </option>
-              ))}
-            </select>
+          {isTeacherRole ? (
+            <div className="flex items-center gap-1.5 bg-blue-50 px-3.5 py-2 rounded-xl border border-blue-200 text-blue-900 shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+              <span className="text-xs font-bold">ថ្នាក់បន្ទុក៖ ថ្នាក់ទី {selectedGrade} «{selectedSection}»</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+              <span className="text-xs font-medium text-slate-500 pl-2">ជ្រើសរើសថ្នាក់៖</span>
+              {/* Grade select */}
+              <select
+                value={selectedGrade}
+                onChange={(e) => setSelectedGrade(Number(e.target.value))}
+                className="text-xs font-bold bg-white text-slate-800 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              >
+                {[1, 2, 3, 4, 5, 6].map((g) => (
+                  <option key={g} value={g}>
+                    ថ្នាក់ទី {g}
+                  </option>
+                ))}
+              </select>
 
-            {/* Section select */}
-            <select
-              value={selectedSection}
-              onChange={(e) => setSelectedSection(e.target.value)}
-              className="text-xs font-bold bg-white text-slate-800 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-            >
-              {['ក', 'ខ', 'គ'].map((sec) => (
-                <option key={sec} value={sec}>
-                  បន្ទប់ «{sec}»
-                </option>
-              ))}
-            </select>
-          </div>
+              {/* Section select */}
+              <select
+                value={selectedSection}
+                onChange={(e) => setSelectedSection(e.target.value)}
+                className="text-xs font-bold bg-white text-slate-800 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              >
+                {['ក', 'ខ', 'គ'].map((sec) => (
+                  <option key={sec} value={sec}>
+                    បន្ទប់ «{sec}»
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {onOpenDriveSync && (
             <button

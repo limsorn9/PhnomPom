@@ -15,7 +15,19 @@ export const isMasterDatabaseAdmin = (): boolean => {
 
 
 // Unique client session ID to prevent echo loops
-export const CURRENT_CLIENT_ID = `client_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`;
+const getClientId = (): string => {
+  try {
+    const existing = sessionStorage.getItem('school_app_client_id');
+    if (existing) return existing;
+    const newId = `client_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`;
+    sessionStorage.setItem('school_app_client_id', newId);
+    return newId;
+  } catch {
+    return `client_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`;
+  }
+};
+
+export const CURRENT_CLIENT_ID = getClientId();
 
 export interface CloudSchoolData {
   schoolProfile?: any;
@@ -54,6 +66,13 @@ export interface CloudSchoolData {
   schoolGroups?: any[];
   activityLogs?: any[];
   appUsers?: any[];
+  equipmentItems?: any[];
+  equipmentLoans?: any[];
+  teacherDailyTasks?: any[];
+  teacherMeetings?: any[];
+  teachingResources?: any[];
+  dailyHealthChecks?: any[];
+  qrScanVerificationLogs?: any[];
   lastUpdated?: string;
   updatedBy?: string;
   clientId?: string;
