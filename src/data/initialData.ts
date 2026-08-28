@@ -31,7 +31,8 @@ import {
   TeacherDailyTask,
   TeacherMeetingRecord,
   TeachingResourceFile,
-  AcademicAchievement
+  AcademicAchievement,
+  SchoolGroup
 } from '../types';
 
 export const toKhmerNum = (num: number) => {
@@ -2621,6 +2622,192 @@ export const initialAcademicAchievements: AcademicAchievement[] = [
     certificateNumber: 'MOEYS-HONOR-2025-004',
     status: 'published',
     createdAt: '2025-02-28T11:30:00Z'
+  }
+];
+
+export const initialSchoolGroups: SchoolGroup[] = [
+  {
+    id: 'grp-stem-1',
+    name: 'ក្លឹបបច្ចេកវិទ្យា និង STEM (Robotics & Coding)',
+    nameEnglish: 'STEM & Robotics Club',
+    code: 'CLUB-STEM-01',
+    category: 'extracurricular_club',
+    description: 'ក្លឹបបណ្តុះបណ្តាលសិស្សានុសិស្សលើជំនាញបច្ចេកវិទ្យា វិទ្យាសាស្ត្រ មេកានិច និងការសរសេរកូដកុមារ',
+    academicYear: '២០២៤ - ២០២៥',
+    meetingSchedule: 'រៀងរាល់រសៀលថ្ងៃព្រហស្បតិ៍ ម៉ោង 2:00 - 4:00',
+    locationRoom: 'បន្ទប់កុំព្យូទ័រ និង STEM Lab',
+    colorTheme: 'sky',
+    iconName: 'Cpu',
+    status: 'active',
+    members: [
+      {
+        id: 'mem-1',
+        memberType: 'teacher',
+        memberId: 't-1',
+        nameKhmer: 'លោក លីម សន',
+        codeOrStaffId: 'MOEYS-104921',
+        gradeOrPosition: 'នាយកសាលា / ទីប្រឹក្សាបច្ចេកវិទ្យា',
+        gender: 'male',
+        role: 'advisor',
+        joinedDate: '2024-11-01'
+      },
+      {
+        id: 'mem-2',
+        memberType: 'student',
+        memberId: 'st-5-1',
+        nameKhmer: 'ស៊ន វ៉ាន់នី',
+        codeOrStaffId: 'STU-001',
+        gradeOrPosition: 'ថ្នាក់ទី ៥ ក',
+        gender: 'female',
+        role: 'leader',
+        joinedDate: '2024-11-05'
+      },
+      {
+        id: 'mem-3',
+        memberType: 'student',
+        memberId: 'st-5-2',
+        nameKhmer: 'ចាន់ សុខា',
+        codeOrStaffId: 'STU-002',
+        gradeOrPosition: 'ថ្នាក់ទី ៥ ក',
+        gender: 'male',
+        role: 'deputy_leader',
+        joinedDate: '2024-11-05'
+      }
+    ],
+    createdBy: 'លោក លីម សន',
+    createdAt: '2024-11-01T08:00:00Z'
+  },
+  {
+    id: 'grp-lib-2',
+    name: 'ក្លឹបអាន និងស្រាវជ្រាវបណ្ណាល័យ (Reading & Library Club)',
+    nameEnglish: 'Reading & Library Explorers Club',
+    code: 'CLUB-LIB-02',
+    category: 'extracurricular_club',
+    description: 'ជំរុញវប្បធម៌អំណាន ការសង្ខេបរឿងនិទាន ការតែងសេចក្តី និងការគ្រប់គ្រងសៀវភៅបណ្ណាល័យ',
+    academicYear: '២០២៤ - ២០២៥',
+    meetingSchedule: 'រៀងរាល់រសៀលថ្ងៃពុធ ម៉ោង 2:30 - 4:00',
+    locationRoom: 'បណ្ណាល័យគំរូបឋមសិក្សា',
+    colorTheme: 'emerald',
+    iconName: 'BookOpen',
+    status: 'active',
+    members: [
+      {
+        id: 'mem-4',
+        memberType: 'student',
+        memberId: 'st-4-1',
+        nameKhmer: 'រស់ ស្រីពេជ្រ',
+        codeOrStaffId: 'STU-003',
+        gradeOrPosition: 'ថ្នាក់ទី ៤ ក',
+        gender: 'female',
+        role: 'leader',
+        joinedDate: '2024-11-06'
+      },
+      {
+        id: 'mem-5',
+        memberType: 'student',
+        memberId: 'st-1-1',
+        nameKhmer: 'កែវ ពិសិដ្ឋ',
+        codeOrStaffId: 'STU-004',
+        gradeOrPosition: 'ថ្នាក់ទី ១ ក',
+        gender: 'male',
+        role: 'member',
+        joinedDate: '2024-11-08'
+      }
+    ],
+    createdBy: 'អ្នកគ្រូ បណ្ណារក្ស',
+    createdAt: '2024-11-02T09:00:00Z'
+  },
+  {
+    id: 'grp-sports-3',
+    name: 'ក្លឹបកីឡាបាល់ទាត់ និងអត្តពលកម្ម (Sports & Athletics Club)',
+    nameEnglish: 'Football & Sports Team',
+    code: 'CLUB-SPORT-03',
+    category: 'extracurricular_club',
+    description: 'ហ្វឹកហាត់កាយសម្បទា កីឡាបាល់ទាត់កុមារ អត្តពលកម្ម និងការត្រៀមចូលរួមការប្រកួតកម្រងសាលា',
+    academicYear: '២០២៤ - ២០២៥',
+    meetingSchedule: 'រៀងរាល់ព្រឹកថ្ងៃសៅរ៍ ម៉ោង 07:00 - 09:30',
+    locationRoom: 'តារាងបាល់ទាត់ និងទីធ្លាកីឡាសាលា',
+    colorTheme: 'amber',
+    iconName: 'Trophy',
+    status: 'active',
+    members: [
+      {
+        id: 'mem-6',
+        memberType: 'student',
+        memberId: 'st-6-1',
+        nameKhmer: 'ហេង រ៉ាវី',
+        codeOrStaffId: 'STU-005',
+        gradeOrPosition: 'ថ្នាក់ទី ៦ ក',
+        gender: 'male',
+        role: 'leader',
+        joinedDate: '2024-11-10'
+      }
+    ],
+    createdBy: 'គ្រូអប់រំកាយ',
+    createdAt: '2024-11-03T07:30:00Z'
+  },
+  {
+    id: 'grp-dept-mgt-4',
+    name: 'គណៈគ្រប់គ្រង និងដឹកនាំបច្ចេកទេស (School Management & Technical Team)',
+    nameEnglish: 'School Management & Pedagogy Team',
+    code: 'DEPT-MGT-01',
+    category: 'internal_department',
+    description: 'ដឹកនាំ ត្រួតពិនិត្យការអនុវត្តកម្មវិធីសិក្សា វិន័យ និងការអភិវឌ្ឍគុណភាពបង្រៀនទូទាំងសាលា',
+    academicYear: '២០២៤ - ២០២៥',
+    meetingSchedule: 'រៀងរាល់ចុងខែ ឬតាមការកោះប្រជុំបន្ទាន់',
+    locationRoom: 'បន្ទប់ប្រជុំគណៈគ្រប់គ្រងសាលា',
+    colorTheme: 'indigo',
+    iconName: 'Building',
+    status: 'active',
+    members: [
+      {
+        id: 'mem-7',
+        memberType: 'teacher',
+        memberId: 't-1',
+        nameKhmer: 'លោក លីម សន',
+        codeOrStaffId: 'MOEYS-104921',
+        gradeOrPosition: 'នាយកសាលា',
+        gender: 'male',
+        role: 'leader',
+        joinedDate: '2024-10-01'
+      }
+    ],
+    createdBy: 'លោក លីម សន',
+    createdAt: '2024-10-01T07:30:00Z'
+  },
+  {
+    id: 'grp-wash-5',
+    name: 'ផ្នែកអនាម័យ បរិស្ថាន និងសុខភាពសាលារៀន (WASH & Green School)',
+    nameEnglish: 'WASH & School Health Team',
+    code: 'DEPT-WASH-02',
+    category: 'internal_department',
+    description: 'តាមដានការលាងដៃ ទឹកស្អាត បង្គន់អនាម័យ សួនបៃតង និងការពិនិត្យសុខភាពសិស្ស',
+    academicYear: '២០២៤ - ២០២៥',
+    meetingSchedule: 'រៀងរាល់ថ្ងៃសុក្រ ម៉ោង 4:00 រសៀល',
+    locationRoom: 'សួនបៃតង និងបន្ទប់សុខភាពកុមារ',
+    colorTheme: 'teal',
+    iconName: 'Sparkles',
+    status: 'active',
+    members: [],
+    createdBy: 'លោក លីម សន',
+    createdAt: '2024-11-05T10:00:00Z'
+  },
+  {
+    id: 'grp-tutor-6',
+    name: 'ក្រុមសិស្សបំប៉នគណិតវិទ្យា និងភាសាខ្មែរ (Math & Khmer Tutoring Group)',
+    nameEnglish: 'Math & Khmer Tutoring Cohort',
+    code: 'GRP-TUTOR-01',
+    category: 'study_tutoring',
+    description: 'ក្រុមរៀនបន្ថែម និងជួយសិស្សរៀនយឺតលើមុខវិជ្ជាស្នូល ភាសាខ្មែរ និងគណិតវិទ្យា',
+    academicYear: '២០២៤ - ២០២៥',
+    meetingSchedule: 'ថ្ងៃចន្ទ និងថ្ងៃពុធ ម៉ោង 4:30 - 5:30 រសៀល',
+    locationRoom: 'បន្ទប់រៀនទី ៣',
+    colorTheme: 'rose',
+    iconName: 'Users',
+    status: 'active',
+    members: [],
+    createdBy: 'លោកគ្រូ អ្នកគ្រូ',
+    createdAt: '2024-11-12T14:00:00Z'
   }
 ];
 

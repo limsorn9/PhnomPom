@@ -27,8 +27,10 @@ import {
   ShieldCheck,
   Check,
   X,
-  ExternalLink
+  ExternalLink,
+  Layers
 } from 'lucide-react';
+import { GroupManagement } from './GroupManagement';
 
 export const SuperAdminHub: React.FC = () => {
   const { 
@@ -38,10 +40,11 @@ export const SuperAdminHub: React.FC = () => {
     schoolProfile, 
     updateSchoolProfile, 
     showToast, 
-    activityLogs 
+    activityLogs,
+    schoolGroups
   } = useSchool();
 
-  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'directors' | 'system_config' | 'audit_logs'>('overview');
+  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'directors' | 'groups' | 'system_config' | 'audit_logs'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddingDirector, setIsAddingDirector] = useState(false);
 
@@ -179,6 +182,17 @@ export const SuperAdminHub: React.FC = () => {
         >
           <Building2 className="w-4 h-4" />
           គ្រប់គ្រងនាយកសាលា & ស្ថាប័ន ({directorsList.length})
+        </button>
+        <button
+          onClick={() => setActiveSubTab('groups')}
+          className={`px-5 py-3 font-semibold text-sm rounded-t-xl transition-all whitespace-nowrap flex items-center gap-2 ${
+            activeSubTab === 'groups'
+              ? 'bg-white text-indigo-600 border-b-2 border-indigo-600 shadow-sm'
+              : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          គ្រប់គ្រងក្រុម & ក្លឹបសិក្សា ({schoolGroups.length})
         </button>
         <button
           onClick={() => setActiveSubTab('system_config')}
@@ -495,6 +509,13 @@ export const SuperAdminHub: React.FC = () => {
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Tab Content: School Groups & Clubs */}
+      {activeSubTab === 'groups' && (
+        <div className="space-y-6">
+          <GroupManagement />
         </div>
       )}
 

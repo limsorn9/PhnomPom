@@ -1792,4 +1792,56 @@ export interface AcademicAchievement {
   createdAt: string;
 }
 
+// ----------------------------------------------------
+// 7. SCHOOL GROUP MANAGEMENT & MEMBER ASSIGNMENTS (គ្រប់គ្រងក្រុមសាលារៀន និងការចាត់តាំងសមាជិក)
+// ----------------------------------------------------
+export type SchoolGroupCategory = 
+  | 'academic_year'        // ឆ្នាំសិក្សា / កម្រិតថ្នាក់ (Academic Year / Cohort)
+  | 'extracurricular_club' // ក្លឹបសិក្សា & សកម្មភាពក្រៅម៉ោង (Clubs - STEM, Sports, Arts, Reading, Scouts)
+  | 'internal_department'  // ផ្នែក / ការិយាល័យផ្ទៃក្នុង (Internal Departments - Management, Admin, IT, Sanitation)
+  | 'study_tutoring'       // ក្រុមសិក្សាជំនួយ / បំប៉ន (Tutoring & Peer Study)
+  | 'school_committee'     // គណៈកម្មការ & ក្រុមការងារពិសេស (Taskforce & Committees)
+  | 'other';               // ផ្សេងៗ
+
+export type GroupMemberRole = 
+  | 'leader'        // ប្រធានក្រុម (Leader / President)
+  | 'deputy_leader' // អនុប្រធានក្រុម (Vice Leader / VP)
+  | 'secretary'     // លេខាធិការ (Secretary)
+  | 'treasurer'     // ហិរញ្ញិក (Treasurer)
+  | 'advisor'       // គ្រូទីប្រឹក្សា / គ្រូបង្វឹក (Teacher Advisor / Coach)
+  | 'member';       // សមាជិក (Member)
+
+export interface SchoolGroupMember {
+  id: string; // generated ID or memberId
+  memberType: 'student' | 'teacher';
+  memberId: string; // student.id or teacher.id
+  nameKhmer: string;
+  nameLatin?: string;
+  codeOrStaffId?: string; // student.code or teacher.staffCode
+  gradeOrPosition?: string; // e.g. "ថ្នាក់ទី ៦ ក" or "គ្រូបង្រៀនគណិត"
+  gender?: 'male' | 'female' | 'M' | 'F' | 'ប្រុស' | 'ស្រី';
+  role: GroupMemberRole;
+  joinedDate: string; // YYYY-MM-DD
+  notes?: string;
+}
+
+export interface SchoolGroup {
+  id: string;
+  name: string; // e.g. "ក្លឹបបច្ចេកវិទ្យា និង STEM"
+  nameEnglish?: string;
+  code: string; // e.g. "CLUB-STEM-01"
+  category: SchoolGroupCategory;
+  description?: string;
+  academicYear: string; // e.g. "២០២៤ - ២០២៥"
+  meetingSchedule?: string; // e.g. "រៀងរាល់រសៀលថ្ងៃព្រហស្បតិ៍ ម៉ោង 2:00 - 4:00"
+  locationRoom?: string; // e.g. "បន្ទប់កុំព្យូទ័រ / បណ្ណាល័យ"
+  colorTheme?: 'emerald' | 'sky' | 'indigo' | 'purple' | 'amber' | 'rose' | 'teal';
+  iconName?: string;
+  status: 'active' | 'archived';
+  members: SchoolGroupMember[];
+  createdBy?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 

@@ -12,6 +12,7 @@
         "scores": { "type": "array", "description": "Academic scores and grading records" },
         "budgetTransactions": { "type": "array", "description": "Programme Budgeting and fund transactions" },
         "attendanceRecords": { "type": "array", "description": "Daily and monthly student attendance records" },
+        "schoolGroups": { "type": "array", "description": "Extracurricular clubs, departments, academic years, and school taskforce groups" },
         "lastUpdated": { "type": "string", "format": "date-time", "description": "ISO timestamp of last update" },
         "updatedBy": { "type": "string", "description": "Email or user ID of updating administrator" },
         "clientId": { "type": "string", "description": "Client synchronization identifier" }

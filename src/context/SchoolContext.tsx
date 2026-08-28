@@ -53,7 +53,11 @@ import {
   DriveAutoSyncConfig,
   DriveSyncHistoryItem,
   QRScanVerificationLog,
-  AcademicAchievement
+  AcademicAchievement,
+  SchoolGroup,
+  SchoolGroupMember,
+  SchoolGroupCategory,
+  GroupMemberRole
 } from '../types';
 import { getTranslation, AppLanguage } from '../utils/translations';
 import { googleSignIn, isGoogleAuthenticated } from '../services/googleAuth';
@@ -132,7 +136,8 @@ import {
   initialTeacherDailyTasks,
   initialTeacherMeetings,
   initialTeachingResources,
-  initialAcademicAchievements
+  initialAcademicAchievements,
+  initialSchoolGroups
 } from '../data/initialData';
 
 interface SchoolContextType {
@@ -432,6 +437,16 @@ interface SchoolContextType {
   getStudentBadges: (studentId: string) => StudentBadgeAssignment[];
   getStudentTotalPoints: (studentId: string) => number;
   autoSuggestBadgesForStudent: (studentId: string) => { badgeId: string; badge: BadgeDefinition; reason: string; metricValue: string }[];
+
+  // School Groups & Member Assignments (គ្រប់គ្រងក្រុមសាលារៀន និងការចាត់តាំងសមាជិក)
+  schoolGroups: SchoolGroup[];
+  addSchoolGroup: (group: Omit<SchoolGroup, 'id' | 'createdAt'>) => { success: boolean; message: string; group?: SchoolGroup };
+  updateSchoolGroup: (id: string, updated: Partial<SchoolGroup>) => void;
+  deleteSchoolGroup: (id: string) => void;
+  addMemberToGroup: (groupId: string, member: Omit<SchoolGroupMember, 'id' | 'joinedDate'>) => { success: boolean; message: string };
+  removeMemberFromGroup: (groupId: string, memberUniqueId: string) => void;
+  updateGroupMemberRole: (groupId: string, memberUniqueId: string, newRole: GroupMemberRole) => void;
+  bulkAddMembersToGroup: (groupId: string, members: Array<Omit<SchoolGroupMember, 'id' | 'joinedDate'>>) => { success: boolean; count: number };
 
   // Activity & Audit Trail Logs (កំណត់ត្រាសកម្មភាព និងការកែប្រែទិន្នន័យ)
   activityLogs: ActivityLogItem[];
@@ -1668,6 +1683,128 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // ----------------------------------------------------
+  // SCHOOL GROUPS & CLUBS ENGINE (គ្រប់គ្រងក្រុម សហគមន៍ ក្លឹបសិក្សា និងដេប៉ាតឺម៉ង់)
+  // ----------------------------------------------------
+  const [schoolGroups, setSchoolGroups] = useState<SchoolGroup[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_school_groups`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Error loading school groups from localStorage:', e);
+    }
+    return initialSchoolGroups || [];
+  });
+
+  const addSchoolGroup = (group: Omit<SchoolGroup, 'id' | 'createdAt'>) => {
+    const newGroup: SchoolGroup = {
+      ...group,
+      members: group.members || [],
+      id: `grp-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      createdAt: new Date().toISOString()
+    };
+    setSchoolGroups(prev => [newGroup, ...(Array.isArray(prev) ? prev : [])]);
+    setToastMessage({ text: `បានបង្កើតក្រុម «${newGroup.name}» ដោយជោគជ័យ!`, type: 'success' });
+    return { success: true, message: 'បានបង្កើតក្រុមដោយជោគជ័យ', group: newGroup };
+  };
+
+  const updateSchoolGroup = (id: string, updated: Partial<SchoolGroup>) => {
+    setSchoolGroups(prev => (Array.isArray(prev) ? prev : []).map(g => (g && g.id === id ? { ...g, ...updated, updatedAt: new Date().toISOString() } : g)));
+    setToastMessage({ text: 'បានធ្វើបច្ចុប្បន្នភាពព័ត៌មានក្រុមជោគជ័យ!', type: 'success' });
+  };
+
+  const deleteSchoolGroup = (id: string) => {
+    setSchoolGroups(prev => (Array.isArray(prev) ? prev : []).filter(g => g && g.id !== id));
+    setToastMessage({ text: 'បានលុបក្រុមរួចរាល់', type: 'info' });
+  };
+
+  const addMemberToGroup = (groupId: string, member: Omit<SchoolGroupMember, 'id' | 'joinedDate'>) => {
+    let added = false;
+    setSchoolGroups(prev =>
+      (Array.isArray(prev) ? prev : []).map(g => {
+        if (!g || g.id !== groupId) return g;
+        const currentMembers = Array.isArray(g.members) ? g.members : [];
+        const alreadyExists = currentMembers.some(m => m && m.memberId === member.memberId);
+        if (alreadyExists) return g;
+        added = true;
+        const newMember: SchoolGroupMember = {
+          ...member,
+          id: `mem-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          joinedDate: new Date().toISOString().split('T')[0]
+        };
+        return { ...g, members: [...currentMembers, newMember], updatedAt: new Date().toISOString() };
+      })
+    );
+    if (added) {
+      setToastMessage({ text: `បានបន្ថែមសមាជិក «${member.nameKhmer}» ចូលក្នុងក្រុមជោគជ័យ!`, type: 'success' });
+      return { success: true, message: 'បានបន្ថែមសមាជិកជោគជ័យ' };
+    } else {
+      setToastMessage({ text: 'សមាជិកនេះមានឈ្មោះក្នុងក្រុមនេះរួចហើយ!', type: 'info' });
+      return { success: false, message: 'សមាជិកនេះមានឈ្មោះរួចហើយ' };
+    }
+  };
+
+  const removeMemberFromGroup = (groupId: string, memberUniqueId: string) => {
+    setSchoolGroups(prev =>
+      (Array.isArray(prev) ? prev : []).map(g => {
+        if (!g || g.id !== groupId) return g;
+        const currentMembers = Array.isArray(g.members) ? g.members : [];
+        return {
+          ...g,
+          members: currentMembers.filter(m => m && m.id !== memberUniqueId && m.memberId !== memberUniqueId),
+          updatedAt: new Date().toISOString()
+        };
+      })
+    );
+    setToastMessage({ text: 'បានដកសមាជិកចេញពីក្រុមរួចរាល់', type: 'info' });
+  };
+
+  const updateGroupMemberRole = (groupId: string, memberUniqueId: string, newRole: GroupMemberRole) => {
+    setSchoolGroups(prev =>
+      (Array.isArray(prev) ? prev : []).map(g => {
+        if (!g || g.id !== groupId) return g;
+        const currentMembers = Array.isArray(g.members) ? g.members : [];
+        return {
+          ...g,
+          members: currentMembers.map(m => (m && (m.id === memberUniqueId || m.memberId === memberUniqueId) ? { ...m, role: newRole } : m)),
+          updatedAt: new Date().toISOString()
+        };
+      })
+    );
+    setToastMessage({ text: 'បានកែប្រែតួនាទីសមាជិកជោគជ័យ!', type: 'success' });
+  };
+
+  const bulkAddMembersToGroup = (groupId: string, membersToAdd: Array<Omit<SchoolGroupMember, 'id' | 'joinedDate'>>) => {
+    let count = 0;
+    setSchoolGroups(prev =>
+      (Array.isArray(prev) ? prev : []).map(g => {
+        if (!g || g.id !== groupId) return g;
+        const currentMembers = Array.isArray(g.members) ? g.members : [];
+        const existingIds = new Set(currentMembers.map(m => m?.memberId).filter(Boolean));
+        const toAdd: SchoolGroupMember[] = [];
+        for (const m of membersToAdd) {
+          if (!existingIds.has(m.memberId)) {
+            existingIds.add(m.memberId);
+            toAdd.push({
+              ...m,
+              id: `mem-${Date.now()}-${Math.random().toString(36).substring(2, 6)}-${count}`,
+              joinedDate: new Date().toISOString().split('T')[0]
+            });
+            count++;
+          }
+        }
+        return { ...g, members: [...currentMembers, ...toAdd], updatedAt: new Date().toISOString() };
+      })
+    );
+    if (count > 0) {
+      setToastMessage({ text: `បានបញ្ចូលសមាជិកសរុប ${count} នាក់ ទៅក្នុងក្រុមជោគជ័យ!`, type: 'success' });
+    }
+    return { success: count > 0, count };
+  };
+
+  // ----------------------------------------------------
   // 1. SCHOOL EQUIPMENT & TECH LOAN CHECKLIST (បញ្ជីឧបករណ៍ និងការខ្ចី)
   // ----------------------------------------------------
   const [equipmentItems, setEquipmentItems] = useState<SchoolEquipmentItem[]>(() => {
@@ -2506,6 +2643,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.setItem(`${LOCAL_STORAGE_KEY}_transfers`, JSON.stringify(transfers));
   }, [transfers]);
 
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_school_groups`, JSON.stringify(schoolGroups));
+  }, [schoolGroups]);
+
   // Cloud Firestore Sync State
   const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
   const [lastCloudSyncTime, setLastCloudSyncTime] = useState<string | null>(() => {
@@ -2553,6 +2694,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (cloudData.schoolStrategicPlans) setSchoolStrategicPlans(cloudData.schoolStrategicPlans);
         if (cloudData.modelSchoolStandards) setModelSchoolStandards(cloudData.modelSchoolStandards);
         if (cloudData.schoolAssets) setSchoolAssets(cloudData.schoolAssets);
+        if (cloudData.schoolGroups && Array.isArray(cloudData.schoolGroups)) setSchoolGroups(cloudData.schoolGroups);
         if (cloudData.appUsers) setAppUsers(cloudData.appUsers);
 
         const now = new Date().toISOString();
@@ -2609,6 +2751,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         schoolStrategicPlans,
         modelSchoolStandards,
         schoolAssets,
+        schoolGroups,
         activityLogs,
         appUsers,
         updatedBy: currentUser?.nameKhmer || 'Admin'
@@ -2652,6 +2795,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         attendanceRecords,
         calendarEvents,
         transfers,
+        schoolGroups,
         activityLogs,
         appUsers
       }).catch(err => console.warn('Background firestore sync notice:', err));
@@ -2668,6 +2812,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     attendanceRecords,
     calendarEvents,
     transfers,
+    schoolGroups,
     activityLogs,
     appUsers
   ]);
@@ -2759,6 +2904,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (cloudData.schoolStrategicPlans && Array.isArray(cloudData.schoolStrategicPlans)) setSchoolStrategicPlans(cloudData.schoolStrategicPlans);
         if (cloudData.modelSchoolStandards && Array.isArray(cloudData.modelSchoolStandards)) setModelSchoolStandards(cloudData.modelSchoolStandards);
         if (cloudData.schoolAssets && Array.isArray(cloudData.schoolAssets)) setSchoolAssets(cloudData.schoolAssets);
+        if (cloudData.schoolGroups && Array.isArray(cloudData.schoolGroups)) setSchoolGroups(cloudData.schoolGroups);
       }
     });
 
@@ -5242,6 +5388,14 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         addSchoolAsset,
         updateSchoolAsset,
         deleteSchoolAsset,
+        schoolGroups,
+        addSchoolGroup,
+        updateSchoolGroup,
+        deleteSchoolGroup,
+        addMemberToGroup,
+        removeMemberFromGroup,
+        updateGroupMemberRole,
+        bulkAddMembersToGroup,
         equipmentItems,
         equipmentLoans,
         addEquipmentLoan,

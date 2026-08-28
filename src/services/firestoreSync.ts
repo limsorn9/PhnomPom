@@ -51,6 +51,7 @@ export interface CloudSchoolData {
   schoolStrategicPlans?: any[];
   modelSchoolStandards?: any[];
   schoolAssets?: any[];
+  schoolGroups?: any[];
   activityLogs?: any[];
   appUsers?: any[];
   lastUpdated?: string;
