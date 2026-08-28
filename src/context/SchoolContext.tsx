@@ -3657,11 +3657,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     addAccountAuditLog({
       eventType: 'permanent_delete',
-      targetUserId: deletedRecord.user.id,
-      targetUserName: deletedRecord.user.nameKhmer,
-      targetUserRole: deletedRecord.user.role,
-      targetUserEmail: deletedRecord.user.email,
-      targetStaffCode: deletedRecord.user.staffCode,
+      targetUserId: deletedRecord.user?.id || 'unknown',
+      targetUserName: deletedRecord.user?.nameKhmer || 'មិនស្គាល់',
+      targetUserRole: deletedRecord.user?.role || 'teacher',
+      targetUserEmail: deletedRecord.user?.email,
+      targetStaffCode: deletedRecord.user?.staffCode,
       actor: {
         id: currentUser?.id,
         nameKhmer: currentUser?.nameKhmer || 'អ្នកគ្រប់គ្រង',
@@ -3669,10 +3669,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         role: currentUser?.role || 'director'
       },
       reason: 'លុបជាស្ថាពរចេញពីប្រព័ន្ធ',
-      details: `បានលុបគណនី «${deletedRecord.user.nameKhmer}» ជាស្ថាពរចេញពីធុងសំរាម`
+      details: `បានលុបគណនី «${deletedRecord.user?.nameKhmer || 'មិនស្គាល់'}» ជាស្ថាពរចេញពីធុងសំរាម`
     });
 
-    showToast(`បានលុបគណនី «${deletedRecord.user.nameKhmer}» ជាស្ថាពររួចរាល់`, 'info');
+    showToast(`បានលុបគណនី «${deletedRecord.user?.nameKhmer || 'មិនស្គាល់'}» ជាស្ថាពររួចរាល់`, 'info');
     return { success: true, message: 'បានលុបជាស្ថាពរ' };
   };
 

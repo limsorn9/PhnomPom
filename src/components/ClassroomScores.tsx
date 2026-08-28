@@ -330,7 +330,7 @@ export const ClassroomScores: React.FC = () => {
   }, [selectedSubjectCode, selectedGrade, selectedSection, selectedMonth, selectedAcademicYear, scores]);
 
   const handleSaveBatchSubjectScores = () => {
-    const activeSub = examSubjects.find(s => s.code === selectedSubjectCode);
+    const activeSub = (examSubjects || []).find(s => s && s.code === selectedSubjectCode);
     const maxLimit = activeSub?.maxScore || 10;
 
     // Validate all scores in batch
@@ -748,11 +748,11 @@ export const ClassroomScores: React.FC = () => {
               <div className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-indigo-600" />
                 <h3 className="text-base font-bold text-slate-900 font-moul">
-                  បញ្ចូលពិន្ទុតាមមុខវិជ្ជា: {examSubjects.find(s => s.code === selectedSubjectCode)?.nameKhmer || 'មុខវិជ្ជា'}
+                  បញ្ចូលពិន្ទុតាមមុខវិជ្ជា: {(examSubjects || []).find(s => s && s.code === selectedSubjectCode)?.nameKhmer || 'មុខវិជ្ជា'}
                 </h3>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                ជ្រើសរើសមុខវិជ្ជាខាងក្រោម រួចបញ្ចូលពិន្ទុសិស្សទាំងអស់ក្នុងថ្នាក់យ៉ាងរហ័ស (ពិន្ទុអតិបរមា: {examSubjects.find(s => s.code === selectedSubjectCode)?.maxScore || 10})
+                ជ្រើសរើសមុខវិជ្ជាខាងក្រោម រួចបញ្ចូលពិន្ទុសិស្សទាំងអស់ក្នុងថ្នាក់យ៉ាងរហ័ស (ពិន្ទុអតិបរមា: {(examSubjects || []).find(s => s && s.code === selectedSubjectCode)?.maxScore || 10})
               </p>
             </div>
 
@@ -767,7 +767,7 @@ export const ClassroomScores: React.FC = () => {
 
           {/* Subject Selection Tabs / Chips */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
-            {examSubjects.map(sub => (
+            {(examSubjects || []).map(sub => (
               <button
                 key={sub.id || sub.code}
                 onClick={() => setSelectedSubjectCode(sub.code)}
@@ -795,7 +795,7 @@ export const ClassroomScores: React.FC = () => {
                   <th className="py-3 px-3 text-left">អត្តលេខ</th>
                   <th className="py-3 px-4 text-left">ឈ្មោះសិស្ស</th>
                   <th className="py-3 px-3">ភេទ</th>
-                  <th className="py-3 px-4 text-center bg-indigo-100/70">ពិន្ទុ ({examSubjects.find(s => s.code === selectedSubjectCode)?.nameKhmer}) /10</th>
+                  <th className="py-3 px-4 text-center bg-indigo-100/70">ពិន្ទុ ({(examSubjects || []).find(s => s && s.code === selectedSubjectCode)?.nameKhmer}) /10</th>
                   <th className="py-3 px-4 text-center">ជម្រើសពិន្ទុរហ័ស</th>
                   <th className="py-3 px-3 text-center">មធ្យមភាគសរុបបច្ចុប្បន្ន</th>
                   <th className="py-3 px-3 text-center">និទ្ទេសបច្ចុប្បន្ន</th>
@@ -822,7 +822,7 @@ export const ClassroomScores: React.FC = () => {
                           type="number"
                           step="0.25"
                           min="0"
-                          max={examSubjects.find(s => s.code === selectedSubjectCode)?.maxScore || 10}
+                          max={(examSubjects || []).find(s => s && s.code === selectedSubjectCode)?.maxScore || 10}
                           value={currentScore}
                           onChange={(e) => setBatchSubjectScores({
                             ...batchSubjectScores,
@@ -1768,13 +1768,15 @@ export const ClassroomScores: React.FC = () => {
 
       {/* Individual Student Report Card & Academic Transcript Modal */}
       {selectedStudentForReportCard && (() => {
-        const studentScoresList = scores.filter(
+        const safeScores = Array.isArray(scores) ? scores.filter(Boolean) : [];
+        const studentScoresList = safeScores.filter(
           (s) =>
+            s &&
             s.studentId === selectedStudentForReportCard.id &&
             (!s.academicYear || s.academicYear === selectedAcademicYear)
         );
         const latestRec =
-          studentScoresList.find((s) => s.monthOrSemester === selectedMonth) ||
+          studentScoresList.find((s) => s && s.monthOrSemester === selectedMonth) ||
           studentScoresList[studentScoresList.length - 1];
 
         const principalQRParams: PrincipalSignatureQRParams = {
@@ -1951,8 +1953,9 @@ export const ClassroomScores: React.FC = () => {
                     </thead>
                     <tbody>
                       {MONTHS_LIST.map((month) => {
-                        const rec = scores.find(
+                        const rec = (Array.isArray(scores) ? scores : []).find(
                           (s) =>
+                            s &&
                             s.studentId === selectedStudentForReportCard.id &&
                             s.monthOrSemester === month &&
                             (!s.academicYear || s.academicYear === selectedAcademicYear)

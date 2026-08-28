@@ -179,7 +179,8 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
 
   // Filtered Students with strict security boundary
   const filteredStudents = useMemo(() => {
-    return students.filter(student => {
+    const safeStudents = Array.isArray(students) ? students.filter(Boolean) : [];
+    return safeStudents.filter(student => {
       // 1. Teacher boundary: only students in their assigned class
       if (isTeacher && teacherGrade && teacherSection) {
         if (student.grade !== teacherGrade || student.section !== teacherSection) {
@@ -188,7 +189,7 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
       }
 
       // 2. Student boundary: only their own profile
-      if (isStudent && currentStudentSelf) {
+      if (isStudent && currentStudentSelf?.id) {
         return student.id === currentStudentSelf.id;
       }
 
@@ -209,7 +210,8 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
   // Selected Student Object if individual mode
   const activeStudent = useMemo(() => {
     if (selectedStudentId === 'all') return null;
-    return students.find(s => s.id === selectedStudentId) || null;
+    const safeStudents = Array.isArray(students) ? students.filter(Boolean) : [];
+    return safeStudents.find(s => s && s.id === selectedStudentId) || null;
   }, [students, selectedStudentId]);
 
   // Individual Student Specific Access Check
@@ -220,13 +222,14 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
 
   // Filtered Scores for current scope
   const scopedScores = useMemo(() => {
-    return scores.filter(score => {
+    const safeScores = Array.isArray(scores) ? scores.filter(Boolean) : [];
+    return safeScores.filter(score => {
       if (isTeacher && teacherGrade && teacherSection) {
         if (score.grade !== teacherGrade || score.section !== teacherSection) {
           return false;
         }
       }
-      if (isStudent && currentStudentSelf) {
+      if (isStudent && currentStudentSelf?.id) {
         if (score.studentId !== currentStudentSelf.id) {
           return false;
         }
@@ -241,13 +244,14 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
 
   // Filtered Attendance for current scope
   const scopedAttendance = useMemo(() => {
-    return attendanceRecords.filter(att => {
+    const safeAttendance = Array.isArray(attendanceRecords) ? attendanceRecords.filter(Boolean) : [];
+    return safeAttendance.filter(att => {
       if (isTeacher && teacherGrade && teacherSection) {
         if (att.grade !== teacherGrade || att.section !== teacherSection) {
           return false;
         }
       }
-      if (isStudent && currentStudentSelf) {
+      if (isStudent && currentStudentSelf?.id) {
         if (att.studentId !== currentStudentSelf.id) {
           return false;
         }
@@ -261,8 +265,9 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
 
   // 1. Monthly Score Trend Data (Across Months in Academic Year)
   const monthlyScoreTrendData = useMemo(() => {
+    const safeScores = Array.isArray(scores) ? scores.filter(Boolean) : [];
     return MONTH_ORDER.map(month => {
-      const monthScores = scores.filter(s => {
+      const monthScores = safeScores.filter(s => {
         const matchGrade = selectedGrade === 'all' || s.grade === selectedGrade;
         const matchSection = selectedSection === 'all' || s.section === selectedSection;
         return s.monthOrSemester === month && matchGrade && matchSection;
@@ -281,8 +286,8 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
 
       // If an individual student is selected, find their specific score
       let studentScore = null;
-      if (activeStudent) {
-        const studScore = scores.find(s => s.studentId === activeStudent.id && s.monthOrSemester === month);
+      if (activeStudent?.id) {
+        const studScore = safeScores.find(s => s.studentId === activeStudent.id && s.monthOrSemester === month);
         studentScore = studScore ? studScore.averageScore : null;
       }
 
@@ -326,9 +331,10 @@ export const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps>
 
       // Individual student subject score
       let studVal = avg;
-      if (activeStudent) {
-        const latestStudScore = scores
-          .filter(s => s.studentId === activeStudent.id)
+      if (activeStudent?.id) {
+        const safeScores = Array.isArray(scores) ? scores.filter(Boolean) : [];
+        const latestStudScore = safeScores
+          .filter(s => s && s.studentId === activeStudent.id)
           .sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0))[0];
         if (latestStudScore && latestStudScore.scores) {
           studVal = Number((sub.getter(latestStudScore.scores) || avg).toFixed(2));

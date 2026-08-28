@@ -45,8 +45,9 @@ export const StudentProgressTrendChart: React.FC<StudentProgressTrendChartProps>
 
   // 1. Calculate Score History for this Student
   const studentScores = useMemo(() => {
+    if (!scores || !Array.isArray(scores)) return [];
     return scores
-      .filter(s => s.studentId === student.id || s.studentCode === student.code)
+      .filter(s => s && (s.studentId === student.id || s.studentCode === student.code || s.studentId === student.code))
       .sort((a, b) => {
         const idxA = monthOrder.indexOf(a.monthOrSemester);
         const idxB = monthOrder.indexOf(b.monthOrSemester);
@@ -58,8 +59,8 @@ export const StudentProgressTrendChart: React.FC<StudentProgressTrendChartProps>
   const monthlyAttendance = useMemo(() => {
     const monthStats: { [month: string]: { totalDays: number; presentDays: number } } = {};
 
-    dailyAttendance.forEach(rec => {
-      if (!rec.date) return;
+    (dailyAttendance || []).forEach(rec => {
+      if (!rec || !rec.date) return;
       const dateObj = new Date(rec.date);
       const monthNum = dateObj.getMonth() + 1; // 1-12
       
@@ -80,17 +81,34 @@ export const StudentProgressTrendChart: React.FC<StudentProgressTrendChartProps>
         monthStats[khmerMonth] = { totalDays: 0, presentDays: 0 };
       }
 
-      const stRecord = rec.records.find(r => r.studentId === student.id);
-      if (stRecord) {
+      let isMatch = false;
+      let isPresent = false;
+
+      if (Array.isArray((rec as any).records)) {
+        const stRecord = (rec as any).records.find((r: any) => r && (r.studentId === student.id || r.studentId === student.code));
+        if (stRecord) {
+          isMatch = true;
+          if (stRecord.status === 'present' || stRecord.status === 'late') {
+            isPresent = true;
+          }
+        }
+      } else if (rec.studentId === student.id || rec.studentId === student.code) {
+        isMatch = true;
+        if (rec.status === 'present' || (rec as any).status === 'late') {
+          isPresent = true;
+        }
+      }
+
+      if (isMatch) {
         monthStats[khmerMonth].totalDays += 1;
-        if (stRecord.status === 'present' || stRecord.status === 'late') {
+        if (isPresent) {
           monthStats[khmerMonth].presentDays += 1;
         }
       }
     });
 
     return monthStats;
-  }, [dailyAttendance, student.id]);
+  }, [dailyAttendance, student.id, student.code]);
 
   // 3. Prepare Chart Data by merging scores and attendance
   const chartData = useMemo(() => {
@@ -102,14 +120,47 @@ export const StudentProgressTrendChart: React.FC<StudentProgressTrendChartProps>
           ? Math.round((att.presentDays / att.totalDays) * 100)
           : 95; // Default healthy baseline if untracked
 
-        const khmerSub = sc.subjects.find(s => s.subject.includes('ខ្មែរ') || s.subject.includes('ភាសា'))?.score || (sc.average ? sc.average * 0.95 : 0);
-        const mathSub = sc.subjects.find(s => s.subject.includes('គណិត'))?.score || (sc.average ? sc.average * 1.05 : 0);
-        const scienceSub = sc.subjects.find(s => s.subject.includes('វិទ្យា') || s.subject.includes('សង្គម'))?.score || sc.average || 0;
+        const avg = sc.averageScore ?? (sc as any).average ?? 0;
+        const total = sc.totalScore ?? (avg * 5);
+        const subjectsList = Array.isArray((sc as any).subjects) ? (sc as any).subjects : [];
+
+        let khmerSub = 0;
+        if (subjectsList.length > 0) {
+          khmerSub = subjectsList.find((s: any) => s?.subject && (s.subject.includes('ខ្មែរ') || s.subject.includes('ភាសា')))?.score || 0;
+        }
+        if (!khmerSub && sc.scores) {
+          const s = sc.scores;
+          const kScores = [s.reading, s.writing, s.listening, s.speaking, s.khmerReading, s.khmerWriting].filter((v): v is number => typeof v === 'number');
+          if (kScores.length > 0) khmerSub = kScores.reduce((a, b) => a + b, 0) / kScores.length;
+        }
+        if (!khmerSub && avg) khmerSub = avg * 0.95;
+
+        let mathSub = 0;
+        if (subjectsList.length > 0) {
+          mathSub = subjectsList.find((s: any) => s?.subject && (s.subject.includes('គណិត') || s.subject.toLowerCase().includes('math')))?.score || 0;
+        }
+        if (!mathSub && sc.scores) {
+          const s = sc.scores;
+          const mScores = [s.numbers, s.measurement, s.geometry, s.algebra, s.statistics, s.mathematics].filter((v): v is number => typeof v === 'number');
+          if (mScores.length > 0) mathSub = mScores.reduce((a, b) => a + b, 0) / mScores.length;
+        }
+        if (!mathSub && avg) mathSub = avg * 1.05;
+
+        let scienceSub = 0;
+        if (subjectsList.length > 0) {
+          scienceSub = subjectsList.find((s: any) => s?.subject && (s.subject.includes('វិទ្យា') || s.subject.includes('សង្គម')))?.score || 0;
+        }
+        if (!scienceSub && sc.scores) {
+          const s = sc.scores;
+          const sciScores = [s.science, s.socialStudies, s.moralCivics, s.scienceSocial].filter((v): v is number => typeof v === 'number');
+          if (sciScores.length > 0) scienceSub = sciScores.reduce((a, b) => a + b, 0) / sciScores.length;
+        }
+        if (!scienceSub && avg) scienceSub = avg;
 
         return {
           month: sc.monthOrSemester,
-          average: Number(sc.average.toFixed(2)),
-          totalScore: sc.totalScore,
+          average: Number(avg.toFixed(2)),
+          totalScore: total,
           rank: sc.rank || 1,
           attendanceRate: attRate,
           khmer: Number(khmerSub.toFixed(1)),

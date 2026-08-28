@@ -129,46 +129,53 @@ export const AtRiskStudentsTab: React.FC<AtRiskStudentsTabProps> = ({
 
   // Filter students belonging to current class
   const classStudents = useMemo(() => {
-    return students.filter(s => s.grade === selectedGrade && s.section === selectedSection);
+    const safeStudents = Array.isArray(students) ? students.filter(Boolean) : [];
+    return safeStudents.filter(s => s.grade === selectedGrade && s.section === selectedSection);
   }, [students, selectedGrade, selectedSection]);
 
   // Current class at-risk students
   const classAtRiskStudents = useMemo(() => {
-    return atRiskStudents.filter(s => s.grade === selectedGrade && s.section === selectedSection);
+    const safeAtRisk = Array.isArray(atRiskStudents) ? atRiskStudents.filter(Boolean) : [];
+    return safeAtRisk.filter(s => s.grade === selectedGrade && s.section === selectedSection);
   }, [atRiskStudents, selectedGrade, selectedSection]);
 
   // Students not yet enrolled in at-risk list (candidates for enrollment)
   const unenrolledClassStudents = useMemo(() => {
-    const enrolledIds = new Set(classAtRiskStudents.map(s => s.studentId));
-    return classStudents.filter(s => !enrolledIds.has(s.id));
+    const enrolledIds = new Set(classAtRiskStudents.map(s => s?.studentId).filter(Boolean));
+    return classStudents.filter(s => s && !enrolledIds.has(s.id));
   }, [classStudents, classAtRiskStudents]);
 
   // Smart suggestions: detect students with low score average (< 5.0) or high absences (>= 3)
   const suggestedAtRiskStudents = useMemo(() => {
-    return unenrolledClassStudents.map(student => {
-      // check scores
-      const studentScores = scores.filter(sc => sc.studentId === student.id);
-      const avgScore =
-        studentScores.length > 0
-          ? studentScores.reduce((acc, sc) => acc + (sc.totalAverageScore || 0), 0) / studentScores.length
-          : null;
+    const safeScores = Array.isArray(scores) ? scores.filter(Boolean) : [];
+    const safeAttendance = Array.isArray(attendanceRecords) ? attendanceRecords.filter(Boolean) : [];
 
-      // check absences
-      const studentAttendances = attendanceRecords.filter(a => a.studentId === student.id);
-      const absentCount = studentAttendances.filter(a => a.status === 'absent_without_permission' || a.status === 'absent_with_permission').length;
+    return unenrolledClassStudents
+      .filter(Boolean)
+      .map(student => {
+        // check scores
+        const studentScores = safeScores.filter(sc => sc && (sc.studentId === student.id || sc.studentCode === student.code));
+        const avgScore =
+          studentScores.length > 0
+            ? studentScores.reduce((acc, sc) => acc + (sc.totalAverageScore || sc.averageScore || 0), 0) / studentScores.length
+            : null;
 
-      const isLowScore = avgScore !== null && avgScore < 5.0;
-      const isHighAbsent = absentCount >= 3;
+        // check absences
+        const studentAttendances = safeAttendance.filter(a => a && (a.studentId === student.id || a.studentId === student.code));
+        const absentCount = studentAttendances.filter(a => a.status === 'absent_without_permission' || a.status === 'absent_with_permission').length;
 
-      return {
-        student,
-        avgScore: avgScore !== null ? Number(avgScore.toFixed(1)) : 4.0,
-        absentCount,
-        isLowScore,
-        isHighAbsent,
-        isSuggested: isLowScore || isHighAbsent
-      };
-    }).filter(item => item.isSuggested);
+        const isLowScore = avgScore !== null && avgScore < 5.0;
+        const isHighAbsent = absentCount >= 3;
+
+        return {
+          student,
+          avgScore: avgScore !== null ? Number(avgScore.toFixed(1)) : 4.0,
+          absentCount,
+          isLowScore,
+          isHighAbsent,
+          isSuggested: isLowScore || isHighAbsent
+        };
+      }).filter(item => item && item.student && item.isSuggested);
   }, [unenrolledClassStudents, scores, attendanceRecords]);
 
   // Filtered list based on search and dropdown filters

@@ -396,15 +396,48 @@ export const MultiStudentProfileSummaryPdfModal: React.FC<MultiStudentProfileSum
                         <tbody className="divide-y divide-slate-200">
                           {studentScores.length > 0 ? (
                             studentScores.map(sc => {
-                              const khmer = sc.subjects.find(s => s.subject.includes('ខ្មែរ') || s.subject.includes('ភាសា'))?.score || (sc.average ? sc.average * 0.95 : 0);
-                              const math = sc.subjects.find(s => s.subject.includes('គណិត'))?.score || (sc.average ? sc.average * 1.05 : 0);
-                              const science = sc.subjects.find(s => s.subject.includes('វិទ្យា') || s.subject.includes('សង្គម'))?.score || sc.average || 0;
+                              const avg = sc.averageScore ?? (sc as any).average ?? 0;
+                              const total = sc.totalScore ?? (avg * 5);
+                              const subjectsList = Array.isArray((sc as any).subjects) ? (sc as any).subjects : [];
+
+                              let khmer = 0;
+                              if (subjectsList.length > 0) {
+                                khmer = subjectsList.find((s: any) => s?.subject && (s.subject.includes('ខ្មែរ') || s.subject.includes('ភាសា')))?.score || 0;
+                              }
+                              if (!khmer && sc.scores) {
+                                const s = sc.scores;
+                                const kScores = [s.reading, s.writing, s.listening, s.speaking, s.khmerReading, s.khmerWriting].filter((v): v is number => typeof v === 'number');
+                                if (kScores.length > 0) khmer = kScores.reduce((a, b) => a + b, 0) / kScores.length;
+                              }
+                              if (!khmer && avg) khmer = avg * 0.95;
+
+                              let math = 0;
+                              if (subjectsList.length > 0) {
+                                math = subjectsList.find((s: any) => s?.subject && (s.subject.includes('គណិត') || s.subject.toLowerCase().includes('math')))?.score || 0;
+                              }
+                              if (!math && sc.scores) {
+                                const s = sc.scores;
+                                const mScores = [s.numbers, s.measurement, s.geometry, s.algebra, s.statistics, s.mathematics].filter((v): v is number => typeof v === 'number');
+                                if (mScores.length > 0) math = mScores.reduce((a, b) => a + b, 0) / mScores.length;
+                              }
+                              if (!math && avg) math = avg * 1.05;
+
+                              let science = 0;
+                              if (subjectsList.length > 0) {
+                                science = subjectsList.find((s: any) => s?.subject && (s.subject.includes('វិទ្យា') || s.subject.includes('សង្គម')))?.score || 0;
+                              }
+                              if (!science && sc.scores) {
+                                const s = sc.scores;
+                                const sciScores = [s.science, s.socialStudies, s.moralCivics, s.scienceSocial].filter((v): v is number => typeof v === 'number');
+                                if (sciScores.length > 0) science = sciScores.reduce((a, b) => a + b, 0) / sciScores.length;
+                              }
+                              if (!science && avg) science = avg;
                               
                               let gradeLetter = 'ល្អប្រសើរ (A)';
-                              if (sc.average < 5) gradeLetter = 'ខ្សោយ (F)';
-                              else if (sc.average < 6.5) gradeLetter = 'មធ្យម (D)';
-                              else if (sc.average < 8) gradeLetter = 'ល្អបង្គួរ (C)';
-                              else if (sc.average < 9) gradeLetter = 'ល្អ (B)';
+                              if (avg < 5) gradeLetter = 'ខ្សោយ (F)';
+                              else if (avg < 6.5) gradeLetter = 'មធ្យម (D)';
+                              else if (avg < 8) gradeLetter = 'ល្អបង្គួរ (C)';
+                              else if (avg < 9) gradeLetter = 'ល្អ (B)';
 
                               return (
                                 <tr key={sc.id} className="hover:bg-slate-50">
@@ -412,8 +445,8 @@ export const MultiStudentProfileSummaryPdfModal: React.FC<MultiStudentProfileSum
                                   <td className="py-1.5 px-2 text-center font-times">{khmer.toFixed(1)}</td>
                                   <td className="py-1.5 px-2 text-center font-times">{math.toFixed(1)}</td>
                                   <td className="py-1.5 px-2 text-center font-times">{science.toFixed(1)}</td>
-                                  <td className="py-1.5 px-2 text-center font-bold font-times">{sc.totalScore.toFixed(1)}</td>
-                                  <td className="py-1.5 px-2 text-center font-bold font-times text-indigo-900">{sc.average.toFixed(2)}</td>
+                                  <td className="py-1.5 px-2 text-center font-bold font-times">{total.toFixed(1)}</td>
+                                  <td className="py-1.5 px-2 text-center font-bold font-times text-indigo-900">{avg.toFixed(2)}</td>
                                   <td className="py-1.5 px-2 text-center font-bold font-times text-amber-900">
                                     {sc.rank ? `លេខ ${sc.rank}` : '-'}
                                   </td>

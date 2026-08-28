@@ -257,7 +257,7 @@ export const BulkDataImportExportModal: React.FC<BulkDataImportExportModalProps>
     let updateCount = 0;
 
     parsedHealthPreview.forEach(item => {
-      if (item.matchedStudent) {
+      if (item?.matchedStudent?.id) {
         updateStudent(item.matchedStudent.id, {
           health: {
             heightCm: item.heightCm,

@@ -292,8 +292,8 @@ export const ReportsAndQR: React.FC = () => {
   const exportScoresToExcel = () => {
     let csv = 'ល.រ,អត្តលេខ,គោត្តនាម-នាម,ភេទ,ខ្មែរ(អំណាន),ខ្មែរ(សំណេរ),គណិតវិទ្យា,វិទ្យាសាស្ត្រ-សង្គម,សីលធម៌,សិល្បៈ-កីឡា,ពិន្ទុសរុប,មធ្យមភាគ,ចំណាត់ថ្នាក់,និទ្ទេស\n';
     classStudents.forEach((st, idx) => {
-      const sc = activeScores.find(s => s.studentId === st.id);
-      csv += `${idx + 1},${st.code},"${st.nameKhmer}",${st.gender === 'F' ? 'ស្រី' : 'ប្រុស'},${sc?.scores.khmerReading || 0},${sc?.scores.khmerWriting || 0},${sc?.scores.mathematics || 0},${sc?.scores.scienceSocial || 0},${sc?.scores.moralCivics || 0},${sc?.scores.artsPhysical || 0},${sc?.totalScore || 0},${sc?.averageScore || 0},${sc?.rank || '-'},"${getFormattedGrade(sc?.averageScore || 0, sc?.gradeLetter)}"\n`;
+      const sc = (activeScores || []).find(s => s && (s.studentId === st.id || s.studentCode === st.code));
+      csv += `${idx + 1},${st.code},"${st.nameKhmer}",${st.gender === 'F' ? 'ស្រី' : 'ប្រុស'},${sc?.scores?.khmerReading || 0},${sc?.scores?.khmerWriting || 0},${sc?.scores?.mathematics || 0},${sc?.scores?.scienceSocial || 0},${sc?.scores?.moralCivics || 0},${sc?.scores?.artsPhysical || 0},${sc?.totalScore || 0},${sc?.averageScore || 0},${sc?.rank || '-'},"${getFormattedGrade(sc?.averageScore || 0, sc?.gradeLetter)}"\n`;
     });
     downloadExcelFile(`ScoreSheet_Grade${selectedGrade}${selectedSection}_${selectedMonth}_${schoolProfile.academicYear}`, csv);
   };

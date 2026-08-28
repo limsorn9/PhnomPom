@@ -164,40 +164,40 @@ export const CAMBODIA_LOCATIONS: CambodiaLocation[] = [
 ];
 
 export function getProvinces(): string[] {
-  return CAMBODIA_LOCATIONS.map(l => l.province);
+  return (CAMBODIA_LOCATIONS || []).map(l => l.province);
 }
 
 export function getDistricts(provinceName: string): string[] {
-  const prov = CAMBODIA_LOCATIONS.find(p => p.province === provinceName);
-  if (!prov) return [];
+  const prov = (CAMBODIA_LOCATIONS || []).find(p => p && p.province === provinceName);
+  if (!prov || !Array.isArray(prov.districts)) return [];
   return prov.districts.map(d => d.name);
 }
 
 export function getCommunes(provinceName: string, districtName: string): string[] {
-  const prov = CAMBODIA_LOCATIONS.find(p => p.province === provinceName);
-  if (!prov) return [];
-  const dist = prov.districts.find(d => d.name === districtName);
-  if (!dist) return [];
+  const prov = (CAMBODIA_LOCATIONS || []).find(p => p && p.province === provinceName);
+  if (!prov || !Array.isArray(prov.districts)) return [];
+  const dist = prov.districts.find(d => d && d.name === districtName);
+  if (!dist || !Array.isArray(dist.communes)) return [];
   return dist.communes.map(c => c.name);
 }
 
 export function getVillages(provinceName: string, districtName: string, communeName: string): string[] {
-  const prov = CAMBODIA_LOCATIONS.find(p => p.province === provinceName);
-  if (!prov) return [];
-  const dist = prov.districts.find(d => d.name === districtName);
-  if (!dist) return [];
-  const comm = dist.communes.find(c => c.name === communeName);
-  if (!comm) return [];
+  const prov = (CAMBODIA_LOCATIONS || []).find(p => p && p.province === provinceName);
+  if (!prov || !Array.isArray(prov.districts)) return [];
+  const dist = prov.districts.find(d => d && d.name === districtName);
+  if (!dist || !Array.isArray(dist.communes)) return [];
+  const comm = dist.communes.find(c => c && c.name === communeName);
+  if (!comm || !Array.isArray(comm.villages)) return [];
   return comm.villages;
 }
 
 export function getPrimarySchools(provinceName: string, districtName: string, communeName: string, villageName?: string): string[] {
-  const prov = CAMBODIA_LOCATIONS.find(p => p.province === provinceName);
-  if (!prov) return [];
-  const dist = prov.districts.find(d => d.name === districtName);
-  if (!dist) return [];
-  const comm = dist.communes.find(c => c.name === communeName);
-  if (!comm) return [];
+  const prov = (CAMBODIA_LOCATIONS || []).find(p => p && p.province === provinceName);
+  if (!prov || !Array.isArray(prov.districts)) return [];
+  const dist = prov.districts.find(d => d && d.name === districtName);
+  if (!dist || !Array.isArray(dist.communes)) return [];
+  const comm = dist.communes.find(c => c && c.name === communeName);
+  if (!comm || !Array.isArray(comm.primarySchools)) return [];
   // Return primary schools in commune or matching village if needed
   return comm.primarySchools;
 }

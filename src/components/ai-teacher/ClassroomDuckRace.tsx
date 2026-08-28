@@ -2004,7 +2004,7 @@ export const ClassroomDuckRace: React.FC<Props> = ({
 
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] text-slate-500">{item.time}</span>
-                      {onAwardScore && (
+                      {onAwardScore && item?.candidate?.id && (
                         <button
                           onClick={() => {
                             onAwardScore(item.candidate.id, item.candidate.name, 50);

@@ -50,13 +50,13 @@ export const GradesTab: React.FC<GradesTabProps> = ({
   ];
 
   // Class students
-  const classStudents = students.filter(
-    s => s.grade === selectedGrade && s.section === selectedSection
+  const classStudents = (students || []).filter(
+    s => s && s.grade === selectedGrade && s.section === selectedSection
   );
 
   // Score records for class and month
-  const classScores = scores.filter(
-    s => s.grade === selectedGrade && s.section === selectedSection && s.monthOrSemester === selectedMonth
+  const classScores = (scores || []).filter(
+    s => s && s.grade === selectedGrade && s.section === selectedSection && s.monthOrSemester === selectedMonth
   );
 
   // Local draft scores state for smooth editing
@@ -109,17 +109,19 @@ export const GradesTab: React.FC<GradesTabProps> = ({
   };
 
   // Compute calculated table with rankings
-  const studentRows = classStudents.map(s => {
-    const current = getStudentScore(s.id);
-    const total = current.khmer + current.math + current.science + current.social + current.pe;
-    const average = parseFloat((total / 5).toFixed(2));
-    return {
-      student: s,
-      scores: current,
-      total,
-      average
-    };
-  });
+  const studentRows = classStudents
+    .filter(Boolean)
+    .map(s => {
+      const current = getStudentScore(s.id);
+      const total = current.khmer + current.math + current.science + current.social + current.pe;
+      const average = parseFloat((total / 5).toFixed(2));
+      return {
+        student: s,
+        scores: current,
+        total,
+        average
+      };
+    });
 
   // Sort descending by average to compute ranks
   studentRows.sort((a, b) => b.average - a.average);
@@ -131,7 +133,7 @@ export const GradesTab: React.FC<GradesTabProps> = ({
   const released = isResultReleased(selectedGrade, selectedSection, selectedMonth);
 
   // Top 3 students
-  const topStudents = rankedRows.slice(0, 3);
+  const topStudents = rankedRows.filter(r => r && r.student).slice(0, 3);
 
   return (
     <div className="space-y-4">

@@ -355,7 +355,7 @@ export const WebcamQRScannerModal: React.FC<WebcamQRScannerModalProps> = ({
         scannedAt: nowTimeStr,
         attendanceStatus: status === 'absent_permission' ? 'excused' : status
       },
-      ...prev.filter(i => i.student.id !== currentScannedStudent.id).slice(0, 19)
+      ...prev.filter(i => i?.student?.id && i.student.id !== currentScannedStudent.id).slice(0, 19)
     ]);
 
     showToast(`បានកត់ត្រាវត្តមានសិស្ស ${currentScannedStudent.nameKhmer}៖ ${status === 'present' ? 'វត្តមាន' : status === 'late' ? 'មកយឺត' : 'សុំច្បាប់'}!`);

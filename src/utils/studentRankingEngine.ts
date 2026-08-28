@@ -337,33 +337,33 @@ export function getStudentRankingDetail(
   monthOrSemester: string,
   academicYear?: string
 ): StudentRankingDetail | null {
-  const student = allStudents.find(s => s.id === studentId);
+  const student = (allStudents || []).find(s => s && (s.id === studentId || s.code === studentId));
   if (!student) return null;
 
   const classStats = calculateClassRankingStats(
-    allScores,
-    allStudents,
+    allScores || [],
+    allStudents || [],
     student.grade,
     student.section,
     monthOrSemester,
     academicYear
   );
 
-  const studentRankItem = classStats.rankings.find(r => r.studentId === student.id);
+  const studentRankItem = (classStats?.rankings || []).find(r => r && (r.studentId === student.id || r.studentCode === student.code));
 
   // Compute historical ranking sequence for this student
   const historicalProgression: StudentRankingDetail['historicalProgression'] = [];
 
   KHMER_MONTHS_SEQUENCE.forEach(m => {
     const mStats = calculateClassRankingStats(
-      allScores,
-      allStudents,
+      allScores || [],
+      allStudents || [],
       student.grade,
       student.section,
       m,
       academicYear
     );
-    const mItem = mStats.rankings.find(r => r.studentId === student.id);
+    const mItem = (mStats?.rankings || []).find(r => r && (r.studentId === student.id || r.studentCode === student.code));
     if (mItem) {
       historicalProgression.push({
         monthOrSemester: m,
@@ -547,18 +547,18 @@ export async function dispatchParentTelegramRankingNotification(payload: {
   const messageText = generateParentTelegramRankingMessage(payload);
 
   return await sendTelegramNotification({
-    title: `លទ្ធផលចំណាត់ថ្នាក់ខែ ${payload.monthOrSemester}៖ ${payload.student.nameKhmer} (លេខ ${payload.rankingDetail.currentRank})`,
+    title: `លទ្ធផលចំណាត់ថ្នាក់ខែ ${payload.monthOrSemester}៖ ${payload.student?.nameKhmer || ''} (លេខ ${payload.rankingDetail?.currentRank || ''})`,
     message: messageText,
     category: 'announcement',
     metadata: {
-      studentId: payload.student.id,
-      studentCode: payload.student.code,
-      grade: payload.student.grade,
-      section: payload.student.section,
+      studentId: payload.student?.id || '',
+      studentCode: payload.student?.code || '',
+      grade: payload.student?.grade || 1,
+      section: payload.student?.section || 'ក',
       month: payload.monthOrSemester,
-      rank: payload.rankingDetail.currentRank,
-      averageScore: payload.rankingDetail.averageScore,
-      guardianPhone: payload.student.guardianPhone
+      rank: payload.rankingDetail?.currentRank || 0,
+      averageScore: payload.rankingDetail?.averageScore || 0,
+      guardianPhone: payload.student?.guardianPhone || ''
     }
   });
 }

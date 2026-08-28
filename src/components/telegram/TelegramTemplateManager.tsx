@@ -159,7 +159,7 @@ export const TelegramTemplateManager: React.FC = () => {
     return INITIAL_PRESET_TEMPLATES;
   });
 
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(INITIAL_PRESET_TEMPLATES[0].id);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(INITIAL_PRESET_TEMPLATES[0]?.id || '');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   
@@ -192,7 +192,8 @@ export const TelegramTemplateManager: React.FC = () => {
 
   // Find currently selected template
   const currentTemplate = useMemo(() => {
-    return templates.find(t => t.id === selectedTemplateId) || templates[0];
+    const safeTemplates = Array.isArray(templates) ? templates.filter(Boolean) : [];
+    return safeTemplates.find(t => t && t.id === selectedTemplateId) || safeTemplates[0] || null;
   }, [templates, selectedTemplateId]);
 
   // Dynamic Variable Replacer

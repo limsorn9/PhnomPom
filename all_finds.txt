@@ -1,0 +1,212 @@
+src/components/StudentHealthMetricTrendsChart.tsx:68:       const s = students.find(item => item.id === studentFilter);
+src/components/StudentHealthMetricTrendsChart.tsx:113:     const singleStudent = studentFilter !== 'all' ? students.find(s => s.id === studentFilter) : null;
+src/components/StudentHealthMetricTrendsChart.tsx:434:                       const dataItem = trendData.find(d => d.month === label);
+src/components/TeacherManagement.tsx:321:                 const myTeacher = teachers.find(t => t.nameKhmer === currentUser.nameKhmer);
+src/components/InteractiveSeatingChart.tsx:40:     return students.find(s => s.id === studentId);
+src/components/ClassStudentStatisticsPriModal.tsx:64:       teachers.find(
+src/components/StudentHouseholdMap.tsx:450:     const target = households.find(h => h.id === selectedHouseholdId);
+src/components/StudentAnalyticsDashboard.tsx:122:     return students.find(
+src/components/StudentAnalyticsDashboard.tsx:212:     return students.find(s => s.id === selectedStudentId) || null;
+src/components/StudentAnalyticsDashboard.tsx:285:         const studScore = scores.find(s => s.studentId === activeStudent.id && s.monthOrSemester === month);
+src/components/StudentAnalyticsDashboard.tsx:480:         : (studScores.find(s => s.monthOrSemester === selectedMonth) || null);
+src/components/StudentAnalyticsDashboard.tsx:1187:                       : (studScores.find(s => s.monthOrSemester === selectedMonth) || null);
+src/components/HealthAttendance.tsx:82:       const student = students.find(s => s.id === id);
+src/components/HealthAttendance.tsx:137:     const student = students.find(s => s.id === studentId);
+src/components/HealthAttendance.tsx:212:       const found = existing.find(e => e.studentId === st.id);
+src/components/HealthAttendance.tsx:235:       const found = existingHealth.find(e => e.studentId === st.id);
+src/components/HealthAttendance.tsx:850:                 <p className="font-bold">{teachers.find(t => t.assignedGrade === selectedGrade)?.nameKhmer || 'គ្រូបន្ទុកថ្នាក់'}</p>
+src/components/HealthAttendance.tsx:1246:                 <strong className="text-slate-900">{teachers.find(t => t.assignedGrade === selectedGrade && t.assignedSection === selectedSection)?.nameKhmer || 'គ្រូបន្ទុកថ្នាក់'}</strong>
+src/components/HealthAttendance.tsx:1850:           homeroomTeacher={teachers.find(t => t.assignedGrade === selectedGrade && t.assignedSection === selectedSection)}
+src/components/ClassroomScores.tsx:154:   const homeroomTeacher = teachers.find(
+src/components/ClassroomScores.tsx:189:     return activeScores.find(s => s.studentId === studentId);
+src/components/ClassroomScores.tsx:333:     const activeSub = examSubjects.find(s => s.code === selectedSubjectCode);
+src/components/ClassroomScores.tsx:428:     const currentClassroom = classrooms.find(c => c.grade === selectedGrade && c.section === selectedSection);
+src/components/ClassroomScores.tsx:751:                   បញ្ចូលពិន្ទុតាមមុខវិជ្ជា: {examSubjects.find(s => s.code === selectedSubjectCode)?.nameKhmer || 'មុខវិជ្ជា'}
+src/components/ClassroomScores.tsx:755:                 ជ្រើសរើសមុខវិជ្ជាខាងក្រោម រួចបញ្ចូលពិន្ទុសិស្សទាំងអស់ក្នុងថ្នាក់យ៉ាងរហ័ស (ពិន្ទុអតិបរមា: {examSubjects.find(s => s.code === selectedSubjectCode)?.maxScore || 10})
+src/components/ClassroomScores.tsx:798:                   <th className="py-3 px-4 text-center bg-indigo-100/70">ពិន្ទុ ({examSubjects.find(s => s.code === selectedSubjectCode)?.nameKhmer}) /10</th>
+src/components/ClassroomScores.tsx:825:                           max={examSubjects.find(s => s.code === selectedSubjectCode)?.maxScore || 10}
+src/components/ClassroomScores.tsx:1777:           studentScoresList.find((s) => s.monthOrSemester === selectedMonth) ||
+src/components/ClassroomScores.tsx:1954:                         const rec = scores.find(
+src/components/TeacherMeetingMinutesManager.tsx:121:     const tmpl = resolutionTemplates.find(t => t.id === tmplId);
+src/components/MultiStudentProfileSummaryPdfModal.tsx:399:                               const khmer = sc.subjects.find(s => s.subject.includes('ខ្មែរ') || s.subject.includes('ភាសា'))?.score || (sc.average ? sc.average * 0.95 : 0);
+src/components/MultiStudentProfileSummaryPdfModal.tsx:400:                               const math = sc.subjects.find(s => s.subject.includes('គណិត'))?.score || (sc.average ? sc.average * 1.05 : 0);
+src/components/MultiStudentProfileSummaryPdfModal.tsx:401:                               const science = sc.subjects.find(s => s.subject.includes('វិទ្យា') || s.subject.includes('សង្គម'))?.score || sc.average || 0;
+src/components/RecentActivityDashboard.tsx:196:       const itemA = enrichedLogs.find(l => l.id === selectedDiffIds[0]);
+src/components/RecentActivityDashboard.tsx:197:       const itemB = enrichedLogs.find(l => l.id === selectedDiffIds[1]);
+src/components/RecentActivityDashboard.tsx:208:     const matchingLog = enrichedLogs.find(
+src/components/RecentActivityDashboard.tsx:211:     const fallbackLog = enrichedLogs.find(l => l.id !== item.id) || item;
+src/components/RecentActivityDashboard.tsx:2282:                   const logA = enrichedLogs.find(l => l.id === selectedLogIds[0]);
+src/components/RecentActivityDashboard.tsx:2283:                   const logB = enrichedLogs.find(l => l.id === selectedLogIds[1]);
+src/components/StudentProgressTrendChart.tsx:83:       const stRecord = rec.records.find(r => r.studentId === student.id);
+src/components/StudentProgressTrendChart.tsx:105:         const khmerSub = sc.subjects.find(s => s.subject.includes('ខ្មែរ') || s.subject.includes('ភាសា'))?.score || (sc.average ? sc.average * 0.95 : 0);
+src/components/StudentProgressTrendChart.tsx:106:         const mathSub = sc.subjects.find(s => s.subject.includes('គណិត'))?.score || (sc.average ? sc.average * 1.05 : 0);
+src/components/StudentProgressTrendChart.tsx:107:         const scienceSub = sc.subjects.find(s => s.subject.includes('វិទ្យា') || s.subject.includes('សង្គម'))?.score || sc.average || 0;
+src/components/ScoreTablePrintModal.tsx:87:     return activeScores.find(s => s.studentId === studentId);
+src/components/ScoreTablePrintModal.tsx:109:     const stu = classStudents.find(cs => cs.id === s.studentId);
+src/components/BulkDataImportExportModal.tsx:186:         const matchedStudent = students.find(
+src/components/StudentHealthBookletModal.tsx:52:     return students.find(s => s.id === currentStudentId) || selectedStudent || students[0] || {
+src/components/GmailManager.tsx:274:     const selectedStudent = students.find(s => s.id === templateStudentId) || students[0];
+src/components/GmailManager.tsx:280:     const teacher = teachers.find(t => t.assignedGrade === (selectedStudent?.grade || 1)) || teachers[0];
+src/components/ClassCommitteePrintModal.tsx:289:   const president = members.find(m => m.role === 'president') || members[0];
+src/components/ClassCommitteePrintModal.tsx:290:   const deputy1 = members.find(m => m.role === 'deputy_president_1') || members[1];
+src/components/ClassCommitteePrintModal.tsx:291:   const deputy2 = members.find(m => m.role === 'deputy_president_2') || members[2];
+src/components/SchoolAdmin.tsx:1011:                       const sel = teachers.find(t => t.id === e.target.value);
+src/components/SuspiciousAlertsBanner.tsx:92:       const targetStaff = appUsers.find(u => u.role === 'secretary' || u.role === 'teacher');
+src/components/ExportStudentIdBadgeModal.tsx:67:   const selectedStudent = students.find(s => s.id === selectedStudentId) || students[0];
+src/components/OtherLearningResources.tsx:249:       const item = allCombinedResources.find(r => r.id === id);
+src/components/OtherLearningResources.tsx:318:       const lessonMeta = resource.lessonsList?.find(l => l.number === nextCount);
+src/components/OtherLearningResources.tsx:636:         const item = safeResources.find(r => r && r.id === rv.resourceId);
+src/components/OtherLearningResources.tsx:645:     return safeResources.find(r => r && r.id === activeCommentDrawerId);
+src/components/RolePermissionsInspectorModal.tsx:203:     preselectedUser?.id || (users.find(u => u.role === 'teacher')?.id || users[0]?.id || '')
+src/components/RolePermissionsInspectorModal.tsx:211:   const targetUser = users.find(u => u.id === selectedUserId) || preselectedUser || users[0];
+src/components/RolePermissionsInspectorModal.tsx:212:   const linkedTeacher = targetUser ? teachers.find(
+src/components/WebcamQRScannerModal.tsx:284:         let found = students.find(
+src/components/WebcamQRScannerModal.tsx:294:               found = students.find(
+src/components/TelegramBotStudio.tsx:389:     const matchingCmd = commands.find(c => c.command.toLowerCase() === commandName);
+src/components/TelegramBotStudio.tsx:754:     return commands.find(c => c.command === selectedCommandForPreview) || commands[0];
+src/components/SchoolEquipmentLoanManager.tsx:145:     const selectedEq = equipmentItems.find(item => item.id === formData.equipmentId);
+src/components/StudentPortal.tsx:73:   const studentData = students.find(
+src/components/LibraryManagement.tsx:999:                     const st = students.find(s => s.id === e.target.value);
+src/components/LibraryManagement.tsx:1027:                     const bk = libraryBooks.find(b => b.id === e.target.value);
+src/components/QuickAttendanceModal.tsx:19:   const currentClass = classrooms.find(c => c.id === selectedClassId) || classrooms[0];
+src/components/OfficialDocumentCenter.tsx:428:     return students.find(s => s.id === selectedStudentId) || students[0];
+src/components/OfficialDocumentCenter.tsx:432:     return teachers.find(t => t.id === selectedTeacherId) || teachers[0];
+src/components/OfficialDocumentCenter.tsx:436:     return classrooms.find(c => c.grade === selectedGrade && c.section === selectedSection) || {
+src/components/OfficialDocumentCenter.tsx:449:     return scores.find(
+src/components/OfficialDocumentCenter.tsx:455:     return DOCUMENT_TEMPLATES.find(t => t.id === selectedDoc) || DOCUMENT_TEMPLATES[0];
+src/components/OfficialDocumentCenter.tsx:768:                       const s = students.find(item => item.id === e.target.value);
+src/components/OfficialDocumentCenter.tsx:1782:                       {teachers.find(t => t.id === selectedTeacherId)?.nameKhmer || 'សែម ស្រីភឿន'}
+src/components/OfficialDocumentCenter.tsx:1802:           homeroomTeacher={teachers.find(t => t.id === selectedTeacherId)}
+src/components/OfficialDocumentCenter.tsx:1816:           homeroomTeacher={teachers.find(t => t.id === selectedTeacherId || (t.assignedGrade === selectedGrade && t.assignedSection === selectedSection))}
+src/components/HomeroomTeacherDashboard.tsx:168:   const currentCouncil = classCouncils.find(
+src/components/HomeroomTeacherDashboard.tsx:194:   const currentTeacher = teachers.find(
+src/components/NewClassroomWizardModal.tsx:22:   const selectedTeacher = teachers.find(t => t.id === teacherId) || teachers[0];
+src/components/StudentTransferManagement.tsx:143:     const stu = students.find(s => s.id === studentId);
+src/components/BatchStudentAttendanceModal.tsx:76:       const existing = existingAttendance.find(
+src/components/ReportsAndQR.tsx:284:       const teacher = teachers.find(t => t.assignedGrade === g);
+src/components/ReportsAndQR.tsx:295:       const sc = activeScores.find(s => s.studentId === st.id);
+src/components/ReportsAndQR.tsx:804:                     const teacher = teachers.find(t => t.assignedGrade === g);
+src/components/ReportsAndQR.tsx:863:                     const sc = activeScores.find(s => s.studentId === st.id);
+src/components/ReportsAndQR.tsx:1543:                       const teacher = teachers.find(t => t.assignedGrade === grade);
+src/components/ReportsAndQR.tsx:1766:                         const st = students.find(s => s.id === e.target.value) || null;
+src/components/ReportsAndQR.tsx:2043:                 const stScore = activeScores.find(s => s.studentId === currentSt.id);
+src/components/ReportsAndQR.tsx:2048:                 const teacherName = teachers.find(t => t.assignedGrade === currentSt.grade)?.nameKhmer || 'គ្រូបន្ទុកថ្នាក់';
+src/components/ReportsAndQR.tsx:2225:                   const stScore = scores.find(
+src/components/ReportsAndQR.tsx:2227:                   ) || scores.find(s => s.studentId === st.id);
+src/components/ReportsAndQR.tsx:2233:                   const teacherName = teachers.find(t => t.assignedGrade === st.grade)?.nameKhmer || 'គ្រូបន្ទុកថ្នាក់';
+src/components/ReportsAndQR.tsx:2740:                                         const targetSt = students.find(s => s.id === log.studentId);
+src/components/AttendanceTrendChart.tsx:197:       const currentItem = trendData.find(d => d.label === label) || payload[0].payload;
+src/components/GroupManagement.tsx:125:     return safeSchoolGroups.find(g => g && g.id === selectedGroup.id) || safeSchoolGroups[0] || null;
+src/components/GroupManagement.tsx:293:     const candidate = candidateList.find(c => c.id === newMemberCandidate.memberId);
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:465:     const currentModeConfig = PRESET_MODES.find(m => m.id === activeMode);
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:780:   const currentModeInfo = PRESET_MODES.find(m => m.id === activeMode);
+src/components/ai-teacher/ClassroomDuckRace.tsx:306:           color: DUCK_COSTUMES.find(c => c.id === player1.costume)?.color || '#facc15',
+src/components/ai-teacher/ClassroomDuckRace.tsx:314:           color: DUCK_COSTUMES.find(c => c.id === player2.costume)?.color || '#f97316',
+src/components/ai-teacher/ClassroomDuckRace.tsx:1413:                           <span className="text-[9px] bg-blue-500/30 text-blue-200 px-1 rounded-sm">{DUCK_COSTUMES.find(c => c.id === player1.costume)?.nameKh}</span>
+src/components/ai-teacher/ClassroomDuckRace.tsx:1440:                           <span className="text-[9px] bg-purple-500/30 text-purple-200 px-1 rounded-sm">{DUCK_COSTUMES.find(c => c.id === player2.costume)?.nameKh}</span>
+src/components/ai-teacher/ClassroomDuckRace.tsx:2124:                         { id: 'p1_prev', name: player1.name, color: DUCK_COSTUMES.find(c => c.id === player1.costume)?.color || '#facc15', eliminated: false, score: 0 },
+src/components/ai-teacher/ClassroomDuckRace.tsx:2271:                         { id: 'p2_prev', name: player2.name, color: DUCK_COSTUMES.find(c => c.id === player2.costume)?.color || '#f97316', eliminated: false, score: 0 },
+src/components/ai-teacher/ClassroomDuckRace.tsx:2414:                           { id: 'p1_vs', name: '', color: DUCK_COSTUMES.find(c => c.id === player1.costume)?.color || '#facc15', eliminated: false, score: 0 },
+src/components/ai-teacher/ClassroomDuckRace.tsx:2443:                           { id: 'p2_vs', name: '', color: DUCK_COSTUMES.find(c => c.id === player2.costume)?.color || '#f97316', eliminated: false, score: 0 },
+src/components/ai-teacher/EducationalGameGenerator.tsx:69:     const targetStudent = students.find(s => s.id === studentId || s.nameKhmer === studentName);
+src/components/telegram/TelegramClassroomGroupRouter.tsx:146:         const teacher = teachers.find(t => t.id === c.homeroomTeacherId);
+src/components/telegram/TelegramClassroomGroupRouter.tsx:238:       let targetClassInfo = classrooms.find(c => c.id === selectedTargetClassId);
+src/components/telegram/TelegramClassroomGroupRouter.tsx:320:       const cls = classrooms.find(c => c.id === selectedTargetClassId);
+src/components/telegram/TelegramClassroomGroupRouter.tsx:345:       const tg = specialGroups.find(g => g.category === 'teachers');
+src/components/telegram/TelegramClassroomGroupRouter.tsx:348:       const ch = specialGroups.find(g => g.category === 'general_channel');
+src/components/telegram/TelegramGroupIdInspector.tsx:184:       const cls = classrooms.find(c => c.id === selectedTargetClassId);
+src/components/telegram/TelegramGroupIdInspector.tsx:516:                   const assignedClass = classrooms.find(c => c.telegramChatId === group.chatId);
+src/components/telegram/TelegramGroupIdInspector.tsx:695:                       const t = teachers.find(tch => tch.id === c.homeroomTeacherId);
+src/components/telegram/TelegramChannelValidator.tsx:114:     const targetClass = classrooms.find(c => c.id === classroomId);
+src/components/telegram/TelegramTemplateManager.tsx:195:     return templates.find(t => t.id === selectedTemplateId) || templates[0];
+src/components/telegram/TelegramTemplateManager.tsx:291:         setSelectedTemplateId(templates.find(t => t.id !== id)?.id || '');
+src/components/homeroom/AttendanceTab.tsx:59:     const rec = existingRecords.find(r => r.studentId === studentId);
+src/components/homeroom/AttendanceTab.tsx:65:     const rec = existingRecords.find(r => r.studentId === studentId);
+src/components/homeroom/GradesTab.tsx:67:     const rec = classScores.find(s => s.studentId === studentId);
+src/components/homeroom/TeacherMeetingNotesTab.tsx:145:     const tmpl = resolutionTemplates.find(t => t.id === tmplId);
+src/components/homeroom/HomeroomNotificationsTab.tsx:205:     const stu = classStudents.find(s => s.id === stuId);
+src/components/homeroom/HomeroomNotificationsTab.tsx:217:     const stu = classStudents.find(s => s.id === newStudentId);
+src/components/homeroom/MyClassTab.tsx:78:     return officers.find(o => o.role === roleKey);
+src/components/homeroom/AtRiskStudentsTab.tsx:252:     const targetStudentObj = students.find(s => s.id === formStudentId);
+src/components/homeroom/AtRiskStudentsTab.tsx:255:     const buddyObj = students.find(s => s.id === formAssignedBuddyId);
+src/components/homeroom/AtRiskStudentsTab.tsx:574:                   const studentObj = students.find(s => s.id === item.studentId);
+src/components/badges/AwardBadgeModal.tsx:64:     return students.find(s => s.id === selectedStudentId) || initialStudent || null;
+src/components/badges/AwardBadgeModal.tsx:193:   const selectedBadgeObj = studentBadgeDefinitions.find(b => b.id === selectedBadgeId);
+src/components/activity/ActivityQuickActionModal.tsx:70:       return students.find(
+src/components/activity/ActivityQuickActionModal.tsx:86:       return teachers.find(
+src/components/activity/ActivityQuickActionModal.tsx:101:       return budgetTransactions.find(
+src/components/activity/Activity7DayChart.tsx:88:       const targetDay = days.find(d => d.dateStr === logDateStr);
+src/components/learning-resources/PlaylistProgressModal.tsx:71:     const lessonMeta = resource.lessonsList?.find(l => l.number === lessonNum);
+src/components/learning-resources/PlaylistProgressModal.tsx:84:       const lessonMeta = resource.lessonsList?.find(l => l.number === nextCount);
+src/services/gmail.ts:152:     const h = headers.find(item => item.name.toLowerCase() === name.toLowerCase());
+src/services/curriculumValidationService.ts:115:   const matchedLesson = allLessons.find(l => {
+src/data/moeysPrimaryCurriculum.ts:1217:   return MOEYS_PRIMARY_CURRICULUM_DATABASE.find(
+src/data/moeysPrimaryCurriculum.ts:1219:   ) || MOEYS_PRIMARY_CURRICULUM_DATABASE.find(s => s.subjectNameKh.toLowerCase().includes(normSubject) || normSubject.includes(s.subjectNameKh.toLowerCase())) || MOEYS_PRIMARY_CURRICULUM_DATABASE.find(s => s.grade === grade);
+src/data/cambodiaLocations.ts:171:   const prov = CAMBODIA_LOCATIONS.find(p => p.province === provinceName);
+src/data/cambodiaLocations.ts:177:   const prov = CAMBODIA_LOCATIONS.find(p => p.province === provinceName);
+src/data/cambodiaLocations.ts:179:   const dist = prov.districts.find(d => d.name === districtName);
+src/data/cambodiaLocations.ts:185:   const prov = CAMBODIA_LOCATIONS.find(p => p.province === provinceName);
+src/data/cambodiaLocations.ts:187:   const dist = prov.districts.find(d => d.name === districtName);
+src/data/cambodiaLocations.ts:189:   const comm = dist.communes.find(c => c.name === communeName);
+src/data/cambodiaLocations.ts:195:   const prov = CAMBODIA_LOCATIONS.find(p => p.province === provinceName);
+src/data/cambodiaLocations.ts:197:   const dist = prov.districts.find(d => d.name === districtName);
+src/data/cambodiaLocations.ts:199:   const comm = dist.communes.find(c => c.name === communeName);
+src/utils/activityTracker.ts:446:     const itemA = changesA.find(c => c.fieldName === fieldName);
+src/utils/activityTracker.ts:447:     const itemB = changesB.find(c => c.fieldName === fieldName);
+src/utils/reportCardSignatureQR.tsx:260:     const matchedStudent = existingStudents.find(
+src/utils/reportCardSignatureQR.tsx:323:   const matchedStudent = existingStudents.find(
+src/utils/activityImpactAnalyzer.ts:31:     const highAnomaly = anomalies.find(a => a.severity === 'high');
+src/utils/studentRankingEngine.ts:340:   const student = allStudents.find(s => s.id === studentId);
+src/utils/studentRankingEngine.ts:352:   const studentRankItem = classStats.rankings.find(r => r.studentId === student.id);
+src/utils/studentRankingEngine.ts:366:     const mItem = mStats.rankings.find(r => r.studentId === student.id);
+src/context/SchoolContext.tsx:1348:     const badgeDef = studentBadgeDefinitions.find(b => b.id === assignment.badgeId);
+src/context/SchoolContext.tsx:1381:     const badgeDef = studentBadgeDefinitions.find(b => b.id === badgeId);
+src/context/SchoolContext.tsx:1389:       const student = students.find(s => s.id === sId);
+src/context/SchoolContext.tsx:1462:     const student = students.find(s => s.id === studentId);
+src/context/SchoolContext.tsx:1469:     const perfectAttBadge = studentBadgeDefinitions.find(b => b.id === 'bdg-att-01');
+src/context/SchoolContext.tsx:1482:     const starStudentBadge = studentBadgeDefinitions.find(b => b.id === 'bdg-acad-01');
+src/context/SchoolContext.tsx:1483:     const mathBadge = studentBadgeDefinitions.find(b => b.id === 'bdg-acad-02');
+src/context/SchoolContext.tsx:1511:     const readingBadge = studentBadgeDefinitions.find(b => b.id === 'bdg-read-01');
+src/context/SchoolContext.tsx:1523:     const progressBadge = studentBadgeDefinitions.find(b => b.id === 'bdg-prog-01');
+src/context/SchoolContext.tsx:1524:     const atRiskData = atRiskStudents.find(a => a.studentId === studentId);
+src/context/SchoolContext.tsx:2136:       meeting = teacherMeetings.find(m => m.id === meetingId);
+src/context/SchoolContext.tsx:2932:     let user = appUsers.find(
+src/context/SchoolContext.tsx:2946:       const teacherMatch = teachers.find(
+src/context/SchoolContext.tsx:2999:     let user = appUsers.find(
+src/context/SchoolContext.tsx:3010:       const teacherMatch = teachers.find(
+src/context/SchoolContext.tsx:3067:       let matchedUser = appUsers.find(u => u.email.toLowerCase().trim() === cleanEmail);
+src/context/SchoolContext.tsx:3071:         const teacherMatch = teachers.find(t => t.email.toLowerCase().trim() === cleanEmail);
+src/context/SchoolContext.tsx:3121:     const sampleUser = appUsers.find(u => u.role === role) || initialUsers.find(u => u.role === role);
+src/context/SchoolContext.tsx:3138:     const target = appUsers.find(u => u.id === userId);
+src/context/SchoolContext.tsx:3159:     let studentUser = appUsers.find(u => u.studentId === student.id || u.studentCode === student.code);
+src/context/SchoolContext.tsx:3186:     const targetTeacher = previousTeacherUser || appUsers.find(u => u.role === 'teacher' || u.role === 'director' || u.role === 'secretary' || u.role === 'librarian');
+src/context/SchoolContext.tsx:3271:     const targetReq = profileEditRequests.find(r => r.id === requestId);
+src/context/SchoolContext.tsx:3311:     const targetReq = profileEditRequests.find(r => r.id === requestId);
+src/context/SchoolContext.tsx:3417:         const exists = prev.find(t => 
+src/context/SchoolContext.tsx:3477:     const existing = appUsers.find(u => u.id === id);
+src/context/SchoolContext.tsx:3538:     const targetUser = appUsers.find(u => u.id === id);
+src/context/SchoolContext.tsx:3545:     const teacherBackup = teachers.find(
+src/context/SchoolContext.tsx:3600:     const deletedRecord = deletedUsers.find(d => d.id === deletedId);
+src/context/SchoolContext.tsx:3651:     const deletedRecord = deletedUsers.find(d => d.id === deletedId);
+src/context/SchoolContext.tsx:3777:     let targetUser = appUsers.find(
+src/context/SchoolContext.tsx:3781:     const targetTeacher = teachers.find(t => t.email.toLowerCase().trim() === cleanEmail);
+src/context/SchoolContext.tsx:3783:     const targetStudent = students.find(
+src/context/SchoolContext.tsx:3891:     const targetUser = appUsers.find(
+src/context/SchoolContext.tsx:3897:     const targetTeacher = teachers.find(
+src/context/SchoolContext.tsx:3942:     const anyUser = appUsers.find(u => u.email.toLowerCase() === cleanEmail);
+src/context/SchoolContext.tsx:3970:       let targetUser = appUsers.find(u => u.email.toLowerCase().trim() === cleanEmail);
+src/context/SchoolContext.tsx:3971:       let targetTeacher = teachers.find(t => t.email.toLowerCase().trim() === cleanEmail);
+src/context/SchoolContext.tsx:4047:     const foundStudent = students.find(
+src/context/SchoolContext.tsx:4060:     const existingUser = appUsers.find(
+src/context/SchoolContext.tsx:4199:     const notif = notifications.find(n => n.id === notificationId);
+src/context/SchoolContext.tsx:4311:         ? students.find(s => s.id === student || s.code === student)
+src/context/SchoolContext.tsx:4341:         ? students.find(s => s.id === student || s.code === student)
+src/context/SchoolContext.tsx:4407:     const existing = students.find(s => s.id === id);
+src/context/SchoolContext.tsx:4438:     const existing = students.find(s => s.id === id);
+src/context/SchoolContext.tsx:4460:     return students.find(s => s.id === id);
+src/context/SchoolContext.tsx:4586:     const existing = teachers.find(t => t.id === id);
+src/context/SchoolContext.tsx:4628:     const existing = teachers.find(t => t.id === id);
+src/context/SchoolContext.tsx:4884:     const teacher = teachers.find(t => t.id === teacherId);
+src/context/SchoolContext.tsx:4930:     const record = attendanceRecords.find(r => (r.studentId === teacherId || r.id === `att-teacher-${teacherId}-${date}`) && r.date === date);
+src/context/SchoolContext.tsx:5016:     const existing = budgetTransactions.find(t => t.id === id);
+src/context/SchoolContext.tsx:5150:     const oldLog = readingLogs.find(l => l.id === id);

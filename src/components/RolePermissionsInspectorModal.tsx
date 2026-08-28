@@ -199,8 +199,11 @@ export const RolePermissionsInspectorModal: React.FC<RolePermissionsInspectorMod
   preselectedUser,
   onUpdateUser
 }) => {
+  const safeUsers = users || [];
+  const safeTeachers = teachers || [];
+
   const [selectedUserId, setSelectedUserId] = useState<string>(
-    preselectedUser?.id || (users.find(u => u.role === 'teacher')?.id || users[0]?.id || '')
+    preselectedUser?.id || (safeUsers.find(u => u && u.role === 'teacher')?.id || safeUsers[0]?.id || '')
   );
   const [activeSubTab, setActiveSubTab] = useState<'specific_user' | 'matrix_overview' | 'troubleshoot'>('specific_user');
   const [searchFilter, setSearchFilter] = useState('');
@@ -208,12 +211,12 @@ export const RolePermissionsInspectorModal: React.FC<RolePermissionsInspectorMod
 
   if (!isOpen) return null;
 
-  const targetUser = users.find(u => u.id === selectedUserId) || preselectedUser || users[0];
-  const linkedTeacher = targetUser ? teachers.find(
-    t => t.id === targetUser.id.replace('u-', '') ||
+  const targetUser = safeUsers.find(u => u && u.id === selectedUserId) || preselectedUser || safeUsers[0];
+  const linkedTeacher = targetUser ? safeTeachers.find(
+    t => t && (t.id === targetUser.id.replace('u-', '') ||
          (targetUser.email && t.email?.toLowerCase() === targetUser.email.toLowerCase()) ||
          (targetUser.phone && t.phone?.replace(/\s+/g, '') === targetUser.phone.replace(/\s+/g, '')) ||
-         (targetUser.staffCode && t.staffCode === targetUser.staffCode)
+         (targetUser.staffCode && t.staffCode === targetUser.staffCode))
   ) : null;
 
   const categories = ['all', ...Array.from(new Set(FEATURE_ACCESS_MATRIX.map(item => item.categoryKh)))];

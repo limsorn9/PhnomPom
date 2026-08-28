@@ -117,7 +117,7 @@ export const VaccinationRenewalAlertModal: React.FC<VaccinationRenewalAlertModal
     if (selectedStudentIds.length === filteredAuditList.length) {
       setSelectedStudentIds([]);
     } else {
-      setSelectedStudentIds(filteredAuditList.map(a => a.student.id));
+      setSelectedStudentIds(filteredAuditList.map(a => a?.student?.id).filter(Boolean) as string[]);
     }
   };
 
@@ -139,7 +139,7 @@ export const VaccinationRenewalAlertModal: React.FC<VaccinationRenewalAlertModal
   };
 
   const handleBatchMarkResolved = () => {
-    const idsToUpdate = selectedStudentIds.length > 0 ? selectedStudentIds : filteredAuditList.map(a => a.student.id);
+    const idsToUpdate = selectedStudentIds.length > 0 ? selectedStudentIds : (filteredAuditList.map(a => a?.student?.id).filter(Boolean) as string[]);
     if (onBatchUpdateVaccinated) {
       onBatchUpdateVaccinated(idsToUpdate);
     }
@@ -151,16 +151,18 @@ export const VaccinationRenewalAlertModal: React.FC<VaccinationRenewalAlertModal
 
   const handleExportCsv = () => {
     const headers = ['ល.រ', 'អត្តលេខ', 'គោត្តនាម-នាម', 'ភេទ', 'ថ្នាក់', 'អាណាព្យាបាល', 'លេខទូរស័ព្ទ', 'បញ្ហាដែលត្រូវបច្ចុប្បន្នភាព'];
-    const rows = filteredAuditList.map((item, idx) => [
-      idx + 1,
-      item.student.code,
-      item.student.nameKhmer,
-      item.student.gender === 'F' ? 'ស្រី' : 'ប្រុស',
-      `ថ្នាក់ទី ${item.student.grade}${item.student.section}`,
-      item.student.guardianName || '-',
-      item.student.guardianPhone || '-',
-      item.issues.map(i => i.title).join('; ')
-    ]);
+    const rows = filteredAuditList
+      .filter(item => item && item.student)
+      .map((item, idx) => [
+        idx + 1,
+        item.student.code,
+        item.student.nameKhmer,
+        item.student.gender === 'F' ? 'ស្រី' : 'ប្រុស',
+        `ថ្នាក់ទី ${item.student.grade}${item.student.section}`,
+        item.student.guardianName || '-',
+        item.student.guardianPhone || '-',
+        item.issues.map(i => i.title).join('; ')
+      ]);
 
     const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.map(cell => `"${cell}"`).join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

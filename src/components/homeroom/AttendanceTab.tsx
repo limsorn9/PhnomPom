@@ -37,13 +37,14 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
   const [session, setSession] = useState<'morning' | 'afternoon'>('morning');
 
   // Filter students for current class
-  const classStudents = students.filter(
-    s => s.grade === selectedGrade && s.section === selectedSection
+  const classStudents = (students || []).filter(
+    s => s && s.grade === selectedGrade && s.section === selectedSection
   );
 
   // Existing attendance records for this date, grade, section, session
-  const existingRecords = attendanceRecords.filter(
+  const existingRecords = (attendanceRecords || []).filter(
     r =>
+      r &&
       r.grade === selectedGrade &&
       r.section === selectedSection &&
       r.date === selectedDate &&

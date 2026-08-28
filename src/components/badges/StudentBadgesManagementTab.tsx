@@ -143,8 +143,9 @@ export const StudentBadgesManagementTab: React.FC<StudentBadgesManagementTabProp
 
   // Top leaderboard ranking
   const leaderboard = useMemo(() => {
-    const list = students.map(s => {
-      const stats = studentStatsMap[s.id] || { count: 0, points: 0, badges: [] };
+    const safeStudents = Array.isArray(students) ? students.filter(Boolean) : [];
+    const list = safeStudents.map(s => {
+      const stats = (s && s.id && studentStatsMap[s.id]) || { count: 0, points: 0, badges: [] };
       return {
         student: s,
         count: stats.count,
@@ -154,7 +155,7 @@ export const StudentBadgesManagementTab: React.FC<StudentBadgesManagementTabProp
     });
 
     return list
-      .filter(item => item.count > 0)
+      .filter(item => item && item.student && item.count > 0)
       .sort((a, b) => b.points - a.points || b.count - a.count)
       .slice(0, 20);
   }, [students, studentStatsMap]);
@@ -682,7 +683,7 @@ export const StudentBadgesManagementTab: React.FC<StudentBadgesManagementTabProp
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               {/* Podium: 2nd Place */}
-              {leaderboard[1] && (
+              {leaderboard[1]?.student && (
                 <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-50 to-slate-100/80 border border-slate-200 flex flex-col items-center text-center space-y-2 relative order-2 md:order-1">
                   <div className="w-10 h-10 rounded-full bg-slate-300 text-slate-800 font-bold flex items-center justify-center text-base shadow-sm font-times">
                     2
@@ -707,7 +708,7 @@ export const StudentBadgesManagementTab: React.FC<StudentBadgesManagementTabProp
               )}
 
               {/* Podium: 1st Place (Champion) */}
-              {leaderboard[0] && (
+              {leaderboard[0]?.student && (
                 <div className="p-6 rounded-2xl bg-gradient-to-b from-amber-50 via-amber-100/40 to-amber-50 border-2 border-amber-400 flex flex-col items-center text-center space-y-2 relative shadow-md order-1 md:order-2">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 text-slate-950 font-bold flex items-center justify-center text-lg shadow-md font-times ring-4 ring-amber-300/50">
                     👑 1
@@ -732,7 +733,7 @@ export const StudentBadgesManagementTab: React.FC<StudentBadgesManagementTabProp
               )}
 
               {/* Podium: 3rd Place */}
-              {leaderboard[2] && (
+              {leaderboard[2]?.student && (
                 <div className="p-5 rounded-2xl bg-gradient-to-b from-orange-50 to-orange-100/50 border border-orange-200 flex flex-col items-center text-center space-y-2 relative order-3">
                   <div className="w-10 h-10 rounded-full bg-orange-300 text-orange-950 font-bold flex items-center justify-center text-base shadow-sm font-times">
                     3
