@@ -2538,92 +2538,7 @@ export const initialTeachingResources: TeachingResourceFile[] = [
   }
 ];
 
-export const initialAcademicAchievements: AcademicAchievement[] = [
-  {
-    id: 'ach-1',
-    studentId: 'st-6-1',
-    studentCode: 'STU-001',
-    studentNameKhmer: 'សុខ ជា',
-    grade: 6,
-    section: 'ក',
-    academicYear: '២០២៤ - ២០២៥',
-    semester: 'semester_1',
-    awardType: 'honor_roll_first',
-    awardTitleKhmer: 'តារាងកិត្តិយសលេខ១ ប្រចាំឆមាសទី១',
-    awardTitleEnglish: 'Honor Roll - 1st Rank (Semester 1)',
-    rankPosition: 1,
-    gpaScore: 9.6,
-    awardedDate: '2025-02-28',
-    awardedByTeacherName: 'លោកគ្រូ ចាន់ សុភាព',
-    remarksOrPraise: 'មានការខិតខំប្រឹងប្រែងខ្ពស់ លទ្ធផលសិក្សាឆ្នើមគ្រប់មុខវិជ្ជា និងជាគំរូដល់មិត្តរួមថ្នាក់',
-    certificateNumber: 'MOEYS-HONOR-2025-001',
-    status: 'published',
-    createdAt: '2025-02-28T10:00:00Z'
-  },
-  {
-    id: 'ach-2',
-    studentId: 'st-6-2',
-    studentCode: 'STU-002',
-    studentNameKhmer: 'ចាន់ ស្រីមុំ',
-    grade: 6,
-    section: 'ក',
-    academicYear: '២០២៤ - ២០២៥',
-    semester: 'semester_1',
-    awardType: 'subject_math_master',
-    awardTitleKhmer: 'សិស្សឆ្នើមមុខវិជ្ជាគណិតវិទ្យា (Math Master)',
-    awardTitleEnglish: 'Excellence in Mathematics',
-    subjectTarget: 'គណិតវិទ្យា',
-    rankPosition: 2,
-    gpaScore: 9.8,
-    awardedDate: '2025-02-28',
-    awardedByTeacherName: 'លោកគ្រូ ចាន់ សុភាព',
-    remarksOrPraise: 'ពូកែដោះស្រាយចំណោទរហ័ស ទទួលបានពិន្ទុអតិបរមាក្នុងការប្រឡងឆមាសទី១',
-    certificateNumber: 'MOEYS-HONOR-2025-002',
-    status: 'published',
-    createdAt: '2025-02-28T10:30:00Z'
-  },
-  {
-    id: 'ach-3',
-    studentId: 'st-5-1',
-    studentCode: 'STU-003',
-    studentNameKhmer: 'ម៉ៅ វិច្ឆិកា',
-    grade: 5,
-    section: 'ក',
-    academicYear: '២០២៤ - ២០២៥',
-    semester: 'semester_1',
-    awardType: 'subject_khmer_star',
-    awardTitleKhmer: 'សិស្សឆ្នើមភាសាខ្មែរ (Khmer Star Award)',
-    awardTitleEnglish: 'Khmer Language Champion',
-    subjectTarget: 'ភាសាខ្មែរ',
-    rankPosition: 1,
-    gpaScore: 9.5,
-    awardedDate: '2025-02-28',
-    awardedByTeacherName: 'អ្នកគ្រូ កែវ ផល្លា',
-    remarksOrPraise: 'សំណេរតែងសេចក្តីល្អឥតខ្ចោះ អក្សរផ្ចិតផ្ចង់ និងស្ទាត់ជំនាញអំណានរហ័ស',
-    certificateNumber: 'MOEYS-HONOR-2025-003',
-    status: 'published',
-    createdAt: '2025-02-28T11:00:00Z'
-  },
-  {
-    id: 'ach-4',
-    studentId: 'st-1-1',
-    studentCode: 'STU-004',
-    studentNameKhmer: 'កែវ ពិសិដ្ឋ',
-    grade: 1,
-    section: 'ក',
-    academicYear: '២០២៤ - ២០២៥',
-    semester: 'semester_1',
-    awardType: 'perfect_attendance',
-    awardTitleKhmer: 'វត្តមានពេញលេញ ១០០% (Perfect Attendance)',
-    awardTitleEnglish: '100% Attendance Award',
-    awardedDate: '2025-02-28',
-    awardedByTeacherName: 'អ្នកគ្រូ អ៊ឹម សារ៉េត',
-    remarksOrPraise: 'មិនធ្លាប់អវត្តមាន ឬមកយឺតម្តងណាឡើយ ក្នុងឆមាសទី១',
-    certificateNumber: 'MOEYS-HONOR-2025-004',
-    status: 'published',
-    createdAt: '2025-02-28T11:30:00Z'
-  }
-];
+export const initialAcademicAchievements: AcademicAchievement[] = [];
 
 export const initialSchoolGroups: SchoolGroup[] = [
   {
@@ -2650,28 +2565,6 @@ export const initialSchoolGroups: SchoolGroup[] = [
         gender: 'male',
         role: 'advisor',
         joinedDate: '2024-11-01'
-      },
-      {
-        id: 'mem-2',
-        memberType: 'student',
-        memberId: 'st-5-1',
-        nameKhmer: 'ស៊ន វ៉ាន់នី',
-        codeOrStaffId: 'STU-001',
-        gradeOrPosition: 'ថ្នាក់ទី ៥ ក',
-        gender: 'female',
-        role: 'leader',
-        joinedDate: '2024-11-05'
-      },
-      {
-        id: 'mem-3',
-        memberType: 'student',
-        memberId: 'st-5-2',
-        nameKhmer: 'ចាន់ សុខា',
-        codeOrStaffId: 'STU-002',
-        gradeOrPosition: 'ថ្នាក់ទី ៥ ក',
-        gender: 'male',
-        role: 'deputy_leader',
-        joinedDate: '2024-11-05'
       }
     ],
     createdBy: 'លោក លីម សន',
@@ -2690,30 +2583,7 @@ export const initialSchoolGroups: SchoolGroup[] = [
     colorTheme: 'emerald',
     iconName: 'BookOpen',
     status: 'active',
-    members: [
-      {
-        id: 'mem-4',
-        memberType: 'student',
-        memberId: 'st-4-1',
-        nameKhmer: 'រស់ ស្រីពេជ្រ',
-        codeOrStaffId: 'STU-003',
-        gradeOrPosition: 'ថ្នាក់ទី ៤ ក',
-        gender: 'female',
-        role: 'leader',
-        joinedDate: '2024-11-06'
-      },
-      {
-        id: 'mem-5',
-        memberType: 'student',
-        memberId: 'st-1-1',
-        nameKhmer: 'កែវ ពិសិដ្ឋ',
-        codeOrStaffId: 'STU-004',
-        gradeOrPosition: 'ថ្នាក់ទី ១ ក',
-        gender: 'male',
-        role: 'member',
-        joinedDate: '2024-11-08'
-      }
-    ],
+    members: [],
     createdBy: 'អ្នកគ្រូ បណ្ណារក្ស',
     createdAt: '2024-11-02T09:00:00Z'
   },
@@ -2730,19 +2600,7 @@ export const initialSchoolGroups: SchoolGroup[] = [
     colorTheme: 'amber',
     iconName: 'Trophy',
     status: 'active',
-    members: [
-      {
-        id: 'mem-6',
-        memberType: 'student',
-        memberId: 'st-6-1',
-        nameKhmer: 'ហេង រ៉ាវី',
-        codeOrStaffId: 'STU-005',
-        gradeOrPosition: 'ថ្នាក់ទី ៦ ក',
-        gender: 'male',
-        role: 'leader',
-        joinedDate: '2024-11-10'
-      }
-    ],
+    members: [],
     createdBy: 'គ្រូអប់រំកាយ',
     createdAt: '2024-11-03T07:30:00Z'
   },

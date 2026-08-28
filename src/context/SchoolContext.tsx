@@ -241,6 +241,7 @@ interface SchoolContextType {
   addStudent: (student: Omit<Student, 'id' | 'code'>) => void;
   updateStudent: (id: string, updated: Partial<Student>) => void;
   deleteStudent: (id: string) => void;
+  deleteAllStudents: () => void;
   pullStudentsToClass: (studentIds: string[], targetGrade: number, targetSection: string) => { count: number };
   getStudentById: (id: string) => Student | undefined;
 
@@ -4739,6 +4740,48 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const deleteAllStudents = () => {
+    if (currentUser?.role === 'teacher') {
+      showToast('⚠️ សិទ្ធិលុបទិន្នន័យសិស្សទាំងអស់ចេញពីប្រព័ន្ធ គឺសម្រាប់តែលោកនាយកសាលា ឬលេខាធិការប៉ុណ្ណោះ!', 'error');
+      return;
+    }
+
+    setStudents([]);
+    try {
+      localStorage.setItem(`${LOCAL_STORAGE_KEY}_students`, JSON.stringify([]));
+      localStorage.removeItem(`${LOCAL_STORAGE_KEY}_students`);
+      
+      setScores([]);
+      localStorage.setItem(`${LOCAL_STORAGE_KEY}_scores`, JSON.stringify([]));
+      localStorage.removeItem(`${LOCAL_STORAGE_KEY}_scores`);
+
+      setDailyHealthChecks([]);
+      localStorage.setItem(`${LOCAL_STORAGE_KEY}_health_checks`, JSON.stringify([]));
+      localStorage.removeItem(`${LOCAL_STORAGE_KEY}_health_checks`);
+
+      setAtRiskStudents([]);
+      localStorage.setItem(`${LOCAL_STORAGE_KEY}_at_risk_students`, JSON.stringify([]));
+      localStorage.removeItem(`${LOCAL_STORAGE_KEY}_at_risk_students`);
+    } catch {
+      // ignore
+    }
+
+    showToast('បានលុបទិន្នន័យឈ្មោះសិស្សទាំងអស់ចេញពីប្រព័ន្ធដោយជោគជ័យ!', 'success');
+
+    addActivityLog({
+      domain: 'student',
+      actionType: 'delete',
+      title: 'បានលុបទិន្នន័យឈ្មោះសិស្សទាំងអស់ចេញពីប្រព័ន្ធ',
+      description: 'បានសម្អាត និងលុបបញ្ជីឈ្មោះសិស្សទាំងអស់ចេញពីមូលដ្ឋានទិន្នន័យសាលារៀន',
+      entityId: 'all-students',
+      entityName: 'បញ្ជីឈ្មោះសិស្សទាំងអស់',
+      actorName: currentUser?.nameKhmer || 'លោក លីម សន (នាយកសាលា)',
+      actorRole: currentUser?.role === 'secretary' ? 'លេខាធិការ' : 'នាយកសាលា',
+      targetTab: 'students',
+      tags: ['លុបទាំងអស់', 'សិស្ស']
+    });
+  };
+
   const getStudentById = (id: string) => {
     return students.find(s => s.id === id);
   };
@@ -5560,6 +5603,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         addStudent,
         updateStudent,
         deleteStudent,
+        deleteAllStudents,
         pullStudentsToClass,
         getStudentById,
         transfers,

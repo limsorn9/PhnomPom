@@ -73,6 +73,7 @@ export const StudentManagement: React.FC = () => {
     addStudent,
     updateStudent,
     deleteStudent,
+    deleteAllStudents,
     pullStudentsToClass,
     searchQuery,
     schoolProfile,
@@ -87,6 +88,7 @@ export const StudentManagement: React.FC = () => {
   } = useSchool();
 
   const isDirector = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
+  const isSecretary = currentUser?.role === 'secretary';
   const isTeacher = currentUser?.role === 'teacher';
   const teacherGrade = currentUser?.assignedGrade || 1;
   const teacherSection = currentUser?.assignedSection || 'ក';
@@ -118,6 +120,7 @@ export const StudentManagement: React.FC = () => {
   const [selectedRiskFilter, setSelectedRiskFilter] = useState<'all' | 'at_risk' | 'consecutive_absent' | 'score_drop' | 'normal'>('all');
   const [localSearch, setLocalSearch] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
   const [isMoeyMasterModalOpen, setIsMoeyMasterModalOpen] = useState(false);
   const [selectedStudentForView, setSelectedStudentForView] = useState<Student | null>(null);
   const [selectedStudentForPdfPrint, setSelectedStudentForPdfPrint] = useState<Student | null>(null);
@@ -754,6 +757,18 @@ export const StudentManagement: React.FC = () => {
               <ArrowRightLeft className="w-4 h-4 text-amber-600" />
               <span>ផ្ទេរសិស្សចេញ/ចូល</span>
             </button>
+            {(isDirector || isSecretary) && students.length > 0 && (
+              <button
+                id="delete-all-students-btn"
+                type="button"
+                onClick={() => setIsDeleteAllModalOpen(true)}
+                className="flex items-center gap-2 px-3.5 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer"
+                title="លុបទិន្នន័យឈ្មោះសិស្សទាំងអស់ចេញពីប្រព័ន្ធ"
+              >
+                <Trash2 className="w-4 h-4 text-red-600" />
+                <span>លុបសិស្សទាំងអស់</span>
+              </button>
+            )}
             {isDirector ? (
               <button
                 id="add-student-btn"
@@ -1351,8 +1366,34 @@ export const StudentManagement: React.FC = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan={9} className="text-center py-10 text-slate-500">
-                    មិនមានទិន្នន័យសិស្សត្រូវនឹងលក្ខខណ្ឌស្វែងរកនេះទេ
+                  <td colSpan={9} className="text-center py-16 px-4">
+                    <div className="max-w-md mx-auto flex flex-col items-center justify-center text-center">
+                      <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-3.5 shadow-xs">
+                        <GraduationCap className="w-8 h-8 text-blue-600" />
+                      </div>
+                      <h4 className="text-base font-bold text-slate-800 mb-1">
+                        {students.length === 0 ? 'មិនទាន់មានទិន្នន័យសិស្សក្នុងប្រព័ន្ធនៅឡើយទេ' : 'មិនមានទិន្នន័យសិស្សត្រូវនឹងលក្ខខណ្ឌស្វែងរកនេះទេ'}
+                      </h4>
+                      <p className="text-xs text-slate-500 max-w-sm mb-4 leading-relaxed">
+                        {students.length === 0
+                          ? 'លោកអ្នកអាចចុះឈ្មោះសិស្សថ្មីម្តងម្នាក់តាមស្តង់ដារក្រសួង MoEYS ឬនាំចូលទិន្នន័យសិស្សពី Excel/CSV'
+                          : 'សូមសាកល្បងផ្លាស់ប្តូរពាក្យគន្លឹះស្វែងរក ឬជម្រើសចម្រោះកម្រិតថ្នាក់'}
+                      </p>
+                      {students.length === 0 && isDirector && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingStudent(null);
+                            setFormData(initialFormState);
+                            setIsAddModalOpen(true);
+                          }}
+                          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                          <span>+ ចុះឈ្មោះសិស្សដំបូង (MoEYS)</span>
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )}
@@ -2717,6 +2758,43 @@ export const StudentManagement: React.FC = () => {
                   <span>ទាញសិស្ស ({selectedPullStudentIds.length}) ចូលថ្នាក់ទី {teacherGrade}«{teacherSection}»</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete All Students Confirmation Modal */}
+      {isDeleteAllModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-red-100 animate-in zoom-in-95 duration-150">
+            <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center mx-auto mb-4 shadow-inner">
+              <AlertTriangle className="w-7 h-7 text-red-600" />
+            </div>
+            <h3 className="text-base sm:text-lg font-bold text-center text-slate-900 font-moul mb-2">
+              បញ្ជាក់ការលុបទិន្នន័យសិស្សទាំងអស់
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-600 text-center mb-6 leading-relaxed">
+              តើលោកអ្នកពិតជាចង់លុបទិន្នន័យឈ្មោះសិស្សទាំងអស់ (<span className="font-bold text-red-600">{students.length} នាក់</span>) ចេញពីប្រព័ន្ធមែនទេ? សកម្មភាពនេះនឹងសម្អាតបញ្ជីសិស្សទាំងអស់ ហើយមិនអាចត្រឡប់វិញបានឡើយ។
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setIsDeleteAllModalOpen(false)}
+                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                បោះបង់
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteAllStudents();
+                  setIsDeleteAllModalOpen(false);
+                }}
+                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-colors shadow-md active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>លុបទាំងអស់</span>
+              </button>
             </div>
           </div>
         </div>
