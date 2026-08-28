@@ -30,7 +30,11 @@ import {
   ShieldAlert,
   Calendar,
   Send,
-  RefreshCw
+  RefreshCw,
+  UserPlus,
+  Shield,
+  X,
+  Library as LibraryIcon
 } from 'lucide-react';
 import { AngkorWatSilhouette, KhmerKbachCorner, MoEYSRoyalHeader } from './AngkorMotif';
 
@@ -50,6 +54,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
     verifyAndResetWithGoogle,
     resetPasswordByEmail,
     sendPasswordResetCode,
+    registerUser,
     showToast
   } = useSchool();
 
@@ -64,6 +69,25 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+
+  // Registration / Create Account Modal States
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [regRole, setRegRole] = useState<UserRole>('student');
+  const [regNameKhmer, setRegNameKhmer] = useState('');
+  const [regNameLatin, setRegNameLatin] = useState('');
+  const [regGender, setRegGender] = useState<'M' | 'F'>('M');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPhone, setRegPhone] = useState('');
+  const [regStaffCode, setRegStaffCode] = useState('');
+  const [regStudentCode, setRegStudentCode] = useState('');
+  const [regGrade, setRegGrade] = useState<number>(1);
+  const [regSection, setRegSection] = useState<string>('ក');
+  const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [regShowPassword, setRegShowPassword] = useState(false);
+  const [regAutoLogin, setRegAutoLogin] = useState(true);
+  const [regLoading, setRegLoading] = useState(false);
+  const [regError, setRegError] = useState('');
 
   // Recovery Modal State
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
@@ -225,6 +249,75 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
   const handleQuickLogin = (role: UserRole) => {
     showToast(`កំពុងចូលប្រើប្រាស់ជាតួនាទី «${getRoleLabel(role)}»...`, 'info');
     switchUserRole(role);
+  };
+
+  const handleRegisterAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegError('');
+
+    if (!regNameKhmer.trim()) {
+      setRegError('សូមបញ្ចូលឈ្មោះពេញជាភាសាខ្មែរ!');
+      return;
+    }
+    if (!regEmail.trim() && !regPhone.trim() && !regStudentCode.trim() && !regStaffCode.trim()) {
+      setRegError('សូមបញ្ចូលអ៊ីមែល លេខទូរស័ព្ទ ឬអត្តលេខសម្គាល់!');
+      return;
+    }
+    if (regEmail.trim() && !regEmail.includes('@')) {
+      setRegError('ទម្រង់អាសយដ្ឋានអ៊ីមែលមិនត្រឹមត្រូវទេ!');
+      return;
+    }
+    if (!regPassword || regPassword.length < 6) {
+      setRegError('ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច ៦ តួអក្សរ!');
+      return;
+    }
+    if (regPassword !== regConfirmPassword) {
+      setRegError('ការផ្ទៀងផ្ទាត់ពាក្យសម្ងាត់មិនត្រូវគ្នាទេ!');
+      return;
+    }
+
+    setRegLoading(true);
+    try {
+      const generatedStaffCode = regStaffCode.trim() || `MOEYS-${Math.floor(1000 + Math.random() * 9000)}`;
+      const generatedStudentCode = regStudentCode.trim() || `STU-2024-${Math.floor(100 + Math.random() * 900)}`;
+
+      const payload: any = {
+        nameKhmer: regNameKhmer.trim(),
+        nameLatin: regNameLatin.trim() || regNameKhmer.trim(),
+        gender: regGender,
+        email: regEmail.trim().toLowerCase() || undefined,
+        phone: regPhone.trim() || undefined,
+        role: regRole,
+        password: regPassword,
+        username: regEmail.trim().split('@')[0] || (regRole === 'student' ? generatedStudentCode : generatedStaffCode),
+        staffCode: regRole !== 'student' ? generatedStaffCode : undefined,
+        studentCode: regRole === 'student' ? generatedStudentCode : undefined,
+        assignedGrade: (regRole === 'teacher' || regRole === 'student') ? Number(regGrade) : undefined,
+        assignedSection: (regRole === 'teacher' || regRole === 'student') ? regSection : undefined,
+        status: 'active',
+        autoLogin: regAutoLogin
+      };
+
+      const res = registerUser(payload);
+      if (res.success) {
+        setShowRegisterModal(false);
+        // Reset form
+        setRegNameKhmer('');
+        setRegNameLatin('');
+        setRegEmail('');
+        setRegPhone('');
+        setRegStaffCode('');
+        setRegStudentCode('');
+        setRegPassword('');
+        setRegConfirmPassword('');
+      } else {
+        setRegError(res.message);
+      }
+    } catch (err: any) {
+      setRegError(err?.message || 'បរាជ័យក្នុងការបង្កើតគណនី');
+    } finally {
+      setRegLoading(false);
+    }
   };
 
   const handleFillCredentials = (id: string, pass: string, tab: 'staff' | 'student') => {
@@ -617,6 +710,29 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Prominent Quick Register Banner in Left Column */}
+              <div className="mt-4 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowRegisterModal(true)}
+                  className="w-full p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-teal-950/40 to-slate-900/80 hover:from-emerald-900/80 hover:to-teal-900/60 border border-emerald-500/40 hover:border-emerald-400 text-left transition-all cursor-pointer flex items-center justify-between group shadow-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <UserPlus className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                        <span>បង្កើតគណនីអ្នកប្រើប្រាស់ថ្មី</span>
+                        <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono">ឥតគិតថ្លៃ</span>
+                      </h4>
+                      <p className="text-[11px] text-slate-300">ចុះឈ្មោះគណនីគ្រូបង្រៀន បុគ្គលិក ឬសិស្សានុសិស្សភ្លាមៗ</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-1 transition-transform shrink-0" />
+                </button>
+              </div>
             </div>
 
 
@@ -871,6 +987,21 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
                   </button>
                 </div>
               )}
+
+              {/* Account Registration Callout */}
+              <div className="mt-4 pt-3 border-t border-slate-800/80">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRegError('');
+                    setShowRegisterModal(true);
+                  }}
+                  className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-emerald-600/20 via-teal-600/20 to-emerald-600/10 hover:from-emerald-600/30 hover:to-teal-600/30 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-[0.99]"
+                >
+                  <UserPlus className="w-4 h-4 text-emerald-400" />
+                  <span>មិនទាន់មានគណនី? ចុចទីនេះដើម្បី «បង្កើតគណនីថ្មី» (ចុះឈ្មោះ)</span>
+                </button>
+              </div>
 
               {/* Bottom Quick Help Contact */}
               <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
@@ -1584,6 +1715,330 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
                 បិទផ្ទាំង
               </button>
             </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Account Registration / Create Account Modal */}
+      {showRegisterModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            className="bg-slate-900 rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border border-slate-700 text-slate-100 space-y-4 my-8 relative overflow-hidden"
+          >
+            {/* Top Accent Line */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-500" />
+
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-moul text-sm sm:text-base text-white">បង្កើតគណនីថ្មី (ចុះឈ្មោះ)</h3>
+                  <p className="text-[11px] text-slate-400">ប្រព័ន្ធគ្រប់គ្រងសាលាបឋមសិក្សា • MoEYS RBAC</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRegisterModal(false)}
+                className="w-8 h-8 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center cursor-pointer transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {regError && (
+              <div className="p-3 bg-rose-950/80 border border-rose-800 rounded-2xl text-xs text-rose-200 flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{regError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleRegisterAccount} className="space-y-4 text-xs">
+              {/* Role Selection */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
+                  ជ្រើសរើសប្រភេទគណនីចុះឈ្មោះ <span className="text-rose-400">*</span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRegRole('student')}
+                    className={`p-3 rounded-2xl border flex items-center gap-3 text-left transition-all cursor-pointer ${
+                      regRole === 'student'
+                        ? 'ring-2 ring-emerald-400 bg-emerald-950/60 border-emerald-400 text-white shadow-md'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center justify-center shrink-0">
+                      <GraduationCap className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-white">សិស្ស ឬអាណាព្យាបាល (Student)</h4>
+                      <p className="text-[10px] text-slate-400">ចុះឈ្មោះដើម្បីតាមដានវត្តមាន ពិន្ទុ និងការសិក្សា</p>
+                    </div>
+                  </button>
+
+                  <div className="p-3 rounded-2xl border border-amber-500/30 bg-amber-950/20 text-left flex items-center gap-3 opacity-90 relative overflow-hidden">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center justify-center shrink-0">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="font-bold text-xs text-amber-200">លោកគ្រូ-អ្នកគ្រូ (Teacher)</h4>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono">នាយកបង្កើត</span>
+                      </div>
+                      <p className="text-[10px] text-amber-300/80">មានតែលោកនាយកសាលា ទើបមានសិទ្ធិបង្កើតបាន</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info Note on Teacher/Staff Creation */}
+                <div className="mt-2.5 p-2.5 bg-blue-950/40 border border-blue-800/60 rounded-xl text-[11px] text-blue-200 flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>គោលការណ៍គ្រប់គ្រងសាលា MoEYS៖</strong> គណនី <strong>គ្រូបង្រៀន (Teacher)</strong> និងបុគ្គលិករដ្ឋបាល គឺមានតែ <strong>លោកនាយកសាលា (School Director)</strong> តែមួយគត់ដែលមានសិទ្ធិបង្កើត និងប្រគល់ជូន។
+                  </span>
+                </div>
+              </div>
+
+              {/* Names */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                    ឈ្មោះពេញជាភាសាខ្មែរ <span className="text-rose-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      required
+                      value={regNameKhmer}
+                      onChange={e => setRegNameKhmer(e.target.value)}
+                      placeholder="ឧ. លឹម សន"
+                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-battambang"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                    ឈ្មោះជាអក្សរឡាតាំង (Latin Name)
+                  </label>
+                  <input
+                    type="text"
+                    value={regNameLatin}
+                    onChange={e => setRegNameLatin(e.target.value)}
+                    placeholder="ឧ. Lim Sorn"
+                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              {/* Gender & Phone */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">ភេទ (Gender)</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRegGender('M')}
+                      className={`flex-1 py-2 rounded-xl font-bold border transition-all cursor-pointer ${
+                        regGender === 'M'
+                          ? 'bg-blue-600 border-blue-400 text-white'
+                          : 'bg-slate-950 border-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      ប្រុស (Male)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRegGender('F')}
+                      className={`flex-1 py-2 rounded-xl font-bold border transition-all cursor-pointer ${
+                        regGender === 'F'
+                          ? 'bg-pink-600 border-pink-400 text-white'
+                          : 'bg-slate-950 border-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      ស្រី (Female)
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">លេខទូរស័ព្ទ (Phone)</label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="tel"
+                      value={regPhone}
+                      onChange={e => setRegPhone(e.target.value)}
+                      placeholder="ឧ. 012 345 678"
+                      className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Email & Staff/Student Code */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                    អាសយដ្ឋានអ៊ីមែល (Email) <span className="text-rose-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="email"
+                      required
+                      value={regEmail}
+                      onChange={e => setRegEmail(e.target.value)}
+                      placeholder="ឧ. limsorn@gmail.com"
+                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                    {regRole === 'student' ? 'អត្តលេខសិស្ស (Student ID)' : 'អត្តលេខមន្ត្រី (Staff Code)'}
+                  </label>
+                  <div className="relative">
+                    <Hash className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      value={regRole === 'student' ? regStudentCode : regStaffCode}
+                      onChange={e => {
+                        if (regRole === 'student') setRegStudentCode(e.target.value);
+                        else setRegStaffCode(e.target.value);
+                      }}
+                      placeholder={regRole === 'student' ? 'ឧ. STU-2024-001' : 'ឧ. MOEYS-1002'}
+                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono uppercase"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Class & Section for Teachers and Students */}
+              {(regRole === 'teacher' || regRole === 'student') && (
+                <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-2">
+                  <span className="text-[11px] font-bold text-emerald-300 flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5" />
+                    {regRole === 'teacher' ? 'កម្រិតថ្នាក់បង្រៀនបន្ទុក' : 'កម្រិតថ្នាក់ដែលកំពុងរៀន'}
+                  </span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] text-slate-400 mb-1">កម្រិតថ្នាក់ (Grade)</label>
+                      <select
+                        value={regGrade}
+                        onChange={e => setRegGrade(Number(e.target.value))}
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        {[1, 2, 3, 4, 5, 6].map(g => (
+                          <option key={g} value={g}>ថ្នាក់ទី {g}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-400 mb-1">បន្ទប់/ក្រុម (Section)</label>
+                      <select
+                        value={regSection}
+                        onChange={e => setRegSection(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        {['ក', 'ខ', 'គ', 'ឃ'].map(s => (
+                          <option key={s} value={s}>បន្ទប់ «{s}»</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Passwords */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                    ពាក្យសម្ងាត់ (Password) <span className="text-rose-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type={regShowPassword ? 'text' : 'password'}
+                      required
+                      value={regPassword}
+                      onChange={e => setRegPassword(e.target.value)}
+                      placeholder="យ៉ាងតិច ៦ តួអក្សរ"
+                      className="w-full pl-9 pr-9 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setRegShowPassword(!regShowPassword)}
+                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-200 cursor-pointer"
+                    >
+                      {regShowPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                    ផ្ទៀងផ្ទាត់ពាក្យសម្ងាត់ <span className="text-rose-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type={regShowPassword ? 'text' : 'password'}
+                      required
+                      value={regConfirmPassword}
+                      onChange={e => setRegConfirmPassword(e.target.value)}
+                      placeholder="វាយពាក្យសម្ងាត់ម្តងទៀត"
+                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Auto Login Checkbox */}
+              <label className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer pt-1">
+                <input
+                  type="checkbox"
+                  checked={regAutoLogin}
+                  onChange={e => setRegAutoLogin(e.target.checked)}
+                  className="rounded bg-slate-950 border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                />
+                <span>ចូលប្រើប្រាស់ប្រព័ន្ធដោយស្វ័យប្រវត្តិភ្លាមៗបន្ទាប់ពីបង្កើតរួច (Auto Sign-In)</span>
+              </label>
+
+              {/* Action Buttons */}
+              <div className="pt-3 border-t border-slate-800 flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowRegisterModal(false)}
+                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold cursor-pointer transition-colors"
+                >
+                  បោះបង់
+                </button>
+                <button
+                  type="submit"
+                  disabled={regLoading}
+                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:from-emerald-700 active:to-teal-700 text-white rounded-xl font-bold shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                >
+                  {regLoading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4" />
+                      <span>បង្កើតគណនី និងចុះឈ្មោះ</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </motion.div>
         </div>
       )}

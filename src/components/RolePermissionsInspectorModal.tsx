@@ -62,15 +62,15 @@ const FEATURE_ACCESS_MATRIX: FeatureAccessItem[] = [
   {
     id: 'students_edit',
     categoryKh: 'គ្រប់គ្រងសិស្ស',
-    featureKh: 'បញ្ចូល និងកែប្រែព័ត៌មានសិស្ស',
-    featureEn: 'Add / Edit Student Records',
-    descriptionKh: 'បង្កើតប្រវត្តិរូបសិស្សថ្មី ឬកែប្រែព័ត៌មានផ្ទាល់ខ្លួន',
+    featureKh: 'កែសម្រួលប្រវត្តិរូបសិស្ស និងទាញសិស្សចូលថ្នាក់',
+    featureEn: 'Edit Student Records & Pull to Class',
+    descriptionKh: 'កែប្រែប្រវត្តិរូបសិស្ស និងទាញសិស្សចូលបន្ទុកថ្នាក់ (ការចុះឈ្មោះបង្កើតសិស្សថ្មីជាសិទ្ធិផ្តាច់មុខរបស់នាយក)',
     directorAccess: 'full',
     teacherAccess: 'restricted',
     secretaryAccess: 'full',
     librarianAccess: 'none',
     studentAccess: 'none',
-    teacherRestrictionNote: 'គ្រូអាចកែប្រែព័ត៌មានសិស្សក្នុងថ្នាក់ខ្លួន ឬស្នើសុំនាយក'
+    teacherRestrictionNote: 'គ្រូមានសិទ្ធិកែសម្រួលប្រវត្តិរូប និងទាញសិស្សចូលថ្នាក់ខ្លួន (នាយកជាអ្នកបង្កើតសិស្សដាច់ខាត)'
   },
   {
     id: 'attendance_record',

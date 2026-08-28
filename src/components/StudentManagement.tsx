@@ -8,6 +8,9 @@ import { getAccessToken, googleSignIn } from '../services/googleAuth';
 import { StudentSearchIndex } from '../utils/searchIndex';
 import {
   UserPlus,
+  UserCheck,
+  ShieldAlert,
+  Check,
   Search,
   Filter,
   Eye,
@@ -65,10 +68,12 @@ import { splitName, calculateStudentAge, formatStudentToMoEYSRow } from '../util
 
 export const StudentManagement: React.FC = () => {
   const {
+    currentUser,
     students,
     addStudent,
     updateStudent,
     deleteStudent,
+    pullStudentsToClass,
     searchQuery,
     schoolProfile,
     showToast,
@@ -80,6 +85,17 @@ export const StudentManagement: React.FC = () => {
     getStudentTotalPoints,
     canAccessStudentDashboard
   } = useSchool();
+
+  const isDirector = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
+  const isTeacher = currentUser?.role === 'teacher';
+  const teacherGrade = currentUser?.assignedGrade || 1;
+  const teacherSection = currentUser?.assignedSection || 'ក';
+
+  // Pull Students To Class State (for Teacher)
+  const [isPullModalOpen, setIsPullModalOpen] = useState(false);
+  const [selectedPullStudentIds, setSelectedPullStudentIds] = useState<string[]>([]);
+  const [pullSearchQuery, setPullSearchQuery] = useState('');
+  const [pullGradeFilter, setPullGradeFilter] = useState<number | 'all'>('all');
 
   // Mode: 'roster' | 'badges' | 'analytics'
   const [viewMode, setViewMode] = useState<'roster' | 'badges' | 'analytics'>('roster');
@@ -728,20 +744,70 @@ export const StudentManagement: React.FC = () => {
               <ArrowRightLeft className="w-4 h-4 text-amber-600" />
               <span>ផ្ទេរសិស្សចេញ/ចូល</span>
             </button>
-            <button
-              id="add-student-btn"
-              onClick={() => {
-                setEditingStudent(null);
-                setFormData(initialFormState);
-                setIsAddModalOpen(true);
-              }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>+ ចុះឈ្មោះសិស្សថ្មី (MoEYS)</span>
-            </button>
+            {isDirector ? (
+              <button
+                id="add-student-btn"
+                onClick={() => {
+                  setEditingStudent(null);
+                  setFormData(initialFormState);
+                  setIsAddModalOpen(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-blue-300"
+                title="ចុះឈ្មោះបង្កើតសិស្សថ្មីក្នុងប្រព័ន្ធ (សិទ្ធិផ្តាច់មុខរបស់នាយកសាលា)"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>+ ចុះឈ្មោះសិស្សថ្មី (MoEYS)</span>
+              </button>
+            ) : isTeacher ? (
+              <button
+                id="pull-students-to-class-btn"
+                onClick={() => {
+                  setSelectedPullStudentIds([]);
+                  setPullSearchQuery('');
+                  setPullGradeFilter('all');
+                  setIsPullModalOpen(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-blue-300"
+                title={`ទាញសិស្សពីថ្នាក់ផ្សេង ឬសិស្សមិនទាន់មានថ្នាក់ ចូលមកថ្នាក់ទី ${teacherGrade}«${teacherSection}» របស់ខ្ញុំ`}
+              >
+                <UserCheck className="w-4 h-4" />
+                <span>📥 ទាញសិស្សចូលថ្នាក់ {teacherGrade}{teacherSection}</span>
+              </button>
+            ) : null}
           </div>
         </div>
+
+        {/* Role Privileges Banner for Teachers */}
+        {isTeacher && (
+          <div className="mt-4 p-3.5 bg-blue-50/90 border border-blue-200/90 rounded-xl flex items-center justify-between gap-3 text-xs text-blue-900">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+                <ShieldAlert className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="font-bold text-blue-950">
+                  សិទ្ធិរបស់លោកគ្រូ-អ្នកគ្រូ (បន្ទុកថ្នាក់ទី {teacherGrade}«${teacherSection}»)
+                </p>
+                <p className="text-blue-700 mt-0.5">
+                  លោកគ្រូ-អ្នកគ្រូមានសិទ្ធិ <span className="font-bold text-blue-950">កែសម្រួលប្រវត្តិរូបសិស្ស</span> និង <span className="font-bold text-blue-950">ទាញសិស្សចូលមកថ្នាក់របស់ខ្លួន</span> (ការបង្កើតសិស្សថ្មីជាសិទ្ធិផ្តាច់មុខរបស់នាយកសាលា)
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedPullStudentIds([]);
+                setPullSearchQuery('');
+                setPullGradeFilter('all');
+                setIsPullModalOpen(true);
+              }}
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg whitespace-nowrap shadow-xs active:scale-95 flex items-center gap-1.5 text-xs transition-colors"
+            >
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>ទាញសិស្សចូលថ្នាក់ខ្ញុំ</span>
+            </button>
+          </div>
+        )}
 
         {/* Quick Vulnerability Filter Chips */}
         <div className="flex items-center gap-2 mt-5 pt-4 border-t border-slate-100 overflow-x-auto pb-1 text-xs">
@@ -1210,6 +1276,19 @@ export const StudentManagement: React.FC = () => {
                           >
                             <Award className="w-4 h-4" />
                           </button>
+                          {isTeacher && (student.grade !== teacherGrade || student.section !== teacherSection) && (
+                            <button
+                              id={`pull-row-student-${student.id}`}
+                              onClick={() => {
+                                pullStudentsToClass([student.id], teacherGrade, teacherSection);
+                              }}
+                              title={`ទាញសិស្ស «${student.nameKhmer}» ចូលថ្នាក់ទី ${teacherGrade}«${teacherSection}» របស់ខ្ញុំ`}
+                              className="flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-bold rounded-lg border border-blue-200 transition-colors whitespace-nowrap"
+                            >
+                              <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                              <span>ទាញចូលថ្នាក់ {teacherGrade}{teacherSection}</span>
+                            </button>
+                          )}
                           <button
                             id={`print-student-${student.id}`}
                             onClick={() => setSelectedStudentForPdfPrint(student)}
@@ -1229,23 +1308,25 @@ export const StudentManagement: React.FC = () => {
                           <button
                             id={`edit-student-${student.id}`}
                             onClick={() => handleEditClick(student)}
-                            title="កែប្រែព័ត៌មាន"
+                            title="កែប្រែព័ត៌មាន (លោកគ្រូ-អ្នកគ្រូ និងនាយកអាចកែសម្រួលបាន)"
                             className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button
-                            id={`delete-student-${student.id}`}
-                            onClick={() => {
-                              if (window.confirm(`តើអ្នកពិតជាចង់លុបសិស្ស «${student.nameKhmer}» ឬទេ?`)) {
-                                deleteStudent(student.id);
-                              }
-                            }}
-                            title="លុប"
-                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {isDirector && (
+                            <button
+                              id={`delete-student-${student.id}`}
+                              onClick={() => {
+                                if (window.confirm(`តើអ្នកពិតជាចង់លុបសិស្ស «${student.nameKhmer}» ឬទេ?`)) {
+                                  deleteStudent(student.id);
+                                }
+                              }}
+                              title="លុប (សិទ្ធិនាយកសាលា)"
+                              className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -2425,6 +2506,203 @@ export const StudentManagement: React.FC = () => {
           initialGrade={selectedGrade === 'all' ? 'all' : selectedGrade}
           onClose={() => setIsMoeyMasterModalOpen(false)}
         />
+      )}
+
+      {/* Pull Students To Class Modal (for Teacher) */}
+      {isPullModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-gradient-to-r from-blue-700 to-indigo-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                  <UserCheck className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold font-moul">ទាញសិស្សចូលមកថ្នាក់ទី {teacherGrade}«{teacherSection}» របស់ខ្ញុំ</h3>
+                  <p className="text-xs text-blue-100 mt-0.5">
+                    ជ្រើសរើសសិស្សដែលមិនទាន់មានថ្នាក់ ឬពីថ្នាក់ផ្សេង ដើម្បីទាញចូលមកក្នុងបញ្ជីថ្នាក់របស់លោកគ្រូ-អ្នកគ្រូ
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPullModalOpen(false)}
+                className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-[240px]">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={pullSearchQuery}
+                  onChange={e => setPullSearchQuery(e.target.value)}
+                  placeholder="ស្វែងរកតាមឈ្មោះ អត្តលេខ ឬលេខទូរស័ព្ទអាណាព្យាបាល..."
+                  className="w-full pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-600">មកពីកម្រិតថ្នាក់៖</span>
+                <select
+                  value={pullGradeFilter}
+                  onChange={e => setPullGradeFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                  className="px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                  <option value="all">ថ្នាក់ផ្សេងៗទាំងអស់</option>
+                  {[1, 2, 3, 4, 5, 6].map(g => (
+                    <option key={g} value={g}>ថ្នាក់ទី {g}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Quick Select All */}
+              {(() => {
+                const pullableCandidates = students.filter(s => {
+                  if (s.grade === teacherGrade && s.section === teacherSection) return false;
+                  if (pullGradeFilter !== 'all' && s.grade !== pullGradeFilter) return false;
+                  if (pullSearchQuery.trim()) {
+                    const q = pullSearchQuery.toLowerCase();
+                    const matchName = s.nameKhmer.toLowerCase().includes(q) || (s.nameLatin && s.nameLatin.toLowerCase().includes(q));
+                    const matchCode = s.code.toLowerCase().includes(q);
+                    const matchPhone = (s.guardianPhone && s.guardianPhone.includes(q)) || (s.phone && s.phone.includes(q));
+                    if (!matchName && !matchCode && !matchPhone) return false;
+                  }
+                  return true;
+                });
+
+                const isAllSelected = pullableCandidates.length > 0 && pullableCandidates.every(s => selectedPullStudentIds.includes(s.id));
+
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isAllSelected) {
+                        setSelectedPullStudentIds([]);
+                      } else {
+                        setSelectedPullStudentIds(pullableCandidates.map(s => s.id));
+                      }
+                    }}
+                    className="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Check className={`w-3.5 h-3.5 ${isAllSelected ? 'text-blue-600' : 'text-slate-400'}`} />
+                    <span>{isAllSelected ? 'ដកការជ្រើសរើសទាំងអស់' : 'ជ្រើសរើសទាំងអស់'}</span>
+                  </button>
+                );
+              })()}
+            </div>
+
+            {/* Students Candidate List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 max-h-[50vh]">
+              {(() => {
+                const pullableCandidates = students.filter(s => {
+                  if (s.grade === teacherGrade && s.section === teacherSection) return false;
+                  if (pullGradeFilter !== 'all' && s.grade !== pullGradeFilter) return false;
+                  if (pullSearchQuery.trim()) {
+                    const q = pullSearchQuery.toLowerCase();
+                    const matchName = s.nameKhmer.toLowerCase().includes(q) || (s.nameLatin && s.nameLatin.toLowerCase().includes(q));
+                    const matchCode = s.code.toLowerCase().includes(q);
+                    const matchPhone = (s.guardianPhone && s.guardianPhone.includes(q)) || (s.phone && s.phone.includes(q));
+                    if (!matchName && !matchCode && !matchPhone) return false;
+                  }
+                  return true;
+                });
+
+                if (pullableCandidates.length === 0) {
+                  return (
+                    <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                      <Users className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                      <p className="text-sm font-bold text-slate-600">មិនមានសិស្សដែលអាចទាញចូលបានតាមលក្ខខណ្ឌនេះឡើយ</p>
+                      <p className="text-xs text-slate-400 mt-1">សិស្សទាំងអស់ប្រហែលជាស្ថិតក្នុងថ្នាក់ទី {teacherGrade}«{teacherSection}» រួចរាល់ហើយ ឬពុំត្រូវនឹងពាក្យស្វែងរក</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                    {pullableCandidates.map(s => {
+                      const isSelected = selectedPullStudentIds.includes(s.id);
+                      return (
+                        <div
+                          key={s.id}
+                          onClick={() => {
+                            setSelectedPullStudentIds(prev =>
+                              prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                            );
+                          }}
+                          className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                            isSelected
+                              ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400 shadow-xs'
+                              : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {}}
+                              className="w-4 h-4 text-blue-600 rounded-sm border-slate-300 focus:ring-blue-500 cursor-pointer"
+                            />
+                            <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs flex-shrink-0">
+                              {s.gender === 'F' ? '👧' : '👦'}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-slate-900 text-xs truncate">{s.nameKhmer}</p>
+                              <p className="text-[11px] text-slate-500 truncate">{s.code} • ថ្នាក់បច្ចុប្បន្ន៖ <span className="font-semibold text-slate-700">ថ្នាក់ទី {s.grade}{s.section}</span></p>
+                              {s.guardianPhone && (
+                                <p className="text-[10px] text-slate-400 truncate">អាណាព្យាបាល៖ {s.guardianName || 'N/A'} ({s.guardianPhone})</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold whitespace-nowrap ${
+                            isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {isSelected ? 'បានជ្រើសរើស' : 'ចុចដើម្បីរើស'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-white border-t border-slate-200 flex items-center justify-between gap-3">
+              <p className="text-xs text-slate-600 font-medium">
+                បានជ្រើសរើសសិស្ស៖ <span className="font-bold text-blue-700 text-sm">{selectedPullStudentIds.length} នាក់</span>
+              </p>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsPullModalOpen(false)}
+                  className="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  បោះបង់
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedPullStudentIds.length === 0}
+                  onClick={() => {
+                    pullStudentsToClass(selectedPullStudentIds, teacherGrade, teacherSection);
+                    setSelectedPullStudentIds([]);
+                    setIsPullModalOpen(false);
+                  }}
+                  className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span>ទាញសិស្ស ({selectedPullStudentIds.length}) ចូលថ្នាក់ទី {teacherGrade}«{teacherSection}»</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -160,6 +160,7 @@ interface SchoolContextType {
   accessStudentAccount: (student: Student) => void;
   switchToTeacherWithPassword: (password: string) => { success: boolean; message?: string };
   addUser: (userData: Omit<AppUser, 'id' | 'createdAt'>) => { success: boolean; message: string };
+  registerUser: (userData: Omit<AppUser, 'id' | 'createdAt'> & { autoLogin?: boolean }) => { success: boolean; message: string; user?: AppUser };
   updateUser: (id: string, updated: Partial<AppUser>) => void;
   deleteUser: (id: string, reason?: string) => void;
   deletedUsers: DeletedAppUser[];
@@ -238,6 +239,7 @@ interface SchoolContextType {
   addStudent: (student: Omit<Student, 'id' | 'code'>) => void;
   updateStudent: (id: string, updated: Partial<Student>) => void;
   deleteStudent: (id: string) => void;
+  pullStudentsToClass: (studentIds: string[], targetGrade: number, targetSection: string) => { count: number };
   getStudentById: (id: string) => Student | undefined;
 
   // Student Transfers (ផ្ទេរចេញ & បន្ថែមសិស្សចូល)
@@ -3391,14 +3393,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return { success: false, message: 'សូមចូលប្រព័ន្ធជាមុនសិន' };
     }
 
-    if (currentUser.role === 'teacher' && userData.role !== 'student') {
-      return { success: false, message: 'លោកគ្រូ-អ្នកគ្រូមានសិទ្ធិបង្កើតបានតែគណនីសិស្សក្នុងបន្ទុកថ្នាក់ប៉ុណ្ណោះ' };
-    }
-    if (currentUser.role === 'secretary' && (userData.role === 'director' || userData.role === 'teacher')) {
-      return { success: false, message: 'លេខាធិការមិនមានសិទ្ធិបង្កើតគណនីនាយក ឬគ្រូបង្រៀនឡើយ' };
-    }
-    if (currentUser.role === 'librarian' || currentUser.role === 'student') {
-      return { success: false, message: 'អ្នកមិនមានសិទ្ធិបង្កើតគណនីអ្នកប្រើប្រាស់ឡើយ' };
+    // Strict Rule: Only Director / Super Admin can create accounts (Student, Teacher, Staff)
+    if (currentUser.role !== 'director' && currentUser.role !== 'super_admin') {
+      return { 
+        success: false, 
+        message: 'ការបង្កើតគណនីគ្រូបង្រៀន និងសិស្ស គឺមានតែលោកនាយកសាលា (Director) តែប៉ុណ្ណោះ ទើបមានសិទ្ធិបង្កើតបានដាច់ខាត!' 
+      };
     }
 
     const newUser: AppUser = {
@@ -3471,6 +3471,114 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     showToast(`បានបង្កើតគណនីជូន ${newUser.nameKhmer} (${getRoleLabel(newUser.role)}) ដោយជោគជ័យ!`);
     return { success: true, message: 'ជោគជ័យ' };
+  };
+
+  // Self-Registration / Direct Account Creation (even when logged out)
+  const registerUser = (userData: Omit<AppUser, 'id' | 'createdAt'> & { autoLogin?: boolean }) => {
+    // Strict RBAC: Only Parents can self-register, and strictly requires phone number matching a child's registered guardianPhone or phone
+    if (userData.role === 'teacher' || userData.role === 'director' || userData.role === 'secretary' || userData.role === 'librarian') {
+      return { 
+        success: false, 
+        message: 'គណនីនាយកសាលា គ្រូបង្រៀន និងបុគ្គលិក គឺមានតែលោកនាយកសាលា (Director) តែប៉ុណ្ណោះ ទើបមានសិទ្ធិបង្កើតបាន!' 
+      };
+    }
+
+    const cleanPhone = (userData.phone || '').trim().replace(/\s+|-/g, '');
+    if (!cleanPhone) {
+      return {
+        success: false,
+        message: 'សូមបញ្ចូលលេខទូរស័ព្ទអាណាព្យាបាលដើម្បីផ្ទៀងផ្ទាត់ជាមួយទិន្នន័យកូនសិស្ស!'
+      };
+    }
+
+    // Verify phone against students database
+    const matchingStudents = students.filter(s => {
+      const gPhone = (s.guardianPhone || '').replace(/\s+|-/g, '');
+      const sPhone = (s.phone || '').replace(/\s+|-/g, '');
+      return (gPhone && gPhone === cleanPhone) || (sPhone && sPhone === cleanPhone);
+    });
+
+    if (matchingStudents.length === 0) {
+      return {
+        success: false,
+        message: `លេខទូរស័ព្ទ «${userData.phone}» មិនត្រូវគ្នានឹងលេខទូរស័ព្ទអាណាព្យាបាលរបស់សិស្សណាម្នាក់ក្នុងប្រព័ន្ធសាលាឡើយ! ទាមទារលេខទូរស័ព្ទដូចកូនទើបអាចបង្កើតគណនីបាន។`
+      };
+    }
+
+    const matchedChild = matchingStudents[0];
+    const emailNorm = (userData.email || '').trim().toLowerCase();
+
+    // Check if email is already registered
+    if (emailNorm) {
+      const emailTaken = appUsers.some(u => u.email?.trim().toLowerCase() === emailNorm);
+      if (emailTaken) {
+        return { success: false, message: `អាសយដ្ឋានអ៊ីមែល «${userData.email}» ត្រូវបានចុះឈ្មោះក្នុងប្រព័ន្ធរួចហើយ!` };
+      }
+    }
+
+    // Check if username is already registered
+    if (userData.username) {
+      const usernameTaken = appUsers.some(u => u.username?.trim().toLowerCase() === userData.username.trim().toLowerCase());
+      if (usernameTaken) {
+        return { success: false, message: `ឈ្មោះសម្គាល់ «${userData.username}» មានរួចហើយ! សូមជ្រើសរើសឈ្មោះផ្សេង` };
+      }
+    }
+
+    const newUser: AppUser = {
+      ...userData,
+      id: `u-${Date.now()}`,
+      role: 'student', // Linked to student/parent dashboard
+      studentId: matchedChild.id,
+      studentCode: matchedChild.code,
+      assignedGrade: matchedChild.grade,
+      assignedSection: matchedChild.section,
+      createdBy: 'parent-self-registration',
+      createdAt: new Date().toISOString().split('T')[0],
+      status: 'active',
+      passwordUpdatedAt: new Date().toISOString(),
+      activeSessions: [
+        {
+          id: `sess-${Date.now()}`,
+          deviceId: `dev-${Date.now()}`,
+          deviceName: typeof navigator !== 'undefined' && navigator.userAgent.includes('Mobile') ? 'Smartphone' : 'Web Browser',
+          browser: 'Chrome / Safari',
+          os: typeof navigator !== 'undefined' && navigator.userAgent.includes('Windows') ? 'Windows' : 'Android/iOS/MacOS',
+          ipAddress: '127.0.0.1 (Local)',
+          location: 'កម្ពុជា',
+          lastActive: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          isCurrent: true
+        }
+      ]
+    };
+
+    setAppUsers(prev => [newUser, ...prev]);
+
+    // Auto-login user if requested
+    if (userData.autoLogin !== false) {
+      setCurrentUser(newUser);
+      showToast(`ចុះឈ្មោះជោគជ័យ! បានភ្ជាប់ជាមួយកូនសិស្ស «${matchedChild.nameKhmer}» (${matchedChild.code} ថ្នាក់ទី ${matchedChild.grade}${matchedChild.section})`, 'success');
+    } else {
+      showToast(`បានបង្កើតគណនីអាណាព្យាបាលជូន ${newUser.nameKhmer} (កូនសិស្ស៖ ${matchedChild.nameKhmer}) ដោយជោគជ័យ!`, 'success');
+    }
+
+    addAccountAuditLog({
+      eventType: 'create',
+      targetUserId: newUser.id,
+      targetUserName: newUser.nameKhmer,
+      targetUserRole: 'student',
+      targetUserEmail: newUser.email,
+      actor: {
+        id: newUser.id,
+        nameKhmer: newUser.nameKhmer,
+        email: newUser.email,
+        role: 'student'
+      },
+      reason: `អាណាព្យាបាលចុះឈ្មោះដោយស្វ័យប្រវត្តិ (ផ្ទៀងផ្ទាត់តាមលេខទូរស័ព្ទកូនសិស្ស ${matchedChild.nameKhmer})`,
+      details: `បានភ្ជាប់គណនីអាណាព្យាបាល ${newUser.nameKhmer} ជាមួយសិស្ស ${matchedChild.nameKhmer} (${matchedChild.code}) ថ្នាក់ទី ${matchedChild.grade}${matchedChild.section}`
+    });
+
+    return { success: true, message: 'ជោគជ័យ', user: newUser };
   };
 
   const updateUser = (id: string, updated: Partial<AppUser>) => {
@@ -4372,6 +4480,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const addStudent = (studentData: Omit<Student, 'id' | 'code'>) => {
+    // Strict Rule: Only Director / Super Admin can create students
+    if (currentUser && currentUser.role !== 'director' && currentUser.role !== 'super_admin') {
+      showToast('សិស្សមានតែលោកនាយកសាលា (Director) តែប៉ុណ្ណោះ ទើបមានសិទ្ធិបង្កើត/ចុះឈ្មោះចូលប្រព័ន្ធបានដាច់ខាត!', 'error');
+      return;
+    }
+
     const nextIndex = students.length + 1;
     const code = `STU-2024-${String(nextIndex).padStart(3, '0')}`;
     const newStudent: Student = {
@@ -4391,8 +4505,8 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       entityId: newStudent.id,
       entityCode: newStudent.code,
       entityName: newStudent.nameKhmer,
-      actorName: currentUser?.nameKhmer || 'លោកគ្រូ ចាន់ វុទ្ធី',
-      actorRole: currentUser?.role === 'director' ? 'នាយកសាលា' : 'គ្រូបន្ទុកថ្នាក់',
+      actorName: currentUser?.nameKhmer || 'លោកនាយកសាលា',
+      actorRole: 'នាយកសាលា',
       targetTab: 'students',
       tags: [`ថ្នាក់ទី ${newStudent.grade}${newStudent.section}`, newStudent.code],
       changes: [
@@ -4401,6 +4515,39 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         { fieldName: 'grade', fieldLabelKhmer: 'កម្រិតថ្នាក់', newValue: `ថ្នាក់ទី ${newStudent.grade}${newStudent.section}` }
       ]
     });
+  };
+
+  const pullStudentsToClass = (studentIds: string[], targetGrade: number, targetSection: string) => {
+    if (!studentIds || studentIds.length === 0) return { count: 0 };
+
+    let count = 0;
+    setStudents(prev =>
+      prev.map(s => {
+        if (studentIds.includes(s.id)) {
+          count++;
+          return { ...s, grade: targetGrade, section: targetSection };
+        }
+        return s;
+      })
+    );
+
+    showToast(`បានទាញសិស្សចំនួន ${studentIds.length} នាក់ ចូលថ្នាក់ទី ${targetGrade}«${targetSection}» ដោយជោគជ័យ!`, 'success');
+
+    // Audit log
+    addActivityLog({
+      domain: 'student',
+      actionType: 'update',
+      title: `បានទាញសិស្សចំនួន ${studentIds.length} នាក់ ចូលមកថ្នាក់ទី ${targetGrade}«${targetSection}»`,
+      description: `${currentUser?.nameKhmer || 'គ្រូបន្ទុកថ្នាក់'} បានទាញសិស្សចំនួន ${studentIds.length} នាក់ ចូលក្នុងបន្ទុកថ្នាក់របស់ខ្លួន`,
+      entityId: studentIds[0] || 'bulk-pull',
+      entityName: `សិស្ស ${studentIds.length} នាក់ (ថ្នាក់ទី ${targetGrade}${targetSection})`,
+      actorName: currentUser?.nameKhmer || 'គ្រូបន្ទុកថ្នាក់',
+      actorRole: 'គ្រូបន្ទុកថ្នាក់',
+      targetTab: 'students',
+      tags: [`ថ្នាក់ទី ${targetGrade}${targetSection}`, `សិស្ស ${studentIds.length} នាក់`]
+    });
+
+    return { count: studentIds.length };
   };
 
   const updateStudent = (id: string, updated: Partial<Student>) => {
@@ -5223,6 +5370,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         accessStudentAccount,
         switchToTeacherWithPassword,
         addUser,
+        registerUser,
         updateUser,
         deleteUser,
         deletedUsers,
@@ -5267,6 +5415,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         addStudent,
         updateStudent,
         deleteStudent,
+        pullStudentsToClass,
         getStudentById,
         transfers,
         addTransfer,

@@ -352,17 +352,9 @@ export const AccountsManagement: React.FC = () => {
       return;
     }
 
-    // Role creation validation
-    if (isSecretary && (newRole === 'director' || newRole === 'teacher')) {
-      showToast('លេខាធិការមិនមានសិទ្ធិបង្កើតគណនីនាយក ឬគ្រូបង្រៀនឡើយ (បង្កើតបានតែបណ្ណារក្ស និងគណនីផ្សេងទៀត)', 'error');
-      return;
-    }
-    if (isLibrarian || isStudent) {
-      showToast('អ្នកមិនមានសិទ្ធិបង្កើតគណនីអ្នកប្រើប្រាស់ឡើយ', 'error');
-      return;
-    }
-    if (isTeacher && newRole !== 'student') {
-      showToast('គ្រូបង្រៀនមានសិទ្ធិបង្កើតបានតែគណនីសិស្សប៉ុណ្ណោះ', 'error');
+    // Role creation validation (Strict MoEYS Rule: Only Director can create accounts)
+    if (!isDirector) {
+      showToast('មានតែនាយកសាលាទេ ទើបមានសិទ្ធិបង្កើតគណនីគ្រូ បុគ្គលិក ឬសិស្សក្នុងប្រព័ន្ធ!', 'error');
       return;
     }
 
@@ -378,12 +370,12 @@ export const AccountsManagement: React.FC = () => {
       password: newPassword,
       nameKhmer: newNameKhmer,
       nameLatin: newNameLatin,
-      role: isTeacher ? 'student' : newRole,
+      role: newRole,
       phone: newPhone,
       staffCode: newStaffCode,
-      studentCode: (isTeacher || newRole === 'student') ? newStudentCode : undefined,
-      assignedGrade: (isTeacher || newRole === 'student') ? newAssignedGrade : undefined,
-      assignedSection: (isTeacher || newRole === 'student') ? newAssignedSection : undefined,
+      studentCode: newRole === 'student' ? newStudentCode : undefined,
+      assignedGrade: (newRole === 'teacher' || newRole === 'student') ? newAssignedGrade : undefined,
+      assignedSection: (newRole === 'teacher' || newRole === 'student') ? newAssignedSection : undefined,
       status: 'active',
       passwordUpdatedAt: new Date().toISOString()
     };
@@ -573,19 +565,17 @@ export const AccountsManagement: React.FC = () => {
             </button>
           )}
 
-          {(isDirector || isTeacher) && (
+          {isDirector && (
             <button
               type="button"
               onClick={() => {
                 setShowCreateModal(true);
-                setNewRole(isTeacher ? 'student' : 'secretary');
+                setNewRole('teacher');
               }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer hover:shadow-lg active:scale-95"
             >
               <UserPlus className="w-4 h-4" />
-              <span>
-                {isDirector ? '+ បង្កើតគណនីថ្មី' : '+ បង្កើតគណនីសិស្ស'}
-              </span>
+              <span>+ បង្កើតគណនីថ្មី (សិទ្ធិនាយក)</span>
             </button>
           )}
         </div>
@@ -714,9 +704,10 @@ export const AccountsManagement: React.FC = () => {
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 rounded-2xl p-4 text-xs text-blue-900 flex items-start gap-3 shadow-sm">
             <ShieldAlert className="w-5 h-5 text-blue-700 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="font-bold text-slate-900">គោលការណ៍បង្កើតគណនីតាមឋានានុក្រម MoEYS៖</p>
+              <p className="font-bold text-slate-900">គោលការណ៍បង្កើតគណនីតាមឋានានុក្រម MoEYS (RBAC Policy)៖</p>
               <ul className="list-disc list-inside space-y-0.5 text-slate-700 text-[11.5px]">
-                <li><strong>នាយកសាលា (Director)៖</strong> មានសិទ្ធិបង្កើត និងគ្រប់គ្រងគណនីគ្រប់តួនាទី បង្ខំឱ្យប្តូរពាក្យសម្ងាត់ (Force Rotation) និងចូលមើល Master Access បាន។</li>
+                <li><strong>នាយកសាលា (Director)៖</strong> ជាអ្នកមានសិទ្ធិផ្តាច់មុខក្នុងការ <strong>«បង្កើតគណនីគ្រូបង្រៀន»</strong> និងគ្រប់គ្រងគណនីគ្រប់តួនាទី បង្ខំឱ្យប្តូរពាក្យសម្ងាត់ (Force Rotation) និងចូលមើល Master Access បាន។</li>
+                <li><strong>លេខាធិការ (Secretary)៖</strong> អាចបង្កើតបានតែគណនីបណ្ណារក្ស ឬសិស្ស (មិនមានសិទ្ធិបង្កើតគណនីគ្រូបង្រៀនឡើយ)។</li>
                 <li><strong>គ្រូបន្ទុកថ្នាក់ (Homeroom Teacher)៖</strong> មានសិទ្ធិបង្កើត និងគ្រប់គ្រងគណនីសម្រាប់តែ <strong>សិស្សក្នុងបន្ទុកថ្នាក់របស់ខ្លួន</strong> ប៉ុណ្ណោះ។</li>
                 <li><strong>ការស្តារពាក្យសម្ងាត់៖</strong> Auto-verification តាមលេខកូដសាលា រីឯសិស្ស auto-reset ជូនគ្រូបន្ទុកថ្នាក់។</li>
               </ul>
@@ -1155,19 +1146,36 @@ export const AccountsManagement: React.FC = () => {
                     value="សិស្ស (Student)"
                     className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600 font-bold"
                   />
+                ) : isSecretary ? (
+                  <select
+                    value={newRole}
+                    onChange={e => setNewRole(e.target.value as UserRole)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  >
+                    <option value="librarian">បណ្ណារក្ស (Librarian)</option>
+                    <option value="student">សិស្ស (Student)</option>
+                  </select>
                 ) : (
                   <select
                     value={newRole}
                     onChange={e => setNewRole(e.target.value as UserRole)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
                   >
+                    <option value="teacher">គ្រូបង្រៀន (Teacher) • សិទ្ធិផ្តាច់មុខនាយក</option>
                     <option value="secretary">លេខាធិការ (Secretary)</option>
                     <option value="librarian">បណ្ណារក្ស (Librarian)</option>
-                    <option value="teacher">គ្រូបង្រៀន (Teacher)</option>
                     <option value="student">សិស្ស (Student)</option>
+                    <option value="director">នាយកសាលា (Director)</option>
                   </select>
                 )}
               </div>
+
+              {isDirector && newRole === 'teacher' && (
+                <div className="p-2 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-800 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>លោកនាយកកំពុងបង្កើតគណនីគ្រូបង្រៀនថ្មី (ប្រព័ន្ធនឹងភ្ជាប់ទិន្នន័យទៅបញ្ជីគ្រូដោយស្វ័យប្រវត្តិ)</span>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">

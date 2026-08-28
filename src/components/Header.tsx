@@ -49,7 +49,8 @@ import {
   Users2,
   FolderKanban,
   ShieldCheck,
-  Bot
+  Bot,
+  UserPlus
 } from 'lucide-react';
 import { NotificationsModal } from './NotificationsModal';
 import { OfflineSyncStatusBadge } from './OfflineSyncStatusBadge';
@@ -81,6 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const {
     activeTab,
+    setActiveTab,
     searchQuery,
     setSearchQuery,
     schoolProfile,
@@ -554,6 +556,18 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     <Settings className="w-3.5 h-3.5 text-blue-600" />
                     <span>{language === 'en' ? 'My Account Settings' : '⚙️ ការកំណត់គណនី និងប្រវត្តិរូប'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowRoleMenu(false);
+                      setActiveTab('accounts');
+                    }}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold mb-1 border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-950/20"
+                  >
+                    <UserPlus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>{language === 'en' ? 'Create & Manage Accounts' : '👥 គ្រប់គ្រង & បង្កើតគណនីថ្មី'}</span>
                   </button>
 
                   <p className="text-[10px] font-bold uppercase text-slate-400 px-2 py-1">
