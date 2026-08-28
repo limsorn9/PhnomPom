@@ -675,21 +675,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // fallback
       }
     }
-    const todayStr = new Date().toISOString().split('T')[0];
-    return initialStudents.slice(0, 24).map((st, idx) => ({
-      id: `hc-${st.id}-${todayStr}`,
-      date: todayStr,
-      grade: st.grade,
-      section: st.section,
-      studentId: st.id,
-      studentNameKhmer: st.nameKhmer,
-      temperature: idx === 2 ? 37.8 : (idx === 5 ? 38.6 : (idx === 8 ? 37.6 : 36.5)),
-      status: idx === 5 ? ('isolate' as const) : (idx === 2 || idx === 8 ? ('monitor' as const) : ('normal' as const)),
-      symptoms: idx === 2 ? ['ក្អក', 'ហៀរសំបោរ'] : (idx === 5 ? ['ក្តៅខ្លួន', 'ឈឺក្បាល'] : (idx === 8 ? ['ឈឺក្បាល'] : [])),
-      session: 'morning' as const,
-      checkedAt: `${todayStr} 07:30`,
-      notes: idx === 5 ? 'សីតុណ្ហភាពខ្ពស់ ជូនដំណឹងអាណាព្យាបាល' : ''
-    }));
+    return [];
   });
 
   useEffect(() => {
@@ -758,7 +744,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Released Exam Results State (grade_section_month_year -> boolean)
   const [releasedResults, setReleasedResults] = useState<Record<string, boolean>>(() => {
     const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_released_results`);
-    return saved ? JSON.parse(saved) : { '6_ក_មករា_២០២៤ - ២០២៥': true, '1_ក_មករា_២០២៤ - ២០២៥': true };
+    return saved ? JSON.parse(saved) : {};
   });
 
   // Catchment Villages State
@@ -841,110 +827,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // fallback
       }
     }
-    const todayStr = new Date().toISOString();
-    const pastDateStr = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
-    const olderDateStr = new Date(Date.now() - 105 * 24 * 60 * 60 * 1000).toISOString();
-    const expiredIssueDate = new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const expiredAtDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-    return [
-      {
-        id: 'scan-log-1',
-        scannedAt: todayStr,
-        signatureRef: 'MOEYS-SIG-2026-6A-STU001-A48F',
-        studentId: 'st-1',
-        studentCode: 'STU001',
-        studentNameKhmer: 'សុខ សុវណ្ណារ៉ា',
-        studentNameLatin: 'Sok Sovannara',
-        grade: 6,
-        section: 'ក',
-        academicYear: '២០២៦ - ២០២៧',
-        monthOrSemester: 'មករា',
-        schoolCode: '001',
-        schoolNameKhmer: 'សាលាបឋមសិក្សាភ្នំព្រឹក',
-        principalName: 'សួន វិបុល',
-        issueDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        expiresAt: new Date(Date.now() + 80 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        verificationStatus: 'valid',
-        statusReason: 'ហត្ថលេខាឌីជីថល និងត្រានាយកសាលាមានសុពលភាពត្រឹមត្រូវតាមស្ដង់ដារ MoEYS',
-        deviceInfo: {
-          deviceType: 'mobile',
-          os: 'iOS 17.4',
-          browser: 'Safari Mobile',
-          userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15'
-        },
-        verifierName: 'លោកនាយកសាលា',
-        verifierRole: 'នាយកសាលា',
-        scanMethod: 'webcam_scanner',
-        averageScore: 9.25,
-        rank: 1,
-        totalStudents: 28
-      },
-      {
-        id: 'scan-log-2',
-        scannedAt: pastDateStr,
-        signatureRef: 'MOEYS-SIG-2026-6A-STU002-B71C',
-        studentId: 'st-2',
-        studentCode: 'STU002',
-        studentNameKhmer: 'ចាន់ ធីតា',
-        studentNameLatin: 'Chan Thida',
-        grade: 6,
-        section: 'ក',
-        academicYear: '២០២៦ - ២០២៧',
-        monthOrSemester: 'មករា',
-        schoolCode: '001',
-        schoolNameKhmer: 'សាលាបឋមសិក្សាភ្នំព្រឹក',
-        principalName: 'សួន វិបុល',
-        issueDate: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        expiresAt: new Date(Date.now() + 78 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        verificationStatus: 'valid',
-        statusReason: 'ហត្ថលេខាឌីជីថល និងត្រានាយកសាលាមានសុពលភាពត្រឹមត្រូវតាមស្ដង់ដារ MoEYS',
-        deviceInfo: {
-          deviceType: 'desktop',
-          os: 'Windows 11',
-          browser: 'Chrome 122.0',
-          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0.0.0'
-        },
-        verifierName: 'លោកស្រី ម៉ៅ សុផល (អធិការអប់រំ)',
-        verifierRole: 'អធិការកិច្ចមន្ទីរអប់រំ',
-        scanMethod: 'file_upload',
-        averageScore: 8.85,
-        rank: 2,
-        totalStudents: 28
-      },
-      {
-        id: 'scan-log-3',
-        scannedAt: olderDateStr,
-        signatureRef: 'MOEYS-SIG-2025-5B-STU089-9E2A',
-        studentId: 'st-3',
-        studentCode: 'STU089',
-        studentNameKhmer: 'កែវ វិចិត្រ',
-        studentNameLatin: 'Keo Vichet',
-        grade: 5,
-        section: 'ខ',
-        academicYear: '២០២៤ - ២០២៥',
-        monthOrSemester: 'ឆមាសទី១',
-        schoolCode: '001',
-        schoolNameKhmer: 'សាលាបឋមសិក្សាភ្នំព្រឹក',
-        principalName: 'សួន វិបុល',
-        issueDate: expiredIssueDate,
-        expiresAt: expiredAtDate,
-        verificationStatus: 'expired',
-        statusReason: `QR Code ហត្ថលេខានាយកបានផុតកំណត់សុពលភាពតាំងពីថ្ងៃទី ${expiredAtDate} (៣០ ថ្ងៃមុន)។ សូមស្នើសុំបង្កើតព្រឹត្តិបត្រពិន្ទុថ្មីដើម្បីធានាសុវត្ថិភាព។`,
-        deviceInfo: {
-          deviceType: 'tablet',
-          os: 'iPadOS 16.5',
-          browser: 'Safari',
-          userAgent: 'Mozilla/5.0 (iPad; CPU OS 16_5 like Mac OS X)'
-        },
-        verifierName: 'អាណាព្យាបាលសិស្ស / ការិយាល័យអប់រំស្រុក',
-        verifierRole: 'អាណាព្យាបាល',
-        scanMethod: 'webcam_scanner',
-        averageScore: 7.95,
-        rank: 5,
-        totalStudents: 30
-      }
-    ];
+    return [];
   });
 
   useEffect(() => {
@@ -974,18 +857,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Student Monthly Feedbacks State
   const [studentFeedbacks, setStudentFeedbacks] = useState<StudentMonthlyFeedback[]>(() => {
     const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_student_feedbacks`);
-    return saved ? JSON.parse(saved) : [
-      {
-        id: 'fb-1',
-        studentId: 'st-1',
-        studentNameKhmer: 'សុខ សុវណ្ណារ៉ា',
-        month: 'មករា',
-        academicYear: '២០២៦ - ២០២៧',
-        comment: 'សូមអរគុណលោកគ្រូអ្នកគ្រូដែលបានជួយបង្ហាត់បង្រៀនកូនប្រុសខ្ញុំឱ្យមានការរីកចម្រើនលើមុខវិជ្ជាគណិតវិទ្យា និងអានសៀវភៅ។',
-        authorName: 'លោក សុខ គង់ (អាណាព្យាបាល)',
-        createdAt: '2026-01-28'
-      }
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const addStudentFeedback = (feedback: Omit<StudentMonthlyFeedback, 'id' | 'createdAt'>) => {
@@ -5523,6 +5395,20 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setSchoolStrategicPlans(initialSchoolStrategicPlans);
     setModelSchoolStandards(initialModelSchoolStandards);
     setSchoolAssets(initialSchoolAssets);
+    setEquipmentItems(initialSchoolEquipment);
+    setEquipmentLoans(initialEquipmentLoans);
+    setTeacherDailyTasks(initialTeacherDailyTasks);
+    setTeacherMeetings(initialTeacherMeetings);
+    setTeachingResources(initialTeachingResources);
+    setSchoolGroups(initialSchoolGroups);
+    setStudentBadgeAssignments(initialStudentBadgeAssignments);
+    setDailyHealthChecks([]);
+    setQrScanVerificationLogs([]);
+    setStudentFeedbacks([]);
+    setDeletedUsers([]);
+    setAccountAuditLogs([]);
+    setProfileEditRequests([]);
+    setReleasedResults({});
     setPrintSettings({
       showRoundStamp: true,
       showDirectorSignature: true,
@@ -5534,7 +5420,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
     setCurrentUser(initialUsers[0]);
     localStorage.clear();
-    showToast('បានកំណត់ទិន្នន័យគំរូដើមឡើងវិញដោយជោគជ័យ!', 'info');
+    showToast('បានសម្អាតទិន្នន័យប្រឌិតទាំងអស់រួចរាល់! លោកអ្នកអាចចាប់ផ្តើមបញ្ចូលទិន្នន័យពិតដោយដៃផ្ទាល់។', 'success');
   };
 
   return (
