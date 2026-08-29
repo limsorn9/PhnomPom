@@ -238,6 +238,7 @@ export interface Teacher {
   documentsNote?: string; // ឯកសារ និងប្រភេទបណ្ណផ្សេងៗ
   avatarUrl?: string; // រូបថត
   schedule: DutyScheduleItem[];
+  academicYear?: string; // ឆ្នាំសិក្សា
 }
 
 export type TransferType = 'out' | 'in'; // ផ្ទេរចេញ | ផ្ទេរចូល

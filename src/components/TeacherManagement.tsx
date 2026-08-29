@@ -41,7 +41,7 @@ import { BatchStudentAttendanceModal } from './BatchStudentAttendanceModal';
 
 export const TeacherManagement: React.FC = () => {
   const {
-    teachers,
+    teachers, selectedAcademicYear,
     addTeacher,
     updateTeacher,
     deleteTeacher,
@@ -132,7 +132,7 @@ export const TeacherManagement: React.FC = () => {
     const query = (searchQuery || localSearch).trim();
 
     // Step 1: Apply Fuzzy Search Index if query exists
-    let candidateTeachers = teachers;
+    let candidateTeachers = teachers.filter(t => !t.academicYear || t.academicYear === selectedAcademicYear);
     if (query) {
       const searchResults = teacherSearchIndex.search(query);
       candidateTeachers = searchResults.map(res => res.item);
@@ -142,7 +142,7 @@ export const TeacherManagement: React.FC = () => {
     return candidateTeachers.filter(teacher => {
       return selectedRole === 'all' || teacher.role.includes(selectedRole);
     });
-  }, [teachers, teacherSearchIndex, searchQuery, localSearch, selectedRole]);
+  }, [teachers, selectedAcademicYear, teacherSearchIndex, searchQuery, localSearch, selectedRole]);
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,7 +202,8 @@ export const TeacherManagement: React.FC = () => {
         { day: 'ពុធ', subject: 'វិទ្យាសាស្ត្រ', timeSlot: '08:30 - 09:30', gradeClass: `${formData.assignedGrade}${formData.assignedSection}` },
         { day: 'ព្រហស្បតិ៍', subject: 'សិក្សាសង្គម', timeSlot: '07:30 - 08:30', gradeClass: `${formData.assignedGrade}${formData.assignedSection}` },
         { day: 'សុក្រ', subject: 'សីលធម៌-ពលរដ្ឋ', timeSlot: '08:30 - 09:30', gradeClass: `${formData.assignedGrade}${formData.assignedSection}` }
-      ]
+      ],
+      academicYear: selectedAcademicYear
     };
 
     if (editingTeacher) {

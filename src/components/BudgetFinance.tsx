@@ -31,7 +31,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } fro
 
 export const BudgetFinance: React.FC = () => {
   const {
-    budgetTransactions,
+    budgetTransactions, selectedAcademicYear,
     addBudgetTransaction,
     deleteBudgetTransaction,
     getTotalIncome,
@@ -69,7 +69,9 @@ export const BudgetFinance: React.FC = () => {
   const balanceRiel = getBalance();
   const balanceUsd = Math.round(balanceRiel / 4050);
 
-  const filteredTransactions = budgetTransactions.filter(tx => {
+  const currentTransactions = budgetTransactions.filter(tx => !tx.academicYear || tx.academicYear === selectedAcademicYear);
+
+  const filteredTransactions = currentTransactions.filter(tx => {
     const matchesType = filterType === 'all' || tx.type === filterType;
     const matchesSource = filterSource === 'all' || tx.source === filterSource;
     const matchesSearch =
@@ -95,7 +97,8 @@ export const BudgetFinance: React.FC = () => {
       date: formData.date,
       recordedBy: formData.recordedBy,
       description: formData.description,
-      status: formData.status
+      status: formData.status,
+      academicYear: selectedAcademicYear
     });
 
     setIsAddModalOpen(false);
@@ -111,10 +114,10 @@ export const BudgetFinance: React.FC = () => {
   ];
 
   const sourceChartData = sourcesList.map(src => {
-    const income = budgetTransactions
+    const income = currentTransactions
       .filter(tx => tx.source === src && tx.type === 'income')
       .reduce((sum, tx) => sum + tx.amountRiel, 0);
-    const expense = budgetTransactions
+    const expense = currentTransactions
       .filter(tx => tx.source === src && tx.type === 'expense')
       .reduce((sum, tx) => sum + tx.amountRiel, 0);
 
@@ -169,7 +172,7 @@ export const BudgetFinance: React.FC = () => {
 
     setIsExportingSheets(true);
     try {
-      const res = await exportFinanceToGoogleSheets(schoolProfile, budgetTransactions);
+      const res = await exportFinanceToGoogleSheets(schoolProfile, currentTransactions);
       showToast(`បានបង្កើត Google Sheet «${res.title}» ដោយជោគជ័យ!`);
       window.open(res.spreadsheetUrl, '_blank');
     } catch (err: any) {

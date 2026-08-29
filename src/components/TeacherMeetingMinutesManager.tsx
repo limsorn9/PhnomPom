@@ -42,7 +42,7 @@ import {
 export const TeacherMeetingMinutesManager: React.FC = () => {
   const {
     schoolProfile,
-    teacherMeetings,
+    teacherMeetings, selectedAcademicYear,
     addTeacherMeeting,
     updateTeacherMeeting,
     deleteTeacherMeeting,
@@ -133,7 +133,8 @@ export const TeacherMeetingMinutesManager: React.FC = () => {
   };
 
   // Filtered meetings
-  const filteredMeetings = teacherMeetings.filter(m => {
+  const currentMeetings = teacherMeetings.filter(m => !m.academicYear || m.academicYear === selectedAcademicYear);
+  const filteredMeetings = currentMeetings.filter(m => {
     const matchesType = filterType === 'all' || m.meetingType === filterType;
     const matchesMonth = filterMonth === 'all' || m.meetingDate.startsWith(filterMonth);
     const matchesSearch =
@@ -194,7 +195,7 @@ export const TeacherMeetingMinutesManager: React.FC = () => {
       meetingCode: `MTG-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`,
       title: formData.title.trim(),
       meetingType: formData.meetingType,
-      academicYear: schoolProfile.academicYear,
+      academicYear: selectedAcademicYear,
       meetingDate: formData.meetingDate,
       meetingTime: `${formData.startTime} - ${formData.endTime}`,
       location: formData.location,
@@ -381,7 +382,7 @@ export const TeacherMeetingMinutesManager: React.FC = () => {
           meetingCode: `MTG-${currentYear}-M${m.num}`,
           title: `កិច្ចប្រជុំបូកសរុបការងារបង្រៀន និងសេចក្ដីសម្រេចប្រចាំខែ${m.name}`,
           meetingType: 'monthly',
-          academicYear: schoolProfile.academicYear,
+          academicYear: selectedAcademicYear,
           meetingDate: meetingDate,
           meetingTime: '14:00 - 16:30',
           location: 'សាលប្រជុំសាលាបឋមសិក្សា',
