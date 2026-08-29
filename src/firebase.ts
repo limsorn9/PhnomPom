@@ -15,13 +15,8 @@ export const db = customDbId
 
 // Enable offline multi-tab persistence gracefully
 try {
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-    } else if (err.code === 'unimplemented') {
-      console.warn('The current browser does not support all of the features required to enable persistence.');
-    }
-  });
+  // Temporarily disable persistence to debug write timeouts
+
 } catch (e) {
   // Ignore offline cache errors in sandbox environments
 }
