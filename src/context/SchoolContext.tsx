@@ -3322,8 +3322,8 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setIsCloudSyncing(true);
     try {
       const payload = getFullSchoolPayload();
-      const success = await syncSchoolDataToFirestore(payload, true);
-      if (success) {
+      const result = await syncSchoolDataToFirestore(payload, true);
+      if (result.success) {
         const now = new Date().toISOString();
         setLastCloudSyncTime(now);
         localStorage.setItem(`${LOCAL_STORAGE_KEY}_last_cloud_sync_time`, now);
@@ -3331,12 +3331,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         showToast('បានរក្សាទុកទិន្នន័យឡើង Cloud Firestore ដោយជោគជ័យ!', 'success');
         return true;
       } else {
-        showToast('មិនអាចរក្សាទុកទៅកាន់ Cloud បានទេ', 'error');
+        showToast('មិនអាចរក្សាទុកទៅកាន់ Cloud បានទេ: ' + result.error, 'error');
         return false;
       }
     } catch (e) {
       console.error('Cloud upload error:', e);
-      showToast('មានបញ្ហាក្នុងការតភ្ជាប់ Cloud', 'error');
+      showToast('មានបញ្ហាក្នុងការតភ្ជាប់ Cloud: ' + (e.message || e), 'error');
       return false;
     } finally {
       setIsCloudSyncing(false);

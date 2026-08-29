@@ -91,17 +91,29 @@ let lastSyncedDataHash = '';
 /**
  * Clean & prune payload to keep document size light, fast, and prevent invalid/oversized values
  */
+const deepSanitize = (obj: any): any => {
+  if (obj === undefined) return null;
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(item => deepSanitize(item)).filter(item => item !== undefined);
+  }
+  const clean: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      clean[key] = deepSanitize(value);
+    }
+  }
+  return clean;
+};
+
 const sanitizePayload = (data: Partial<CloudSchoolData>): Record<string, any> => {
   const clean: Record<string, any> = {};
-  
   for (const [key, value] of Object.entries(data)) {
     if (value === undefined) continue;
-    
-    // Prune activity logs to last 100 entries to prevent unnecessary bloat
     if (key === 'activityLogs' && Array.isArray(value)) {
-      clean[key] = value.slice(0, 100);
+      clean[key] = deepSanitize(value.slice(0, 100));
     } else {
-      clean[key] = value;
+      clean[key] = deepSanitize(value);
     }
   }
   return clean;
@@ -225,17 +237,17 @@ const getQuickHash = (obj: any): string => {
 /**
  * Save school data to Firestore with write serialization, timeout protection, partition safety, and loop prevention
  */
-export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, force = false): Promise<boolean> => {
+export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, force = false): Promise<{success: boolean, error?: string}> => {
   const currentHash = getQuickHash(data);
   if (!force && currentHash === lastSyncedDataHash) {
     // Data has not changed since last successful sync
-    return true;
+    return { success: true };
   }
 
   // If already writing, queue this payload and return
   if (isWriting) {
     pendingPayload = data;
-    return true;
+    return { success: true };
   }
 
   isWriting = true;
@@ -270,7 +282,7 @@ export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, 
         syncSchoolDataToFirestore(next).catch(console.warn);
       }, 500);
     }
-    return true;
+    return { success: true };
   } catch (error: any) {
     isWriting = false;
     if (error?.code === 'resource-exhausted') {
@@ -280,7 +292,7 @@ export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, 
     } else {
       console.warn('Firestore sync failed, will retry on next state change:', error?.message || error);
     }
-    return false;
+    return { success: false, error: error?.message || String(error) };
   }
 };
 
