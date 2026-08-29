@@ -44,7 +44,11 @@ import {
   Image as ImageIcon,
   TrendingUp,
   BarChart3,
-  Lock
+  Lock,
+  CalendarDays,
+  History,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { uploadStudentProfilePhoto } from '../services/firebaseStorage';
 import {
@@ -85,7 +89,10 @@ export const StudentManagement: React.FC = () => {
     studentBadgeAssignments,
     getStudentBadges,
     getStudentTotalPoints,
-    canAccessStudentDashboard
+    canAccessStudentDashboard,
+    academicYears,
+    selectedAcademicYear,
+    setSelectedAcademicYear
   } = useSchool();
 
   const isDirector = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
@@ -93,6 +100,16 @@ export const StudentManagement: React.FC = () => {
   const isTeacher = currentUser?.role === 'teacher';
   const teacherGrade = currentUser?.assignedGrade || 1;
   const teacherSection = currentUser?.assignedSection || 'ក';
+
+  // Academic Year Filter for Student Management ('all' or specific year like '២០២៤ - ២០២៥')
+  const [selectedAcademicYearFilter, setSelectedAcademicYearFilter] = useState<string>(selectedAcademicYear || 'all');
+
+  // Keep filter synced when user switches global year if currently viewing a single year
+  useEffect(() => {
+    if (selectedAcademicYear && selectedAcademicYearFilter !== 'all' && selectedAcademicYearFilter !== selectedAcademicYear) {
+      setSelectedAcademicYearFilter(selectedAcademicYear);
+    }
+  }, [selectedAcademicYear]);
 
   // Base list of students accessible by the current user
   const accessibleStudents = useMemo(() => {
@@ -240,7 +257,8 @@ export const StudentManagement: React.FC = () => {
     weightKg: 22,
     bloodType: 'O+',
     vaccinated: true,
-    notes: ''
+    notes: '',
+    academicYear: selectedAcademicYear || schoolProfile.academicYear || '២០២៤ - ២០២៥'
   };
 
   const {
@@ -333,9 +351,14 @@ export const StudentManagement: React.FC = () => {
         matchesRisk = !alert || (!alert.hasConsecutiveAbsenceAlert && !alert.hasScoreDropAlert);
       }
 
-      return matchesGrade && matchesGender && matchesVulnerability && matchesRisk;
+      // Academic Year Filter: 'all' matches all, otherwise matches student.academicYear or default school academicYear
+      const matchesAcademicYear = selectedAcademicYearFilter === 'all'
+        ? true
+        : (student.academicYear ? student.academicYear === selectedAcademicYearFilter : selectedAcademicYearFilter === schoolProfile.academicYear);
+
+      return matchesGrade && matchesGender && matchesVulnerability && matchesRisk && matchesAcademicYear;
     });
-  }, [accessibleStudents, isTeacher, teacherGrade, teacherSection, studentSearchIndex, searchQuery, localSearch, selectedGrade, selectedGender, selectedVulnerability, selectedRiskFilter, studentAlertsMap]);
+  }, [accessibleStudents, isTeacher, teacherGrade, teacherSection, studentSearchIndex, searchQuery, localSearch, selectedGrade, selectedGender, selectedVulnerability, selectedRiskFilter, studentAlertsMap, selectedAcademicYearFilter, schoolProfile.academicYear]);
 
   const handleCreateStudent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -448,6 +471,7 @@ export const StudentManagement: React.FC = () => {
       specialCharacteristics: formData.specialCharacteristics,
       previousSchool: formData.previousSchool,
       admissionDate: formData.admissionDate,
+      academicYear: formData.academicYear || selectedAcademicYear || schoolProfile.academicYear,
       status: formData.status,
       avatarUrl: formData.avatarUrl && formData.avatarUrl.trim() !== ''
         ? formData.avatarUrl
@@ -518,6 +542,7 @@ export const StudentManagement: React.FC = () => {
       specialCharacteristics: student.specialCharacteristics || '',
       previousSchool: student.previousSchool || '',
       admissionDate: student.admissionDate,
+      academicYear: student.academicYear || schoolProfile.academicYear || selectedAcademicYear,
       status: student.status,
       avatarUrl: student.avatarUrl || '',
       heightCm: student.health.heightCm,
@@ -980,6 +1005,116 @@ export const StudentManagement: React.FC = () => {
 
       {/* Filter and Table Container */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        {/* Academic Year Selection & History Archive Control Bar */}
+        <div className="p-3.5 sm:p-4 bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3.5 border-b border-indigo-800/80">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-400/40 flex items-center justify-center text-blue-300 flex-shrink-0 shadow-inner">
+                <CalendarDays className="w-5 h-5 text-blue-300" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs sm:text-sm font-bold text-white font-moul">ឆ្នាំសិក្សា & បណ្ណសារប្រវត្តិសិស្ស</h4>
+                  {selectedAcademicYearFilter === 'all' ? (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/30 text-blue-200 border border-blue-400/30">
+                      📁 គ្រប់ជំនាន់ទាំងអស់
+                    </span>
+                  ) : selectedAcademicYearFilter === schoolProfile.academicYear ? (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>★ ឆ្នាំសិក្សាសកម្ម</span>
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/30 text-amber-200 border border-amber-400/40 flex items-center gap-1">
+                      <History className="w-3 h-3 text-amber-300" />
+                      <span>បណ្ណសារប្រវត្តិ ({selectedAcademicYearFilter})</span>
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  ត្រួតពិនិត្យ និងស្វែងរកសិស្សានុសិស្សតាមឆ្នាំសិក្សាពី ២០១៦-២០១៧ ដល់ ២០៥០
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            {/* Quick Navigation Stepper */}
+            <div className="flex items-center bg-slate-800/90 rounded-xl p-1 border border-slate-700 shadow-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  const currentIndex = academicYears.indexOf(selectedAcademicYearFilter);
+                  if (currentIndex > 0) {
+                    setSelectedAcademicYearFilter(academicYears[currentIndex - 1]);
+                  }
+                }}
+                disabled={selectedAcademicYearFilter === 'all' || selectedAcademicYearFilter === academicYears[0]}
+                className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
+                title="ថយទៅឆ្នាំសិក្សាមុន"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <select
+                id="student-academic-year-selector"
+                value={selectedAcademicYearFilter}
+                onChange={(e) => setSelectedAcademicYearFilter(e.target.value)}
+                className="bg-slate-900 text-white font-bold text-xs px-3 py-1.5 rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
+              >
+                <option value="all">📁 គ្រប់ឆ្នាំសិក្សាទាំងអស់ (All Years)</option>
+                {academicYears.map((yr) => {
+                  const isCurrent = yr === schoolProfile.academicYear;
+                  return (
+                    <option key={yr} value={yr}>
+                      {yr} {isCurrent ? '★ (ឆ្នាំសកម្ម)' : ''}
+                    </option>
+                  );
+                })}
+              </select>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const currentIndex = academicYears.indexOf(selectedAcademicYearFilter);
+                  if (currentIndex !== -1 && currentIndex < academicYears.length - 1) {
+                    setSelectedAcademicYearFilter(academicYears[currentIndex + 1]);
+                  }
+                }}
+                disabled={selectedAcademicYearFilter === 'all' || selectedAcademicYearFilter === academicYears[academicYears.length - 1]}
+                className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
+                title="ទៅឆ្នាំសិក្សាបន្ទាប់"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick Year Shortcuts */}
+            <button
+              type="button"
+              onClick={() => setSelectedAcademicYearFilter(schoolProfile.academicYear)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                selectedAcademicYearFilter === schoolProfile.academicYear
+                  ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-400/40'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+              }`}
+            >
+              ឆ្នាំបច្ចុប្បន្ន
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedAcademicYearFilter('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                selectedAcademicYearFilter === 'all'
+                  ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-400/40'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+              }`}
+            >
+              គ្រប់ឆ្នាំ ({accessibleStudents.length})
+            </button>
+          </div>
+        </div>
+
         {/* Search & Filters Toolbar */}
         <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row gap-3 items-center justify-between">
           <div className="relative flex-1 w-full max-w-md">
@@ -1217,9 +1352,16 @@ export const StudentManagement: React.FC = () => {
                         {student.dob}
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
-                        <span className="font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md text-xs">
-                          ថ្នាក់ទី {student.grade}{student.section}
-                        </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className="font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md text-xs">
+                            ថ្នាក់ទី {student.grade}{student.section}
+                          </span>
+                          {(selectedAcademicYearFilter === 'all' || student.academicYear !== schoolProfile.academicYear) && (
+                            <span className="text-[10px] font-medium text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded">
+                              {student.academicYear || schoolProfile.academicYear}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex flex-wrap gap-1 items-center">
@@ -2088,7 +2230,7 @@ export const StudentManagement: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-3.5">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       ថ្ងៃខែឆ្នាំកំណើត *
@@ -2100,6 +2242,25 @@ export const StudentManagement: React.FC = () => {
                       onChange={e => setFormData({ ...formData, dob: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm font-times focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      ឆ្នាំសិក្សា *
+                    </label>
+                    <select
+                      value={formData.academicYear || selectedAcademicYear || schoolProfile.academicYear}
+                      onChange={e => setFormData({ ...formData, academicYear: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium"
+                    >
+                      {academicYears.map((yr) => {
+                        const isCurrent = yr === schoolProfile.academicYear;
+                        return (
+                          <option key={yr} value={yr}>
+                            {yr} {isCurrent ? '★ (បច្ចុប្បន្ន)' : ''}
+                          </option>
+                        );
+                      })}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">

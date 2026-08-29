@@ -7,6 +7,7 @@ import { TeacherDailyTasks } from './TeacherDailyTasks';
 import { QuickAttendanceModal } from './QuickAttendanceModal';
 import { NewClassroomWizardModal } from './NewClassroomWizardModal';
 import { AcademicTrendAnalysis } from './AcademicTrendAnalysis';
+import { DirectorAcademicYearControl } from './DirectorAcademicYearControl';
 import {
   Users,
   GraduationCap,
@@ -77,7 +78,10 @@ export const Dashboard: React.FC = () => {
     getBalance,
     setActiveTab,
     schoolProfile,
-    language
+    language,
+    academicYears,
+    selectedAcademicYear,
+    setSelectedAcademicYear
   } = useSchool();
 
   // Determine initial dashboard mode based on current user role
@@ -238,10 +242,39 @@ export const Dashboard: React.FC = () => {
           </button>
         </div>
 
-        {/* Current status pill */}
-        <div className="hidden lg:flex items-center gap-2 text-xs px-3 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-500 dark:text-slate-400">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>ឆ្នាំសិក្សា <strong>{schoolProfile.academicYear}</strong></span>
+        {/* Academic Year Selector in Top Bar */}
+        <div className="flex items-center gap-2 text-xs px-2.5 py-1 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 rounded-xl shadow-xs">
+          <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold shrink-0">
+            <Calendar className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">ឆ្នាំសិក្សា៖</span>
+          </div>
+          <select
+            id="dashboard-top-academic-year-select"
+            value={selectedAcademicYear}
+            onChange={(e) => setSelectedAcademicYear(e.target.value)}
+            className="bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold text-xs px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            title="ជ្រើសរើសឆ្នាំសិក្សាដើម្បីមើលទិន្នន័យបណ្ណសារប្រវត្តិ និងស្ថិតិសាលា"
+          >
+            {academicYears.map((yr) => {
+              const isOfficial = yr === schoolProfile.academicYear;
+              return (
+                <option key={yr} value={yr}>
+                  {yr} {isOfficial ? '★ (បច្ចុប្បន្ន)' : ''}
+                </option>
+              );
+            })}
+          </select>
+          {selectedAcademicYear === schoolProfile.academicYear ? (
+            <span className="hidden md:inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold pl-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>សកម្ម</span>
+            </span>
+          ) : (
+            <span className="hidden md:inline-flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-semibold pl-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              <span>បណ្ណសារ</span>
+            </span>
+          )}
         </div>
       </div>
 
@@ -351,6 +384,9 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Director Academic Year Data Selector (2016-2017 to 2050-2051) */}
+          <DirectorAcademicYearControl />
 
           {/* Principal Quick Action Grid */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">

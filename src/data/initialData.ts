@@ -50,12 +50,9 @@ export const getCurrentAcademicYear = () => {
 };
 
 export const getDynamicAcademicYears = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
-  const currentEndYear = (month >= 11) ? (year + 1) : year;
   const years: string[] = [];
-  for (let y = 2016; y < currentEndYear; y++) {
+  // Generate academic years from 2016-2017 to 2050-2051
+  for (let y = 2016; y <= 2050; y++) {
     years.push(`${toKhmerNum(y)} - ${toKhmerNum(y + 1)}`);
   }
   return years;
