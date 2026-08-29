@@ -2801,6 +2801,25 @@ export const StudentManagement: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Confirm Single Student Delete Dialog */}
+      <ConfirmDeleteDialog
+        isOpen={isSingleDeleteDialogOpen}
+        onClose={() => {
+          setIsSingleDeleteDialogOpen(false);
+          setStudentToDelete(null);
+        }}
+        onConfirm={() => {
+          if (studentToDelete) {
+            deleteStudent(studentToDelete.id);
+            setIsSingleDeleteDialogOpen(false);
+            setStudentToDelete(null);
+          }
+        }}
+        title="បញ្ជាក់ការលុបទិន្នន័យសិស្ស"
+        student={studentToDelete}
+        warningMessage="តើលោកអ្នកពិតជាចង់លុបទិន្នន័យសិស្សរូបនេះចេញពីប្រព័ន្ធមែនឬទេ? ការលុបនេះនឹងលុបចេញជាអចិន្ត្រៃយ៍ ដើម្បីការពារការបាត់បង់ទិន្នន័យដោយអចេតនា។"
+      />
     </div>
   );
 };
