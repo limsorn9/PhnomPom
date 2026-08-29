@@ -1268,6 +1268,8 @@ export const uploadStaffDirectoryToDrive = async (
   );
 };
 
+export const listFilesFromDrive = listDriveFiles;
+
 /**
  * Fetch and analyze the latest Cloud Master Backup from Google Drive
  */
@@ -1275,7 +1277,7 @@ export const fetchLatestCloudMasterBackup = async (
   folderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
 ): Promise<CloudVersionMetadata | null> => {
   try {
-    const files = await listFilesFromDrive(folderId);
+    const files = await listDriveFiles(folderId);
     if (!files || files.length === 0) {
       return null;
     }
@@ -1294,8 +1296,8 @@ export const fetchLatestCloudMasterBackup = async (
 
     // Sort by modifiedTime descending
     jsonBackups.sort((a, b) => {
-      const timeA = new Date(a.modifiedTime || a.createdTime || 0).getTime();
-      const timeB = new Date(b.modifiedTime || b.createdTime || 0).getTime();
+      const timeA = new Date(a.modifiedTime || 0).getTime();
+      const timeB = new Date(b.modifiedTime || 0).getTime();
       return timeB - timeA;
     });
 
@@ -1340,8 +1342,8 @@ export const fetchLatestCloudMasterBackup = async (
       fileName: latestFile.name || 'Master_Backup.json',
       fileSizeBytes: sizeBytes,
       fileSizeFormatted: sizeFormatted,
-      modifiedTime: latestFile.modifiedTime || latestFile.createdTime || new Date().toISOString(),
-      syncedBy: latestFile.lastModifyingUser?.emailAddress || 'Google Drive',
+      modifiedTime: latestFile.modifiedTime || new Date().toISOString(),
+      syncedBy: (latestFile as any).lastModifyingUser?.emailAddress || 'Google Drive',
       studentCount,
       teacherCount,
       scoreCount,
