@@ -414,14 +414,14 @@ export const Header: React.FC<HeaderProps> = ({
             <OfflineSyncStatusBadge />
           </div>
 
-          {currentUser?.role === 'director' && (
+          {true && (
             <>
               {/* Firebase Cloud Firestore Real-time Sync Status Indicator */}
               <button
                 type="button"
                 onClick={() => syncAllToCloud()}
                 disabled={isCloudSyncing}
-                className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 border rounded-xl text-xs font-bold transition-all shadow-2xs ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 border rounded-xl text-xs font-bold transition-all shadow-2xs ${
                   isCloudSyncing
                     ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 text-amber-800 dark:text-amber-300 animate-pulse'
                     : 'bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/50 border-teal-200 dark:border-teal-800/60 text-teal-900 dark:text-teal-200'
@@ -434,7 +434,7 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <div className={`w-2 h-2 rounded-full ${isCloudSyncing ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'}`} />
                 <Cloud className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin text-amber-600' : 'text-teal-700 dark:text-teal-400'}`} />
-                <span className="hidden xl:inline">
+                <span className="inline">
                   {isCloudSyncing ? 'Syncing...' : 'Cloud Online'}
                 </span>
               </button>
