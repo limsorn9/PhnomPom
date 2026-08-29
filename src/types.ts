@@ -1714,6 +1714,52 @@ export interface DriveSyncHistoryItem {
 }
 
 // ----------------------------------------------------
+// 5. VERSION MISMATCH & CONFLICT RESOLUTION TYPES
+// ----------------------------------------------------
+export interface CloudVersionMetadata {
+  fileId: string;
+  fileName: string;
+  fileSizeBytes?: number;
+  fileSizeFormatted: string;
+  modifiedTime: string;
+  syncedBy?: string;
+  studentCount?: number;
+  teacherCount?: number;
+  scoreCount?: number;
+  classroomCount?: number;
+  meetingCount?: number;
+  budgetCount?: number;
+  academicYear?: string;
+  version?: string;
+  snapshotData?: any;
+}
+
+export interface LocalVersionMetadata {
+  lastModifiedTime: string;
+  studentCount: number;
+  teacherCount: number;
+  scoreCount: number;
+  classroomCount: number;
+  meetingCount: number;
+  budgetCount: number;
+  academicYear: string;
+  version: string;
+}
+
+export type VersionConflictStatus = 'cloud_newer' | 'local_newer' | 'content_different' | 'synced';
+
+export interface VersionConflictState {
+  hasMismatch: boolean;
+  status: VersionConflictStatus;
+  cloudVersion: CloudVersionMetadata | null;
+  localVersion: LocalVersionMetadata;
+  lastCheckedTime: string;
+  isChecking: boolean;
+  dismissed: boolean;
+  conflictReason?: string;
+}
+
+// ----------------------------------------------------
 // 4. TEACHING RESOURCE HUB & GOOGLE DRIVE SHARING (មជ្ឈមណ្ឌលធនធានបង្រៀន)
 // ----------------------------------------------------
 export type ResourceSubject =

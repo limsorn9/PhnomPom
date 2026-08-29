@@ -52,6 +52,10 @@ import {
   MonthlyBudgetSummary,
   DriveAutoSyncConfig,
   DriveSyncHistoryItem,
+  CloudVersionMetadata,
+  LocalVersionMetadata,
+  VersionConflictState,
+  VersionConflictStatus,
   QRScanVerificationLog,
   AcademicAchievement,
   SchoolGroup,
@@ -70,6 +74,7 @@ import {
   uploadHonorRollToDrive,
   uploadStaffDirectoryToDrive,
   downloadDriveFileContent,
+  fetchLatestCloudMasterBackup,
   PRIMARY_SCHOOL_DRIVE_FOLDER_ID
 } from '../services/googleDrive';
 import {

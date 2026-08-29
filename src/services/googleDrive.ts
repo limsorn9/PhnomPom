@@ -14,6 +14,8 @@ export interface DriveItem {
   description?: string;
 }
 
+import { CloudVersionMetadata } from '../types';
+
 export const PRIMARY_SCHOOL_DRIVE_FOLDER_ID = '1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g';
 
 export const getDriveFolderUrl = (folderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID): string => {
@@ -1264,6 +1266,96 @@ export const uploadStaffDirectoryToDrive = async (
     targetFolderId,
     `បញ្ជីរាយនាមបុគ្គលិក និងលោកគ្រូ-អ្នកគ្រូផ្លូវការ ឆ្នាំសិក្សា ${academicYear} (សរុប ${teachersList.length} នាក់)`
   );
+};
+
+/**
+ * Fetch and analyze the latest Cloud Master Backup from Google Drive
+ */
+export const fetchLatestCloudMasterBackup = async (
+  folderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+): Promise<CloudVersionMetadata | null> => {
+  try {
+    const files = await listFilesFromDrive(folderId);
+    if (!files || files.length === 0) {
+      return null;
+    }
+
+    // Filter for Master Backup JSON files
+    const jsonBackups = files.filter(f => 
+      f.mimeType === 'application/json' || 
+      f.name?.endsWith('.json') || 
+      f.name?.includes('បម្រុងទុក') ||
+      f.name?.includes('backup')
+    );
+
+    if (jsonBackups.length === 0) {
+      return null;
+    }
+
+    // Sort by modifiedTime descending
+    jsonBackups.sort((a, b) => {
+      const timeA = new Date(a.modifiedTime || a.createdTime || 0).getTime();
+      const timeB = new Date(b.modifiedTime || b.createdTime || 0).getTime();
+      return timeB - timeA;
+    });
+
+    const latestFile = jsonBackups[0];
+    const sizeBytes = latestFile.size ? parseInt(latestFile.size) : 0;
+    const sizeFormatted = sizeBytes > 1024 * 1024 
+      ? `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`
+      : sizeBytes > 0 
+      ? `${(sizeBytes / 1024).toFixed(1)} KB` 
+      : 'មិនស្គាល់ទំហំ';
+
+    // Download content and parse detailed statistics
+    let snapshotData: any = null;
+    let studentCount = 0;
+    let teacherCount = 0;
+    let scoreCount = 0;
+    let classroomCount = 0;
+    let meetingCount = 0;
+    let budgetCount = 0;
+    let academicYear = '';
+    let version = '2.5.0';
+
+    try {
+      const content = await downloadDriveFileContent(latestFile.id);
+      snapshotData = JSON.parse(content);
+
+      if (Array.isArray(snapshotData.students)) studentCount = snapshotData.students.length;
+      if (Array.isArray(snapshotData.teachers)) teacherCount = snapshotData.teachers.length;
+      if (Array.isArray(snapshotData.scores)) scoreCount = snapshotData.scores.length;
+      if (Array.isArray(snapshotData.classrooms)) classroomCount = snapshotData.classrooms.length;
+      if (Array.isArray(snapshotData.teacherMeetings)) meetingCount = snapshotData.teacherMeetings.length;
+      if (Array.isArray(snapshotData.budgetTransactions)) budgetCount = snapshotData.budgetTransactions.length;
+      if (snapshotData.selectedAcademicYear) academicYear = snapshotData.selectedAcademicYear;
+      else if (snapshotData.schoolProfile?.academicYear) academicYear = snapshotData.schoolProfile.academicYear;
+      if (snapshotData.version) version = snapshotData.version;
+    } catch (parseErr) {
+      console.warn('Could not deeply inspect cloud backup content:', parseErr);
+    }
+
+    return {
+      fileId: latestFile.id,
+      fileName: latestFile.name || 'Master_Backup.json',
+      fileSizeBytes: sizeBytes,
+      fileSizeFormatted: sizeFormatted,
+      modifiedTime: latestFile.modifiedTime || latestFile.createdTime || new Date().toISOString(),
+      syncedBy: latestFile.lastModifyingUser?.emailAddress || 'Google Drive',
+      studentCount,
+      teacherCount,
+      scoreCount,
+      classroomCount,
+      meetingCount,
+      budgetCount,
+      academicYear,
+      version,
+      snapshotData
+    };
+  } catch (err) {
+    console.error('Failed to fetch latest cloud backup metadata:', err);
+    throw err;
+  }
 };
 
 
