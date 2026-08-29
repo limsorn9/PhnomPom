@@ -215,7 +215,7 @@ export const backupSchoolDataToDrive = async (
 export const generateMeetingMinutesHtmlDocument = (meeting: any, schoolProfile: any): string => {
   const province = schoolProfile?.provinceKhmer || 'បាត់ដំបង';
   const district = schoolProfile?.districtKhmer || 'ភ្នំព្រឹក';
-  const schoolName = schoolProfile?.nameKhmer || 'សាលាបឋមសិក្សាភ្នំព្រឹក';
+  const schoolName = schoolProfile?.nameKhmer || 'សាលាបឋមសិក្សាភ្នំពុំ';
   const principal = schoolProfile?.principalNameKhmer || schoolProfile?.principalName || 'លោក នាយកសាលា';
 
   const resolutionsHtml = (meeting.resolutions || meeting.keyDecisions || [])
@@ -417,7 +417,7 @@ export const generateFinancialReportHtmlDocument = (
 ): string => {
   const province = schoolProfile?.provinceKhmer || 'បាត់ដំបង';
   const district = schoolProfile?.districtKhmer || 'ភ្នំព្រឹក';
-  const schoolName = schoolProfile?.nameKhmer || 'សាលាបឋមសិក្សាភ្នំព្រឹក';
+  const schoolName = schoolProfile?.nameKhmer || 'សាលាបឋមសិក្សាភ្នំពុំ';
   const principal = schoolProfile?.principalNameKhmer || schoolProfile?.principalName || 'លោក នាយកសាលា';
 
   const totalIncomeRiel = monthlySummaries.reduce((sum, m) => sum + (m.incomeRiel || 0), 0);
@@ -597,7 +597,7 @@ export const generateStudentRosterHtmlDocument = (
 ): string => {
   const province = schoolProfile?.provinceKhmer || 'បាត់ដំបង';
   const district = schoolProfile?.districtKhmer || 'ភ្នំព្រឹក';
-  const schoolName = schoolProfile?.nameKhmer || 'សាលាបឋមសិក្សាភ្នំព្រឹក';
+  const schoolName = schoolProfile?.nameKhmer || 'សាលាបឋមសិក្សាភ្នំពុំ';
   const principal = schoolProfile?.principalNameKhmer || schoolProfile?.principalName || 'លោក នាយកសាលា';
 
   const femaleCount = studentsList.filter(s => s.gender === 'female' || s.gender === 'ស្រី').length;
@@ -773,7 +773,7 @@ export const generateScoresHtmlDocument = (
 ): string => {
   const province = schoolProfile?.provinceKhmer || 'បាត់ដំបង';
   const district = schoolProfile?.districtKhmer || 'ភ្នំព្រឹក';
-  const schoolName = schoolProfile?.nameKhmer || 'សាលាបឋមសិក្សាភ្នំព្រឹក';
+  const schoolName = schoolProfile?.nameKhmer || 'សាលាបឋមសិក្សាភ្នំពុំ';
   const principal = schoolProfile?.principalNameKhmer || schoolProfile?.principalName || 'លោក នាយកសាលា';
 
   const sortedScores = [...scoresList].sort((a, b) => (a.rank || 999) - (b.rank || 999));
@@ -954,7 +954,7 @@ export const generateHonorRollHtmlDocument = (
 ): string => {
   const province = schoolProfile?.provinceKhmer || 'បាត់ដំបង';
   const district = schoolProfile?.districtKhmer || 'ភ្នំព្រឹក';
-  const schoolName = schoolProfile?.nameKhmer || 'សាលាបឋមសិក្សាភ្នំព្រឹក';
+  const schoolName = schoolProfile?.nameKhmer || 'សាលាបឋមសិក្សាភ្នំពុំ';
   const principal = schoolProfile?.principalNameKhmer || schoolProfile?.principalName || 'លោក នាយកសាលា';
 
   const cardsHtml = topStudents.map((st, idx) => {
@@ -1105,7 +1105,7 @@ export const generateStaffDirectoryHtmlDocument = (
 ): string => {
   const province = schoolProfile?.provinceKhmer || 'បាត់ដំបង';
   const district = schoolProfile?.districtKhmer || 'ភ្នំព្រឹក';
-  const schoolName = schoolProfile?.nameKhmer || 'សាលាបឋមសិក្សាភ្នំព្រឹក';
+  const schoolName = schoolProfile?.nameKhmer || 'សាលាបឋមសិក្សាភ្នំពុំ';
   const principal = schoolProfile?.principalNameKhmer || schoolProfile?.principalName || 'លោក នាយកសាលា';
 
   const femaleCount = teachersList.filter(t => t.gender === 'female' || t.gender === 'ស្រី' || t.gender === 'F').length;

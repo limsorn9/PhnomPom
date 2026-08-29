@@ -521,6 +521,11 @@ interface SchoolContextType {
   syncAllToCloud: () => Promise<boolean>;
   pullAllFromCloud: () => Promise<boolean>;
 
+  // Version Conflict Resolution (Google Drive Master Backup)
+  versionConflictState: VersionConflictState;
+  resolveVersionConflict: (action: 'keep_local' | 'keep_cloud', cloudData?: any) => Promise<void>;
+  checkDriveVersionMismatch: () => Promise<void>;
+
   // 6. Google Drive Automated Synchronization (សមកាលកម្មស្វ័យប្រវត្តិ Google Drive)
   driveAutoSyncConfig: DriveAutoSyncConfig;
   updateDriveAutoSyncConfig: (config: Partial<DriveAutoSyncConfig>) => void;
@@ -737,6 +742,41 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_dark_mode`);
     return saved ? JSON.parse(saved) : false;
   });
+
+  // Version Conflict Resolution State
+  const [versionConflictState, setVersionConflictState] = useState<VersionConflictState>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_version_conflict`);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        // ignore
+      }
+    }
+    return {
+      hasMismatch: false,
+      status: 'synced',
+      cloudVersion: null,
+      localVersion: {
+        lastModifiedTime: new Date().toISOString(),
+        studentCount: 0,
+        teacherCount: 0,
+        scoreCount: 0,
+        classroomCount: 0,
+        meetingCount: 0,
+        budgetCount: 0,
+        academicYear: getCurrentAcademicYear(),
+        version: '2.5.0'
+      },
+      lastCheckedTime: '',
+      isChecking: false,
+      dismissed: false
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_version_conflict`, JSON.stringify(versionConflictState));
+  }, [versionConflictState]);
 
   // Grading Scale Type ('khmer_term' | 'letter')
   const [gradingScaleType, setGradingScaleType] = useState<GradingScaleType>(() => {
@@ -2023,6 +2063,120 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setToastMessage({ text: 'បានសម្អាតប្រវត្តិ Sync Google Drive រួចរាល់', type: 'info' });
   };
 
+  const checkDriveVersionMismatch = async () => {
+    if (versionConflictState.isChecking || versionConflictState.dismissed) return;
+    if (!isGoogleAuthenticated()) return;
+
+    setVersionConflictState(prev => ({ ...prev, isChecking: true }));
+    try {
+      const targetFolder = driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+      const cloudVersion = await fetchLatestCloudMasterBackup(targetFolder);
+      
+      if (!cloudVersion) {
+        // No cloud backup exists yet
+        setVersionConflictState(prev => ({ 
+          ...prev, 
+          isChecking: false, 
+          lastCheckedTime: new Date().toISOString() 
+        }));
+        return;
+      }
+
+      const cloudTime = new Date(cloudVersion.modifiedTime).getTime();
+      const localTime = new Date(versionConflictState.localVersion.lastModifiedTime).getTime();
+      
+      // Allow 5 minutes of buffer for "same" versions to prevent annoying popups immediately after syncing
+      const timeDiff = cloudTime - localTime;
+      
+      let status: VersionConflictStatus = 'synced';
+      let hasMismatch = false;
+
+      if (timeDiff > 300000) {
+        status = 'cloud_newer';
+        hasMismatch = true;
+      } else if (timeDiff < -300000) {
+        status = 'local_newer';
+        hasMismatch = true;
+      } else if (
+        cloudVersion.studentCount !== students.length ||
+        cloudVersion.teacherCount !== teachers.length
+      ) {
+        status = 'content_different';
+        hasMismatch = true;
+      }
+
+      setVersionConflictState(prev => ({
+        ...prev,
+        hasMismatch,
+        status,
+        cloudVersion,
+        localVersion: {
+          ...prev.localVersion,
+          studentCount: students.length,
+          teacherCount: teachers.length,
+          scoreCount: scores.length,
+          classroomCount: classrooms.length,
+          meetingCount: teacherMeetings.length,
+          budgetCount: budgetTransactions.length,
+          academicYear: selectedAcademicYear
+        },
+        isChecking: false,
+        lastCheckedTime: new Date().toISOString(),
+        dismissed: false
+      }));
+
+    } catch (error) {
+      console.error('Failed to check version mismatch:', error);
+      setVersionConflictState(prev => ({ ...prev, isChecking: false }));
+    }
+  };
+
+  const resolveVersionConflict = async (action: 'keep_local' | 'keep_cloud', cloudData?: any) => {
+    if (action === 'keep_local') {
+      // User chose to keep local, we dismiss the modal and optionally sync to cloud
+      setVersionConflictState(prev => ({
+        ...prev,
+        hasMismatch: false,
+        dismissed: true,
+        localVersion: {
+          ...prev.localVersion,
+          lastModifiedTime: new Date().toISOString()
+        }
+      }));
+      setToastMessage({ text: 'រក្សាទុកទិន្នន័យក្នុងម៉ាស៊ីននេះ។ វានឹងក្លាយជាទិន្នន័យចម្បង។', type: 'info' });
+      // Optionally trigger auto sync here if they want to overwrite cloud
+      // await triggerDriveAutoSyncAll();
+    } else if (action === 'keep_cloud' && cloudData) {
+      // User chose to pull from cloud
+      try {
+        await restoreSchoolDatabaseFromDrive(JSON.stringify(cloudData));
+        setVersionConflictState(prev => ({
+          ...prev,
+          hasMismatch: false,
+          dismissed: true,
+          localVersion: {
+            ...prev.localVersion,
+            lastModifiedTime: new Date().toISOString()
+          }
+        }));
+        setToastMessage({ text: 'បានទាញយក និងស្ដារទិន្នន័យពីក្លោដជោគជ័យ!', type: 'success' });
+      } catch (err: any) {
+        setToastMessage({ text: `បរាជ័យក្នុងការស្ដារទិន្នន័យ: ${err.message}`, type: 'error' });
+      }
+    }
+  };
+
+  // Run version check on mount if authenticated and auto sync is enabled
+  useEffect(() => {
+    if (isGoogleAuthenticated() && driveAutoSyncConfig.autoSync) {
+      // Check after a short delay to not block UI load
+      const timer = setTimeout(() => {
+        checkDriveVersionMismatch();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [isGoogleAuthenticated(), driveAutoSyncConfig.autoSync]);
+
   const syncMeetingToDrive = async (meetingOrId: string | TeacherMeetingRecord, folderIdOverride?: string) => {
     let meeting: TeacherMeetingRecord | undefined;
     let meetingId: string;
@@ -2792,7 +2946,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         };
         await backupSchoolDataToDrive(
           fullBackup,
-          schoolProfile.nameKhmer || 'សាលាបឋមសិក្សាភ្នំព្រឹក',
+          schoolProfile.nameKhmer || 'សាលាបឋមសិក្សាភ្នំពុំ',
           targetFolder
         );
         syncedReportsCount++;
@@ -6062,6 +6216,9 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         getTotalExpense,
         getBalance,
         resetToDefaultData,
+        versionConflictState,
+        checkDriveVersionMismatch,
+        resolveVersionConflict,
         showToast,
         toastMessage,
         language,

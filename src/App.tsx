@@ -30,6 +30,7 @@ import { TeacherMeetingMinutesManager } from './components/TeacherMeetingMinutes
 import { TeachingResourceHub } from './components/TeachingResourceHub';
 import { BulkDataImportExportModal } from './components/BulkDataImportExportModal';
 import { GoogleDriveSyncModal } from './components/GoogleDriveSyncModal';
+import { VersionMismatchModal } from './components/VersionMismatchModal';
 import { QuickSearchSpotlightModal } from './components/QuickSearchSpotlightModal';
 import { AuthScreen } from './components/AuthScreen';
 import { StandaloneHtmlExportModal } from './components/StandaloneHtmlExportModal';
@@ -50,7 +51,9 @@ const MainLayout: React.FC = () => {
     updateSchoolProfile,
     showToast,
     currentUser,
-    canAccessTab
+    canAccessTab,
+    versionConflictState,
+    resolveVersionConflict
   } = useSchool();
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -260,6 +263,14 @@ const MainLayout: React.FC = () => {
       <QuickSearchSpotlightModal
         isOpen={isSpotlightOpen}
         onClose={() => setIsSpotlightOpen(false)}
+      />
+
+      {/* Version Mismatch Notification Modal */}
+      <VersionMismatchModal
+        conflictState={versionConflictState}
+        onDismiss={() => resolveVersionConflict('keep_local')}
+        onKeepLocal={() => resolveVersionConflict('keep_local')}
+        onKeepCloud={() => resolveVersionConflict('keep_cloud', versionConflictState.cloudVersion?.snapshotData)}
       />
     </div>
   );

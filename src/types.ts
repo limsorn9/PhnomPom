@@ -1652,7 +1652,7 @@ export interface TeacherMeetingRecord {
   academicYear: string;
   meetingDate: string; // YYYY-MM-DD
   meetingTime: string; // ឧ. 08:30 - 11:30 ព្រឹក
-  location: string; // ឧ. បន្ទប់ប្រជុំធំ សាលាបឋមសិក្សាភ្នំព្រឹក
+  location: string; // ឧ. បន្ទប់ប្រជុំធំ សាលាបឋមសិក្សាភ្នំពុំ
   chairpersonName: string; // ប្រធានអង្គប្រជុំ (លោកនាយក)
   secretaryName: string; // លេខាអង្គប្រជុំ
   totalInvited: number;

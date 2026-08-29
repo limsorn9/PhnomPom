@@ -71,7 +71,7 @@ export const initialSchoolProfile: SchoolProfile = {
   deputyPrincipalName: 'លោក ឈិន សុផល',
   academicYear: getCurrentAcademicYear(),
   establishedYear: '២០០៥',
-  cluster: 'កម្រងសាលាបឋមសិក្សាភ្នំព្រឹក',
+  cluster: 'កម្រងសាលាបឋមសិក្សាភ្នំពុំ',
   email: 'phnompom.primary@moeys.gov.kh',
   logoUrl: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=150&auto=format&fit=crop&q=80',
   mapUrl: 'https://maps.app.goo.gl/ackTYSYsd7t54vGP6',
