@@ -41,7 +41,7 @@ import { BatchStudentAttendanceModal } from './BatchStudentAttendanceModal';
 
 export const TeacherManagement: React.FC = () => {
   const {
-    teachers, selectedAcademicYear,
+    teachers, selectedAcademicYear, appUsers,
     addTeacher,
     updateTeacher,
     deleteTeacher,
@@ -142,7 +142,7 @@ export const TeacherManagement: React.FC = () => {
     return candidateTeachers.filter(teacher => {
       return selectedRole === 'all' || teacher.role.includes(selectedRole);
     });
-  }, [teachers, selectedAcademicYear, teacherSearchIndex, searchQuery, localSearch, selectedRole]);
+  }, [teachers, selectedAcademicYear, appUsers, teacherSearchIndex, searchQuery, localSearch, selectedRole]);
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -960,16 +960,37 @@ export const TeacherManagement: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      ឈ្មោះជាភាសាខ្មែរ *
+                      ឈ្មោះជាភាសាខ្មែរ (ជ្រើសរើសពីគណនី) *
                     </label>
-                    <input
-                      type="text"
+                    <select
                       required
                       value={formData.nameKhmer}
-                      onChange={e => setFormData({ ...formData, nameKhmer: e.target.value })}
-                      placeholder="ឧ. សួស ចាន់ថា"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                    />
+                      onChange={e => {
+                        const selectedName = e.target.value;
+                        const matchingUser = appUsers?.find(u => u.nameKhmer === selectedName);
+                        setFormData({ 
+                          ...formData, 
+                          nameKhmer: selectedName,
+                          ...(matchingUser?.nameLatin ? { nameLatin: matchingUser.nameLatin } : {}),
+                          ...(matchingUser?.phone ? { phone: matchingUser.phone } : {}),
+                          ...(matchingUser?.email ? { email: matchingUser.email } : {})
+                        });
+                      }}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                    >
+                      <option value="">-- សូមជ្រើសរើសគណនីគ្រូ --</option>
+                      {appUsers
+                        ?.filter(u => ['teacher', 'director', 'deputy_director', 'secretary', 'librarian'].includes(u.role))
+                        .map(user => (
+                          <option key={user.id} value={user.nameKhmer}>
+                            {user.nameKhmer} ({user.role})
+                          </option>
+                      ))}
+                      {/* Allow keeping existing name if it doesn't match an account */}
+                      {formData.nameKhmer && !appUsers?.some(u => u.nameKhmer === formData.nameKhmer) && (
+                        <option value={formData.nameKhmer}>{formData.nameKhmer} (គ្មានគណនី)</option>
+                      )}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
