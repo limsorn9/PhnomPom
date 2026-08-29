@@ -266,7 +266,7 @@ export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, 
     ];
 
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Firestore write timeout')), 14000)
+      setTimeout(() => reject(new Error('Firestore write timeout')), 60000)
     );
 
     await Promise.race([Promise.all(writePromises), timeoutPromise]);
