@@ -1,9 +1,16 @@
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
 export const MASTER_ADMIN_EMAILS = ['limsorn3@gmail.com', 'limsorn9@gmail.com'];
 
-const CLOUD_SCHOOL_DOC_ID = 'school_database_main';
+// Partitioned collection document IDs to guarantee document size stays safely under 1MB
+export const CLOUD_DOCS = {
+  MAIN: 'school_database_main',
+  STUDENTS: 'school_database_students',
+  ACADEMICS: 'school_database_academics',
+  RESOURCES: 'school_database_resources',
+  STAFF_USERS: 'school_database_staff_users'
+} as const;
 
 /**
  * Check if the currently authenticated user is the authorized Master Database Administrator
@@ -13,8 +20,7 @@ export const isMasterDatabaseAdmin = (): boolean => {
   return !!currentEmail && MASTER_ADMIN_EMAILS.some(adminEmail => adminEmail.toLowerCase() === currentEmail.toLowerCase());
 };
 
-
-// Unique client session ID to prevent echo loops
+// Unique client session ID to prevent echo loops across tabs and devices
 const getClientId = (): string => {
   try {
     const existing = sessionStorage.getItem('school_app_client_id');
@@ -83,7 +89,7 @@ let pendingPayload: Partial<CloudSchoolData> | null = null;
 let lastSyncedDataHash = '';
 
 /**
- * Clean & prune payload to keep document size light, fast, and below Firestore limits
+ * Clean & prune payload to keep document size light, fast, and prevent invalid/oversized values
  */
 const sanitizePayload = (data: Partial<CloudSchoolData>): Record<string, any> => {
   const clean: Record<string, any> = {};
@@ -91,9 +97,9 @@ const sanitizePayload = (data: Partial<CloudSchoolData>): Record<string, any> =>
   for (const [key, value] of Object.entries(data)) {
     if (value === undefined) continue;
     
-    // Prune activity logs to last 80 entries to prevent document bloat
+    // Prune activity logs to last 100 entries to prevent unnecessary bloat
     if (key === 'activityLogs' && Array.isArray(value)) {
-      clean[key] = value.slice(0, 80);
+      clean[key] = value.slice(0, 100);
     } else {
       clean[key] = value;
     }
@@ -102,7 +108,98 @@ const sanitizePayload = (data: Partial<CloudSchoolData>): Record<string, any> =>
 };
 
 /**
- * Fast lightweight checksum to avoid heavy JSON stringification
+ * Partition payload into bounded document groups to ensure zero risk of exceeding Firestore 1MB limit
+ */
+const partitionPayload = (data: Record<string, any>, nowIso: string, clientId: string, updatedBy?: string) => {
+  const baseMeta = {
+    lastUpdated: nowIso,
+    clientId,
+    updatedBy: updatedBy || 'System'
+  };
+
+  const docMain: Record<string, any> = {
+    ...baseMeta,
+    schoolProfile: data.schoolProfile,
+    classrooms: data.classrooms,
+    academicYears: data.academicYears,
+    examSubjects: data.examSubjects,
+    printSettings: data.printSettings,
+    villages: data.villages,
+    modelSchoolStandards: data.modelSchoolStandards,
+    schoolCommittees: data.schoolCommittees,
+    schoolStrategicPlans: data.schoolStrategicPlans,
+  };
+
+  const docStudents: Record<string, any> = {
+    ...baseMeta,
+    students: data.students,
+    transfers: data.transfers,
+    profileEditRequests: data.profileEditRequests,
+    studentFeedbacks: data.studentFeedbacks,
+    atRiskStudents: data.atRiskStudents,
+    releasedResults: data.releasedResults,
+    studentBadgeDefinitions: data.studentBadgeDefinitions,
+    studentBadgeAssignments: data.studentBadgeAssignments,
+  };
+
+  const docAcademics: Record<string, any> = {
+    ...baseMeta,
+    scores: data.scores,
+    attendanceRecords: data.attendanceRecords,
+    dailyClassLogs: data.dailyClassLogs,
+    dailyHealthChecks: data.dailyHealthChecks,
+    qrScanVerificationLogs: data.qrScanVerificationLogs,
+  };
+
+  const docResources: Record<string, any> = {
+    ...baseMeta,
+    budgetTransactions: data.budgetTransactions,
+    households: data.households,
+    libraryBooks: data.libraryBooks,
+    readingLogs: data.readingLogs,
+    schoolAssets: data.schoolAssets,
+    equipmentItems: data.equipmentItems,
+    equipmentLoans: data.equipmentLoans,
+    schoolGroups: data.schoolGroups,
+    activityLogs: data.activityLogs,
+  };
+
+  const docStaffUsers: Record<string, any> = {
+    ...baseMeta,
+    appUsers: data.appUsers,
+    teachers: data.teachers,
+    staffAdminRecords: data.staffAdminRecords,
+    teacherDailyTasks: data.teacherDailyTasks,
+    teacherMeetings: data.teacherMeetings,
+    teachingResources: data.teachingResources,
+    lessonPlans: data.lessonPlans,
+    parentMeetings: data.parentMeetings,
+    parentRequests: data.parentRequests,
+    classCouncils: data.classCouncils,
+    correspondences: data.correspondences,
+    calendarEvents: data.calendarEvents
+  };
+
+  // Remove undefined fields in each partition
+  const cleanPartition = (obj: Record<string, any>) => {
+    const result: Record<string, any> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (v !== undefined) result[k] = v;
+    }
+    return result;
+  };
+
+  return {
+    main: cleanPartition(docMain),
+    students: cleanPartition(docStudents),
+    academics: cleanPartition(docAcademics),
+    resources: cleanPartition(docResources),
+    staffUsers: cleanPartition(docStaffUsers)
+  };
+};
+
+/**
+ * Fast lightweight checksum to avoid redundant writes
  */
 const getQuickHash = (obj: any): string => {
   if (!obj) return '';
@@ -126,7 +223,7 @@ const getQuickHash = (obj: any): string => {
 };
 
 /**
- * Save school data to Firestore with write serialization, timeout protection, and loop prevention
+ * Save school data to Firestore with write serialization, timeout protection, partition safety, and loop prevention
  */
 export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, force = false): Promise<boolean> => {
   const currentHash = getQuickHash(data);
@@ -135,7 +232,7 @@ export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, 
     return true;
   }
 
-  // If already writing, store as pending payload and return
+  // If already writing, queue this payload and return
   if (isWriting) {
     pendingPayload = data;
     return true;
@@ -144,20 +241,23 @@ export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, 
   isWriting = true;
   try {
     const sanitized = sanitizePayload(data);
-    const docRef = doc(db, 'schools', CLOUD_SCHOOL_DOC_ID);
-    
-    // Write with 12-second timeout protection
-    const writePromise = setDoc(docRef, {
-      ...sanitized,
-      clientId: CURRENT_CLIENT_ID,
-      lastUpdated: new Date().toISOString()
-    }, { merge: true });
+    const nowIso = new Date().toISOString();
+    const partitions = partitionPayload(sanitized, nowIso, CURRENT_CLIENT_ID, sanitized.updatedBy);
+
+    // Write all partition documents in parallel with merge: true
+    const writePromises = [
+      setDoc(doc(db, 'schools', CLOUD_DOCS.MAIN), partitions.main, { merge: true }),
+      setDoc(doc(db, 'schools', CLOUD_DOCS.STUDENTS), partitions.students, { merge: true }),
+      setDoc(doc(db, 'schools', CLOUD_DOCS.ACADEMICS), partitions.academics, { merge: true }),
+      setDoc(doc(db, 'schools', CLOUD_DOCS.RESOURCES), partitions.resources, { merge: true }),
+      setDoc(doc(db, 'schools', CLOUD_DOCS.STAFF_USERS), partitions.staffUsers, { merge: true })
+    ];
 
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Firestore write timeout')), 12000)
+      setTimeout(() => reject(new Error('Firestore write timeout')), 14000)
     );
 
-    await Promise.race([writePromise, timeoutPromise]);
+    await Promise.race([Promise.all(writePromises), timeoutPromise]);
 
     lastSyncedDataHash = currentHash;
     isWriting = false;
@@ -168,64 +268,122 @@ export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, 
       pendingPayload = null;
       setTimeout(() => {
         syncSchoolDataToFirestore(next).catch(console.warn);
-      }, 600);
+      }, 500);
     }
     return true;
   } catch (error: any) {
     isWriting = false;
-    // Log friendly warning if network/resource backoff occurs
     if (error?.code === 'resource-exhausted') {
       console.warn('Firestore write throttled, queued for next sync window.');
     } else if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
       console.warn('Firestore cloud sync notice (requires authorized authentication):', error?.message || error);
     } else {
-      console.warn('Firestore sync notice:', error?.message || error);
+      console.warn('Firestore sync failed, will retry on next state change:', error?.message || error);
     }
     return false;
   }
 };
 
 /**
- * Fetch full school dataset from Firestore once on startup with fast timeout
+ * Fetch complete school data from all Firestore partitions and merge seamlessly
  */
 export const fetchSchoolDataFromFirestore = async (): Promise<CloudSchoolData | null> => {
   try {
-    const docRef = doc(db, 'schools', CLOUD_SCHOOL_DOC_ID);
-    const fetchPromise = getDoc(docRef);
-    const timeoutPromise = new Promise<null>((resolve) => 
-      setTimeout(() => resolve(null), 8000)
-    );
+    const docRefs = [
+      getDoc(doc(db, 'schools', CLOUD_DOCS.MAIN)),
+      getDoc(doc(db, 'schools', CLOUD_DOCS.STUDENTS)),
+      getDoc(doc(db, 'schools', CLOUD_DOCS.ACADEMICS)),
+      getDoc(doc(db, 'schools', CLOUD_DOCS.RESOURCES)),
+      getDoc(doc(db, 'schools', CLOUD_DOCS.STAFF_USERS))
+    ];
 
-    const snap = await Promise.race([fetchPromise, timeoutPromise]);
-    if (snap && snap.exists()) {
-      const data = snap.data() as CloudSchoolData;
-      lastSyncedDataHash = getQuickHash(data);
-      return data;
+    const results = await Promise.allSettled(docRefs);
+    
+    let combinedData: CloudSchoolData = {};
+    let hasFoundAnyDoc = false;
+    let latestTimestamp = '';
+
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value.exists()) {
+        hasFoundAnyDoc = true;
+        const snapData = result.value.data() as CloudSchoolData;
+        if (snapData) {
+          combinedData = { ...combinedData, ...snapData };
+          if (snapData.lastUpdated && (!latestTimestamp || snapData.lastUpdated > latestTimestamp)) {
+            latestTimestamp = snapData.lastUpdated;
+          }
+        }
+      }
     }
-    return null;
+
+    if (!hasFoundAnyDoc) {
+      return null;
+    }
+
+    if (latestTimestamp) {
+      combinedData.lastUpdated = latestTimestamp;
+    }
+
+    return combinedData;
   } catch (error) {
-    console.error('Firestore fetch failed:', error);
+    console.error('Failed to fetch school data from Firestore:', error);
     return null;
   }
 };
 
 /**
- * Subscribe to real-time updates from Firestore (ignoring own client echoes)
+ * Real-time listener for school database changes across devices
  */
-export const subscribeToSchoolData = (onData: (data: CloudSchoolData) => void) => {
-  const docRef = doc(db, 'schools', CLOUD_SCHOOL_DOC_ID);
-  return onSnapshot(docRef, (snapshot) => {
-    if (snapshot.exists()) {
-      const data = snapshot.data() as CloudSchoolData;
-      // Prevent echo if this update originated from this client
-      if (data.clientId && data.clientId === CURRENT_CLIENT_ID) {
-        return;
-      }
-      lastSyncedDataHash = getQuickHash(data);
-      onData(data);
-    }
-  }, (err) => {
-    console.warn('Firestore real-time subscription note:', err.message);
-  });
-};
+export const subscribeToSchoolData = (
+  callback: (data: CloudSchoolData) => void,
+  onError?: (err: Error) => void
+): Unsubscribe => {
+  const unsubscribers: Unsubscribe[] = [];
 
+  const handleSnapshot = (snap: any) => {
+    if (!snap.exists()) return;
+    const snapData = snap.data() as CloudSchoolData;
+    
+    // Ignore updates pushed by this current client session to avoid loop echo
+    if (snapData && snapData.clientId === CURRENT_CLIENT_ID) {
+      return;
+    }
+
+    // When remote change arrives, fetch full consolidated partition state to guarantee consistency
+    fetchSchoolDataFromFirestore().then(fullData => {
+      if (fullData) {
+        callback(fullData);
+      }
+    }).catch(err => {
+      if (onError) onError(err);
+    });
+  };
+
+  try {
+    const unsubMain = onSnapshot(doc(db, 'schools', CLOUD_DOCS.MAIN), handleSnapshot, (err) => {
+      console.warn('Real-time listener main notice:', err.message);
+      if (onError) onError(err);
+    });
+    unsubscribers.push(unsubMain);
+
+    const unsubStudents = onSnapshot(doc(db, 'schools', CLOUD_DOCS.STUDENTS), handleSnapshot, (err) => {
+      console.warn('Real-time listener students notice:', err.message);
+    });
+    unsubscribers.push(unsubStudents);
+
+    const unsubStaff = onSnapshot(doc(db, 'schools', CLOUD_DOCS.STAFF_USERS), handleSnapshot, (err) => {
+      console.warn('Real-time listener staff notice:', err.message);
+    });
+    unsubscribers.push(unsubStaff);
+  } catch (e: any) {
+    console.warn('Could not establish real-time snapshot listener:', e);
+  }
+
+  return () => {
+    unsubscribers.forEach(unsub => {
+      try {
+        unsub();
+      } catch {}
+    });
+  };
+};

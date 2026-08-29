@@ -1687,6 +1687,10 @@ export interface DriveAutoSyncConfig {
   syncMeetings: boolean;
   syncFinances: boolean;
   syncFullBackup: boolean;
+  syncStudents: boolean;
+  syncScores: boolean;
+  syncHonorRoll: boolean;
+  syncStaffDirectory: boolean;
   folderId: string;
   lastAutoSyncTime?: string;
   autoSyncOnChanges: boolean;
@@ -1695,7 +1699,7 @@ export interface DriveAutoSyncConfig {
 export interface DriveSyncHistoryItem {
   id: string;
   title: string;
-  category: 'meeting_minutes' | 'financial_report' | 'database_backup' | 'custom_file';
+  category: 'meeting_minutes' | 'financial_report' | 'database_backup' | 'student_roster' | 'score_ranking' | 'honor_roll' | 'staff_directory' | 'custom_file';
   categoryLabelKhmer: string;
   fileName: string;
   fileSizeBytes?: number;

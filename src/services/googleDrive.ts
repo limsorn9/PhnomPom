@@ -584,3 +584,686 @@ export const uploadFinancialReportToDrive = async (
   );
 };
 
+/**
+ * Generate official Khmer HTML document for Student Rosters
+ */
+export const generateStudentRosterHtmlDocument = (
+  studentsList: any[],
+  classroomTitle: string,
+  schoolProfile: any,
+  academicYear: string
+): string => {
+  const province = schoolProfile?.provinceKhmer || 'បាត់ដំបង';
+  const district = schoolProfile?.districtKhmer || 'ភ្នំព្រឹក';
+  const schoolName = schoolProfile?.nameKhmer || 'សាលាបឋមសិក្សាភ្នំព្រឹក';
+  const principal = schoolProfile?.principalNameKhmer || schoolProfile?.principalName || 'លោក នាយកសាលា';
+
+  const femaleCount = studentsList.filter(s => s.gender === 'female' || s.gender === 'ស្រី').length;
+  const poorCount = studentsList.filter(s => s.hasPoorCard || s.isPoor).length;
+
+  const rowsHtml = studentsList.map((st, idx) => `
+    <tr style="border-bottom: 1px solid #cbd5e1; background: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+      <td style="padding: 6px 10px; border: 1px solid #cbd5e1; text-align: center;">${idx + 1}</td>
+      <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-family: monospace; font-weight: bold; color: #1e3a8a;">${st.studentCode || st.code || '-'}</td>
+      <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-weight: bold; color: #0f172a;">${st.nameKhmer || st.name}</td>
+      <td style="padding: 6px 10px; border: 1px solid #cbd5e1; color: #475569;">${st.nameLatin || '-'}</td>
+      <td style="padding: 6px 10px; border: 1px solid #cbd5e1; text-align: center; font-weight: bold; color: ${st.gender === 'female' || st.gender === 'ស្រី' ? '#e11d48' : '#2563eb'};">
+        ${st.gender === 'female' || st.gender === 'ស្រី' ? 'ស្រី' : 'ប្រុស'}
+      </td>
+      <td style="padding: 6px 10px; border: 1px solid #cbd5e1; text-align: center;">${st.dob || st.dateOfBirth || '-'}</td>
+      <td style="padding: 6px 10px; border: 1px solid #cbd5e1; text-align: center;">${st.grade ? `ថ្នាក់ទី ${st.grade}${st.section || ''}` : '-'}</td>
+      <td style="padding: 6px 10px; border: 1px solid #cbd5e1;">${st.guardianName || st.fatherName || st.motherName || '-'}</td>
+      <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-family: monospace;">${st.guardianPhone || st.phone || '-'}</td>
+      <td style="padding: 6px 10px; border: 1px solid #cbd5e1; text-align: center; font-size: 11px;">
+        ${st.hasPoorCard ? '<span style="background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-weight: bold;">ក្រីក្រ</span>' : 'ទូទៅ'}
+      </td>
+    </tr>
+  `).join('');
+
+  return `<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8">
+  <title>បញ្ជីរាយនាមសិស្ស - ${classroomTitle}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Moul&family=Siemreap&display=swap');
+    body {
+      font-family: 'Siemreap', 'Khmer OS Siemreap', 'Khmer OS', sans-serif;
+      background: #ffffff;
+      color: #1e293b;
+      margin: 0;
+      padding: 35px;
+      line-height: 1.5;
+    }
+    .header-royal {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .moul-title {
+      font-family: 'Moul', cursive;
+      color: #0f172a;
+      font-size: 15px;
+      margin: 3px 0;
+    }
+    .table-custom {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 13px;
+    }
+    .table-custom th {
+      background: #1e3a8a;
+      color: #ffffff;
+      border: 1px solid #172554;
+      padding: 8px 10px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .stats-card {
+      display: inline-block;
+      padding: 8px 16px;
+      background: #f1f5f9;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      margin-right: 10px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-royal">
+    <div class="moul-title">ព្រះរាជាណាចក្រកម្ពុជា</div>
+    <div class="moul-title" style="font-size: 13px; color: #b45309;">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+    <div style="letter-spacing: 4px; color: #b45309;">***</div>
+    <div style="text-align: left; margin-top: 10px;">
+      <div><strong>មន្ទីរអប់រំ យុវជន និងកីឡាខេត្ត${province}</strong></div>
+      <div>ការិយាល័យអប់រំ យុវជន និងកីឡាស្រុក${district}</div>
+      <div><strong>${schoolName}</strong></div>
+    </div>
+  </div>
+
+  <div style="text-align: center; margin: 20px 0;">
+    <h2 class="moul-title" style="font-size: 17px; color: #1e3a8a;">បញ្ជីរាយនាមសិស្សផ្លូវការ</h2>
+    <div style="font-size: 14px; font-weight: bold; color: #334155;">« ${classroomTitle} » • ឆ្នាំសិក្សា ${academicYear || '២០២៦-២០២៧'}</div>
+  </div>
+
+  <div style="margin: 15px 0;">
+    <div class="stats-card">សិស្សសរុប៖ <strong>${studentsList.length}</strong> នាក់</div>
+    <div class="stats-card">ស្រី៖ <strong style="color: #e11d48;">${femaleCount}</strong> នាក់</div>
+    <div class="stats-card">ប្រុស៖ <strong style="color: #2563eb;">${studentsList.length - femaleCount}</strong> នាក់</div>
+    <div class="stats-card">សិស្សមានប័ណ្ណក្រីក្រ៖ <strong style="color: #d97706;">${poorCount}</strong> នាក់</div>
+  </div>
+
+  <table class="table-custom">
+    <thead>
+      <tr>
+        <th style="width: 40px;">ល.រ</th>
+        <th>អត្តលេខ</th>
+        <th>គោត្តនាម-នាម</th>
+        <th>អក្សរឡាតាំង</th>
+        <th style="width: 50px;">ភេទ</th>
+        <th>ថ្ងៃខែឆ្នាំកំណើត</th>
+        <th>ថ្នាក់</th>
+        <th>អាណាព្យាបាល</th>
+        <th>លេខទូរស័ព្ទ</th>
+        <th>ស្ថានភាព</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml || '<tr><td colspan="10" style="text-align:center; padding: 20px;">ពុំទាន់មានទិន្នន័យសិស្សឡើយ</td></tr>'}
+    </tbody>
+  </table>
+
+  <div style="margin-top: 45px; display: table; width: 100%;">
+    <div style="display: table-cell; width: 50%; text-align: center;">
+      <div>បានឃើញ និងពិនិត្យត្រឹមត្រូវ</div>
+      <div style="font-weight: bold; margin-top: 4px;">នាយកសាលា</div>
+      <div style="margin-top: 60px; font-weight: bold; color: #1e293b;">${principal}</div>
+    </div>
+    <div style="display: table-cell; width: 50%; text-align: center;">
+      <div>ធ្វើនៅ ${district}, ថ្ងៃទី ${new Date().getDate()} ខែ ${new Date().getMonth() + 1} ឆ្នាំ ${new Date().getFullYear()}</div>
+      <div style="font-weight: bold; margin-top: 4px;">គ្រូបន្ទុកថ្នាក់ / អ្នករៀបចំ</div>
+      <div style="margin-top: 60px; font-weight: bold; color: #1e293b;">លោកគ្រូ/អ្នកគ្រូបន្ទុកថ្នាក់</div>
+    </div>
+  </div>
+
+  <div style="margin-top: 35px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px dashed #cbd5e1; padding-top: 10px;">
+    ឯកសារបញ្ជីសិស្សនេះត្រូវបាន Sync ស្វ័យប្រវត្តិតាមរយៈប្រព័ន្ធគ្រប់គ្រងសាលា ទៅកាន់ Google Drive (Folder ID: 1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g)
+  </div>
+</body>
+</html>`;
+};
+
+/**
+ * Upload Student Roster to Google Drive
+ */
+export const uploadStudentRosterToDrive = async (
+  studentsList: any[],
+  classroomTitle: string,
+  schoolProfile: any,
+  academicYear: string,
+  targetFolderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+): Promise<DriveItem> => {
+  const htmlContent = generateStudentRosterHtmlDocument(studentsList, classroomTitle, schoolProfile, academicYear);
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+  const safeTitle = classroomTitle.replace(/[/\\?%*:|"<>]/g, '_').replace(/\s+/g, '_');
+  const fileName = `បញ្ជីសិស្ស_${safeTitle}_${academicYear.replace(/\s+/g, '_')}.html`;
+
+  return uploadFileToDrive(
+    blob,
+    fileName,
+    'text/html',
+    targetFolderId,
+    `បញ្ជីរាយនាមសិស្សផ្លូវការ៖ ${classroomTitle} ឆ្នាំសិក្សា ${academicYear} (សរុប ${studentsList.length} នាក់)`
+  );
+};
+
+/**
+ * Generate official Khmer HTML document for Monthly Exam Scores & Rankings
+ */
+export const generateScoresHtmlDocument = (
+  scoresList: any[],
+  examSubjects: any[],
+  classroomTitle: string,
+  monthOrSemester: string,
+  schoolProfile: any,
+  academicYear: string
+): string => {
+  const province = schoolProfile?.provinceKhmer || 'បាត់ដំបង';
+  const district = schoolProfile?.districtKhmer || 'ភ្នំព្រឹក';
+  const schoolName = schoolProfile?.nameKhmer || 'សាលាបឋមសិក្សាភ្នំព្រឹក';
+  const principal = schoolProfile?.principalNameKhmer || schoolProfile?.principalName || 'លោក នាយកសាលា';
+
+  const sortedScores = [...scoresList].sort((a, b) => (a.rank || 999) - (b.rank || 999));
+
+  const subjects = (examSubjects && examSubjects.length > 0)
+    ? examSubjects
+    : [
+        { key: 'khmerWriting', nameKhmer: 'ភាសាខ្មែរ (សរសេរ)', maxScore: 50 },
+        { key: 'khmerReading', nameKhmer: 'ភាសាខ្មែរ (អាន)', maxScore: 50 },
+        { key: 'math', nameKhmer: 'គណិតវិទ្យា', maxScore: 100 },
+        { key: 'science', nameKhmer: 'វិទ្យាសាស្ត្រ', maxScore: 50 },
+        { key: 'socialStudies', nameKhmer: 'សិក្សាសង្គម', maxScore: 50 }
+      ];
+
+  const headersHtml = subjects.map(s => `<th style="padding: 6px 8px; border: 1px solid #15803d; font-size: 11px;">${s.nameKhmer || s.name}</th>`).join('');
+
+  const rowsHtml = sortedScores.map((sc, idx) => {
+    const subjectCells = subjects.map(s => {
+      const val = sc.subjects?.[s.key] ?? sc[s.key] ?? '-';
+      return `<td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center; font-family: monospace;">${val}</td>`;
+    }).join('');
+
+    const rank = sc.rank || idx + 1;
+    const rankColor = rank === 1 ? '#eab308' : rank === 2 ? '#94a3b8' : rank === 3 ? '#b45309' : '#334155';
+
+    return `
+      <tr style="border-bottom: 1px solid #cbd5e1; background: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+        <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center; font-weight: bold; color: ${rankColor}; font-size: 14px;">${rank}</td>
+        <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-family: monospace; font-weight: bold; color: #1e3a8a;">${sc.studentCode || '-'}</td>
+        <td style="padding: 6px 8px; border: 1px solid #cbd5e1; font-weight: bold; color: #0f172a;">${sc.studentNameKhmer || sc.studentName}</td>
+        <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center; font-weight: bold; color: ${sc.gender === 'female' || sc.gender === 'ស្រី' ? '#e11d48' : '#2563eb'};">
+          ${sc.gender === 'female' || sc.gender === 'ស្រី' ? 'ស្រី' : 'ប្រុស'}
+        </td>
+        ${subjectCells}
+        <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: right; font-weight: bold; color: #15803d; font-family: monospace;">${sc.totalScore ?? '-'}</td>
+        <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: right; font-weight: bold; color: #0284c7; font-family: monospace;">${sc.averageScore?.toFixed ? sc.averageScore.toFixed(2) : sc.averageScore ?? '-'}</td>
+        <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center; font-weight: bold;">
+          <span style="padding: 2px 6px; border-radius: 4px; font-size: 11px; background: ${sc.gradeLetter === 'A' ? '#dcfce7; color: #15803d;' : sc.gradeLetter === 'B' ? '#e0f2fe; color: #0369a1;' : sc.gradeLetter === 'F' ? '#fee2e2; color: #b91c1c;' : '#f1f5f9; color: #475569;'}">
+            ${sc.gradeLetter || '-'}
+          </span>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  return `<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8">
+  <title>តារាងពិន្ទុ និងចំណាត់ថ្នាក់ - ${classroomTitle} (${monthOrSemester})</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Moul&family=Siemreap&display=swap');
+    body {
+      font-family: 'Siemreap', 'Khmer OS Siemreap', 'Khmer OS', sans-serif;
+      background: #ffffff;
+      color: #1e293b;
+      margin: 0;
+      padding: 35px;
+      line-height: 1.5;
+    }
+    .header-royal {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .moul-title {
+      font-family: 'Moul', cursive;
+      color: #0f172a;
+      font-size: 15px;
+      margin: 3px 0;
+    }
+    .table-custom {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 12px;
+    }
+    .table-custom th {
+      background: #166534;
+      color: #ffffff;
+      border: 1px solid #14532d;
+      padding: 8px 6px;
+      font-weight: bold;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-royal">
+    <div class="moul-title">ព្រះរាជាណាចក្រកម្ពុជា</div>
+    <div class="moul-title" style="font-size: 13px; color: #b45309;">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+    <div style="letter-spacing: 4px; color: #b45309;">***</div>
+    <div style="text-align: left; margin-top: 10px;">
+      <div><strong>មន្ទីរអប់រំ យុវជន និងកីឡាខេត្ត${province}</strong></div>
+      <div>ការិយាល័យអប់រំ យុវជន និងកីឡាស្រុក${district}</div>
+      <div><strong>${schoolName}</strong></div>
+    </div>
+  </div>
+
+  <div style="text-align: center; margin: 20px 0;">
+    <h2 class="moul-title" style="font-size: 17px; color: #166534;">តារាងពិន្ទុ និងចំណាត់ថ្នាក់ប្រចាំខែ</h2>
+    <div style="font-size: 14px; font-weight: bold; color: #334155;">« ${classroomTitle} » • ខែ ${monthOrSemester} • ឆ្នាំសិក្សា ${academicYear || '២០២៦-២០២៧'}</div>
+  </div>
+
+  <table class="table-custom">
+    <thead>
+      <tr>
+        <th style="width: 45px;">ចំណាត់ថ្នាក់</th>
+        <th>អត្តលេខ</th>
+        <th>គោត្តនាម-នាម</th>
+        <th style="width: 40px;">ភេទ</th>
+        ${headersHtml}
+        <th>ពិន្ទុសរុប</th>
+        <th>មធ្យមភាគ</th>
+        <th>និទ្ទេស</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml || '<tr><td colspan="12" style="text-align:center; padding: 20px;">ពុំទាន់មានទិន្នន័យពិន្ទុឡើយ</td></tr>'}
+    </tbody>
+  </table>
+
+  <div style="margin-top: 45px; display: table; width: 100%;">
+    <div style="display: table-cell; width: 50%; text-align: center;">
+      <div>បានឃើញ និងអនុម័ត</div>
+      <div style="font-weight: bold; margin-top: 4px;">នាយកសាលា</div>
+      <div style="margin-top: 60px; font-weight: bold; color: #1e293b;">${principal}</div>
+    </div>
+    <div style="display: table-cell; width: 50%; text-align: center;">
+      <div>ធ្វើនៅ ${district}, ថ្ងៃទី ${new Date().getDate()} ខែ ${new Date().getMonth() + 1} ឆ្នាំ ${new Date().getFullYear()}</div>
+      <div style="font-weight: bold; margin-top: 4px;">គ្រូបន្ទុកថ្នាក់</div>
+      <div style="margin-top: 60px; font-weight: bold; color: #1e293b;">លោកគ្រូ/អ្នកគ្រូបន្ទុកថ្នាក់</div>
+    </div>
+  </div>
+
+  <div style="margin-top: 35px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px dashed #cbd5e1; padding-top: 10px;">
+    ឯកសារតារាងពិន្ទុនេះត្រូវបាន Sync ស្វ័យប្រវត្តិទៅកាន់ Google Drive (Folder ID: 1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g)
+  </div>
+</body>
+</html>`;
+};
+
+/**
+ * Upload Monthly Exam Scores & Rankings to Google Drive
+ */
+export const uploadScoresToDrive = async (
+  scoresList: any[],
+  examSubjects: any[],
+  classroomTitle: string,
+  monthOrSemester: string,
+  schoolProfile: any,
+  academicYear: string,
+  targetFolderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+): Promise<DriveItem> => {
+  const htmlContent = generateScoresHtmlDocument(scoresList, examSubjects, classroomTitle, monthOrSemester, schoolProfile, academicYear);
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+  const safeTitle = classroomTitle.replace(/[/\\?%*:|"<>]/g, '_').replace(/\s+/g, '_');
+  const safeMonth = monthOrSemester.replace(/[/\\?%*:|"<>]/g, '_').replace(/\s+/g, '_');
+  const fileName = `តារាងពិន្ទុ_${safeTitle}_${safeMonth}_${academicYear.replace(/\s+/g, '_')}.html`;
+
+  return uploadFileToDrive(
+    blob,
+    fileName,
+    'text/html',
+    targetFolderId,
+    `តារាងពិន្ទុ និងចំណាត់ថ្នាក់សិស្ស៖ ${classroomTitle} ខែ ${monthOrSemester} ឆ្នាំសិក្សា ${academicYear}`
+  );
+};
+
+/**
+ * Generate official Khmer HTML document for Top Honor Rolls
+ */
+export const generateHonorRollHtmlDocument = (
+  topStudents: any[],
+  classroomTitle: string,
+  monthOrSemester: string,
+  schoolProfile: any,
+  academicYear: string
+): string => {
+  const province = schoolProfile?.provinceKhmer || 'បាត់ដំបង';
+  const district = schoolProfile?.districtKhmer || 'ភ្នំព្រឹក';
+  const schoolName = schoolProfile?.nameKhmer || 'សាលាបឋមសិក្សាភ្នំព្រឹក';
+  const principal = schoolProfile?.principalNameKhmer || schoolProfile?.principalName || 'លោក នាយកសាលា';
+
+  const cardsHtml = topStudents.map((st, idx) => {
+    const rank = st.rank || idx + 1;
+    const badgeColor = rank === 1 ? '#eab308' : rank === 2 ? '#94a3b8' : rank === 3 ? '#b45309' : '#3b82f6';
+    const rankLabel = rank === 1 ? 'ចំណាត់ថ្នាក់លេខ ១ (ឆ្នើម)' : rank === 2 ? 'ចំណាត់ថ្នាក់លេខ ២' : rank === 3 ? 'ចំណាត់ថ្នាក់លេខ ៣' : `ចំណាត់ថ្នាក់លេខ ${rank}`;
+
+    return `
+      <div style="border: 2px solid ${badgeColor}; border-radius: 12px; padding: 16px; margin-bottom: 15px; background: #fafaf9; display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <div style="font-size: 13px; font-weight: bold; color: ${badgeColor};">${rankLabel}</div>
+          <div style="font-size: 18px; font-weight: bold; color: #0f172a; margin-top: 4px;">${st.studentNameKhmer || st.studentName || st.nameKhmer}</div>
+          <div style="font-size: 12px; color: #64748b;">អត្តលេខ៖ ${st.studentCode || '-'} • ភេទ៖ ${st.gender === 'female' || st.gender === 'ស្រី' ? 'ស្រី' : 'ប្រុស'}</div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 12px; color: #475569;">មធ្យមភាគពិន្ទុ</div>
+          <div style="font-size: 20px; font-weight: bold; color: #16a34a; font-family: monospace;">${st.averageScore?.toFixed ? st.averageScore.toFixed(2) : st.averageScore ?? '-'}</div>
+          <div style="font-size: 11px; font-weight: bold; color: #0284c7;">និទ្ទេស ${st.gradeLetter || 'A'}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8">
+  <title>តារាងកិត្តិយសសិស្សឆ្នើម - ${classroomTitle}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Moul&family=Siemreap&display=swap');
+    body {
+      font-family: 'Siemreap', 'Khmer OS Siemreap', 'Khmer OS', sans-serif;
+      background: #ffffff;
+      color: #1e293b;
+      margin: 0;
+      padding: 35px;
+      line-height: 1.5;
+    }
+    .header-royal {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .moul-title {
+      font-family: 'Moul', cursive;
+      color: #0f172a;
+      font-size: 15px;
+      margin: 3px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-royal">
+    <div class="moul-title">ព្រះរាជាណាចក្រកម្ពុជា</div>
+    <div class="moul-title" style="font-size: 13px; color: #b45309;">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+    <div style="letter-spacing: 4px; color: #b45309;">***</div>
+    <div style="text-align: left; margin-top: 10px;">
+      <div><strong>មន្ទីរអប់រំ យុវជន និងកីឡាខេត្ត${province}</strong></div>
+      <div>ការិយាល័យអប់រំ យុវជន និងកីឡាស្រុក${district}</div>
+      <div><strong>${schoolName}</strong></div>
+    </div>
+  </div>
+
+  <div style="text-align: center; margin: 25px 0;">
+    <h2 class="moul-title" style="font-size: 18px; color: #b45309;">តារាងកិត្តិយសសិស្សឆ្នើម (Top 5 Honor Roll)</h2>
+    <div style="font-size: 14px; font-weight: bold; color: #334155;">« ${classroomTitle} » • ខែ ${monthOrSemester} • ឆ្នាំសិក្សា ${academicYear || '២០២៦-២០២៧'}</div>
+  </div>
+
+  <div style="margin: 20px 0;">
+    ${cardsHtml || '<div style="text-align:center; padding: 20px;">ពុំទាន់មានទិន្នន័យសិស្សឆ្នើមឡើយ</div>'}
+  </div>
+
+  <div style="margin-top: 45px; display: table; width: 100%;">
+    <div style="display: table-cell; width: 50%; text-align: center;">
+      <div>បានឃើញ និងអបអរសាទរ</div>
+      <div style="font-weight: bold; margin-top: 4px;">នាយកសាលា</div>
+      <div style="margin-top: 60px; font-weight: bold; color: #1e293b;">${principal}</div>
+    </div>
+    <div style="display: table-cell; width: 50%; text-align: center;">
+      <div>ធ្វើនៅ ${district}, ថ្ងៃទី ${new Date().getDate()} ខែ ${new Date().getMonth() + 1} ឆ្នាំ ${new Date().getFullYear()}</div>
+      <div style="font-weight: bold; margin-top: 4px;">គ្រូបន្ទុកថ្នាក់</div>
+      <div style="margin-top: 60px; font-weight: bold; color: #1e293b;">លោកគ្រូ/អ្នកគ្រូបន្ទុកថ្នាក់</div>
+    </div>
+  </div>
+
+  <div style="margin-top: 35px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px dashed #cbd5e1; padding-top: 10px;">
+    ឯកសារតារាងកិត្តិយសនេះត្រូវបាន Sync ស្វ័យប្រវត្តិទៅកាន់ Google Drive (Folder ID: 1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g)
+  </div>
+</body>
+</html>`;
+};
+
+/**
+ * Upload Honor Roll to Google Drive
+ */
+export const uploadHonorRollToDrive = async (
+  topStudents: any[],
+  classroomTitle: string,
+  monthOrSemester: string,
+  schoolProfile: any,
+  academicYear: string,
+  targetFolderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+): Promise<DriveItem> => {
+  const htmlContent = generateHonorRollHtmlDocument(topStudents, classroomTitle, monthOrSemester, schoolProfile, academicYear);
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+  const safeTitle = classroomTitle.replace(/[/\\?%*:|"<>]/g, '_').replace(/\s+/g, '_');
+  const safeMonth = monthOrSemester.replace(/[/\\?%*:|"<>]/g, '_').replace(/\s+/g, '_');
+  const fileName = `តារាងកិត្តិយស_${safeTitle}_${safeMonth}_${academicYear.replace(/\s+/g, '_')}.html`;
+
+  return uploadFileToDrive(
+    blob,
+    fileName,
+    'text/html',
+    targetFolderId,
+    `តារាងកិត្តិយសសិស្សឆ្នើម Top 5៖ ${classroomTitle} ខែ ${monthOrSemester}`
+  );
+};
+
+/**
+ * Download file content directly from Google Drive
+ */
+export const downloadDriveFileContent = async (fileId: string): Promise<string> => {
+  const token = await getAccessToken();
+  if (!token) {
+    throw new Error('ត្រូវការភ្ជាប់គណនី Google ជាមុនសិន');
+  }
+
+  const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error('បរាជ័យក្នុងការទាញយកទិន្នន័យពី Google Drive');
+  }
+
+  return response.text();
+};
+
+/**
+ * Generate official Khmer HTML document for Staff & Teacher Directory
+ */
+export const generateStaffDirectoryHtmlDocument = (
+  teachersList: any[],
+  schoolProfile: any,
+  academicYear: string
+): string => {
+  const province = schoolProfile?.provinceKhmer || 'បាត់ដំបង';
+  const district = schoolProfile?.districtKhmer || 'ភ្នំព្រឹក';
+  const schoolName = schoolProfile?.nameKhmer || 'សាលាបឋមសិក្សាភ្នំព្រឹក';
+  const principal = schoolProfile?.principalNameKhmer || schoolProfile?.principalName || 'លោក នាយកសាលា';
+
+  const femaleCount = teachersList.filter(t => t.gender === 'female' || t.gender === 'ស្រី' || t.gender === 'F').length;
+
+  const rowsHtml = teachersList.map((t, idx) => {
+    const isFemale = t.gender === 'female' || t.gender === 'ស្រី' || t.gender === 'F';
+    const roleKhmer = t.role === 'director' ? 'នាយកសាលា' : t.role === 'deputy_director' ? 'នាយករង' : t.role === 'secretary' ? 'លេខាធិការ' : 'គ្រូបង្រៀន';
+    const assignedClass = t.assignedGrade ? `ថ្នាក់ទី ${t.assignedGrade}${t.assignedSection ? `«${t.assignedSection}»` : ''}` : '-';
+
+    return `
+      <tr style="border-bottom: 1px solid #cbd5e1; background: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+        <td style="padding: 8px 10px; border: 1px solid #cbd5e1; text-align: center; font-weight: bold;">${idx + 1}</td>
+        <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-family: monospace; font-weight: bold; color: #1e3a8a;">${t.teacherCode || t.idNumber || '-'}</td>
+        <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-weight: bold; color: #0f172a;">${t.fullNameKhmer || t.name}</td>
+        <td style="padding: 8px 10px; border: 1px solid #cbd5e1; color: #475569;">${t.fullNameLatin || t.nameEn || '-'}</td>
+        <td style="padding: 8px 10px; border: 1px solid #cbd5e1; text-align: center; font-weight: bold; color: ${isFemale ? '#e11d48' : '#2563eb'};">
+          ${isFemale ? 'ស្រី' : 'ប្រុស'}
+        </td>
+        <td style="padding: 8px 10px; border: 1px solid #cbd5e1; text-align: center; color: #334155;">${t.dateOfBirth || '-'}</td>
+        <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-weight: bold; color: #0369a1;">${roleKhmer}</td>
+        <td style="padding: 8px 10px; border: 1px solid #cbd5e1; text-align: center; font-weight: bold; color: #15803d;">${assignedClass}</td>
+        <td style="padding: 8px 10px; border: 1px solid #cbd5e1; font-family: monospace;">${t.phoneNumber || '-'}</td>
+        <td style="padding: 8px 10px; border: 1px solid #cbd5e1; color: #475569;">${t.degree || t.educationLevel || 'គរុកោសល្យ'}</td>
+      </tr>
+    `;
+  }).join('');
+
+  return `<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8">
+  <title>បញ្ជីរាយនាមបុគ្គលិក និងលោកគ្រូ-អ្នកគ្រូ - ${schoolName}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Moul&family=Siemreap&display=swap');
+    body {
+      font-family: 'Siemreap', 'Khmer OS Siemreap', 'Khmer OS', sans-serif;
+      background: #ffffff;
+      color: #1e293b;
+      margin: 0;
+      padding: 35px;
+      line-height: 1.5;
+    }
+    .header-royal {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .moul-title {
+      font-family: 'Moul', cursive;
+      color: #0f172a;
+      font-size: 15px;
+      margin: 3px 0;
+    }
+    .table-custom {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 12px;
+    }
+    .table-custom th {
+      background: #1e3a8a;
+      color: #ffffff;
+      border: 1px solid #172554;
+      padding: 9px 8px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .stats-card {
+      display: inline-block;
+      padding: 6px 14px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      margin-right: 10px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-royal">
+    <div class="moul-title">ព្រះរាជាណាចក្រកម្ពុជា</div>
+    <div class="moul-title" style="font-size: 13px; color: #b45309;">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+    <div style="letter-spacing: 4px; color: #b45309;">***</div>
+    <div style="text-align: left; margin-top: 10px;">
+      <div><strong>មន្ទីរអប់រំ យុវជន និងកីឡាខេត្ត${province}</strong></div>
+      <div>ការិយាល័យអប់រំ យុវជន និងកីឡាស្រុក${district}</div>
+      <div><strong>${schoolName}</strong></div>
+    </div>
+  </div>
+
+  <div style="text-align: center; margin: 20px 0;">
+    <h2 class="moul-title" style="font-size: 17px; color: #1e3a8a;">បញ្ជីរាយនាមបុគ្គលិកអប់រំ និងលោកគ្រូ-អ្នកគ្រូ</h2>
+    <div style="font-size: 14px; font-weight: bold; color: #334155;">ឆ្នាំសិក្សា ${academicYear || '២០២៦-២០២៧'}</div>
+  </div>
+
+  <div style="margin: 15px 0;">
+    <div class="stats-card">បុគ្គលិកសរុប៖ <strong>${teachersList.length}</strong> នាក់</div>
+    <div class="stats-card">ស្រី៖ <strong style="color: #e11d48;">${femaleCount}</strong> នាក់</div>
+    <div class="stats-card">ប្រុស៖ <strong style="color: #2563eb;">${teachersList.length - femaleCount}</strong> នាក់</div>
+  </div>
+
+  <table class="table-custom">
+    <thead>
+      <tr>
+        <th style="width: 40px;">ល.រ</th>
+        <th>អត្តលេខ</th>
+        <th>គោត្តនាម-នាម</th>
+        <th>អក្សរឡាតាំង</th>
+        <th style="width: 50px;">ភេទ</th>
+        <th>ថ្ងៃខែឆ្នាំកំណើត</th>
+        <th>តួនាទី</th>
+        <th>បន្ទុកថ្នាក់</th>
+        <th>លេខទូរស័ព្ទ</th>
+        <th>កម្រិតវប្បធម៌</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml || '<tr><td colspan="10" style="text-align:center; padding: 20px;">ពុំទាន់មានទិន្នន័យបុគ្គលិកឡើយ</td></tr>'}
+    </tbody>
+  </table>
+
+  <div style="margin-top: 45px; display: table; width: 100%;">
+    <div style="display: table-cell; width: 50%; text-align: center;">
+      <div>បានឃើញ និងពិនិត្យត្រឹមត្រូវ</div>
+      <div style="font-weight: bold; margin-top: 4px;">នាយកសាលា</div>
+      <div style="margin-top: 60px; font-weight: bold; color: #1e293b;">${principal}</div>
+    </div>
+    <div style="display: table-cell; width: 50%; text-align: center;">
+      <div>ធ្វើនៅ ${district}, ថ្ងៃទី ${new Date().getDate()} ខែ ${new Date().getMonth() + 1} ឆ្នាំ ${new Date().getFullYear()}</div>
+      <div style="font-weight: bold; margin-top: 4px;">អ្នករៀបចំឯកសារ</div>
+      <div style="margin-top: 60px; font-weight: bold; color: #1e293b;">លេខាធិការដ្ឋានសាលា</div>
+    </div>
+  </div>
+
+  <div style="margin-top: 35px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px dashed #cbd5e1; padding-top: 10px;">
+    ឯកសារបញ្ជីបុគ្គលិកនេះត្រូវបាន Sync ស្វ័យប្រវត្តិតាមរយៈប្រព័ន្ធគ្រប់គ្រងសាលា ទៅកាន់ Google Drive (Folder ID: 1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g)
+  </div>
+</body>
+</html>`;
+};
+
+/**
+ * Upload Staff Directory to Google Drive
+ */
+export const uploadStaffDirectoryToDrive = async (
+  teachersList: any[],
+  schoolProfile: any,
+  academicYear: string,
+  targetFolderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+): Promise<DriveItem> => {
+  const htmlContent = generateStaffDirectoryHtmlDocument(teachersList, schoolProfile, academicYear);
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+  const fileName = `បញ្ជីបុគ្គលិក_${academicYear.replace(/\s+/g, '_')}.html`;
+
+  return uploadFileToDrive(
+    blob,
+    fileName,
+    'text/html',
+    targetFolderId,
+    `បញ្ជីរាយនាមបុគ្គលិក និងលោកគ្រូ-អ្នកគ្រូផ្លូវការ ឆ្នាំសិក្សា ${academicYear} (សរុប ${teachersList.length} នាក់)`
+  );
+};
+
+

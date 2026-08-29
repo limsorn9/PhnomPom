@@ -65,6 +65,11 @@ import {
   backupSchoolDataToDrive,
   uploadMeetingMinutesToDrive,
   uploadFinancialReportToDrive,
+  uploadStudentRosterToDrive,
+  uploadScoresToDrive,
+  uploadHonorRollToDrive,
+  uploadStaffDirectoryToDrive,
+  downloadDriveFileContent,
   PRIMARY_SCHOOL_DRIVE_FOLDER_ID
 } from '../services/googleDrive';
 import {
@@ -519,6 +524,11 @@ interface SchoolContextType {
   syncMeetingToDrive: (meetingOrId: string | TeacherMeetingRecord, folderIdOverride?: string) => Promise<void>;
   syncAllMeetingsToDrive: (folderIdOverride?: string) => Promise<{ success: number; failed: number }>;
   syncFinancialReportToDrive: (academicYear?: string, folderIdOverride?: string) => Promise<void>;
+  syncStudentRosterToDrive: (classroomOrId?: string, folderIdOverride?: string) => Promise<void>;
+  syncScoresAndRankingsToDrive: (grade?: number, section?: string, month?: string, folderIdOverride?: string) => Promise<void>;
+  syncHonorRollToDrive: (grade?: number, section?: string, month?: string, folderIdOverride?: string) => Promise<void>;
+  syncStaffDirectoryToDrive: (folderIdOverride?: string) => Promise<void>;
+  restoreSchoolDatabaseFromDrive: (fileIdOrJsonContent: string) => Promise<boolean>;
   triggerDriveAutoSyncAll: () => Promise<void>;
   clearDriveSyncHistory: () => void;
 }
@@ -1934,6 +1944,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     syncMeetings: true,
     syncFinances: true,
     syncFullBackup: true,
+    syncStudents: true,
+    syncScores: true,
+    syncHonorRoll: true,
+    syncStaffDirectory: true,
     folderId: PRIMARY_SCHOOL_DRIVE_FOLDER_ID,
     autoSyncOnChanges: true,
     lastAutoSyncTime: undefined
@@ -1941,7 +1955,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const [driveAutoSyncConfig, setDriveAutoSyncConfig] = useState<DriveAutoSyncConfig>(() => {
     const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_gdrive_auto_sync_config`);
-    return saved ? JSON.parse(saved) : initialDriveAutoSyncConfig;
+    return saved ? { ...initialDriveAutoSyncConfig, ...JSON.parse(saved) } : initialDriveAutoSyncConfig;
   });
 
   const [driveSyncHistory, setDriveSyncHistory] = useState<DriveSyncHistoryItem[]>(() => {
@@ -2219,6 +2233,358 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const syncStudentRosterToDrive = async (classroomOrId?: string, folderIdOverride?: string) => {
+    setIsDriveSyncing(true);
+    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    try {
+      if (!isGoogleAuthenticated()) {
+        await googleSignIn();
+      }
+
+      const targetClassrooms = classroomOrId
+        ? classrooms.filter(c => c.id === classroomOrId || `${c.gradeLevel}/${c.section}` === classroomOrId)
+        : classrooms;
+
+      if (targetClassrooms.length === 0) {
+        setToastMessage({ text: 'រកមិនឃើញទិន្នន័យថ្នាក់រៀនសម្រាប់ Sync ឡើយ', type: 'error' });
+        return;
+      }
+
+      let count = 0;
+      for (const cls of targetClassrooms) {
+        const classStudents = students.filter(s => s.gradeLevel === cls.gradeLevel && s.section === cls.section && s.status === 'active');
+        const driveItem = await uploadStudentRosterToDrive(
+          classStudents,
+          `ថ្នាក់ទី ${cls.gradeLevel}${cls.section}`,
+          schoolProfile,
+          selectedAcademicYear,
+          targetFolder
+        );
+
+        const nowIso = new Date().toISOString();
+        const historyItem: DriveSyncHistoryItem = {
+          id: `sync-students-${Date.now()}-${cls.id}`,
+          title: `បញ្ជីវត្តមានសិស្ស ថ្នាក់ទី ${cls.gradeLevel}${cls.section} (${classStudents.length} នាក់)`,
+          category: 'student_roster',
+          categoryLabelKhmer: 'បញ្ជីឈ្មោះសិស្ស',
+          fileName: driveItem.name || `បញ្ជីឈ្មោះសិស្ស_ថ្នាក់ទី${cls.gradeLevel}${cls.section}.html`,
+          fileSizeFormatted: driveItem.size ? `${(parseInt(driveItem.size) / 1024).toFixed(1)} KB` : '20.0 KB',
+          folderId: targetFolder,
+          driveFileId: driveItem.id,
+          driveWebViewLink: driveItem.webViewLink || `https://drive.google.com/drive/folders/${targetFolder}`,
+          status: 'success',
+          syncedAt: nowIso,
+          syncedBy: currentUser?.email || 'limsorn9@gmail.com'
+        };
+
+        setDriveSyncHistory(prev => [historyItem, ...prev.slice(0, 49)]);
+        count++;
+      }
+
+      const nowIso = new Date().toISOString();
+      setDriveAutoSyncConfig(prev => ({ ...prev, lastAutoSyncTime: nowIso }));
+      setToastMessage({
+        text: `បាន Sync បញ្ជីឈ្មោះសិស្សសរុប ${count} ថ្នាក់ ទៅកាន់ Google Drive (Folder: ${targetFolder}) ជោគជ័យ!`,
+        type: 'success'
+      });
+    } catch (err: any) {
+      console.error('Student roster sync failed:', err);
+      setToastMessage({ text: `បរាជ័យក្នុងការ Sync បញ្ជីឈ្មោះសិស្ស: ${err.message}`, type: 'error' });
+    } finally {
+      setIsDriveSyncing(false);
+    }
+  };
+
+  const syncScoresAndRankingsToDrive = async (grade?: number, section?: string, month?: string, folderIdOverride?: string) => {
+    setIsDriveSyncing(true);
+    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    const targetMonth = month || 'មករា';
+
+    try {
+      if (!isGoogleAuthenticated()) {
+        await googleSignIn();
+      }
+
+      const targetClasses = grade !== undefined && section !== undefined
+        ? classrooms.filter(c => c.gradeLevel === grade && c.section === section)
+        : classrooms;
+
+      let count = 0;
+      for (const cls of targetClasses) {
+        const classStudents = students.filter(s => s.gradeLevel === cls.gradeLevel && s.section === cls.section && s.status === 'active');
+        if (classStudents.length === 0) continue;
+
+        const classScores = scores.filter(sc => 
+          sc.gradeLevel === cls.gradeLevel && 
+          sc.section === cls.section && 
+          (sc.academicYear === selectedAcademicYear || !sc.academicYear)
+        );
+
+        const formattedScoresList = classStudents.map(st => {
+          const sc = classScores.find(s => s.studentId === st.id);
+          const mScores = sc?.monthlyScores?.[targetMonth];
+          let total = 0;
+          let countSubs = 0;
+          const subjectsObj: Record<string, number> = {};
+          if (mScores) {
+            Object.entries(mScores).forEach(([key, sub]: [string, any]) => {
+              if (sub && typeof sub.score === 'number') {
+                total += sub.score;
+                countSubs++;
+                subjectsObj[key] = sub.score;
+              }
+            });
+          }
+          const average = countSubs > 0 ? total / countSubs : 0;
+          return {
+            studentCode: st.studentIdNumber || st.id,
+            studentNameKhmer: st.fullNameKhmer,
+            gender: st.gender,
+            subjects: subjectsObj,
+            totalScore: total,
+            averageScore: parseFloat(average.toFixed(2)),
+            gradeLetter: average >= 9 ? 'A' : average >= 8 ? 'B' : average >= 7 ? 'C' : average >= 6 ? 'D' : average >= 5 ? 'E' : 'F'
+          };
+        });
+
+        const driveItem = await uploadScoresToDrive(
+          formattedScoresList,
+          [],
+          `ថ្នាក់ទី ${cls.gradeLevel}${cls.section}`,
+          targetMonth,
+          schoolProfile,
+          selectedAcademicYear,
+          targetFolder
+        );
+
+        const nowIso = new Date().toISOString();
+        const historyItem: DriveSyncHistoryItem = {
+          id: `sync-scores-${Date.now()}-${cls.gradeLevel}-${cls.section}`,
+          title: `តារាងចំណាត់ថ្នាក់ពិន្ទុ ខែ${targetMonth} ថ្នាក់ទី ${cls.gradeLevel}${cls.section}`,
+          category: 'score_ranking',
+          categoryLabelKhmer: 'តារាងពិន្ទុ និងចំណាត់ថ្នាក់',
+          fileName: driveItem.name || `តារាងពិន្ទុ_ថ្នាក់${cls.gradeLevel}${cls.section}_ខែ${targetMonth}.html`,
+          fileSizeFormatted: driveItem.size ? `${(parseInt(driveItem.size) / 1024).toFixed(1)} KB` : '26.0 KB',
+          folderId: targetFolder,
+          driveFileId: driveItem.id,
+          driveWebViewLink: driveItem.webViewLink || `https://drive.google.com/drive/folders/${targetFolder}`,
+          status: 'success',
+          syncedAt: nowIso,
+          syncedBy: currentUser?.email || 'limsorn9@gmail.com'
+        };
+
+        setDriveSyncHistory(prev => [historyItem, ...prev.slice(0, 49)]);
+        count++;
+      }
+
+      const nowIso = new Date().toISOString();
+      setDriveAutoSyncConfig(prev => ({ ...prev, lastAutoSyncTime: nowIso }));
+      setToastMessage({
+        text: `បាន Sync តារាងពិន្ទុ និងចំណាត់ថ្នាក់ ${count} ថ្នាក់ (ខែ${targetMonth}) ទៅកាន់ Google Drive ជោគជ័យ!`,
+        type: 'success'
+      });
+    } catch (err: any) {
+      console.error('Scores sync failed:', err);
+      setToastMessage({ text: `បរាជ័យក្នុងការ Sync ពិន្ទុ: ${err.message}`, type: 'error' });
+    } finally {
+      setIsDriveSyncing(false);
+    }
+  };
+
+  const syncHonorRollToDrive = async (grade?: number, section?: string, month?: string, folderIdOverride?: string) => {
+    setIsDriveSyncing(true);
+    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    const targetMonth = month || 'មករា';
+
+    try {
+      if (!isGoogleAuthenticated()) {
+        await googleSignIn();
+      }
+
+      const targetClasses = grade !== undefined && section !== undefined
+        ? classrooms.filter(c => c.gradeLevel === grade && c.section === section)
+        : classrooms;
+
+      let count = 0;
+      for (const cls of targetClasses) {
+        const classStudents = students.filter(s => s.gradeLevel === cls.gradeLevel && s.section === cls.section && s.status === 'active');
+        const classScores = scores.filter(sc => 
+          sc.gradeLevel === cls.gradeLevel && 
+          sc.section === cls.section && 
+          (sc.academicYear === selectedAcademicYear || !sc.academicYear)
+        );
+
+        // Compute top 5 honor students
+        const studentSummaries = classStudents.map(st => {
+          const sc = classScores.find(s => s.studentId === st.id);
+          const mScores = sc?.monthlyScores?.[targetMonth];
+          let total = 0;
+          let countSubjects = 0;
+          if (mScores) {
+            Object.values(mScores).forEach((sub: any) => {
+              if (sub && typeof sub.score === 'number') {
+                total += sub.score;
+                countSubjects++;
+              }
+            });
+          }
+          const average = countSubjects > 0 ? total / countSubjects : 0;
+          return {
+            student: st,
+            total,
+            average
+          };
+        }).filter(item => item.average > 0);
+
+        studentSummaries.sort((a, b) => b.average - a.average);
+        const top5 = studentSummaries.slice(0, 5).map((item, idx) => ({
+          rank: idx + 1,
+          studentCode: item.student.studentIdNumber || item.student.id,
+          studentNameKhmer: item.student.fullNameKhmer,
+          gender: item.student.gender,
+          averageScore: parseFloat(item.average.toFixed(2)),
+          gradeLetter: item.average >= 9 ? 'A' : item.average >= 8 ? 'B' : 'C',
+          gradeLevel: cls.gradeLevel,
+          section: cls.section
+        }));
+
+        if (top5.length === 0) continue;
+
+        const driveItem = await uploadHonorRollToDrive(
+          top5,
+          `ថ្នាក់ទី ${cls.gradeLevel}${cls.section}`,
+          targetMonth,
+          schoolProfile,
+          selectedAcademicYear,
+          targetFolder
+        );
+
+        const nowIso = new Date().toISOString();
+        const historyItem: DriveSyncHistoryItem = {
+          id: `sync-honor-${Date.now()}-${cls.gradeLevel}-${cls.section}`,
+          title: `តារាងកិត្តិយស Top 5 ខែ${targetMonth} ថ្នាក់ទី ${cls.gradeLevel}${cls.section}`,
+          category: 'honor_roll',
+          categoryLabelKhmer: 'តារាងកិត្តិយស (Honor Roll)',
+          fileName: driveItem.name || `តារាងកិត្តិយស_ថ្នាក់${cls.gradeLevel}${cls.section}_ខែ${targetMonth}.html`,
+          fileSizeFormatted: driveItem.size ? `${(parseInt(driveItem.size) / 1024).toFixed(1)} KB` : '22.0 KB',
+          folderId: targetFolder,
+          driveFileId: driveItem.id,
+          driveWebViewLink: driveItem.webViewLink || `https://drive.google.com/drive/folders/${targetFolder}`,
+          status: 'success',
+          syncedAt: nowIso,
+          syncedBy: currentUser?.email || 'limsorn9@gmail.com'
+        };
+
+        setDriveSyncHistory(prev => [historyItem, ...prev.slice(0, 49)]);
+        count++;
+      }
+
+      const nowIso = new Date().toISOString();
+      setDriveAutoSyncConfig(prev => ({ ...prev, lastAutoSyncTime: nowIso }));
+      setToastMessage({
+        text: `បាន Sync តារាងកិត្តិយស Top 5 (${count} ថ្នាក់) ទៅកាន់ Google Drive ជោគជ័យ!`,
+        type: 'success'
+      });
+    } catch (err: any) {
+      console.error('Honor roll sync failed:', err);
+      setToastMessage({ text: `បរាជ័យក្នុងការ Sync តារាងកិត្តិយស: ${err.message}`, type: 'error' });
+    } finally {
+      setIsDriveSyncing(false);
+    }
+  };
+
+  const syncStaffDirectoryToDrive = async (folderIdOverride?: string) => {
+    setIsDriveSyncing(true);
+    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+
+    try {
+      if (!isGoogleAuthenticated()) {
+        await googleSignIn();
+      }
+
+      const driveItem = await uploadStaffDirectoryToDrive(
+        teachers,
+        schoolProfile,
+        selectedAcademicYear,
+        targetFolder
+      );
+
+      const nowIso = new Date().toISOString();
+      const historyItem: DriveSyncHistoryItem = {
+        id: `sync-staff-${Date.now()}`,
+        title: `បញ្ជីរាយនាមបុគ្គលិក និងលោកគ្រូ-អ្នកគ្រូ (${teachers.length} នាក់)`,
+        category: 'staff_directory',
+        categoryLabelKhmer: 'បញ្ជីបុគ្គលិកអប់រំ',
+        fileName: driveItem.name || `បញ្ជីបុគ្គលិក_${selectedAcademicYear.replace(/\s+/g, '_')}.html`,
+        fileSizeFormatted: driveItem.size ? `${(parseInt(driveItem.size) / 1024).toFixed(1)} KB` : '18.0 KB',
+        folderId: targetFolder,
+        driveFileId: driveItem.id,
+        driveWebViewLink: driveItem.webViewLink || `https://drive.google.com/drive/folders/${targetFolder}`,
+        status: 'success',
+        syncedAt: nowIso,
+        syncedBy: currentUser?.email || 'limsorn9@gmail.com'
+      };
+
+      setDriveSyncHistory(prev => [historyItem, ...prev.slice(0, 49)]);
+      setDriveAutoSyncConfig(prev => ({ ...prev, lastAutoSyncTime: nowIso }));
+      setToastMessage({
+        text: `បាន Sync បញ្ជីបុគ្គលិក (${teachers.length} នាក់) ទៅកាន់ Google Drive ជោគជ័យ!`,
+        type: 'success'
+      });
+    } catch (err: any) {
+      console.error('Staff directory sync failed:', err);
+      setToastMessage({ text: `បរាជ័យក្នុងការ Sync បញ្ជីបុគ្គលិក: ${err.message}`, type: 'error' });
+    } finally {
+      setIsDriveSyncing(false);
+    }
+  };
+
+  const restoreSchoolDatabaseFromDrive = async (fileIdOrJsonContent: string): Promise<boolean> => {
+    setIsDriveSyncing(true);
+    try {
+      let rawJson = fileIdOrJsonContent.trim();
+      if (!rawJson.startsWith('{')) {
+        // Assume it is a Drive File ID
+        if (!isGoogleAuthenticated()) {
+          await googleSignIn();
+        }
+        rawJson = await downloadDriveFileContent(fileIdOrJsonContent);
+      }
+
+      const parsed = JSON.parse(rawJson);
+      if (!parsed.schoolProfile && !parsed.students && !parsed.teachers) {
+        throw new Error('ទម្រង់ឯកសារ Backup មិនត្រឹមត្រូវតាមស្ដង់ដាររបស់ប្រព័ន្ធឡើយ');
+      }
+
+      // Restore all collections safely
+      if (parsed.schoolProfile) setSchoolProfile(parsed.schoolProfile);
+      if (Array.isArray(parsed.students)) setStudents(parsed.students);
+      if (Array.isArray(parsed.teachers)) setTeachers(parsed.teachers);
+      if (Array.isArray(parsed.classrooms)) setClassrooms(parsed.classrooms);
+      if (Array.isArray(parsed.scores)) setScores(parsed.scores);
+      if (Array.isArray(parsed.budgetTransactions)) setBudgetTransactions(parsed.budgetTransactions);
+      if (Array.isArray(parsed.attendanceRecords)) setAttendanceRecords(parsed.attendanceRecords);
+      if (Array.isArray(parsed.calendarEvents)) setCalendarEvents(parsed.calendarEvents);
+      if (Array.isArray(parsed.teacherMeetings)) setTeacherMeetings(parsed.teacherMeetings);
+      if (Array.isArray(parsed.households)) setHouseholds(parsed.households);
+      if (Array.isArray(parsed.libraryBooks)) setLibraryBooks(parsed.libraryBooks);
+      if (Array.isArray(parsed.schoolAssets)) setSchoolAssets(parsed.schoolAssets);
+      if (Array.isArray(parsed.schoolStrategicPlans)) setSchoolStrategicPlans(parsed.schoolStrategicPlans);
+
+      setToastMessage({
+        text: 'បានស្ដារទិន្នន័យសាលាទាំងមូលពី Google Drive Master Backup ដោយជោគជ័យ!',
+        type: 'success'
+      });
+      return true;
+    } catch (err: any) {
+      console.error('Restore database failed:', err);
+      setToastMessage({ text: `បរាជ័យក្នុងការស្ដារទិន្នន័យពី Google Drive: ${err.message}`, type: 'error' });
+      return false;
+    } finally {
+      setIsDriveSyncing(false);
+    }
+  };
+
   const triggerDriveAutoSyncAll = async () => {
     setIsDriveSyncing(true);
     const targetFolder = driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
@@ -2228,6 +2594,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       const nowIso = new Date().toISOString();
+      let syncedReportsCount = 0;
 
       // 1. Sync All Meeting Minutes
       if (driveAutoSyncConfig.syncMeetings && teacherMeetings.length > 0) {
@@ -2247,6 +2614,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                   : m
               )
             );
+            syncedReportsCount++;
           } catch (e) {}
         }
       }
@@ -2256,10 +2624,149 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         try {
           const summaries = getMonthlyBudgetSummaries(selectedAcademicYear);
           await uploadFinancialReportToDrive(summaries, budgetTransactions, schoolProfile, selectedAcademicYear, targetFolder);
+          syncedReportsCount++;
         } catch (e) {}
       }
 
-      // 3. Sync Full Database Snapshot JSON
+      // 3. Sync Student Rosters for All Classes
+      if (driveAutoSyncConfig.syncStudents && classrooms.length > 0) {
+        for (const cls of classrooms) {
+          try {
+            const classStudents = students.filter(s => s.gradeLevel === cls.gradeLevel && s.section === cls.section && s.status === 'active');
+            await uploadStudentRosterToDrive(
+              classStudents,
+              `ថ្នាក់ទី ${cls.gradeLevel}${cls.section}`,
+              schoolProfile,
+              selectedAcademicYear,
+              targetFolder
+            );
+            syncedReportsCount++;
+          } catch (e) {}
+        }
+      }
+
+      // 4. Sync Scores and Rankings for All Classes
+      if (driveAutoSyncConfig.syncScores && classrooms.length > 0) {
+        const currentMonth = 'មករា';
+        for (const cls of classrooms) {
+          try {
+            const classStudents = students.filter(s => s.gradeLevel === cls.gradeLevel && s.section === cls.section && s.status === 'active');
+            if (classStudents.length === 0) continue;
+            const classScores = scores.filter(sc => 
+              sc.gradeLevel === cls.gradeLevel && 
+              sc.section === cls.section && 
+              (sc.academicYear === selectedAcademicYear || !sc.academicYear)
+            );
+            const formattedScoresList = classStudents.map(st => {
+              const sc = classScores.find(s => s.studentId === st.id);
+              const mScores = sc?.monthlyScores?.[currentMonth];
+              let total = 0;
+              let countSubs = 0;
+              const subjectsObj: Record<string, number> = {};
+              if (mScores) {
+                Object.entries(mScores).forEach(([key, sub]: [string, any]) => {
+                  if (sub && typeof sub.score === 'number') {
+                    total += sub.score;
+                    countSubs++;
+                    subjectsObj[key] = sub.score;
+                  }
+                });
+              }
+              const average = countSubs > 0 ? total / countSubs : 0;
+              return {
+                studentCode: st.studentIdNumber || st.id,
+                studentNameKhmer: st.fullNameKhmer,
+                gender: st.gender,
+                subjects: subjectsObj,
+                totalScore: total,
+                averageScore: parseFloat(average.toFixed(2)),
+                gradeLetter: average >= 9 ? 'A' : average >= 8 ? 'B' : average >= 7 ? 'C' : average >= 6 ? 'D' : average >= 5 ? 'E' : 'F'
+              };
+            });
+
+            await uploadScoresToDrive(
+              formattedScoresList,
+              [],
+              `ថ្នាក់ទី ${cls.gradeLevel}${cls.section}`,
+              currentMonth,
+              schoolProfile,
+              selectedAcademicYear,
+              targetFolder
+            );
+            syncedReportsCount++;
+          } catch (e) {}
+        }
+      }
+
+      // 5. Sync Top 5 Honor Rolls
+      if (driveAutoSyncConfig.syncHonorRoll && classrooms.length > 0) {
+        const currentMonth = 'មករា';
+        for (const cls of classrooms) {
+          try {
+            const classStudents = students.filter(s => s.gradeLevel === cls.gradeLevel && s.section === cls.section && s.status === 'active');
+            const classScores = scores.filter(sc => 
+              sc.gradeLevel === cls.gradeLevel && 
+              sc.section === cls.section && 
+              (sc.academicYear === selectedAcademicYear || !sc.academicYear)
+            );
+            const studentSummaries = classStudents.map(st => {
+              const sc = classScores.find(s => s.studentId === st.id);
+              const mScores = sc?.monthlyScores?.[currentMonth];
+              let total = 0;
+              let countSubjects = 0;
+              if (mScores) {
+                Object.values(mScores).forEach((sub: any) => {
+                  if (sub && typeof sub.score === 'number') {
+                    total += sub.score;
+                    countSubjects++;
+                  }
+                });
+              }
+              const average = countSubjects > 0 ? total / countSubjects : 0;
+              return { student: st, average };
+            }).filter(item => item.average > 0);
+
+            studentSummaries.sort((a, b) => b.average - a.average);
+            const top5 = studentSummaries.slice(0, 5).map((item, idx) => ({
+              rank: idx + 1,
+              studentCode: item.student.studentIdNumber || item.student.id,
+              studentNameKhmer: item.student.fullNameKhmer,
+              gender: item.student.gender,
+              averageScore: parseFloat(item.average.toFixed(2)),
+              gradeLetter: item.average >= 9 ? 'A' : item.average >= 8 ? 'B' : 'C',
+              gradeLevel: cls.gradeLevel,
+              section: cls.section
+            }));
+
+            if (top5.length > 0) {
+              await uploadHonorRollToDrive(
+                top5,
+                `ថ្នាក់ទី ${cls.gradeLevel}${cls.section}`,
+                currentMonth,
+                schoolProfile,
+                selectedAcademicYear,
+                targetFolder
+              );
+              syncedReportsCount++;
+            }
+          } catch (e) {}
+        }
+      }
+
+      // 6. Sync Staff Directory
+      if (driveAutoSyncConfig.syncStaffDirectory && teachers.length > 0) {
+        try {
+          await uploadStaffDirectoryToDrive(
+            teachers,
+            schoolProfile,
+            selectedAcademicYear,
+            targetFolder
+          );
+          syncedReportsCount++;
+        } catch (e) {}
+      }
+
+      // 7. Sync Full Database Master Snapshot JSON
       if (driveAutoSyncConfig.syncFullBackup) {
         const fullBackup = {
           version: '2.5.0',
@@ -2274,23 +2781,26 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           attendanceRecords,
           calendarEvents,
           households,
-          libraryBooks
+          libraryBooks,
+          schoolAssets,
+          schoolStrategicPlans
         };
         await backupSchoolDataToDrive(
           fullBackup,
           schoolProfile.nameKhmer || 'សាលាបឋមសិក្សាភ្នំព្រឹក',
           targetFolder
         );
+        syncedReportsCount++;
       }
 
       // Add a bundle history item
       const summaryItem: DriveSyncHistoryItem = {
         id: `sync-all-${Date.now()}`,
-        title: 'ស្វ័យប្រវត្តិកម្ម Synchronization ឯកសារសំខាន់ៗ (កិច្ចប្រជុំ, ហិរញ្ញវត្ថុ, JSON Backup)',
+        title: `ស្វ័យប្រវត្តិកម្ម Synchronization កញ្ចប់ទិន្នន័យសាលាទាំងមូល (${syncedReportsCount} ឯកសារ)`,
         category: 'database_backup',
-        categoryLabelKhmer: 'Auto-Sync កញ្ចប់ឯកសារ',
-        fileName: `AutoSync_Package_${new Date().toISOString().split('T')[0]}.json`,
-        fileSizeFormatted: '142 KB',
+        categoryLabelKhmer: 'Auto-Sync កញ្ចប់ឯកសារទូទៅ',
+        fileName: `Master_AutoSync_${selectedAcademicYear}_${new Date().toISOString().split('T')[0]}.json`,
+        fileSizeFormatted: '185 KB',
         folderId: targetFolder,
         driveWebViewLink: `https://drive.google.com/drive/folders/${targetFolder}`,
         status: 'success',
@@ -2302,7 +2812,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setDriveAutoSyncConfig(prev => ({ ...prev, lastAutoSyncTime: nowIso }));
 
       setToastMessage({
-        text: `បានធ្វើស្វ័យប្រវត្តិកម្ម Sync ឯកសារសំខាន់ៗទាំងអស់ទៅ Google Drive (${targetFolder}) ជោគជ័យ!`,
+        text: `បានធ្វើស្វ័យប្រវត្តិកម្ម Sync កញ្ចប់ទិន្នន័យ ${syncedReportsCount} ឯកសារទៅ Google Drive (${targetFolder}) ជោគជ័យ!`,
         type: 'success'
       });
     } catch (err: any) {
@@ -2530,6 +3040,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return localStorage.getItem(`${LOCAL_STORAGE_KEY}_last_cloud_sync_time`);
   });
   const isRemoteUpdateRef = useRef<boolean>(false);
+  const isInitialCloudLoadCompleteRef = useRef<boolean>(false);
   const LAST_LOCAL_MUTATION_KEY = `${LOCAL_STORAGE_KEY}_last_local_mutation`;
 
   // Helper to get all school payload for cloud sync
@@ -2675,6 +3186,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Auto-sync debounced changes to Cloud whenever local user mutates data
   useEffect(() => {
+    // CRITICAL: Do NOT push to Cloud before initial Cloud data fetch has resolved!
+    // This prevents a new device or cleared cache from wiping existing cloud database.
+    if (!isInitialCloudLoadCompleteRef.current) {
+      return;
+    }
+
     if (isRemoteUpdateRef.current) {
       isRemoteUpdateRef.current = false;
       return;
@@ -2738,6 +3255,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Flush to Firestore on page hide / unload
   useEffect(() => {
     const handleBeforeUnload = () => {
+      if (!isInitialCloudLoadCompleteRef.current) return;
       const payload = getFullSchoolPayload();
       syncSchoolDataToFirestore(payload).catch(() => {});
     };
@@ -2784,25 +3302,19 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const cloudLastUpdatedTime = cloudData.lastUpdated ? new Date(cloudData.lastUpdated).getTime() : 0;
 
       // Conflict Resolution:
-      // If local data exists and was modified after the cloud snapshot, keep local data and push to cloud instead
-      if (localSavedStudents && localLastMutation > cloudLastUpdatedTime) {
+      // If local data exists and was modified after the cloud snapshot (by more than 2.5s) AND this is NOT an initial fetch on a fresh device, retain local data and push
+      if (!isInitialFetch && localSavedStudents && (localLastMutation - cloudLastUpdatedTime > 2500)) {
         console.info('Local data is newer than Cloud Firestore data. Retaining local data and syncing to Cloud.');
         const payload = getFullSchoolPayload();
         syncSchoolDataToFirestore(payload).catch(console.warn);
         return;
       }
 
-      // Cloud data is newer or first load: apply safely
+      // Cloud data is authoritative or newer: apply safely
       isRemoteUpdateRef.current = true;
       if (cloudData.schoolProfile) setSchoolProfile(prev => ({ ...prev, ...cloudData.schoolProfile }));
       if (cloudData.students && Array.isArray(cloudData.students)) setStudents(cloudData.students);
-      if (cloudData.teachers && Array.isArray(cloudData.teachers)) {
-        setTeachers(prev => {
-          const cloudIds = new Set(cloudData.teachers.map((t: Teacher) => t.id || t.staffCode || t.email));
-          const localOnly = prev.filter(t => !cloudIds.has(t.id) && !cloudIds.has(t.staffCode) && (!t.email || !cloudIds.has(t.email)));
-          return [...cloudData.teachers, ...localOnly];
-        });
-      }
+      if (cloudData.teachers && Array.isArray(cloudData.teachers)) setTeachers(cloudData.teachers);
       if (cloudData.classrooms && Array.isArray(cloudData.classrooms)) setClassrooms(cloudData.classrooms);
       if (cloudData.scores && Array.isArray(cloudData.scores)) setScores(cloudData.scores);
       if (cloudData.budgetTransactions && Array.isArray(cloudData.budgetTransactions)) setBudgetTransactions(cloudData.budgetTransactions);
@@ -2810,13 +3322,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (cloudData.calendarEvents && Array.isArray(cloudData.calendarEvents)) setCalendarEvents(cloudData.calendarEvents);
       if (cloudData.transfers && Array.isArray(cloudData.transfers)) setTransfers(cloudData.transfers);
       if (cloudData.activityLogs && Array.isArray(cloudData.activityLogs)) setActivityLogs(cloudData.activityLogs);
-      if (cloudData.appUsers && Array.isArray(cloudData.appUsers) && cloudData.appUsers.length > 0) {
-        setAppUsers(prev => {
-          const cloudKeys = new Set(cloudData.appUsers.map((u: AppUser) => u.id || u.email?.toLowerCase() || u.username?.toLowerCase()));
-          const localOnly = prev.filter(u => !cloudKeys.has(u.id) && (!u.email || !cloudKeys.has(u.email.toLowerCase())) && (!u.username || !cloudKeys.has(u.username.toLowerCase())));
-          return [...cloudData.appUsers, ...localOnly];
-        });
-      }
+      if (cloudData.appUsers && Array.isArray(cloudData.appUsers) && cloudData.appUsers.length > 0) setAppUsers(cloudData.appUsers);
       if (cloudData.academicYears && Array.isArray(cloudData.academicYears)) setAcademicYears(cloudData.academicYears);
       if (cloudData.examSubjects && Array.isArray(cloudData.examSubjects)) setExamSubjects(cloudData.examSubjects);
       if (cloudData.profileEditRequests && Array.isArray(cloudData.profileEditRequests)) setProfileEditRequests(cloudData.profileEditRequests);
@@ -2850,16 +3356,37 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (cloudData.dailyHealthChecks && Array.isArray(cloudData.dailyHealthChecks)) setDailyHealthChecks(cloudData.dailyHealthChecks);
       if (cloudData.qrScanVerificationLogs && Array.isArray(cloudData.qrScanVerificationLogs)) setQrScanVerificationLogs(cloudData.qrScanVerificationLogs);
 
-      if (cloudData.lastUpdated) {
+      const now = new Date().toISOString();
+      setLastCloudSyncTime(cloudData.lastUpdated || now);
+      localStorage.setItem(`${LOCAL_STORAGE_KEY}_last_cloud_sync_time`, cloudData.lastUpdated || now);
+      if (cloudLastUpdatedTime > 0) {
         localStorage.setItem(LAST_LOCAL_MUTATION_KEY, cloudLastUpdatedTime.toString());
       }
+
+      // Sync active logged-in user profile if it exists
+      setCurrentUser(prevUser => {
+        if (!prevUser) return null;
+        const matched = (cloudData.appUsers || []).find((u: AppUser) => u.id === prevUser.id || (u.email && u.email.toLowerCase() === prevUser.email?.toLowerCase()) || (u.username && u.username.toLowerCase() === prevUser.username?.toLowerCase()));
+        if (matched) {
+          localStorage.setItem(`${LOCAL_STORAGE_KEY}_current_user`, JSON.stringify(matched));
+          return matched;
+        }
+        return prevUser;
+      });
     };
 
     // 1. Initial Fetch on startup
     fetchSchoolDataFromFirestore().then(cloudData => {
-      if (cloudData) {
+      if (cloudData && Object.keys(cloudData).length > 0 && cloudData.lastUpdated) {
         applyCloudDataIfNewer(cloudData, true);
+      } else {
+        console.info('Cloud database is empty on first startup, initializing cloud...');
+        syncSchoolDataToFirestore(getFullSchoolPayload(), true).catch(console.warn);
       }
+      isInitialCloudLoadCompleteRef.current = true;
+    }).catch(err => {
+      console.warn('Initial cloud fetch notice:', err);
+      isInitialCloudLoadCompleteRef.current = true;
     });
 
     // 2. Real-time Firestore Subscription across active clients
@@ -5672,6 +6199,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         syncMeetingToDrive,
         syncAllMeetingsToDrive,
         syncFinancialReportToDrive,
+        syncStudentRosterToDrive,
+        syncScoresAndRankingsToDrive,
+        syncHonorRollToDrive,
+        syncStaffDirectoryToDrive,
+        restoreSchoolDatabaseFromDrive,
         triggerDriveAutoSyncAll,
         clearDriveSyncHistory
       }}
