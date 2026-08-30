@@ -59,6 +59,8 @@ import {
   Camera,
   Loader2,
   CloudUpload,
+  Zap,
+  UserX,
   Image as ImageIcon
 } from 'lucide-react';
 
@@ -81,14 +83,19 @@ export const AccountsManagement: React.FC = () => {
     impersonateUser,
     profileEditRequests,
     approveProfileEditRequest,
-    rejectProfileEditRequest
+    rejectProfileEditRequest,
+    isStudentRegisteredInAccounts,
+    autoGenerateStudentAccounts,
+    confirmAction
   } = useSchool();
 
   const [activeTab, setActiveTab] = useState<
-    'accounts' | 'recently_deleted' | 'audit_logs' | 'security_sessions' | 'security_logs' | 'password_policy' | 'edit_requests'
-  >('accounts');
+    'teachers_staff' | 'students' | 'all_accounts' | 'recently_deleted' | 'audit_logs' | 'security_sessions' | 'security_logs' | 'password_policy' | 'edit_requests'
+  >('teachers_staff');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [studentGradeFilter, setStudentGradeFilter] = useState<number | 'all'>('all');
+  const [studentSectionFilter, setStudentSectionFilter] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<AppUser | null>(null);
   const [forgotPasswordUser, setForgotPasswordUser] = useState<AppUser | null>(null);
@@ -156,6 +163,52 @@ export const AccountsManagement: React.FC = () => {
     const diffMs = Date.now() - new Date(dateStr).getTime();
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     return user.passwordUpdatedAt ? Math.max(days, 0) : maxDays + 6;
+  };
+
+  // Missing student accounts calculation
+  const missingStudentsList = React.useMemo(() => {
+    return (students || []).filter(s => !isStudentRegisteredInAccounts(s));
+  }, [students, isStudentRegisteredInAccounts, appUsers]);
+
+  const staffUsersCount = appUsers.filter(u => u.role !== 'student').length;
+  const studentUsersCount = appUsers.filter(u => u.role === 'student').length;
+
+  const handleBatchCreateMissingStudentAccounts = () => {
+    if (missingStudentsList.length === 0) {
+      showToast('សិស្សទាំងអស់មានគណនីរួចរាល់ហើយ!', 'info');
+      return;
+    }
+
+    confirmAction({
+      title: 'បង្កើតគណនីសិស្សដែលខ្វះដោយស្វ័យប្រវត្តិ',
+      description: `ប្រព័ន្ធនឹងបង្កើតគណនីសិស្សថ្មីចំនួន ${missingStudentsList.length} នាក់ ដោយកំណត់ឈ្មោះចូល និងពាក្យសម្ងាត់ស្វ័យប្រវត្តិតាមអត្តលេខសិស្ស។ តើអ្នកចង់បន្តដែរឬទេ?`,
+      confirmLabel: 'យល់ព្រម បង្កើតគណនី',
+      cancelLabel: 'បោះបង់',
+      intent: 'primary',
+      onConfirm: () => {
+        const res = autoGenerateStudentAccounts(missingStudentsList.map(s => s.id));
+        showToast(`បានបង្កើតគណនីសិស្សថ្មីចំនួន ${res.createdCount} ដោយជោគជ័យ!`, 'success');
+      }
+    });
+  };
+
+  const handleResetStudentPassword = (user: AppUser) => {
+    const defaultPass = user.studentCode || '12345678';
+    confirmAction({
+      title: 'កំណត់ពាក្យសម្ងាត់សិស្សឡើងវិញ',
+      description: `តើអ្នកពិតជាចង់កំណត់ពាក្យសម្ងាត់គណនីសិស្ស «${user.nameKhmer}» ទៅជាអត្តលេខសិស្ស (${defaultPass}) ឡើងវិញមែនទេ?`,
+      confirmLabel: 'យល់ព្រម កំណត់ឡើងវិញ',
+      cancelLabel: 'បោះបង់',
+      intent: 'primary',
+      onConfirm: () => {
+        updateUser(user.id, {
+          password: defaultPass,
+          forcePasswordChange: false,
+          passwordUpdatedAt: new Date().toISOString()
+        });
+        showToast(`បានកំណត់ពាក្យសម្ងាត់គណនីសិស្ស «${user.nameKhmer}» ទៅជា (${defaultPass}) ដោយជោគជ័យ!`, 'success');
+      }
+    });
   };
 
   const daysSincePasswordUpdate = calculateDaysSincePasswordChange(currentUser);
@@ -442,11 +495,11 @@ export const AccountsManagement: React.FC = () => {
     setNewStudentCode('');
   };
 
-  // Filter users based on role and search query
+  // Filter users based on activeTab, role, grade, section, and search query
   const filteredUsers = appUsers.filter(u => {
     const nameKh = u.nameKhmer || '';
     const email = u.email || '';
-    const code = u.studentCode || '';
+    const code = u.studentCode || u.staffCode || '';
     const phone = u.phone || '';
     const query = searchQuery.toLowerCase();
 
@@ -456,14 +509,45 @@ export const AccountsManagement: React.FC = () => {
       code.toLowerCase().includes(query) ||
       phone.includes(searchQuery);
 
-    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
-
-    // If teacher, they only manage students in their grade or see teachers
-    if (isTeacher && roleFilter === 'student') {
-      return matchesSearch && matchesRole && u.assignedGrade === currentUser?.assignedGrade;
+    // Tab category check:
+    if (activeTab === 'teachers_staff') {
+      // Must be a teacher or staff member (director, teacher, secretary, librarian)
+      if (u.role === 'student') return false;
+      // "គ្រូមិនចាំបាច់បែងថេបផ្សេងគ្នាទេ": No separate sub-tabs needed for teachers, all teachers/staff appear together
+      if (roleFilter !== 'all' && u.role !== roleFilter) return false;
+      return matchesSearch;
     }
 
-    return matchesSearch && matchesRole;
+    if (activeTab === 'students') {
+      // Must be a student
+      if (u.role !== 'student') return false;
+
+      // Grade filter
+      if (studentGradeFilter !== 'all' && u.assignedGrade !== studentGradeFilter) {
+        return false;
+      }
+      // Section filter
+      if (studentSectionFilter !== 'all' && u.assignedSection !== studentSectionFilter) {
+        return false;
+      }
+
+      // If teacher, they only manage students in their grade
+      if (isTeacher && u.assignedGrade !== currentUser?.assignedGrade) {
+        return false;
+      }
+
+      return matchesSearch;
+    }
+
+    if (activeTab === 'all_accounts') {
+      const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+      if (isTeacher && roleFilter === 'student') {
+        return matchesSearch && matchesRole && u.assignedGrade === currentUser?.assignedGrade;
+      }
+      return matchesSearch && matchesRole;
+    }
+
+    return matchesSearch;
   });
 
   return (
@@ -480,7 +564,7 @@ export const AccountsManagement: React.FC = () => {
                 គ្រប់គ្រងគណនី & សិទ្ធិប្រើប្រាស់ (RBAC Center)
               </h2>
               <p className="text-xs text-slate-500">
-                បង្កើតគណនីតាមឋានានុក្រម (Hierarchical Account Creation) និងអនុម័តសំណើកែប្រែប្រវត្តិរូប
+                ការបែងចែកថេបគណនីគ្រូ/បុគ្គលិក និងគណនីសិស្សដាច់ដោយឡែកពីគ្នា ព្រមទាំងគ្រប់គ្រងសិទ្ធិប្រើប្រាស់
               </p>
             </div>
           </div>
@@ -488,23 +572,79 @@ export const AccountsManagement: React.FC = () => {
 
         {/* Action Button & Tab Switcher */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl flex-wrap gap-1">
+          {/* Main Category Tabs */}
+          <div className="flex items-center bg-slate-100 p-1.5 rounded-2xl flex-wrap gap-1 border border-slate-200 shadow-xs">
             <button
-              onClick={() => setActiveTab('accounts')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                activeTab === 'accounts' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              onClick={() => {
+                setActiveTab('teachers_staff');
+                setRoleFilter('all');
+              }}
+              className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'teachers_staff'
+                  ? 'bg-emerald-700 text-white shadow-sm'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200/80'
               }`}
             >
-              បញ្ជីគណនី ({appUsers.length})
+              <User className="w-4 h-4" />
+              <span>គណនីគ្រូ & បុគ្គលិក</span>
+              <span
+                className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
+                  activeTab === 'teachers_staff' ? 'bg-white text-emerald-800' : 'bg-emerald-100 text-emerald-800'
+                }`}
+              >
+                {staffUsersCount}
+              </span>
             </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('students');
+                setRoleFilter('student');
+              }}
+              className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'students'
+                  ? 'bg-purple-700 text-white shadow-sm'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200/80'
+              }`}
+            >
+              <GraduationCap className="w-4 h-4" />
+              <span>គណនីសិស្សានុសិស្ស</span>
+              <span
+                className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
+                  activeTab === 'students' ? 'bg-white text-purple-800' : 'bg-purple-100 text-purple-800'
+                }`}
+              >
+                {studentUsersCount}
+              </span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('all_accounts');
+                setRoleFilter('all');
+              }}
+              className={`px-3 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'all_accounts'
+                  ? 'bg-blue-700 text-white shadow-sm'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200/80'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>ទាំងអស់ ({appUsers.length})</span>
+            </button>
+
+            {/* Secondary Audit & Security Tabs */}
+            <div className="h-5 w-px bg-slate-300 mx-1 hidden sm:block"></div>
+
             <button
               onClick={() => setActiveTab('recently_deleted')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
                 activeTab === 'recently_deleted' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
+              title="ធុងសំរាម ៣០ ថ្ងៃ"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>ធុងសំរាម ៣០ ថ្ងៃ</span>
+              <span>ធុងសំរាម</span>
               {deletedUsers.length > 0 && (
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                   activeTab === 'recently_deleted' ? 'bg-white text-rose-700' : 'bg-rose-500 text-white'
@@ -513,14 +653,16 @@ export const AccountsManagement: React.FC = () => {
                 </span>
               )}
             </button>
+
             <button
               onClick={() => setActiveTab('audit_logs')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
                 activeTab === 'audit_logs' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
+              title="សវនកម្ម (Audit)"
             >
               <Clock className="w-3.5 h-3.5" />
-              <span>សវនកម្ម (Audit)</span>
+              <span>សវនកម្ម</span>
               {accountAuditLogs.length > 0 && (
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                   activeTab === 'audit_logs' ? 'bg-white text-blue-700' : 'bg-slate-200 text-slate-700'
@@ -529,38 +671,46 @@ export const AccountsManagement: React.FC = () => {
                 </span>
               )}
             </button>
+
             <button
               onClick={() => setActiveTab('security_sessions')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
                 activeTab === 'security_sessions' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
+              title="សម័យកាល & MFA (2FA)"
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>សម័យកាល & MFA (2FA)</span>
+              <span>MFA</span>
             </button>
+
             <button
               onClick={() => setActiveTab('security_logs')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
                 activeTab === 'security_logs' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
+              title="Security Logs"
             >
               <Shield className="w-3.5 h-3.5" />
-              <span>Security Logs</span>
+              <span>Logs</span>
             </button>
+
             <button
               onClick={() => setActiveTab('password_policy')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
                 activeTab === 'password_policy' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
+              title="គោលការណ៍"
             >
               <Sliders className="w-3.5 h-3.5" />
               <span>គោលការណ៍</span>
             </button>
+
             <button
               onClick={() => setActiveTab('edit_requests')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
                 activeTab === 'edit_requests' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
+              title="សំណើកែប្រែ"
             >
               <FileCheck2 className="w-3.5 h-3.5" />
               <span>សំណើកែប្រែ</span>
@@ -582,7 +732,7 @@ export const AccountsManagement: React.FC = () => {
             title="ពិនិត្យលម្អិតសិទ្ធិប្រើប្រាស់ និងមុខងារតាមតួនាទី"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>ពិនិត្យសិទ្ធិតួនាទី (Role Inspector)</span>
+            <span>ពិនិត្យសិទ្ធិតួនាទី</span>
           </button>
 
           <button
@@ -605,21 +755,33 @@ export const AccountsManagement: React.FC = () => {
               title="កំណត់ឱ្យគណនីបុគ្គលិកទាំងអស់ត្រូវតែផ្លាស់ប្តូរពាក្យសម្ងាត់ពេលចូលប្រើបន្ទាប់"
             >
               <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
-              <span>បង្ខំបុគ្គលិកប្តូរពាក្យសម្ងាត់ (Force Rotation)</span>
+              <span>បង្ខំប្តូរពាក្យសម្ងាត់</span>
             </button>
           )}
 
-          {isDirector && (
+          {/* Create User Button */}
+          {(isDirector || isSecretary || isTeacher) && (
             <button
               type="button"
               onClick={() => {
+                resetForm();
+                if (activeTab === 'students') {
+                  setNewRole('student');
+                } else if (activeTab === 'teachers_staff') {
+                  setNewRole('teacher');
+                }
                 setShowCreateModal(true);
-                setNewRole('teacher');
               }}
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer hover:shadow-lg active:scale-95"
             >
               <UserPlus className="w-4 h-4" />
-              <span>+ បង្កើតគណនីថ្មី (សិទ្ធិនាយក)</span>
+              <span>
+                {activeTab === 'students'
+                  ? '+ បង្កើតគណនីសិស្ស'
+                  : activeTab === 'teachers_staff'
+                  ? '+ បង្កើតគណនីគ្រូ/បុគ្គលិក'
+                  : '+ បង្កើតគណនីថ្មី'}
+              </span>
             </button>
           )}
         </div>
@@ -715,120 +877,344 @@ export const AccountsManagement: React.FC = () => {
         </div>
       )}
 
-      {activeTab === 'accounts' && (
+      {(activeTab === 'teachers_staff' || activeTab === 'students' || activeTab === 'all_accounts') && (
         <>
-          {/* Security Patterns Dashboard Collapsible Widget */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setShowPatternsPanel(!showPatternsPanel)}
-                className="text-xs font-bold text-slate-700 hover:text-indigo-700 flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
-              >
-                <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
-                <span>{showPatternsPanel ? 'លាក់ផ្ទាំងវិភាគសុវត្ថិភាព (Hide Security Analytics)' : 'បង្ហាញផ្ទាំងវិភាគសុវត្ថិភាព (Show Security Patterns & Login Analytics)'}</span>
-              </button>
-            </div>
+          {/* TAB 1: TEACHER & STAFF ACCOUNTS VIEW */}
+          {activeTab === 'teachers_staff' && (
+            <div className="space-y-4">
+              {/* Teacher & Staff Info Banner */}
+              <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200/80 rounded-2xl p-4 text-xs text-emerald-950 flex items-start gap-3 shadow-xs">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 mt-0.5">
+                  <User className="w-5 h-5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="font-bold text-emerald-900 text-sm">
+                    👨‍🏫 បញ្ជីគណនីលោកគ្រូ-អ្នកគ្រូ & បុគ្គលិកសិក្សាទូទាំងសាលា (Teachers & Staff Center)
+                  </p>
+                  <p className="text-slate-700 text-xs leading-relaxed">
+                    គណនីលោកគ្រូ-អ្នកគ្រូគ្រប់កម្រិតថ្នាក់ (មត្តេយ្យ បឋម បន្ទុកថ្នាក់ និងបង្រៀនមុខវិជ្ជា) ព្រមទាំងនាយកសាលា លេខាធិការ និងបណ្ណារក្ស ត្រូវបានដាក់បញ្ចូលគ្នាក្នុងផ្ទាំងនេះយ៉ាងងាយស្រួល <strong>ដោយមិនបាច់បែងចែកថេបរញ៉េរញ៉ៃឡើយ</strong>។
+                  </p>
+                </div>
+              </div>
 
-            {showPatternsPanel && (
-              <SecurityPatternsDashboard
-                logs={allSecurityLogs}
-                users={appUsers}
-                onFilterByStatus={() => {
-                  setActiveTab('security_logs');
-                }}
-                onFilterByMethod={() => {
-                  setActiveTab('security_logs');
-                }}
-              />
-            )}
-          </div>
+              {/* Teacher & Staff Stat Summary Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+                  <p className="text-[11px] text-slate-500 font-bold">គ្រូ & បុគ្គលិកសរុប</p>
+                  <p className="text-xl font-bold text-emerald-700 mt-1">{staffUsersCount} នាក់</p>
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+                  <p className="text-[11px] text-emerald-600 font-bold">លោកគ្រូ-អ្នកគ្រូ</p>
+                  <p className="text-xl font-bold text-emerald-800 mt-1">
+                    {appUsers.filter(u => u.role === 'teacher').length} នាក់
+                  </p>
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+                  <p className="text-[11px] text-blue-600 font-bold">នាយក & លេខាធិការ</p>
+                  <p className="text-xl font-bold text-blue-700 mt-1">
+                    {appUsers.filter(u => u.role === 'director' || u.role === 'secretary').length} នាក់
+                  </p>
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+                  <p className="text-[11px] text-amber-600 font-bold">បណ្ណារក្សសាលា</p>
+                  <p className="text-xl font-bold text-amber-700 mt-1">
+                    {appUsers.filter(u => u.role === 'librarian').length} នាក់
+                  </p>
+                </div>
+              </div>
 
-          {/* Role Hierarchy Notification Rule Banner */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 rounded-2xl p-4 text-xs text-blue-900 flex items-start gap-3 shadow-sm">
-            <ShieldAlert className="w-5 h-5 text-blue-700 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="font-bold text-slate-900">គោលការណ៍បង្កើតគណនីតាមឋានានុក្រម MoEYS (RBAC Policy)៖</p>
-              <ul className="list-disc list-inside space-y-0.5 text-slate-700 text-[11.5px]">
-                <li><strong>នាយកសាលា (Director)៖</strong> ជាអ្នកមានសិទ្ធិផ្តាច់មុខក្នុងការ <strong>«បង្កើតគណនីគ្រូបង្រៀន»</strong> និងគ្រប់គ្រងគណនីគ្រប់តួនាទី បង្ខំឱ្យប្តូរពាក្យសម្ងាត់ (Force Rotation) និងចូលមើល Master Access បាន។</li>
-                <li><strong>លេខាធិការ (Secretary)៖</strong> អាចបង្កើតបានតែគណនីបណ្ណារក្ស ឬសិស្ស (មិនមានសិទ្ធិបង្កើតគណនីគ្រូបង្រៀនឡើយ)។</li>
-                <li><strong>គ្រូបន្ទុកថ្នាក់ (Homeroom Teacher)៖</strong> មានសិទ្ធិបង្កើត និងគ្រប់គ្រងគណនីសម្រាប់តែ <strong>សិស្សក្នុងបន្ទុកថ្នាក់របស់ខ្លួន</strong> ប៉ុណ្ណោះ។</li>
-                <li><strong>ការស្តារពាក្យសម្ងាត់៖</strong> Auto-verification តាមលេខកូដសាលា រីឯសិស្ស auto-reset ជូនគ្រូបន្ទុកថ្នាក់។</li>
-              </ul>
-            </div>
-          </div>
+              {/* Filter & Search Bar for Teachers/Staff */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="ស្វែងរកគ្រូតាមឈ្មោះ អ៊ីមែល អត្តលេខមន្ត្រី ឬលេខទូរស័ព្ទ..."
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-none transition-all"
+                  />
+                </div>
 
-          {/* Stat Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-[11px] text-slate-500 font-bold">គណនីសរុប</p>
-              <p className="text-xl font-bold text-slate-800 mt-1">{appUsers.length}</p>
+                <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+                  {[
+                    { id: 'all', label: 'បុគ្គលិកទាំងអស់' },
+                    { id: 'teacher', label: 'គ្រូបង្រៀន' },
+                    { id: 'director', label: 'នាយកសាលា' },
+                    { id: 'secretary', label: 'លេខាធិការ' },
+                    { id: 'librarian', label: 'បណ្ណារក្ស' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setRoleFilter(tab.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                        roleFilter === tab.id
+                          ? 'bg-emerald-700 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-[11px] text-blue-600 font-bold">នាយក & រដ្ឋបាល</p>
-              <p className="text-xl font-bold text-blue-700 mt-1">
-                {appUsers.filter(u => u.role === 'director' || u.role === 'secretary').length}
-              </p>
-            </div>
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-[11px] text-amber-600 font-bold">បណ្ណារក្ស</p>
-              <p className="text-xl font-bold text-amber-700 mt-1">
-                {appUsers.filter(u => u.role === 'librarian').length}
-              </p>
-            </div>
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-[11px] text-emerald-600 font-bold">គ្រូបង្រៀន</p>
-              <p className="text-xl font-bold text-emerald-700 mt-1">
-                {appUsers.filter(u => u.role === 'teacher').length}
-              </p>
-            </div>
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm col-span-2 sm:col-span-1">
-              <p className="text-[11px] text-purple-600 font-bold">សិស្សានុសិស្ស</p>
-              <p className="text-xl font-bold text-purple-700 mt-1">
-                {appUsers.filter(u => u.role === 'student').length}
-              </p>
-            </div>
-          </div>
+          )}
 
-          {/* Filter and Search Bar */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="relative w-full sm:w-80">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="ស្វែងរកតាមឈ្មោះ អ៊ីមែល ឬអត្តលេខ..."
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none transition-all"
-              />
-            </div>
+          {/* TAB 2: STUDENT ACCOUNTS VIEW */}
+          {activeTab === 'students' && (
+            <div className="space-y-4">
+              {/* Student Accounts Info Banner */}
+              <div className="bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border border-purple-200/80 rounded-2xl p-4 text-xs text-purple-950 flex items-start gap-3 shadow-xs">
+                <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center shrink-0 mt-0.5">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+                <div className="space-y-1 flex-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <p className="font-bold text-purple-900 text-sm">
+                        🎒 ផ្ទាំងគ្រប់គ្រងគណនីសិស្សានុសិស្ស (Student Accounts Hub)
+                      </p>
+                      <p className="text-slate-700 text-xs mt-0.5">
+                        គ្រប់គ្រងគណនីចូលប្រើប្រាស់របស់សិស្សានុសិស្សទូទាំងសាលា តាមកម្រិតថ្នាក់ និងបន្ទប់សិក្សា
+                      </p>
+                    </div>
+                    {missingStudentsList.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleBatchCreateMissingStudentAccounts}
+                        className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95"
+                      >
+                        <Zap className="w-3.5 h-3.5 text-amber-300" />
+                        <span>បង្កើតគណនីសិស្សដែលខ្វះ ({missingStudentsList.length})</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
 
-            <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-              {[
-                { id: 'all', label: 'ទាំងអស់' },
-                { id: 'director', label: 'នាយក' },
-                { id: 'secretary', label: 'លេខា' },
-                { id: 'librarian', label: 'បណ្ណារក្ស' },
-                { id: 'teacher', label: 'គ្រូបង្រៀន' },
-                { id: 'student', label: 'សិស្ស' }
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setRoleFilter(tab.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
-                    roleFilter === tab.id
-                      ? 'bg-blue-700 text-white shadow-sm'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
+              {/* Missing Student Accounts Alert Banner (if any) */}
+              {missingStudentsList.length > 0 && (
+                <div className="bg-amber-50 border border-amber-300/80 rounded-2xl p-3.5 text-xs text-amber-900 flex items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-center gap-2.5">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                    <div>
+                      <p className="font-bold text-amber-900">
+                        រកឃើញសិស្សចំនួន {missingStudentsList.length} នាក់ ក្នុងបញ្ជីសាលាមិនទាន់មានគណនីចូលប្រើ!
+                      </p>
+                      <p className="text-amber-700 text-[11px]">
+                        អ្នកអាចចុចបង្កើតគណនីស្វ័យប្រវត្តិដោយកំណត់ពាក្យសម្ងាត់ស្មើនឹងអត្តលេខសិស្ស។
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleBatchCreateMissingStudentAccounts}
+                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>បង្កើតឥឡូវនេះ</span>
+                  </button>
+                </div>
+              )}
 
-          {/* Users Table */}
+              {/* Student Stat Summary Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+                  <p className="text-[11px] text-purple-600 font-bold">គណនីសិស្សសរុប</p>
+                  <p className="text-xl font-bold text-purple-700 mt-1">{studentUsersCount} នាក់</p>
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+                  <p className="text-[11px] text-slate-500 font-bold">សិស្សក្នុងបញ្ជីឈ្មោះ</p>
+                  <p className="text-xl font-bold text-slate-800 mt-1">{students.length} នាក់</p>
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+                  <p className="text-[11px] text-amber-600 font-bold">សិស្សខ្វះគណនី</p>
+                  <p className="text-xl font-bold text-amber-600 mt-1">{missingStudentsList.length} នាក់</p>
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+                  <p className="text-[11px] text-emerald-600 font-bold">គណនីសកម្ម</p>
+                  <p className="text-xl font-bold text-emerald-700 mt-1">
+                    {appUsers.filter(u => u.role === 'student' && u.status === 'active').length} នាក់
+                  </p>
+                </div>
+              </div>
+
+              {/* Student Filter by Grade and Search */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
+                <div className="relative w-full md:w-80">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="ស្វែងរកសិស្សតាមឈ្មោះ អត្តលេខ ឬលេខទូរស័ព្ទ..."
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-purple-600 focus:outline-none transition-all"
+                  />
+                </div>
+
+                {/* Grade Quick Filter Pills */}
+                <div className="flex items-center gap-1 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+                  <button
+                    type="button"
+                    onClick={() => setStudentGradeFilter('all')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      studentGradeFilter === 'all'
+                        ? 'bg-purple-700 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    ថ្នាក់ទាំងអស់
+                  </button>
+                  {[1, 2, 3, 4, 5, 6].map(grade => (
+                    <button
+                      key={grade}
+                      type="button"
+                      onClick={() => setStudentGradeFilter(grade)}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                        studentGradeFilter === grade
+                          ? 'bg-purple-700 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      ថ្នាក់ទី {grade}
+                    </button>
+                  ))}
+
+                  {/* Section Select */}
+                  <select
+                    value={studentSectionFilter}
+                    onChange={e => setStudentSectionFilter(e.target.value)}
+                    className="px-2 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-purple-600 focus:outline-none ml-1"
+                  >
+                    <option value="all">បន្ទប់ទាំងអស់</option>
+                    <option value="ក">បន្ទប់ ក</option>
+                    <option value="ខ">បន្ទប់ ខ</option>
+                    <option value="គ">បន្ទប់ គ</option>
+                    <option value="ឃ">បន្ទប់ ឃ</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: ALL ACCOUNTS VIEW */}
+          {activeTab === 'all_accounts' && (
+            <div className="space-y-4">
+              {/* Security Patterns Dashboard Collapsible Widget */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setShowPatternsPanel(!showPatternsPanel)}
+                    className="text-xs font-bold text-slate-700 hover:text-indigo-700 flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+                  >
+                    <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>{showPatternsPanel ? 'លាក់ផ្ទាំងវិភាគសុវត្ថិភាព (Hide Security Analytics)' : 'បង្ហាញផ្ទាំងវិភាគសុវត្ថិភាព (Show Security Patterns & Login Analytics)'}</span>
+                  </button>
+                </div>
+
+                {showPatternsPanel && (
+                  <SecurityPatternsDashboard
+                    logs={allSecurityLogs}
+                    users={appUsers}
+                    onFilterByStatus={() => {
+                      setActiveTab('security_logs');
+                    }}
+                    onFilterByMethod={() => {
+                      setActiveTab('security_logs');
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* Role Hierarchy Notification Rule Banner */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 rounded-2xl p-4 text-xs text-blue-900 flex items-start gap-3 shadow-xs">
+                <ShieldAlert className="w-5 h-5 text-blue-700 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold text-slate-900">គោលការណ៍បង្កើតគណនីតាមឋានានុក្រម MoEYS (RBAC Policy)៖</p>
+                  <ul className="list-disc list-inside space-y-0.5 text-slate-700 text-[11.5px]">
+                    <li><strong>នាយកសាលា (Director)៖</strong> មានសិទ្ធិផ្តាច់មុខក្នុងការបង្កើត និងគ្រប់គ្រងគណនីគ្រូ/បុគ្គលិកគ្រប់តួនាទី។</li>
+                    <li><strong>លេខាធិការ (Secretary)៖</strong> អាចបង្កើតបានតែគណនីបណ្ណារក្ស ឬសិស្ស (មិនមានសិទ្ធិបង្កើតគណនីគ្រូបង្រៀនឡើយ)។</li>
+                    <li><strong>គ្រូបន្ទុកថ្នាក់ (Homeroom Teacher)៖</strong> មានសិទ្ធិបង្កើត និងគ្រប់គ្រងគណនីសម្រាប់តែ <strong>សិស្សក្នុងបន្ទុកថ្នាក់របស់ខ្លួន</strong> ប៉ុណ្ណោះ។</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Stat Cards for All Accounts */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+                  <p className="text-[11px] text-slate-500 font-bold">គណនីសរុប</p>
+                  <p className="text-xl font-bold text-slate-800 mt-1">{appUsers.length}</p>
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+                  <p className="text-[11px] text-blue-600 font-bold">នាយក & រដ្ឋបាល</p>
+                  <p className="text-xl font-bold text-blue-700 mt-1">
+                    {appUsers.filter(u => u.role === 'director' || u.role === 'secretary').length}
+                  </p>
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+                  <p className="text-[11px] text-amber-600 font-bold">បណ្ណារក្ស</p>
+                  <p className="text-xl font-bold text-amber-700 mt-1">
+                    {appUsers.filter(u => u.role === 'librarian').length}
+                  </p>
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+                  <p className="text-[11px] text-emerald-600 font-bold">គ្រូបង្រៀន</p>
+                  <p className="text-xl font-bold text-emerald-700 mt-1">
+                    {appUsers.filter(u => u.role === 'teacher').length}
+                  </p>
+                </div>
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs col-span-2 sm:col-span-1">
+                  <p className="text-[11px] text-purple-600 font-bold">សិស្សានុសិស្ស</p>
+                  <p className="text-xl font-bold text-purple-700 mt-1">
+                    {appUsers.filter(u => u.role === 'student').length}
+                  </p>
+                </div>
+              </div>
+
+              {/* Filter and Search Bar for All Accounts */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="ស្វែងរកតាមឈ្មោះ អ៊ីមែល ឬអត្តលេខ..."
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none transition-all"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+                  {[
+                    { id: 'all', label: 'ទាំងអស់' },
+                    { id: 'director', label: 'នាយក' },
+                    { id: 'secretary', label: 'លេខា' },
+                    { id: 'librarian', label: 'បណ្ណារក្ស' },
+                    { id: 'teacher', label: 'គ្រូបង្រៀន' },
+                    { id: 'student', label: 'សិស្ស' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setRoleFilter(tab.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                        roleFilter === tab.id
+                          ? 'bg-blue-700 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Unified Users Table for the selected view */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
@@ -837,173 +1223,194 @@ export const AccountsManagement: React.FC = () => {
                     <th className="px-4 py-3 text-center w-12">#</th>
                     <th className="px-4 py-3">ឈ្មោះ & តួនាទី</th>
                     <th className="px-4 py-3">អ៊ីមែល / ឈ្មោះចូល</th>
-                    <th className="px-4 py-3">អត្តលេខ / ថ្នាក់</th>
+                    <th className="px-4 py-3">
+                      {activeTab === 'students' ? 'អត្តលេខ / ថ្នាក់' : 'អត្តលេខ / មុខតំណែង'}
+                    </th>
                     <th className="px-4 py-3">លេខទូរស័ព្ទ</th>
                     <th className="px-4 py-3">ស្ថានភាព & សន្តិសុខ</th>
                     <th className="px-4 py-3 text-center">សកម្មភាព</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredUsers.map((user, idx) => (
-                    <tr key={user.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-4 py-3 text-center font-semibold text-slate-500">{idx + 1}</td>
-                      
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 text-blue-700 flex items-center justify-center font-bold text-xs">
-                            {user.nameKhmer ? user.nameKhmer.charAt(0) : 'U'}
+                  {filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
+                        <UserX className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                        <p className="font-bold text-slate-500">រកមិនឃើញគណនីដែលត្រូវនឹងការស្វែងរកឡើយ</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">សូមព្យាយាមស្វែងរកពាក្យគន្លឹះផ្សេង ឬប្តូរតម្រង</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredUsers.map((user, idx) => (
+                      <tr key={user.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-4 py-3 text-center font-semibold text-slate-500">{idx + 1}</td>
+                        
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 text-blue-700 flex items-center justify-center font-bold text-xs">
+                              {user.nameKhmer ? user.nameKhmer.charAt(0) : 'U'}
+                            </div>
+                            <div>
+                              <p className="font-bold text-slate-800">{user.nameKhmer}</p>
+                              {user.nameLatin && <p className="text-[10px] text-slate-400">{user.nameLatin}</p>}
+                              <div className="mt-0.5">{getRoleBadge(user.role)}</div>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-bold text-slate-800">{user.nameKhmer}</p>
-                            <div className="mt-0.5">{getRoleBadge(user.role)}</div>
-                          </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-slate-800">{user.email}</p>
-                        <p className="text-[11px] text-slate-400">User: {user.username}</p>
-                      </td>
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-slate-800">{user.email}</p>
+                          <p className="text-[11px] text-slate-400">User: {user.username}</p>
+                        </td>
 
-                      <td className="px-4 py-3">
-                        {user.studentCode ? (
-                          <span className="font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
-                            {user.studentCode} (ថ្នាក់ទី {user.assignedGrade}{user.assignedSection})
-                          </span>
-                        ) : user.staffCode ? (
-                          <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                            {user.staffCode}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400">-</span>
-                        )}
-                      </td>
+                        <td className="px-4 py-3">
+                          {user.studentCode ? (
+                            <span className="font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                              {user.studentCode} (ថ្នាក់ទី {user.assignedGrade}{user.assignedSection})
+                            </span>
+                          ) : user.staffCode ? (
+                            <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                              {user.staffCode}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
 
-                      <td className="px-4 py-3 text-slate-600 font-mono">
-                        {user.phone || '-'}
-                      </td>
+                        <td className="px-4 py-3 text-slate-600 font-mono">
+                          {user.phone || '-'}
+                        </td>
 
-                      <td className="px-4 py-3">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {user.status === 'active' ? (
-                              <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[11px] font-bold border border-emerald-200">
-                                <CheckCircle2 className="w-3 h-3" /> សកម្ម
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-red-700 bg-red-50 px-2 py-0.5 rounded-full text-[11px] font-bold border border-red-200">
-                                <AlertTriangle className="w-3 h-3" /> ផ្អាក
+                        <td className="px-4 py-3">
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {user.status === 'active' ? (
+                                <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[11px] font-bold border border-emerald-200">
+                                  <CheckCircle2 className="w-3 h-3" /> សកម្ម
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-red-700 bg-red-50 px-2 py-0.5 rounded-full text-[11px] font-bold border border-red-200">
+                                  <AlertTriangle className="w-3 h-3" /> ផ្អាក
+                                </span>
+                              )}
+
+                              <SecurityHealthBadge user={user} variant="compact" />
+                            </div>
+
+                            {user.forcePasswordChange && (
+                              <span className="block text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-md">
+                                🔄 ត្រូវប្តូរពាក្យសម្ងាត់
                               </span>
                             )}
-
-                            <SecurityHealthBadge user={user} variant="compact" />
                           </div>
+                        </td>
 
-                          {user.forcePasswordChange && (
-                            <span className="block text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-md">
-                              🔄 ត្រូវប្តូរពាក្យសម្ងាត់
-                            </span>
-                          )}
-                        </div>
-                      </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                            {/* Student Quick Password Reset Button */}
+                            {user.role === 'student' && (isDirector || isTeacher || isSecretary) && (
+                              <button
+                                type="button"
+                                onClick={() => handleResetStudentPassword(user)}
+                                title={`កំណត់ពាក្យសម្ងាត់ឡើងវិញទៅជាអត្តលេខសិស្ស (${user.studentCode || '12345678'})`}
+                                className="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-[11px] font-bold border border-purple-200 flex items-center gap-1 transition-colors cursor-pointer"
+                              >
+                                <KeyRound className="w-3.5 h-3.5 text-purple-600" />
+                                <span>Reset កូដ</span>
+                              </button>
+                            )}
 
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {/* Director Impersonation Master Access */}
-                          {isDirector && user.id !== currentUser?.id && (
+                            {/* Director Impersonation Master Access */}
+                            {isDirector && user.id !== currentUser?.id && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (window.confirm(`តើអ្នកពិតជាចង់ចូលប្រើជាគណនី «${user.nameKhmer}» (${user.role}) ឬទេ?`)) {
+                                    impersonateUser(user);
+                                  }
+                                }}
+                                title="ចូលប្រើជាគណនីនេះ (Director Master Login)"
+                                className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-[11px] font-bold border border-amber-200 flex items-center gap-1 transition-colors cursor-pointer"
+                              >
+                                <LogIn className="w-3.5 h-3.5 text-amber-600" />
+                                <span>ចូលប្រើ</span>
+                              </button>
+                            )}
+
+                            {/* Director Force Password Toggle Button */}
+                            {isDirector && (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleForcePasswordChange(user)}
+                                title={
+                                  user.forcePasswordChange
+                                    ? 'ដកចេញការតម្រូវឱ្យផ្លាស់ប្តូរពាក្យសម្ងាត់'
+                                    : 'កំណត់ឱ្យគណនីនេះផ្លាស់ប្តូរពាក្យសម្ងាត់ជាកំហិត (Force Password Rotation)'
+                                }
+                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                                  user.forcePasswordChange
+                                    ? 'text-rose-600 bg-rose-50 hover:bg-rose-100'
+                                    : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                                }`}
+                              >
+                                <RotateCcw className="w-4 h-4" />
+                              </button>
+                            )}
+
+                            {/* Edit permissions check */}
+                            {((isDirector) ||
+                              (isSecretary && user.role !== 'director') ||
+                              (isLibrarian && user.id === currentUser?.id)) && (
+                              <button
+                                type="button"
+                                onClick={() => setSelectedUserForEdit(user)}
+                                title="កែប្រែ / ប្តូរពាក្យសម្ងាត់"
+                                className="p-1.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                            )}
+
                             <button
                               type="button"
                               onClick={() => {
-                                if (window.confirm(`តើអ្នកពិតជាចង់ចូលប្រើជាគណនី «${user.nameKhmer}» (${user.role}) ឬទេ?`)) {
-                                  impersonateUser(user);
-                                }
+                                setInspectedUserForRole(user);
+                                setShowRoleInspectorModal(true);
                               }}
-                              title="ចូលប្រើជាគណនីនេះ (Director Master Login)"
-                              className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-[11px] font-bold border border-amber-200 flex items-center gap-1 transition-colors cursor-pointer"
+                              title="ពិនិត្យសិទ្ធិ និងមុខងារលម្អិតរបស់គណនីនេះ"
+                              className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
                             >
-                              <LogIn className="w-3.5 h-3.5 text-amber-600" />
-                              <span>ចូលប្រើ</span>
+                              <ShieldCheck className="w-4 h-4" />
                             </button>
-                          )}
 
-                          {/* Director Force Password Toggle Button */}
-                          {isDirector && (
                             <button
                               type="button"
-                              onClick={() => handleToggleForcePasswordChange(user)}
-                              title={
-                                user.forcePasswordChange
-                                  ? 'ដកចេញការតម្រូវឱ្យផ្លាស់ប្តូរពាក្យសម្ងាត់'
-                                  : 'កំណត់ឱ្យគណនីនេះផ្លាស់ប្តូរពាក្យសម្ងាត់ជាកំហិត (Force Password Rotation)'
-                              }
-                              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                                user.forcePasswordChange
-                                  ? 'text-rose-600 bg-rose-50 hover:bg-rose-100'
-                                  : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
-                              }`}
+                              onClick={() => {
+                                setForgotPasswordUser(user);
+                                setShowForgotPasswordModal(true);
+                              }}
+                              title="ផ្ញើ Password Reset Email តាម Firebase Auth"
+                              className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
                             >
-                              <RotateCcw className="w-4 h-4" />
+                              <Send className="w-4 h-4" />
                             </button>
-                          )}
 
-                          {/* Edit permissions check:
-                              - Director can edit anyone
-                              - Secretary can edit librarian and teacher, but CANNOT edit director
-                              - Librarian can only edit their own account
-                              - Teacher / Student cannot edit accounts here
-                          */}
-                          {((isDirector) ||
-                            (isSecretary && user.role !== 'director') ||
-                            (isLibrarian && user.id === currentUser?.id)) && (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedUserForEdit(user)}
-                              title="កែប្រែ / ប្តូរពាក្យសម្ងាត់"
-                              className="p-1.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setInspectedUserForRole(user);
-                              setShowRoleInspectorModal(true);
-                            }}
-                            title="ពិនិត្យសិទ្ធិ និងមុខងារលម្អិតរបស់គណនីនេះ"
-                            className="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <ShieldCheck className="w-4 h-4" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setForgotPasswordUser(user);
-                              setShowForgotPasswordModal(true);
-                            }}
-                            title="ផ្ញើ Password Reset Email តាម Firebase Auth"
-                            className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Send className="w-4 h-4" />
-                          </button>
-
-                          {/* Delete permission: ONLY DIRECTOR can delete accounts (with mandatory reason modal) */}
-                          {isDirector && user.id !== currentUser?.id && (
-                            <button
-                              type="button"
-                              onClick={() => setUserToDelete(user)}
-                              title="លុបគណនី (មានតែនាយកសាលាប៉ុណ្ណោះ)"
-                              className="p-1.5 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            {/* Delete permission: ONLY DIRECTOR can delete accounts (with mandatory reason modal) */}
+                            {isDirector && user.id !== currentUser?.id && (
+                              <button
+                                type="button"
+                                onClick={() => setUserToDelete(user)}
+                                title="លុបគណនី (មានតែនាយកសាលាប៉ុណ្ណោះ)"
+                                className="p-1.5 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

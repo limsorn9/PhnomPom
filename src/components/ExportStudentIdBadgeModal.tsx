@@ -1,5 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import QRCode from 'qrcode';
 import { Student, SchoolProfile } from '../types';
+import { buildStudentQRLoginUrl } from '../utils/qrAuthService';
 import {
   X,
   Printer,
@@ -100,24 +102,21 @@ export const ExportStudentIdBadgeModal: React.FC<ExportStudentIdBadgeModalProps>
     }
   };
 
-  // QR Code payload
-  const qrPayload = selectedStudent
-    ? JSON.stringify({
-        type: 'STUDENT_ID',
-        id: selectedStudent.id,
-        code: selectedStudent.code,
-        name: selectedStudent.nameKhmer,
-        grade: selectedStudent.grade,
-        section: selectedStudent.section,
-        school: schoolProfile.nameKhmer,
-        academicYear: schoolProfile.academicYear,
-        authVerifyUrl: `https://school.moeys.gov.kh/verify/student/${selectedStudent.code}`
-      })
-    : '';
+  const [qrImageUrl, setQrImageUrl] = useState<string>('');
 
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
-    qrPayload
-  )}&margin=1&color=0f172a`;
+  // Generate QR Code data url for the selected student
+  useEffect(() => {
+    if (!selectedStudent) return;
+    const qrUrl = buildStudentQRLoginUrl(selectedStudent, schoolProfile.code || '020401015');
+    QRCode.toDataURL(qrUrl, {
+      width: 300,
+      margin: 1,
+      color: { dark: '#0f172a', light: '#ffffff' },
+      errorCorrectionLevel: 'M'
+    })
+      .then(url => setQrImageUrl(url))
+      .catch(err => console.error('Error generating badge QR code:', err));
+  }, [selectedStudent, schoolProfile]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/70 backdrop-blur-xs overflow-y-auto">

@@ -34,9 +34,11 @@ import {
   UserPlus,
   Shield,
   X,
-  Library as LibraryIcon
+  Library as LibraryIcon,
+  QrCode
 } from 'lucide-react';
 import { AngkorWatSilhouette, KhmerKbachCorner, MoEYSRoyalHeader } from './AngkorMotif';
+import { QRLoginScannerModal } from './QRLoginScannerModal';
 
 interface AuthScreenProps {
   onLoginSuccess?: () => void;
@@ -69,6 +71,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showQRScannerModal, setShowQRScannerModal] = useState(false);
 
   // Registration / Create Account Modal States
   const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -928,6 +931,24 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
                       </>
                     )}
                   </button>
+
+                  {/* Smart QR Scan Login Button */}
+                  <div className="pt-2">
+                    <div className="relative flex py-1.5 items-center">
+                      <div className="flex-grow border-t border-slate-800" />
+                      <span className="shrink mx-3 text-[11px] text-slate-500 font-semibold">ឬស្កេនកាតសម្គាល់</span>
+                      <div className="flex-grow border-t border-slate-800" />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowQRScannerModal(true)}
+                      className="w-full py-3 px-4 bg-slate-950 hover:bg-slate-800 text-blue-300 hover:text-white border border-blue-500/40 hover:border-blue-400 font-bold text-xs sm:text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2.5 cursor-pointer group"
+                    >
+                      <QrCode className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
+                      <span>ស្កេនកាត QR Code ចូលភ្លាមៗ (Scan Smart QR)</span>
+                    </button>
+                  </div>
                 </form>
               ) : (
                 /* Google Direct Login Tab Content */
@@ -2041,6 +2062,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = () => {
             </form>
           </motion.div>
         </div>
+      )}
+
+      {/* Smart QR Code Camera Scanner Modal */}
+      {showQRScannerModal && (
+        <QRLoginScannerModal
+          onClose={() => setShowQRScannerModal(false)}
+        />
       )}
 
     </div>

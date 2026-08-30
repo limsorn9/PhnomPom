@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import QRCode from 'qrcode';
+import { buildStudentQRLoginUrl } from '../utils/qrAuthService';
 import { Student, StudentScore, DailyAttendanceRecord, SchoolProfile } from '../types';
 import {
   Printer,
@@ -45,16 +46,10 @@ export const StudentProfilePdfModal: React.FC<StudentProfilePdfModalProps> = ({
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const printContainerRef = useRef<HTMLDivElement>(null);
 
-  // Generate QR code for student profile verification
+  // Generate QR code for student profile and smart login
   useEffect(() => {
-    const payload = JSON.stringify({
-      id: student.id,
-      code: student.code,
-      nameKhmer: student.nameKhmer,
-      grade: `${student.grade}${student.section}`,
-      school: schoolProfile.nameKhmer
-    });
-    QRCode.toDataURL(payload, { width: 120, margin: 1 })
+    const qrLoginUrl = buildStudentQRLoginUrl(student, schoolProfile.code || '020401015');
+    QRCode.toDataURL(qrLoginUrl, { width: 140, margin: 1, errorCorrectionLevel: 'M' })
       .then(url => setQrCodeDataUrl(url))
       .catch(() => {});
   }, [student, schoolProfile]);

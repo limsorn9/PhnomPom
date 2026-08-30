@@ -87,6 +87,7 @@ import {
   saveRetentionConfig,
   performRetentionCleanup
 } from '../utils/activityTracker';
+import { parseQRScanData } from '../utils/qrAuthService';
 import {
   syncSchoolDataToFirestore,
   fetchSchoolDataFromFirestore,
@@ -166,6 +167,7 @@ interface SchoolContextType {
   appUsers: AppUser[];
   login: (identifier: string, password: string) => { success: boolean; message: string; user?: AppUser };
   loginByVerifiedIdentifier: (identifier: string) => { success: boolean; message: string; user?: AppUser };
+  loginWithQRCode: (rawPayload: string) => { success: boolean; message: string; user?: AppUser };
   loginWithGoogle: () => Promise<{ success: boolean; message: string; user?: AppUser }>;
   logoutApp: () => void;
   switchUserRole: (role: UserRole) => void;
@@ -3866,16 +3868,21 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         (cleanId === 'admin' && (u.role === 'super_admin' || u.username === 'limsorn' || u.email.toLowerCase() === 'limsorn9@gmail.com')) ||
         (u.staffCode && u.staffCode.toLowerCase() === cleanId) ||
         (u.studentCode && u.studentCode.toLowerCase() === cleanId) ||
+        (u.studentId && u.studentId.toLowerCase() === cleanId) ||
+        (u.id && u.id.toLowerCase() === cleanId) ||
         (u.phone && u.phone.replace(/\s+/g, '') === cleanId.replace(/\s+/g, ''))
     );
 
+    // If not found in appUsers, search teachers
     if (!user) {
       const teacherMatch = teachers.find(
         t =>
           (t.email && t.email.toLowerCase() === cleanId) ||
           (t.staffCode && t.staffCode.toLowerCase() === cleanId) ||
+          (t.id && t.id.toLowerCase() === cleanId) ||
           (t.phone && t.phone.replace(/\s+/g, '') === cleanId.replace(/\s+/g, '')) ||
-          (t.nameLatin && t.nameLatin.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanId)
+          (t.nameLatin && t.nameLatin.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanId) ||
+          (t.nameKhmer && t.nameKhmer.toLowerCase() === cleanId)
       );
 
       if (teacherMatch) {
@@ -3894,6 +3901,41 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           assignedGrade: teacherMatch.assignedGrade,
           assignedSection: teacherMatch.assignedSection,
           avatarUrl: teacherMatch.avatarUrl,
+          createdAt: new Date().toISOString().split('T')[0]
+        };
+        setAppUsers(prev => [user!, ...prev]);
+      }
+    }
+
+    // If not found, search students
+    if (!user) {
+      const studentMatch = students.find(
+        s =>
+          (s.code && s.code.toLowerCase() === cleanId) ||
+          (s.id && s.id.toLowerCase() === cleanId) ||
+          (s.nameLatin && s.nameLatin.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanId) ||
+          (s.nameKhmer && s.nameKhmer.toLowerCase() === cleanId) ||
+          (s.phone && s.phone.replace(/\s+/g, '') === cleanId.replace(/\s+/g, '')) ||
+          (s.guardianPhone && s.guardianPhone.replace(/\s+/g, '') === cleanId.replace(/\s+/g, ''))
+      );
+
+      if (studentMatch) {
+        const rawUsername = studentMatch.code ? studentMatch.code.toLowerCase().replace(/[^a-z0-9]/g, '') : `student_${studentMatch.id.slice(-4)}`;
+        user = {
+          id: `usr-stu-${studentMatch.id}`,
+          username: rawUsername,
+          email: `${rawUsername}@student.moeys.gov.kh`,
+          password: studentMatch.code || '123456',
+          nameKhmer: studentMatch.nameKhmer,
+          nameLatin: studentMatch.nameLatin || studentMatch.code,
+          role: 'student',
+          studentId: studentMatch.id,
+          studentCode: studentMatch.code,
+          assignedGrade: studentMatch.grade,
+          assignedSection: studentMatch.section,
+          phone: studentMatch.guardianPhone || studentMatch.phone || '',
+          avatarUrl: studentMatch.avatarUrl,
+          status: 'active',
           createdAt: new Date().toISOString().split('T')[0]
         };
         setAppUsers(prev => [user!, ...prev]);
@@ -3920,6 +3962,45 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return { success: false, message: 'រកមិនឃើញគណនីដែលត្រូវគ្នានឹងព័ត៌មានដែលបានផ្ទៀងផ្ទាត់ទេ!' };
   };
+
+  /**
+   * Smart QR Code Login (Decoupled from user password so password changes never break QR code)
+   */
+  const loginWithQRCode = (rawPayload: string): { success: boolean; message: string; user?: AppUser } => {
+    const payload = parseQRScanData(rawPayload);
+    if (!payload || !payload.code) {
+      return { success: false, message: 'កូដ QR Code មិនត្រឹមត្រូវ ឬមិនអាចស្គាល់បានទេ!' };
+    }
+
+    return loginByVerifiedIdentifier(payload.code);
+  };
+
+  // Auto Smart QR URL listener on page load
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const qrAuth = searchParams.get('qr_auth');
+      const qrCode = searchParams.get('qr_code') || searchParams.get('code');
+      const qrLogin = searchParams.get('qr_login');
+
+      if (qrAuth || (qrLogin && qrCode)) {
+        const rawParam = qrAuth ? decodeURIComponent(qrAuth) : window.location.href;
+        const res = loginWithQRCode(rawParam);
+        if (res.success && res.user) {
+          // Clean URL params seamlessly so refresh doesn't re-trigger unexpectedly
+          const cleanUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
+          setToastMessage({
+            text: `🎉 ស្កេនជោគជ័យ! បានចូលគណនី «${res.user.nameKhmer}» (${res.user.role === 'student' ? 'សិស្ស' : 'គ្រូ/បុគ្គលិក'}) ដោយស្វ័យប្រវត្តិ`,
+            type: 'success'
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Auto QR Login check error:', e);
+    }
+  }, [students.length, teachers.length]);
 
   const loginWithGoogle = async (): Promise<{ success: boolean; message: string; user?: AppUser }> => {
     try {
@@ -6896,6 +6977,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         appUsers,
         login,
         loginByVerifiedIdentifier,
+        loginWithQRCode,
         loginWithGoogle,
         logoutApp,
         switchUserRole,

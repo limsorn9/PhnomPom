@@ -66,6 +66,7 @@ import {
 } from '../utils/reportCardSignatureQR';
 import { MoEYSReportCardSignatures, AngkorPageWatermark, MoEYSRoyalHeader } from './AngkorMotif';
 import { MoEYSStudentRecordMasterModal } from './MoEYSStudentRecordMasterModal';
+import { SmartQRCode } from './SmartQRCode';
 
 export const ReportsAndQR: React.FC = () => {
   const {
@@ -86,6 +87,9 @@ export const ReportsAndQR: React.FC = () => {
     setPrintSettings,
     addActivityLog,
     currentUser,
+    loginByVerifiedIdentifier,
+    accessStudentAccount,
+    switchToTeacherAccount,
     qrScanVerificationLogs = [],
     deleteQRScanVerificationLog,
     clearQRScanVerificationLogs
@@ -372,10 +376,25 @@ export const ReportsAndQR: React.FC = () => {
     showToast(`កំពុងរៀបចំទាញយកកាតសម្គាល់ «${name} (${code})»...`);
   };
 
-  // Smart QR Login Simulation
+  // Smart QR Login Authentication
   const handleSmartQRLogin = (st: Student) => {
-    showToast(`ស្កេនជោគជ័យ! កំពុងចូលទៅកាន់គណនីសិស្ស «${st.nameKhmer}» (${st.code})`);
-    switchUserRole('student');
+    const res = loginByVerifiedIdentifier(st.code);
+    if (res.success) {
+      showToast(`🎉 ស្កេនជោគជ័យ! បានចូលទៅកាន់គណនីសិស្ស «${st.nameKhmer}» (${st.code}) ដោយស្វ័យប្រវត្តិ`, 'success');
+    } else {
+      accessStudentAccount(st);
+      showToast(`ស្កេនជោគជ័យ! កំពុងចូលទៅកាន់គណនីសិស្ស «${st.nameKhmer}» (${st.code})`, 'success');
+    }
+  };
+
+  const handleSmartStaffQRLogin = (t: Teacher) => {
+    const res = loginByVerifiedIdentifier(t.staffCode || t.id);
+    if (res.success) {
+      showToast(`🎉 ស្កេនជោគជ័យ! បានចូលទៅកាន់គណនីគ្រូ «${t.nameKhmer}» (${t.staffCode}) ដោយស្វ័យប្រវត្តិ`, 'success');
+    } else {
+      switchToTeacherAccount(t);
+      showToast(`ស្កេនជោគជ័យ! កំពុងចូលទៅកាន់គណនីគ្រូ «${t.nameKhmer}»`, 'success');
+    }
   };
 
   // Generate SVG QR Code-like visual element
@@ -1065,7 +1084,7 @@ export const ReportsAndQR: React.FC = () => {
 
                     {/* QR Code */}
                     <div className="flex flex-col items-center">
-                      {renderQRCodeVisual(st.code, 56)}
+                      <SmartQRCode student={st} size={58} allowClickToEnlarge={true} />
                       <span className="text-[8px] font-mono text-slate-500 mt-1">Smart QR</span>
                     </div>
                   </div>
@@ -1269,9 +1288,7 @@ export const ReportsAndQR: React.FC = () => {
 
                     {/* QR Code */}
                     <div className="my-1 flex flex-col items-center">
-                      <div className="p-1 bg-white border border-slate-300 rounded-md">
-                        <QrCode className="w-16 h-16 text-slate-950" />
-                      </div>
+                      <SmartQRCode student={st} size={64} allowClickToEnlarge={true} />
                     </div>
 
                     {/* Student Info */}
@@ -1355,7 +1372,7 @@ export const ReportsAndQR: React.FC = () => {
                     </div>
 
                     <div className="flex flex-col items-center">
-                      {renderQRCodeVisual(t.staffCode, 56)}
+                      <SmartQRCode teacher={t} size={58} allowClickToEnlarge={true} />
                       <span className="text-[9px] font-mono text-slate-500 mt-1">Staff QR</span>
                     </div>
                   </div>
@@ -1366,13 +1383,22 @@ export const ReportsAndQR: React.FC = () => {
                   </div>
 
                   {/* Interactive Actions (no-print) */}
-                  <div className="no-print mt-2 pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
+                  <div className="no-print mt-2 pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => handleSmartStaffQRLogin(t)}
+                      className="flex items-center gap-1 text-[10px] font-bold text-indigo-700 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded-lg transition-colors"
+                      title="ស្កេនចូលគណនីគ្រូនេះភ្លាមៗ"
+                    >
+                      <LogIn className="w-3 h-3" />
+                      <span>ចូលគណនីគ្រូ</span>
+                    </button>
+
                     <button
                       onClick={() => handleDownloadCardImage(t.nameKhmer, t.staffCode)}
-                      className="flex items-center gap-1 text-[10px] font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 px-2.5 py-1 rounded-lg transition-colors"
+                      className="flex items-center gap-1 text-[10px] font-bold text-slate-700 hover:text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg transition-colors"
                     >
                       <Download className="w-3 h-3" />
-                      <span>ទាញយកកាតបុគ្គលិក</span>
+                      <span>ទាញយកកាត</span>
                     </button>
                   </div>
                 </div>
