@@ -2076,7 +2076,7 @@ export const StudentManagement: React.FC = () => {
                           type="text"
                           required
                           value={formData.nameKhmer}
-                          onChange={(e) => updateField('nameKhmer', e.target.value)}
+                          onChange={(e) => setFormData(prev => ({ ...prev, nameKhmer: e.target.value }))}
                           className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all font-bold"
                           placeholder="ឧ. សុខ សាន្ត"
                         />
@@ -2086,7 +2086,7 @@ export const StudentManagement: React.FC = () => {
                         <select
                           required
                           value={formData.gender}
-                          onChange={(e) => updateField('gender', e.target.value as Gender)}
+                          onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value as Gender }))}
                           className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-bold bg-white"
                         >
                           <option value="M">ប្រុស (M)</option>
@@ -2098,7 +2098,7 @@ export const StudentManagement: React.FC = () => {
                         <select
                           required
                           value={formData.grade}
-                          onChange={(e) => updateField('grade', Number(e.target.value))}
+                          onChange={(e) => setFormData(prev => ({ ...prev, grade: Number(e.target.value) }))}
                           className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-bold bg-white"
                         >
                           <option value={0} disabled>ជ្រើសរើសថ្នាក់</option>
@@ -2113,7 +2113,7 @@ export const StudentManagement: React.FC = () => {
                           type="text"
                           required
                           value={formData.section}
-                          onChange={(e) => updateField('section', e.target.value)}
+                          onChange={(e) => setFormData(prev => ({ ...prev, section: e.target.value }))}
                           className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all font-bold"
                           placeholder="ឧ. ក"
                         />
@@ -2123,7 +2123,7 @@ export const StudentManagement: React.FC = () => {
                         <input
                           type="tel"
                           value={formData.phone}
-                          onChange={(e) => updateField('phone', e.target.value)}
+                          onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                           className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all font-bold text-left"
                           placeholder="ឧ. 012345678"
                           dir="ltr"

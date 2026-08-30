@@ -16,11 +16,13 @@ interface MobileBottomNavProps {
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenMobileMenu, onOpenSettings }) => {
   const { activeTab, setActiveTab } = useSchool();
 
-  const quickTabs: { id: ActiveTab | 'all_apps'; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  type NavItem = { id: ActiveTab | 'all_apps' | 'account_modal'; label: string; icon: React.ComponentType<{ className?: string }> };
+
+  const quickTabs: NavItem[] = [
     { id: 'dashboard', label: 'ទំព័រដើម', icon: Home },
     { id: 'all_apps', label: 'ទាំងអស់', icon: Layers },
     { id: 'finance', label: 'ថវិកា', icon: Wallet },
-    { id: 'account' as any, label: 'គណនី', icon: User },
+    { id: 'account_modal', label: 'គណនី', icon: User },
   ];
 
   return (
@@ -28,7 +30,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenMobileMe
       <div className="flex items-center justify-around max-w-md mx-auto">
         {quickTabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = (tab.id === 'all_apps' || tab.id === 'account') ? false : activeTab === tab.id;
+          const isActive = (tab.id === 'all_apps' || tab.id === 'account_modal') ? false : activeTab === tab.id;
           
           return (
             <button
@@ -36,10 +38,10 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenMobileMe
               onClick={() => {
                 if (tab.id === 'all_apps') {
                   onOpenMobileMenu();
-                } else if (tab.id === 'account') {
+                } else if (tab.id === 'account_modal') {
                   onOpenSettings();
                 } else {
-                  setActiveTab(tab.id as ActiveTab);
+                  setActiveTab(tab.id);
                 }
               }}
               className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all duration-150 ${

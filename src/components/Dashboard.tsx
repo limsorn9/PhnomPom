@@ -8,6 +8,7 @@ import { QuickAttendanceModal } from './QuickAttendanceModal';
 import { NewClassroomWizardModal } from './NewClassroomWizardModal';
 import { AcademicTrendAnalysis } from './AcademicTrendAnalysis';
 import { DirectorAcademicYearControl } from './DirectorAcademicYearControl';
+import { QuickActionsHub } from './QuickActionsHub';
 import {
   Users,
   GraduationCap,
@@ -388,93 +389,8 @@ export const Dashboard: React.FC = () => {
           {/* Director Academic Year Data Selector (2016-2017 to 2050-2051) */}
           <DirectorAcademicYearControl />
 
-          {/* Principal Quick Action Grid */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold font-moul text-slate-900 dark:text-white">សកម្មភាពរហ័សសម្រាប់នាយកសាលា (Principal Quick Actions)</h3>
-                <p className="text-xs text-slate-500 mt-0.5">ផ្លូវកាត់សំខាន់ៗសម្រាប់គ្រប់គ្រងដំណើរការសាលារៀនប្រចាំថ្ងៃ</p>
-              </div>
-              <span className="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-xs font-semibold flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                <span>មុខងាររហ័ស</span>
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-              {/* Add New Student */}
-              <button
-                onClick={() => setActiveTab('students')}
-                className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-50/50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200/70 rounded-2xl text-center group transition-all hover:scale-[1.02] shadow-sm"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-md mb-2 group-hover:rotate-6 transition-transform">
-                  <UserPlus className="w-6 h-6" />
-                </div>
-                <span className="text-xs font-bold text-slate-900 group-hover:text-blue-600">ចុះឈ្មោះសិស្សថ្មី</span>
-                <span className="text-[10px] text-slate-500 mt-0.5">Add New Student</span>
-              </button>
-
-              {/* View Attendance */}
-              <button
-                onClick={() => setActiveTab('attendance_health')}
-                className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-emerald-50 to-teal-50/50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200/70 rounded-2xl text-center group transition-all hover:scale-[1.02] shadow-sm"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md mb-2 group-hover:rotate-6 transition-transform">
-                  <CalendarCheck className="w-6 h-6" />
-                </div>
-                <span className="text-xs font-bold text-slate-900 group-hover:text-emerald-600">ពិនិត្យវត្តមាន</span>
-                <span className="text-[10px] text-slate-500 mt-0.5">View Attendance</span>
-              </button>
-
-              {/* Check Budget */}
-              <button
-                onClick={() => setActiveTab('finance')}
-                className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-amber-50 to-orange-50/50 hover:from-amber-100 hover:to-orange-100 border border-amber-200/70 rounded-2xl text-center group transition-all hover:scale-[1.02] shadow-sm"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-amber-600 text-white flex items-center justify-center shadow-md mb-2 group-hover:rotate-6 transition-transform">
-                  <CircleDollarSign className="w-6 h-6" />
-                </div>
-                <span className="text-xs font-bold text-slate-900 group-hover:text-amber-600">ពិនិត្យថវិកា</span>
-                <span className="text-[10px] text-slate-500 mt-0.5">Check Budget</span>
-              </button>
-
-              {/* Manage Staff */}
-              <button
-                onClick={() => setActiveTab('teachers')}
-                className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-purple-50 to-indigo-50/50 hover:from-purple-100 hover:to-indigo-100 border border-purple-200/70 rounded-2xl text-center group transition-all hover:scale-[1.02] shadow-sm"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-purple-600 text-white flex items-center justify-center shadow-md mb-2 group-hover:rotate-6 transition-transform">
-                  <Users className="w-6 h-6" />
-                </div>
-                <span className="text-xs font-bold text-slate-900 group-hover:text-purple-600">គ្រប់គ្រងបុគ្គលិក</span>
-                <span className="text-[10px] text-slate-500 mt-0.5">Manage Staff</span>
-              </button>
-
-              {/* Quick QR Attendance */}
-              <button
-                onClick={() => setIsQuickAttOpen(true)}
-                className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-cyan-50 to-blue-50/50 hover:from-cyan-100 hover:to-blue-100 border border-cyan-200/70 rounded-2xl text-center group transition-all hover:scale-[1.02] shadow-sm"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-cyan-600 text-white flex items-center justify-center shadow-md mb-2 group-hover:rotate-6 transition-transform">
-                  <QrCode className="w-6 h-6" />
-                </div>
-                <span className="text-xs font-bold text-slate-900 group-hover:text-cyan-600">ស្កេនវត្តមាន QR</span>
-                <span className="text-[10px] text-slate-500 mt-0.5">Quick Attendance</span>
-              </button>
-
-              {/* New Classroom Setup Wizard */}
-              <button
-                onClick={() => setIsNewClassOpen(true)}
-                className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-rose-50 to-pink-50/50 hover:from-rose-100 hover:to-pink-100 border border-rose-200/70 rounded-2xl text-center group transition-all hover:scale-[1.02] shadow-sm"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center shadow-md mb-2 group-hover:rotate-6 transition-transform">
-                  <Building2 className="w-6 h-6" />
-                </div>
-                <span className="text-xs font-bold text-slate-900 group-hover:text-rose-600">បង្កើតថ្នាក់រៀនថ្មី</span>
-                <span className="text-[10px] text-slate-500 mt-0.5">Classroom Wizard</span>
-              </button>
-            </div>
-          </div>
+          {/* Comprehensive Responsive Quick Actions Hub */}
+          <QuickActionsHub currentMode={dashboardMode} onModeChange={setDashboardMode} />
 
           {/* Metric Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -784,6 +700,9 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
+          {/* Teacher Quick Actions Hub */}
+          <QuickActionsHub currentMode={dashboardMode} onModeChange={setDashboardMode} />
+
           {/* Teacher Class Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm">
@@ -899,56 +818,8 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* 4 Quick Access Cards for Student/Parent */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Student Portal */}
-            <button
-              onClick={() => setActiveTab('student_portal')}
-              className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-purple-300 transition-all text-left group"
-            >
-              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <Award className="w-5 h-5" />
-              </div>
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-purple-600">លទ្ធផលសិក្សា & ពិន្ទុ</h4>
-              <p className="text-xs text-slate-500 mt-1">ពិនិត្យពិន្ទុប្រចាំខែ ចំណាត់ថ្នាក់ និងព្រឹត្តិបត្រពិន្ទុ</p>
-            </button>
-
-            {/* Academic Calendar */}
-            <button
-              onClick={() => setActiveTab('calendar')}
-              className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-rose-300 transition-all text-left group"
-            >
-              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <Calendar className="w-5 h-5" />
-              </div>
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-rose-600">កាលវិភាគប្រឡង & ឈប់</h4>
-              <p className="text-xs text-slate-500 mt-1">ប្រតិទិនប្រឡងឆមាស និងថ្ងៃឈប់សម្រាក MoEYS</p>
-            </button>
-
-            {/* Library */}
-            <button
-              onClick={() => setActiveTab('library')}
-              className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-teal-300 transition-all text-left group"
-            >
-              <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <LibraryIcon className="w-5 h-5" />
-              </div>
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-teal-600">បណ្ណាល័យសៀវភៅអាន</h4>
-              <p className="text-xs text-slate-500 mt-1">{libraryBooks.length} សៀវភៅរឿង គំនូរ និងចំណេះដឹងទូទៅ</p>
-            </button>
-
-            {/* Digital Learning */}
-            <button
-              onClick={() => setActiveTab('learning_resources')}
-              className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all text-left group"
-            >
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <Tv className="w-5 h-5" />
-              </div>
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600">ធនធានរៀន MoEYS</h4>
-              <p className="text-xs text-slate-500 mt-1">កម្មវិធី PLP, Sala, សៀវភៅអេឡិចត្រូនិច</p>
-            </button>
-          </div>
+          {/* Student & Guardian Quick Actions Hub */}
+          <QuickActionsHub currentMode={dashboardMode} onModeChange={setDashboardMode} />
 
           {/* Student Highlights & Notices */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

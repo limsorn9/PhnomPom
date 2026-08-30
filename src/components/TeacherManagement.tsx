@@ -107,7 +107,8 @@ export const TeacherManagement: React.FC = () => {
     spouseName: '',
     spouseOccupation: '',
     childrenCount: 1,
-    status: 'active' as const
+    status: 'active' as const,
+    avatarUrl: ''
   };
 
   const {
