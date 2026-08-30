@@ -27,8 +27,9 @@ export const DirectorAcademicYearControl: React.FC = () => {
     academicYears,
     selectedAcademicYear,
     setSelectedAcademicYear,
+    addAcademicYear,
+    setGlobalActiveAcademicYear,
     schoolProfile,
-    updateSchoolProfile,
     students,
     classrooms,
     scores,
@@ -40,6 +41,8 @@ export const DirectorAcademicYearControl: React.FC = () => {
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [selectedDecade, setSelectedDecade] = useState<string>('all');
+  const [customNewYearInput, setCustomNewYearInput] = useState<string>('');
+  const [isAddingNewYear, setIsAddingNewYear] = useState<boolean>(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -70,8 +73,24 @@ export const DirectorAcademicYearControl: React.FC = () => {
   };
 
   const handleSaveAsOfficialSchoolYear = () => {
-    updateSchoolProfile({ academicYear: selectedAcademicYear });
-    showToast(`បានកំណត់ «ឆ្នាំសិក្សា ${selectedAcademicYear}» ជាឆ្នាំសិក្សាផ្លូវការរបស់សាលាដោយជោគជ័យ!`);
+    const res = setGlobalActiveAcademicYear(selectedAcademicYear);
+    if (res.success) {
+      showToast(`បានកំណត់ «ឆ្នាំសិក្សា ${selectedAcademicYear}» ជាឆ្នាំសិក្សាគោលសម្រាប់គ្រប់គ្នាដោយជោគជ័យ!`);
+    }
+  };
+
+  const handleCreateAndSetBaseYear = () => {
+    if (!customNewYearInput.trim()) {
+      showToast('សូមបញ្ចូលឈ្មោះឆ្នាំសិក្សា!');
+      return;
+    }
+    const trimmed = customNewYearInput.trim();
+    addAcademicYear(trimmed);
+    const res = setGlobalActiveAcademicYear(trimmed);
+    if (res.success) {
+      setCustomNewYearInput('');
+      setIsAddingNewYear(false);
+    }
   };
 
   // Filtered academic years by decade groups if requested
@@ -204,17 +223,31 @@ export const DirectorAcademicYearControl: React.FC = () => {
             <button
               id="set-official-year-btn"
               onClick={handleSaveAsOfficialSchoolYear}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition-all active:scale-95"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer"
+              title="កំណត់ឆ្នាំសិក្សានេះជាឆ្នាំសិក្សាគោលសម្រាប់ប្រព័ន្ធទាំងមូល"
             >
               <Check className="w-4 h-4" />
-              <span>កំណត់ជាឆ្នាំសិក្សាផ្លូវការ</span>
+              <span>★ កំណត់ជាឆ្នាំសិក្សាគោលសម្រាប់គ្រប់គ្នា</span>
             </button>
           ) : (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-semibold">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-bold">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>ឆ្នាំសិក្សាផ្លូវការសកម្ម</span>
+              <span>ឆ្នាំសិក្សាគោលផ្លូវការបច្ចុប្បន្ន (Active Base)</span>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Info notice about Global Base Academic Year */}
+      <div className="p-3 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/60 rounded-xl flex items-start gap-2.5 text-xs text-blue-900 dark:text-blue-200">
+        <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+        <div className="space-y-0.5">
+          <p className="font-bold">
+            សិទ្ធិកំណត់ឆ្នាំសិក្សាគោល (Director Authority):
+          </p>
+          <p className="text-[11px] text-blue-800/90 dark:text-blue-300 leading-relaxed">
+            នៅពេលនាយកសាលាកំណត់ឆ្នាំសិក្សាគោល ប្រព័ន្ធនឹងយកឆ្នាំសិក្សានោះជាឆ្នាំគោលលំនាំដើម (Default) សម្រាប់លោកគ្រូ អ្នកគ្រូ សិស្សានុសិស្ស ការបញ្ចូលវត្តមាន តារាងពិន្ទុ និងរបាយការណ៍ក្រសួង MoEYS ទាំងអស់។
+          </p>
         </div>
       </div>
 
@@ -366,7 +399,39 @@ export const DirectorAcademicYearControl: React.FC = () => {
           >
             ២០៤១ - ២០៥០
           </button>
+          <button
+            onClick={() => setIsAddingNewYear(!isAddingNewYear)}
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all border ${
+              isAddingNewYear
+                ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
+                : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100'
+            }`}
+          >
+            {isAddingNewYear ? '✕ បិទ' : '+ បន្ថែមឆ្នាំថ្មី'}
+          </button>
         </div>
+
+        {/* Quick Add Custom Year Input Box */}
+        {isAddingNewYear && (
+          <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex flex-col sm:flex-row items-center gap-2">
+            <div className="text-xs font-bold text-emerald-900 dark:text-emerald-200 shrink-0">
+              បញ្ចូលឆ្នាំសិក្សាថ្មី៖
+            </div>
+            <input
+              type="text"
+              value={customNewYearInput}
+              onChange={(e) => setCustomNewYearInput(e.target.value)}
+              placeholder="ឧ. ២០២៦ - ២០២៧"
+              className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 rounded-lg text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <button
+              onClick={handleCreateAndSetBaseYear}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs whitespace-nowrap active:scale-95 cursor-pointer"
+            >
+              ★ បង្កើត និងកំណត់ជាឆ្នាំគោល
+            </button>
+          </div>
+        )}
 
         {/* Filtered Year Chips Carousel */}
         {selectedDecade !== 'all' && (

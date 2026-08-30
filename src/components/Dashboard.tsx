@@ -44,7 +44,8 @@ import {
   Tv,
   Library as LibraryIcon,
   FileText,
-  AlertCircle
+  AlertCircle,
+  Check
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -83,6 +84,7 @@ export const Dashboard: React.FC = () => {
     academicYears,
     selectedAcademicYear,
     setSelectedAcademicYear,
+    setGlobalActiveAcademicYear,
     openDirectorPinModal
   } = useSchool();
 
@@ -262,7 +264,7 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Academic Year Selector in Top Bar */}
-        <div className="flex items-center gap-2 text-xs px-2.5 py-1 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 rounded-xl shadow-xs">
+        <div className="flex items-center flex-wrap gap-2 text-xs px-2.5 py-1 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 rounded-xl shadow-xs">
           <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold shrink-0">
             <Calendar className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">ឆ្នាំសិក្សា៖</span>
@@ -278,21 +280,37 @@ export const Dashboard: React.FC = () => {
               const isOfficial = yr === schoolProfile.academicYear;
               return (
                 <option key={yr} value={yr}>
-                  {yr} {isOfficial ? '★ (បច្ចុប្បន្ន)' : ''}
+                  {yr} {isOfficial ? '★ (ឆ្នាំគោលបច្ចុប្បន្ន)' : ''}
                 </option>
               );
             })}
           </select>
+
           {selectedAcademicYear === schoolProfile.academicYear ? (
-            <span className="hidden md:inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold pl-1">
+            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-bold px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/50 rounded-md border border-emerald-200 dark:border-emerald-800">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>សកម្ម</span>
+              <span>ឆ្នាំគោលសកម្ម</span>
             </span>
           ) : (
-            <span className="hidden md:inline-flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-semibold pl-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              <span>បណ្ណសារ</span>
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-semibold px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950/50 rounded-md border border-amber-200 dark:border-amber-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                <span>ទិន្នន័យបណ្ណសារ</span>
+              </span>
+
+              {/* Director / Admin Button to set selected year as Global Active Base Year */}
+              {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && (
+                <button
+                  type="button"
+                  onClick={() => setGlobalActiveAcademicYear(selectedAcademicYear)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-[11px] rounded-lg shadow-xs active:scale-95 transition-all cursor-pointer"
+                  title="កំណត់ឆ្នាំសិក្សានេះជាឆ្នាំគោលសម្រាប់ប្រព័ន្ធ និងអ្នកប្រើប្រាស់ទាំងអស់"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>★ កំណត់ជាឆ្នាំគោល</span>
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>

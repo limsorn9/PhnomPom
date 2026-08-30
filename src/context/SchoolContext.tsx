@@ -207,6 +207,7 @@ interface SchoolContextType {
   selectedAcademicYear: string;
   setSelectedAcademicYear: (year: string) => void;
   addAcademicYear: (newYear: string) => { success: boolean; message: string };
+  setGlobalActiveAcademicYear: (year: string) => { success: boolean; message: string };
 
   // Examination Subjects & Customization
   examSubjects: ExamSubject[];
@@ -4252,6 +4253,67 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return { success: true, message: 'ជោគជ័យ' };
   };
 
+  const setGlobalActiveAcademicYear = (year: string): { success: boolean; message: string } => {
+    const trimmed = year.trim();
+    if (!trimmed) {
+      return { success: false, message: 'សូមជ្រើសរើស ឬបញ្ចូលឆ្នាំសិក្សាឱ្យបានត្រឹមត្រូវ!' };
+    }
+
+    const isDirector =
+      currentUser?.role === 'director' ||
+      currentUser?.role === 'super_admin' ||
+      currentUser?.role === 'secretary' ||
+      currentUser?.email?.toLowerCase() === 'limsorn9@gmail.com' ||
+      currentUser?.username?.toLowerCase() === 'director' ||
+      currentUser?.username?.toLowerCase() === 'limsorn' ||
+      Boolean(currentUser?.nameKhmer && (currentUser.nameKhmer.includes('លីម សន') || currentUser.nameKhmer.includes('នាយក')));
+
+    if (currentUser && !isDirector) {
+      showToast('សិទ្ធិកំណត់ឆ្នាំសិក្សាគោលសម្រាប់គ្រប់គ្នាគឺសម្រាប់នាយកសាលាតែម្នាក់គត់!', 'error');
+      return { success: false, message: 'សិទ្ធិកំណត់ឆ្នាំសិក្សាគោលសម្រាប់គ្រប់គ្នាគឺសម្រាប់នាយកសាលាតែម្នាក់គត់!' };
+    }
+
+    // Ensure it exists in academicYears
+    if (!academicYears.includes(trimmed)) {
+      setAcademicYears(prev => Array.from(new Set([...prev, trimmed])));
+    }
+
+    // Update school profile's authoritative academicYear
+    setSchoolProfile(prev => ({
+      ...prev,
+      academicYear: trimmed
+    }));
+
+    // Update selected academic year for current session
+    setSelectedAcademicYear(trimmed);
+
+    // Save locally to storage
+    try {
+      const currentProfileSaved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_profile`);
+      const parsed = currentProfileSaved ? JSON.parse(currentProfileSaved) : initialSchoolProfile;
+      localStorage.setItem(`${LOCAL_STORAGE_KEY}_profile`, JSON.stringify({ ...parsed, academicYear: trimmed }));
+    } catch {
+      // ignore
+    }
+
+    // Add Audit Activity Log
+    addActivityLog({
+      domain: 'admin',
+      actionType: 'update',
+      title: `កំណត់ឆ្នាំសិក្សាគោល៖ ឆ្នាំសិក្សា ${trimmed}`,
+      description: `នាយកសាលាបានកំណត់ «ឆ្នាំសិក្សា ${trimmed}» ជាឆ្នាំសិក្សាគោលផ្លូវការសម្រាប់ប្រព័ន្ធ និងអ្នកប្រើប្រាស់ទាំងអស់ (លោកគ្រូ អ្នកគ្រូ និងសិស្សានុសិស្ស)`,
+      entityId: 'global_academic_year',
+      entityName: `ឆ្នាំសិក្សា ${trimmed}`,
+      actorName: currentUser?.nameKhmer || schoolProfile.principalName || 'នាយកសាលា',
+      actorRole: currentUser?.role === 'director' ? 'នាយកសាលា' : (currentUser?.role || 'អ្នកគ្រប់គ្រង'),
+      targetTab: 'dashboard',
+      tags: ['ឆ្នាំសិក្សាគោល', trimmed, 'នាយកសាលា']
+    });
+
+    showToast(`បានកំណត់ «ឆ្នាំសិក្សា ${trimmed}» ជាឆ្នាំសិក្សាគោលផ្លូវការសម្រាប់គ្រប់គ្នាដោយជោគជ័យ!`, 'success');
+    return { success: true, message: `បានកំណត់ «ឆ្នាំសិក្សា ${trimmed}» ជាឆ្នាំសិក្សាគោលផ្លូវការសម្រាប់គ្រប់គ្នា!` };
+  };
+
   // Exam Subjects Management
   const addExamSubject = (sub: Omit<ExamSubject, 'id'>) => {
     const newSubject: ExamSubject = {
@@ -7028,6 +7090,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         selectedAcademicYear,
         setSelectedAcademicYear,
         addAcademicYear,
+        setGlobalActiveAcademicYear,
         examSubjects,
         addExamSubject,
         updateExamSubject,
