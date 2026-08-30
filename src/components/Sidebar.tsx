@@ -175,6 +175,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           labelEn: 'Dashboard',
           icon: LayoutDashboard,
         },
+        {
+          id: 'secretary_dashboard' as ActiveTab,
+          labelKh: '📑 ផ្ទាំងគ្រប់គ្រងលេខាធិការ',
+          labelEn: 'Secretary Dashboard',
+          icon: FileSpreadsheet,
+          badge: 'Secretary',
+          badgeColor: 'bg-indigo-100 text-indigo-800 font-bold border border-indigo-300'
+        },
         ...(currentUser?.role === 'super_admin' ? [{
           id: 'super_admin_hub' as ActiveTab,
           labelKh: '👑 Super Admin Hub',

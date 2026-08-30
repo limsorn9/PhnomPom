@@ -89,6 +89,8 @@ export const Header: React.FC<HeaderProps> = ({
     schoolProfile,
     toastMessage,
     currentUser,
+    teachers,
+    switchToTeacherAccount,
     logoutApp,
     switchUserRole,
     openDirectorPinModal,
@@ -112,6 +114,16 @@ export const Header: React.FC<HeaderProps> = ({
       title: language === 'en' ? 'Dashboard Overview' : 'ផ្ទាំងគ្រប់គ្រងទូទៅ',
       subtitle: language === 'en' ? 'School statistics and overview' : 'ទិន្នន័យស្ថិតិ និងសមិទ្ធផលសាលារៀន',
       icon: LayoutDashboard
+    },
+    secretary_dashboard: {
+      title: language === 'en' ? 'Secretary Dashboard' : '📑 ផ្ទាំងគ្រប់គ្រងលេខាធិការ',
+      subtitle: language === 'en' ? 'Administrative records, student admissions & census overview' : 'គ្រប់គ្រងកិច្ចការរដ្ឋបាល ចុះឈ្មោះសិស្ស ជំរឿន និងលិខិតស្នាម',
+      icon: FileSpreadsheet
+    },
+    librarian_dashboard: {
+      title: language === 'en' ? 'Librarian Dashboard' : '📚 ផ្ទាំងគ្រប់គ្រងបណ្ណារក្ស',
+      subtitle: language === 'en' ? 'Library management, book circulation & digital resources' : 'គ្រប់គ្រងបណ្ណាល័យ ចរាចរណ៍សៀវភៅ និងធនធានសិក្សា',
+      icon: BookOpen
     },
     ai_teacher: {
       title: language === 'en' ? 'AI Teaching Assistant' : '🤖 AI សម្រាប់គ្រូបង្រៀន',
@@ -581,13 +593,13 @@ export const Header: React.FC<HeaderProps> = ({
 
                   {/* Role Switcher Section:
                       - For Student/Parent: Hidden entirely (សិស្សមិនអាចឃើញផ្ទាំងទៅណាក្រៅពីខ្លួនឯងឡើយ)
-                      - For Teacher: Can only switch to Student Portal
-                      - For Director/SuperAdmin/Secretary: Can switch across administrative roles
+                      - For Teacher: Can view teacher options
+                      - For Director/SuperAdmin/Secretary: Can switch across administrative roles & specific teachers by name
                   */}
                   {currentUser?.role !== 'student' && currentUser?.role !== 'parent' && (
                     <>
                       <p className="text-[10px] font-bold uppercase text-slate-400 px-2 py-1">
-                        {language === 'en' ? 'Switch Role' : 'ប្តូរតួនាទី'}
+                        {language === 'en' ? 'Switch Role' : 'ប្តូរតួនាទី / គណនី'}
                       </p>
 
                       {(currentUser?.role === 'director' || currentUser?.role === 'super_admin') && (
@@ -630,32 +642,50 @@ export const Header: React.FC<HeaderProps> = ({
                             <BookOpen className="w-3.5 h-3.5 text-amber-600" />
                             <span>{language === 'en' ? 'Librarian' : 'បណ្ណារក្ស (Librarian)'}</span>
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              switchUserRole('teacher');
-                              setShowRoleMenu(false);
-                            }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300"
-                          >
-                            <UserIcon className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>{language === 'en' ? 'Teacher' : 'គ្រូបង្រៀន (Teacher)'}</span>
-                          </button>
                         </>
                       )}
 
-                      {/* Teacher & Director can switch to student view */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          switchUserRole('student');
-                          setShowRoleMenu(false);
-                        }}
-                        className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300"
-                      >
-                        <GraduationCap className="w-3.5 h-3.5 text-purple-600" />
-                        <span>{language === 'en' ? 'Student Portal' : 'ផ្ទាំងសិស្ស (Student STU-001)'}</span>
-                      </button>
+                      {/* Direct Switch to Any Teacher by Name */}
+                      {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && teachers.length > 0 && (
+                        <div className="pt-2 mt-1 border-t border-slate-100 dark:border-slate-800">
+                          <p className="text-[10px] font-bold text-slate-400 px-2 py-0.5 mb-1 flex items-center justify-between">
+                            <span>ចូលមើលតាមឈ្មោះគ្រូ</span>
+                            <span className="text-[9px] bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.2 rounded font-bold">{teachers.length} នាក់</span>
+                          </p>
+                          <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1">
+                            {teachers.map(teacher => (
+                              <button
+                                key={teacher.id}
+                                type="button"
+                                onClick={() => {
+                                  switchToTeacherAccount(teacher);
+                                  setShowRoleMenu(false);
+                                }}
+                                className="w-full text-left px-2 py-1.5 rounded-lg text-xs hover:bg-indigo-50 dark:hover:bg-indigo-950/40 flex items-center justify-between group text-slate-700 dark:text-slate-200 transition-colors"
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold text-[10px] flex items-center justify-center shrink-0 overflow-hidden">
+                                    {teacher.avatarUrl ? (
+                                      <img src={teacher.avatarUrl} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                      teacher.nameKhmer.charAt(0)
+                                    )}
+                                  </div>
+                                  <div className="truncate">
+                                    <p className="font-semibold text-[11px] truncate leading-tight">{teacher.nameKhmer}</p>
+                                    <p className="text-[9px] text-slate-400 truncate leading-tight">
+                                      {teacher.assignedGrade ? `ថ្នាក់ទី ${teacher.assignedGrade}${teacher.assignedSection || 'ក'}` : (teacher.role || 'គ្រូបង្រៀន')}
+                                    </p>
+                                  </div>
+                                </div>
+                                <span className="text-[9px] text-indigo-600 dark:text-indigo-400 font-bold opacity-0 group-hover:opacity-100 shrink-0">
+                                  ចូលមើល →
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </>
                   )}
                 </div>

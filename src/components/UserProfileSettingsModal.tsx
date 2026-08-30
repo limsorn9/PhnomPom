@@ -235,7 +235,7 @@ export const UserProfileSettingsModal: React.FC<UserProfileSettingsModalProps> =
                     )}
                   </div>
 
-                  {/* Hidden File Input */}
+                  {/* Hidden File Inputs */}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -243,25 +243,46 @@ export const UserProfileSettingsModal: React.FC<UserProfileSettingsModalProps> =
                     onChange={handlePhotoFileChange}
                     className="hidden"
                   />
+                  <input
+                    id="camera-photo-capture"
+                    type="file"
+                    accept="image/*"
+                    capture="user"
+                    onChange={handlePhotoFileChange}
+                    className="hidden"
+                  />
 
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button
                       type="button"
                       disabled={isUploadingPhoto}
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                      className="px-3.5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                     >
                       {isUploadingPhoto ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>កំពុងផ្ទុកឡើងទៅ Google Drive...</span>
+                          <span>កំពុងផ្ទុកឡើង...</span>
                         </>
                       ) : (
                         <>
                           <CloudUpload className="w-4 h-4" />
-                          <span>បញ្ចូលរូបថតពីកុំព្យូទ័រ/ទូរស័ព្ទ (Google Drive)</span>
+                          <span>ជ្រើសរូបថត (Gallery/Files)</span>
                         </>
                       )}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isUploadingPhoto}
+                      onClick={() => {
+                        const cameraInput = document.getElementById('camera-photo-capture') as HTMLInputElement;
+                        cameraInput?.click();
+                      }}
+                      className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      <Camera className="w-4 h-4" />
+                      <span>ថតរូបដោយផ្ទាល់ (Camera)</span>
                     </button>
                   </div>
 

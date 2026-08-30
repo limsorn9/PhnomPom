@@ -15,6 +15,7 @@ import { GoogleWorkspaceHub } from './components/GoogleWorkspaceHub';
 import { AcademicCalendar } from './components/AcademicCalendar';
 import { AccountsManagement } from './components/AccountsManagement';
 import { StudentPortal } from './components/StudentPortal';
+import { SecretaryDashboard } from './components/SecretaryDashboard';
 import { HomeroomTeacherDashboard } from './components/HomeroomTeacherDashboard';
 import { SchoolAdmin } from './components/SchoolAdmin';
 import { SchoolManagement } from './components/SchoolManagement';
@@ -164,6 +165,8 @@ const MainLayout: React.FC = () => {
           {/* Render based on RBAC & Active Tab */}
           {activeTab === 'super_admin_hub' && canAccessTab('super_admin_hub') && <SuperAdminHub />}
           {activeTab === 'telegram_bot' && canAccessTab('telegram_bot') && <TelegramBotStudio />}
+          {activeTab === 'secretary_dashboard' && canAccessTab('secretary_dashboard') && <SecretaryDashboard />}
+          {activeTab === 'librarian_dashboard' && canAccessTab('librarian_dashboard') && <LibraryManagement />}
           {activeTab === 'dashboard' && canAccessTab('dashboard') && (
             <>
               <div className="hidden lg:block">

@@ -167,6 +167,7 @@ interface SchoolContextType {
   logoutApp: () => void;
   switchUserRole: (role: UserRole) => void;
   impersonateUser: (userId: string) => void;
+  switchToTeacherAccount: (teacher: Teacher) => void;
   accessStudentAccount: (student: Student) => void;
   switchToTeacherWithPassword: (password: string) => { success: boolean; message?: string };
   
@@ -561,9 +562,40 @@ const LOCAL_STORAGE_KEY = 'phnom_pom_primary_school_v2';
 export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
     const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_active_tab`);
+    const savedUserStr = localStorage.getItem(`${LOCAL_STORAGE_KEY}_current_user`);
+    let userRole: UserRole | undefined = undefined;
+    if (savedUserStr) {
+      try {
+        const u = JSON.parse(savedUserStr);
+        userRole = u?.role;
+      } catch {}
+    }
+
     if (saved) {
+      // Validate saved tab matches user permissions
+      if (userRole === 'student' || userRole === 'parent') {
+        return 'student_portal';
+      }
+      if (userRole === 'secretary') {
+        return 'secretary_dashboard';
+      }
+      if (userRole === 'librarian') {
+        return 'library';
+      }
+      if (userRole === 'teacher') {
+        const allowedTeacherTabs: ActiveTab[] = ['homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'scores', 'attendance_health', 'student_portal'];
+        if (allowedTeacherTabs.includes(saved as ActiveTab)) {
+          return saved as ActiveTab;
+        }
+        return 'homeroom_dashboard';
+      }
       return saved as ActiveTab;
     }
+
+    if (userRole === 'student' || userRole === 'parent') return 'student_portal';
+    if (userRole === 'secretary') return 'secretary_dashboard';
+    if (userRole === 'librarian') return 'library';
+    if (userRole === 'teacher') return 'homeroom_dashboard';
     return 'dashboard';
   });
   const [searchQuery, setSearchQuery] = useState('');
@@ -575,6 +607,20 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       localStorage.setItem(`${LOCAL_STORAGE_KEY}_active_tab`, activeTab);
     }
   }, [activeTab]);
+
+  // Default Landing Tab by Role Helper
+  const getDefaultLandingTab = (role?: UserRole): ActiveTab => {
+    if (role === 'student' || role === 'parent') {
+      return 'student_portal';
+    }
+    if (role === 'teacher') {
+      return 'homeroom_dashboard';
+    }
+    if (role === 'librarian') {
+      return 'library';
+    }
+    return 'dashboard';
+  };
 
   // App Users State
   const [appUsers, setAppUsers] = useState<AppUser[]>(() => {
@@ -3764,8 +3810,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return { success: false, message: 'គណនីនេះត្រូវបានផ្អាកបណ្តោះអាសន្ន សូមទាក់ទងនាយកសាលា' };
       }
       setCurrentUser(user);
-      if (user.role === 'student') {
+      if (user.role === 'student' || user.role === 'parent') {
         setActiveTab('student_portal');
+      } else if (user.role === 'teacher') {
+        setActiveTab('homeroom_dashboard');
+      } else if (user.role === 'librarian') {
+        setActiveTab('library');
       } else {
         setActiveTab('dashboard');
       }
@@ -3824,8 +3874,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return { success: false, message: 'គណនីនេះត្រូវបានផ្អាកបណ្តោះអាសន្ន សូមទាក់ទងនាយកសាលា' };
       }
       setCurrentUser(user);
-      if (user.role === 'student') {
+      if (user.role === 'student' || user.role === 'parent') {
         setActiveTab('student_portal');
+      } else if (user.role === 'teacher') {
+        setActiveTab('homeroom_dashboard');
+      } else if (user.role === 'librarian') {
+        setActiveTab('library');
       } else {
         setActiveTab('dashboard');
       }
@@ -3879,8 +3933,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       setCurrentUser(matchedUser);
-      if (matchedUser.role === 'student') {
+      if (matchedUser.role === 'student' || matchedUser.role === 'parent') {
         setActiveTab('student_portal');
+      } else if (matchedUser.role === 'teacher') {
+        setActiveTab('homeroom_dashboard');
+      } else if (matchedUser.role === 'librarian') {
+        setActiveTab('library');
       } else {
         setActiveTab('dashboard');
       }
@@ -3929,6 +3987,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setActiveTab('student_portal');
       } else if (role === 'teacher') {
         setActiveTab('homeroom_dashboard');
+      } else if (role === 'secretary') {
+        setActiveTab('secretary_dashboard');
+      } else if (role === 'librarian') {
+        setActiveTab('library');
       } else {
         setActiveTab('dashboard');
       }
@@ -3944,13 +4006,59 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const target = appUsers.find(u => u.id === userId);
     if (target) {
       setCurrentUser(target);
-      if (target.role === 'student') {
+      if (target.role === 'student' || target.role === 'parent') {
         setActiveTab('student_portal');
+      } else if (target.role === 'teacher') {
+        setActiveTab('homeroom_dashboard');
+      } else if (target.role === 'librarian') {
+        setActiveTab('library');
+      } else if (target.role === 'secretary') {
+        setActiveTab('secretary_dashboard');
       } else {
         setActiveTab('dashboard');
       }
       showToast(`បានចូលប្រើប្រាស់គណនី៖ ${target.nameKhmer} (${getRoleLabel(target.role)}) តាមរយៈសិទ្ធិនាយកសាលា`, 'info');
     }
+  };
+
+  const switchToTeacherAccount = (teacher: Teacher) => {
+    // Look for matching user in appUsers
+    let teacherUser = appUsers.find(
+      u => u.staffCode === teacher.staffCode ||
+           u.id === `u-${teacher.id}` ||
+           (teacher.email && u.email?.toLowerCase() === teacher.email.toLowerCase()) ||
+           (teacher.phone && u.phone?.replace(/\s+/g, '') === teacher.phone.replace(/\s+/g, '')) ||
+           u.nameKhmer === teacher.nameKhmer
+    );
+
+    if (!teacherUser) {
+      const cleanPhone = teacher.phone ? teacher.phone.replace(/\s+/g, '') : '';
+      const fallbackUsername = teacher.nameLatin
+        ? teacher.nameLatin.toLowerCase().replace(/[^a-z0-9]/g, '')
+        : `teacher_${Date.now().toString().slice(-4)}`;
+      teacherUser = {
+        id: `u-${teacher.id}`,
+        username: fallbackUsername,
+        email: teacher.email?.trim() || `${fallbackUsername}@moeys.gov.kh`,
+        phone: teacher.phone || '',
+        password: cleanPhone || '123456',
+        nameKhmer: teacher.nameKhmer,
+        nameLatin: teacher.nameLatin || teacher.nameKhmer,
+        role: 'teacher',
+        status: 'active',
+        staffCode: teacher.staffCode,
+        assignedGrade: teacher.assignedGrade,
+        assignedSection: teacher.assignedSection,
+        avatarUrl: teacher.avatarUrl,
+        createdAt: new Date().toISOString().split('T')[0]
+      };
+      setAppUsers(prev => [teacherUser!, ...prev]);
+    }
+
+    setCurrentUser(teacherUser);
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_current_user`, JSON.stringify(teacherUser));
+    setActiveTab('homeroom_dashboard');
+    showToast(`បានចូលទៅកាន់ផ្ទាំងរបស់គ្រូ «${teacher.nameKhmer}» (${teacher.assignedGrade ? 'ថ្នាក់ទី ' + teacher.assignedGrade + (teacher.assignedSection || 'ក') : 'គ្រូបង្រៀន'}) ដោយជោគជ័យ!`, 'success');
   };
 
   const accessStudentAccount = (student: Student) => {
@@ -3997,8 +4105,16 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setCurrentUser(targetTeacher);
       setPreviousTeacherUser(null);
       localStorage.removeItem(`${LOCAL_STORAGE_KEY}_prev_teacher`);
-      setActiveTab('dashboard');
-      showToast(`បានត្រឡប់មកកាន់គណនីគ្រូ (${targetTeacher.nameKhmer}) វិញដោយជោគជ័យ!`, 'success');
+      if (targetTeacher.role === 'teacher') {
+        setActiveTab('homeroom_dashboard');
+      } else if (targetTeacher.role === 'student' || targetTeacher.role === 'parent') {
+        setActiveTab('student_portal');
+      } else if (targetTeacher.role === 'librarian') {
+        setActiveTab('library');
+      } else {
+        setActiveTab('dashboard');
+      }
+      showToast(`បានត្រឡប់មកកាន់គណនី (${targetTeacher.nameKhmer}) វិញដោយជោគជ័យ!`, 'success');
       return { success: true };
     }
     return { success: false, message: 'លេខសម្ងាត់គ្រូមិនត្រូវគ្នាទេ!' };
@@ -4361,6 +4477,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Auto-login user if requested
     if (userData.autoLogin !== false) {
       setCurrentUser(newUser);
+      setActiveTab('student_portal');
       showToast(`ចុះឈ្មោះជោគជ័យ! បានភ្ជាប់ជាមួយកូនសិស្ស «${matchedChild.nameKhmer}» (${matchedChild.code} ថ្នាក់ទី ${matchedChild.grade}${matchedChild.section})`, 'success');
     } else {
       showToast(`បានបង្កើតគណនីអាណាព្យាបាលជូន ${newUser.nameKhmer} (កូនសិស្ស៖ ${matchedChild.nameKhmer}) ដោយជោគជ័យ!`, 'success');
@@ -5162,12 +5279,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (role === 'super_admin' || role === 'director') return true;
 
     if (role === 'secretary') {
-      return ['dashboard', 'homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'library', 'learning_resources', 'telegram_bot'].includes(tab);
+      return ['secretary_dashboard', 'dashboard', 'homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'library', 'learning_resources', 'telegram_bot'].includes(tab);
     }
 
     if (role === 'librarian') {
-      // បណ្ណារក្សមានសិទ្ធិបើកតែដាស់បតបណ្ណារក្សដែលមានតែការងារបណ្ណាល័យ និងគ្រប់គ្រងសៀវភៅ
-      return ['library'].includes(tab);
+      // បណ្ណារក្សមានសិទ្ធិបើកតែដាស់បតបណ្ណារក្សដែលមានតែការងារបណ្ណាល័យ និងគ្រប់គ្រងសៀវភៅ និងធនធានសិក្សា
+      return ['library', 'librarian_dashboard', 'learning_resources'].includes(tab);
     }
 
     if (role === 'teacher') {
@@ -5453,7 +5570,49 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!existing) return;
 
     if (currentUser?.role === 'teacher') {
-      showToast('⚠️ សិទ្ធិលុបទិន្នន័យសិស្សជាផ្លូវការចេញពីប្រព័ន្ធ គឺសម្រាប់តែលោកនាយកសាលា ឬលេខាធិការប៉ុណ្ណោះ!', 'error');
+      showToast('⚠️ សិទ្ធិលុបទិន្នន័យសិស្សជាផ្លូវការចេញពីប្រព័ន្ធ គឺសម្រាប់តែលោកនាយកសាលា ឬលេខាធិការ (ដោយមានការអនុញ្ញាត) ប៉ុណ្ណោះ!', 'error');
+      return;
+    }
+
+    if (currentUser?.role === 'secretary') {
+      openDirectorPinModal({
+        title: `អនុញ្ញាតការលុបទិន្នន័យសិស្ស «${existing.nameKhmer}» (ទាមទារសិទ្ធិនាយកសាលា)`,
+        callback: () => {
+          setStudents(prev => prev.filter(s => s.id !== id));
+          const deletedRecord: DeletedAppUser = {
+            id: `del-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            entityType: 'student',
+            studentProfileBackup: existing,
+            deletedAt: new Date().toISOString(),
+            deletedBy: {
+              id: currentUser?.id,
+              nameKhmer: currentUser?.nameKhmer || 'មិនស្គាល់',
+              email: currentUser?.email || '',
+              role: currentUser?.role || 'unknown'
+            },
+            reason: 'លុបចេញពីបញ្ជីសិស្ស (អនុម័តដោយនាយក)',
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          };
+          setDeletedUsers(prev => [deletedRecord, ...prev]);
+          showToast('បានលុបទិន្នន័យសិស្ស និងរក្សាទុកក្នុងធុងសំរាម (ដោយមានការអនុញ្ញាតពីនាយក)!', 'info');
+
+          if (existing) {
+            addActivityLog({
+              domain: 'student',
+              actionType: 'delete',
+              title: `បានលុបទិន្នន័យសិស្ស៖ ${existing.nameKhmer}`,
+              description: `អត្តលេខ ${existing.code} • ថ្នាក់ទី ${existing.grade}${existing.section}`,
+              entityId: id,
+              entityCode: existing.code,
+              entityName: existing.nameKhmer,
+              actorName: currentUser?.nameKhmer || 'លេខាធិការ',
+              actorRole: 'លេខាធិការ (អនុញ្ញាតដោយនាយក)',
+              targetTab: 'students',
+              tags: [existing.code, 'អនុម័តដោយនាយក']
+            });
+          }
+        }
+      });
       return;
     }
 
@@ -5620,6 +5779,14 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const fallbackEmail = newTeacher.email?.trim() || `${fallbackUsername}@moeys.gov.kh`;
     const defaultPassword = cleanPhone || '123456';
 
+    const mapTeacherRoleToUserRole = (tRole?: string): UserRole => {
+      if (!tRole) return 'teacher';
+      if (tRole.includes('នាយក')) return 'director';
+      if (tRole.includes('លេខាធិការ') || tRole.includes('រដ្ឋបាល') || tRole.includes('ទីចាត់ការ')) return 'secretary';
+      if (tRole.includes('បណ្ណារក្ស')) return 'librarian';
+      return 'teacher';
+    };
+
     const teacherUser: AppUser = {
       id: `u-${newTeacher.id}`,
       username: fallbackUsername,
@@ -5628,7 +5795,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       password: defaultPassword,
       nameKhmer: newTeacher.nameKhmer,
       nameLatin: newTeacher.nameLatin || newTeacher.nameKhmer,
-      role: newTeacher.role === 'នាយកសាលា' || newTeacher.role === 'នាយករង' ? 'director' : 'teacher',
+      role: mapTeacherRoleToUserRole(newTeacher.role),
       status: 'active',
       staffCode: newTeacher.staffCode,
       assignedGrade: newTeacher.assignedGrade,
@@ -5671,12 +5838,21 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setAppUsers(prev =>
       prev.map(u => {
         if (u.id === `u-${id}` || (existing && (u.email === existing.email || (existing.phone && u.phone === existing.phone)))) {
+          const mapTeacherRoleToUserRole = (tRole?: string): UserRole => {
+            if (!tRole) return 'teacher';
+            if (tRole.includes('នាយក')) return 'director';
+            if (tRole.includes('លេខាធិការ') || tRole.includes('រដ្ឋបាល') || tRole.includes('ទីចាត់ការ')) return 'secretary';
+            if (tRole.includes('បណ្ណារក្ស')) return 'librarian';
+            return 'teacher';
+          };
+
           return {
             ...u,
             nameKhmer: updated.nameKhmer || u.nameKhmer,
             nameLatin: updated.nameLatin || u.nameLatin,
             email: updated.email || u.email,
             phone: updated.phone || u.phone,
+            role: updated.role ? mapTeacherRoleToUserRole(updated.role) : u.role,
             assignedGrade: updated.assignedGrade !== undefined ? updated.assignedGrade : u.assignedGrade,
             assignedSection: updated.assignedSection !== undefined ? updated.assignedSection : u.assignedSection,
             avatarUrl: updated.avatarUrl || u.avatarUrl
@@ -6345,6 +6521,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         logoutApp,
         switchUserRole,
         impersonateUser,
+        switchToTeacherAccount,
         accessStudentAccount,
         switchToTeacherWithPassword,
         directorPin,

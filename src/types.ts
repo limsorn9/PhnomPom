@@ -722,6 +722,8 @@ export type ActiveTab =
   | 'super_admin_hub'
   | 'telegram_bot'
   | 'dashboard'
+  | 'secretary_dashboard'
+  | 'librarian_dashboard'
   | 'homeroom_dashboard'
   | 'teacher_agenda'
   | 'equipment_loans'
