@@ -415,7 +415,7 @@ export const OfficialDocumentCenter: React.FC = () => {
       setSelectedGrade(teacherGrade);
       setSelectedSection(teacherSection);
       if (accessibleStudents.length > 0 && !accessibleStudents.some(s => s.id === selectedStudentId)) {
-        setSelectedStudentId(accessibleStudents[0].id);
+        setSelectedStudentId(accessibleStudents[0]?.id || "");
       }
     }
   }, [isTeacher, teacherGrade, teacherSection, accessibleStudents]);

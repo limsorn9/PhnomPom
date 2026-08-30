@@ -266,6 +266,7 @@ export function detectLogAnomalies(
   allLogs: ActivityLogItem[] = []
 ): ActivityAnomaly[] {
   const anomalies: ActivityAnomaly[] = [];
+  if (!log) return anomalies;
   const logDate = new Date(log.timestamp);
   const logHour = logDate.getHours();
   const logMinute = logDate.getMinutes();
@@ -287,7 +288,7 @@ export function detectLogAnomalies(
   // 2. Deletion action or multiple deletions
   if (log.actionType === 'delete') {
     const recentDeletions = allLogs.filter(other => {
-      if (other.actionType !== 'delete') return false;
+      if (!other || other.actionType !== 'delete') return false;
       const otherTime = new Date(other.timestamp).getTime();
       const thisTime = logDate.getTime();
       return Math.abs(thisTime - otherTime) <= 15 * 60 * 1000; // within 15 minutes

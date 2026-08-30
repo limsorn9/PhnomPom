@@ -94,8 +94,9 @@ let lastSyncedDataHash = '';
 const deepSanitize = (obj: any): any => {
   if (obj === undefined) return null;
   if (obj === null || typeof obj !== 'object') return obj;
+  if (obj instanceof Date) return obj;
   if (Array.isArray(obj)) {
-    return obj.map(item => deepSanitize(item)).filter(item => item !== undefined);
+    return obj.map(item => deepSanitize(item)).filter(item => item !== null && item !== undefined);
   }
   const clean: Record<string, any> = {};
   for (const [key, value] of Object.entries(obj)) {
