@@ -82,7 +82,8 @@ export const Dashboard: React.FC = () => {
     language,
     academicYears,
     selectedAcademicYear,
-    setSelectedAcademicYear
+    setSelectedAcademicYear,
+    openDirectorPinModal
   } = useSchool();
 
   // Determine initial dashboard mode based on current user role
@@ -93,6 +94,19 @@ export const Dashboard: React.FC = () => {
   const [dashboardMode, setDashboardMode] = useState<'director' | 'teacher' | 'student'>(initialMode);
   const [isQuickAttOpen, setIsQuickAttOpen] = useState(false);
   const [isNewClassOpen, setIsNewClassOpen] = useState(false);
+
+  const handleRequestDashboardMode = (targetMode: 'director' | 'teacher' | 'student') => {
+    if (currentUser?.role === 'student' && targetMode !== 'student') {
+      return;
+    }
+    if (currentUser?.role === 'teacher' && targetMode === 'director') {
+      return;
+    }
+    if (targetMode === 'director' && currentUser?.role !== 'director' && currentUser?.role !== 'super_admin' && currentUser?.role !== 'secretary') {
+      return;
+    }
+    setDashboardMode(targetMode);
+  };
 
   // Teacher-specific data filtering
   const teacherGrade = currentUser?.assignedGrade;
@@ -186,47 +200,51 @@ export const Dashboard: React.FC = () => {
       {/* Top Role-based Dashboard Mode Switcher Tabs */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-2 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 w-full sm:w-auto">
-          {/* Director Tab */}
-          <button
-            onClick={() => setDashboardMode('director')}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-              dashboardMode === 'director'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Building2 className="w-4 h-4" />
-            <span>{language === 'en' ? 'Director Dashboard' : 'ដាស់បតនាយកសាលា'}</span>
-            <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
-              dashboardMode === 'director' ? 'bg-blue-500/40 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
-            }`}>
-              {totalStudents} សិស្ស
-            </span>
-          </button>
-
-          {/* Teacher Tab */}
-          <button
-            onClick={() => setDashboardMode('teacher')}
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-              dashboardMode === 'teacher'
-                ? 'bg-sky-600 text-white shadow-md shadow-sky-500/20'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Award className="w-4 h-4" />
-            <span>{language === 'en' ? 'Teacher Hub' : 'ដាស់បតលោកគ្រូ-អ្នកគ្រូ'}</span>
-            {currentUser?.assignedGrade && (
-              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-semibold ${
-                dashboardMode === 'teacher' ? 'bg-sky-500/40 text-white' : 'bg-sky-100 text-sky-700'
+          {/* Director Tab - Only for director, super_admin, secretary */}
+          {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && (
+            <button
+              onClick={() => handleRequestDashboardMode('director')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                dashboardMode === 'director'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              <span>{language === 'en' ? 'Director Dashboard' : 'ដាស់បតនាយកសាលា'}</span>
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
+                dashboardMode === 'director' ? 'bg-blue-500/40 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
               }`}>
-                ថ្នាក់ទី {currentUser.assignedGrade}{currentUser.assignedSection ? `«${currentUser.assignedSection}»` : ''}
+                {totalStudents} សិស្ស
               </span>
-            )}
-          </button>
+            </button>
+          )}
+
+          {/* Teacher Tab - for teacher, director, super_admin, secretary */}
+          {currentUser?.role !== 'student' && currentUser?.role !== 'parent' && (
+            <button
+              onClick={() => handleRequestDashboardMode('teacher')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                dashboardMode === 'teacher'
+                  ? 'bg-sky-600 text-white shadow-md shadow-sky-500/20'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Award className="w-4 h-4" />
+              <span>{language === 'en' ? 'Teacher Hub' : 'ដាស់បតលោកគ្រូ-អ្នកគ្រូ'}</span>
+              {currentUser?.assignedGrade && (
+                <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-semibold ${
+                  dashboardMode === 'teacher' ? 'bg-sky-500/40 text-white' : 'bg-sky-100 text-sky-700'
+                }`}>
+                  ថ្នាក់ទី {currentUser.assignedGrade}{currentUser.assignedSection ? `«${currentUser.assignedSection}»` : ''}
+                </span>
+              )}
+            </button>
+          )}
 
           {/* Student/Guardian Tab */}
           <button
-            onClick={() => setDashboardMode('student')}
+            onClick={() => handleRequestDashboardMode('student')}
             className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
               dashboardMode === 'student'
                 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
@@ -390,7 +408,7 @@ export const Dashboard: React.FC = () => {
           <DirectorAcademicYearControl />
 
           {/* Comprehensive Responsive Quick Actions Hub */}
-          <QuickActionsHub currentMode={dashboardMode} onModeChange={setDashboardMode} />
+          <QuickActionsHub currentMode={dashboardMode} onModeChange={handleRequestDashboardMode} />
 
           {/* Metric Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -701,7 +719,7 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Teacher Quick Actions Hub */}
-          <QuickActionsHub currentMode={dashboardMode} onModeChange={setDashboardMode} />
+          <QuickActionsHub currentMode={dashboardMode} onModeChange={handleRequestDashboardMode} />
 
           {/* Teacher Class Stat Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -819,7 +837,7 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Student & Guardian Quick Actions Hub */}
-          <QuickActionsHub currentMode={dashboardMode} onModeChange={setDashboardMode} />
+          <QuickActionsHub currentMode={dashboardMode} onModeChange={handleRequestDashboardMode} />
 
           {/* Student Highlights & Notices */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

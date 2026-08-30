@@ -75,7 +75,8 @@ export const initialSchoolProfile: SchoolProfile = {
   email: 'phnompom.primary@moeys.gov.kh',
   logoUrl: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=150&auto=format&fit=crop&q=80',
   mapUrl: 'https://maps.app.goo.gl/ackTYSYsd7t54vGP6',
-  facebookPage: 'https://www.facebook.com/share/1EZeRXioNB/'
+  facebookPage: 'https://www.facebook.com/share/1EZeRXioNB/',
+  directorPin: '1212'
 };
 
 export const initialTeachers: Teacher[] = [

@@ -44,7 +44,8 @@ import {
   Laptop,
   FolderKanban,
   Users2,
-  Bot
+  Bot,
+  Lock
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { ThemeToggleSwitch } from './common/ThemeToggleSwitch';
@@ -89,7 +90,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     teacherDailyTasks,
     teacherMeetings,
     teachingResources,
-    language
+    language,
+    openDirectorPinModal
   } = useSchool();
 
   // State to track favorite/pinned MoEYS learning resources
@@ -420,10 +422,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   // Filter navigation items strictly based on currentUser's RBAC permissions
-  const filteredCategories = navCategories.map(cat => ({
-    ...cat,
-    items: cat.items.filter(item => canAccessTab(item.id))
-  })).filter(cat => cat.items.length > 0);
+  const filteredCategories = navCategories
+    .filter(cat => {
+      if (currentUser?.role === 'student' || currentUser?.role === 'parent') {
+        return cat.id === 'student';
+      }
+      if (currentUser?.role === 'teacher') {
+        return cat.id === 'teacher' || cat.id === 'student';
+      }
+      if (currentUser?.role === 'librarian') {
+        return cat.id === 'student';
+      }
+      return true; // director, super_admin, secretary
+    })
+    .map(cat => ({
+      ...cat,
+      items: cat.items.filter(item => canAccessTab(item.id))
+    }))
+    .filter(cat => cat.items.length > 0);
 
   // Auto-expand category containing activeTab
   useEffect(() => {
@@ -713,49 +729,51 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Bottom Footer Section: Google Workspace Auth & Settings */}
       <div className="p-3 border-t border-slate-800 bg-slate-950/80 space-y-2">
-        {/* Google Workspace Quick Status */}
-        {!isCollapsed ? (
-          <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${googleUser ? 'bg-emerald-600/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
-                <HardDrive className="w-4 h-4" />
+        {/* Google Workspace Quick Status (Only for director, super_admin, secretary) */}
+        {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && (
+          !isCollapsed ? (
+            <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${googleUser ? 'bg-emerald-600/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
+                  <HardDrive className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold text-slate-200 truncate">
+                    {googleUser ? (googleUser.displayName || 'Google Account') : 'Google Workspace'}
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">
+                    {googleUser ? (googleUser.email || (language === 'en' ? 'Connected' : 'ភ្ជាប់រួចរាល់')) : 'Drive & Sheets Sync'}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-semibold text-slate-200 truncate">
-                  {googleUser ? (googleUser.displayName || 'Google Account') : 'Google Workspace'}
-                </p>
-                <p className="text-[10px] text-slate-400 truncate">
-                  {googleUser ? (googleUser.email || (language === 'en' ? 'Connected' : 'ភ្ជាប់រួចរាល់')) : 'Drive & Sheets Sync'}
-                </p>
-              </div>
+              <button
+                onClick={onGoogleAuthClick}
+                disabled={isAuthLoading}
+                className={`p-1.5 rounded-lg text-xs transition-colors ${
+                  googleUser
+                    ? 'text-rose-400 hover:bg-rose-500/20'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white font-medium px-2 py-1 text-[11px]'
+                }`}
+                title={googleUser ? (language === 'en' ? 'Disconnect Google Account' : 'ផ្ដាច់គណនី Google') : (language === 'en' ? 'Connect Google Account' : 'ភ្ជាប់ Google Account')}
+              >
+                {isAuthLoading ? (
+                  '...'
+                ) : googleUser ? (
+                  <LogOut className="w-3.5 h-3.5" />
+                ) : (
+                  <span className="flex items-center gap-1"><LogIn className="w-3 h-3" /> {language === 'en' ? 'Connect' : 'ភ្ជាប់'}</span>
+                )}
+              </button>
             </div>
+          ) : (
             <button
               onClick={onGoogleAuthClick}
-              disabled={isAuthLoading}
-              className={`p-1.5 rounded-lg text-xs transition-colors ${
-                googleUser
-                  ? 'text-rose-400 hover:bg-rose-500/20'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white font-medium px-2 py-1 text-[11px]'
-              }`}
-              title={googleUser ? (language === 'en' ? 'Disconnect Google Account' : 'ផ្ដាច់គណនី Google') : (language === 'en' ? 'Connect Google Account' : 'ភ្ជាប់ Google Account')}
+              className={`w-full py-2 flex items-center justify-center rounded-xl transition-colors ${googleUser ? 'text-emerald-400 hover:bg-slate-800' : 'text-slate-400 hover:bg-slate-800'}`}
+              title={googleUser ? `Google: ${googleUser.email}` : (language === 'en' ? 'Connect Google' : 'ភ្ជាប់ Google')}
             >
-              {isAuthLoading ? (
-                '...'
-              ) : googleUser ? (
-                <LogOut className="w-3.5 h-3.5" />
-              ) : (
-                <span className="flex items-center gap-1"><LogIn className="w-3 h-3" /> {language === 'en' ? 'Connect' : 'ភ្ជាប់'}</span>
-              )}
+              <HardDrive className="w-4 h-4" />
             </button>
-          </div>
-        ) : (
-          <button
-            onClick={onGoogleAuthClick}
-            className={`w-full py-2 flex items-center justify-center rounded-xl transition-colors ${googleUser ? 'text-emerald-400 hover:bg-slate-800' : 'text-slate-400 hover:bg-slate-800'}`}
-            title={googleUser ? `Google: ${googleUser.email}` : (language === 'en' ? 'Connect Google' : 'ភ្ជាប់ Google')}
-          >
-            <HardDrive className="w-4 h-4" />
-          </button>
+          )
         )}
 
         {/* Dark Mode Theme Toggle in Sidebar */}
@@ -788,14 +806,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
 
-          <button
-            onClick={onOpenSettings}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
-            title={language === 'en' ? 'School Settings' : 'ការកំណត់ប្រព័ន្ធ'}
-            aria-label={language === 'en' ? 'School Settings' : 'ការកំណត់ប្រព័ន្ធ'}
-          >
-            <Settings className="w-4 h-4" />
-          </button>
+          {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && (
+            <button
+              onClick={onOpenSettings}
+              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
+              title={language === 'en' ? 'School Settings' : 'ការកំណត់ប្រព័ន្ធ'}
+              aria-label={language === 'en' ? 'School Settings' : 'ការកំណត់ប្រព័ន្ធ'}
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
     </div>

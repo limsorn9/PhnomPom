@@ -36,6 +36,7 @@ import { QuickSearchSpotlightModal } from './components/QuickSearchSpotlightModa
 import { AuthScreen } from './components/AuthScreen';
 import { StandaloneHtmlExportModal } from './components/StandaloneHtmlExportModal';
 import { SchoolProfileModal } from './components/SchoolProfileModal';
+import { DirectorPinModal } from './components/DirectorPinModal';
 import { SuperAdminHub } from './components/SuperAdminHub';
 import { TelegramBotStudio } from './components/TelegramBotStudio';
 import { initAuth, googleSignIn, logout } from './services/googleAuth';
@@ -284,6 +285,9 @@ const MainLayout: React.FC = () => {
         onKeepLocal={() => resolveVersionConflict('keep_local')}
         onKeepCloud={() => resolveVersionConflict('keep_cloud', versionConflictState.cloudVersion?.snapshotData)}
       />
+
+      {/* Global Director Secret PIN Modal */}
+      <DirectorPinModal />
     </div>
   );
 };

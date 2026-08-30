@@ -493,6 +493,7 @@ export interface SchoolProfile {
   gradingScaleType?: GradingScaleType; // 'khmer_term' (ល្អណាស់, ល្អ, ល្អបង្គួរ...) vs 'letter' (A, B, C...)
   sessionRememberDays?: string; // '1_day' | '7_days' | '14_days' | '30_days' | '90_days' | 'forever' | 'session_only'
   lastDatabaseBackup?: string; // ISO Timestamp of last manual database snapshot
+  directorPin?: string; // លេខកូដសម្ងាត់នាយកសាលា (Default: 1212)
 }
 
 export type CalendarEventType = 'exam' | 'holiday' | 'vacation' | 'meeting' | 'ceremony' | 'academic';

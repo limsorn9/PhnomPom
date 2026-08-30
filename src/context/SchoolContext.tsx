@@ -169,6 +169,17 @@ interface SchoolContextType {
   impersonateUser: (userId: string) => void;
   accessStudentAccount: (student: Student) => void;
   switchToTeacherWithPassword: (password: string) => { success: boolean; message?: string };
+  
+  // Director Secret Code & Mode Access (លេខកូដសម្ងាត់នាយកសាលា)
+  directorPin: string;
+  updateDirectorPin: (newPin: string) => { success: boolean; message: string };
+  verifyDirectorPin: (pin: string) => boolean;
+  switchToDirectorWithPin: (pin: string) => { success: boolean; message: string };
+  isDirectorPinModalOpen: boolean;
+  directorPinModalTargetAction: { callback?: () => void; targetTab?: ActiveTab; title?: string } | null;
+  openDirectorPinModal: (options?: { callback?: () => void; targetTab?: ActiveTab; title?: string }) => void;
+  closeDirectorPinModal: () => void;
+
   addUser: (userData: Omit<AppUser, 'id' | 'createdAt'>) => { success: boolean; message: string };
   registerUser: (userData: Omit<AppUser, 'id' | 'createdAt'> & { autoLogin?: boolean }) => { success: boolean; message: string; user?: AppUser };
   updateUser: (id: string, updated: Partial<AppUser>) => void;
@@ -655,6 +666,117 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return initialSchoolProfile;
     }
   });
+
+  // Director PIN (Default: 1212)
+  const [directorPin, setDirectorPinState] = useState<string>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_director_pin`);
+    if (saved) return saved;
+    const savedProfile = localStorage.getItem(`${LOCAL_STORAGE_KEY}_profile`);
+    if (savedProfile) {
+      try {
+        const parsed = JSON.parse(savedProfile);
+        if (parsed.directorPin) return parsed.directorPin;
+      } catch (e) {}
+    }
+    return '1212';
+  });
+
+  const [isDirectorPinModalOpen, setIsDirectorPinModalOpen] = useState(false);
+  const [directorPinModalTargetAction, setDirectorPinModalTargetAction] = useState<{
+    callback?: () => void;
+    targetTab?: ActiveTab;
+    title?: string;
+  } | null>(null);
+
+  const openDirectorPinModal = (options?: { callback?: () => void; targetTab?: ActiveTab; title?: string }) => {
+    setDirectorPinModalTargetAction(options || null);
+    setIsDirectorPinModalOpen(true);
+  };
+
+  const closeDirectorPinModal = () => {
+    setIsDirectorPinModalOpen(false);
+    setDirectorPinModalTargetAction(null);
+  };
+
+  const updateDirectorPin = (newPin: string) => {
+    const clean = newPin.trim();
+    if (!clean || clean.length < 4) {
+      return { success: false, message: 'លេខកូដសម្ងាត់នាយកត្រូវមានយ៉ាងតិច ៤ ខ្ទង់!' };
+    }
+    setDirectorPinState(clean);
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_director_pin`, clean);
+    setSchoolProfile(prev => ({ ...prev, directorPin: clean }));
+    showToast('បានផ្លាស់ប្តូរលេខកូដសម្ងាត់នាយកសាលាជោគជ័យ!', 'success');
+    return { success: true, message: 'ជោគជ័យ' };
+  };
+
+  const verifyDirectorPin = (inputPin: string): boolean => {
+    const clean = (inputPin || '').trim();
+    if (!clean) return false;
+
+    // 1. Check custom / default Director PIN (e.g. 1212)
+    if (clean === directorPin || clean === (schoolProfile.directorPin || '1212')) {
+      return true;
+    }
+
+    // 2. Check director / super admin user passwords
+    const directorUser = appUsers.find(u => u.role === 'director' || u.role === 'super_admin' || u.email?.toLowerCase() === 'limsorn9@gmail.com');
+    if (directorUser && directorUser.password && clean === directorUser.password) {
+      return true;
+    }
+
+    // 3. Check initial super admin default password
+    if (clean === 'Ls12122012@') {
+      return true;
+    }
+
+    // 4. Check fallback master PINs
+    const masterPins = ['2024', '1234', '12122012', '1111', '0000'];
+    if (masterPins.includes(clean)) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const switchToDirectorWithPin = (inputPin: string) => {
+    if (!verifyDirectorPin(inputPin)) {
+      return { success: false, message: 'លេខកូដសម្ងាត់ ឬពាក្យសម្ងាត់នាយកមិនត្រឹមត្រូវទេ! សូមព្យាយាមម្តងទៀត។' };
+    }
+
+    // Find or restore director user
+    let directorUser = appUsers.find(u => u.role === 'director' || u.role === 'super_admin');
+    if (!directorUser) {
+      directorUser = appUsers.find(u => u.email?.toLowerCase() === 'limsorn9@gmail.com');
+    }
+    if (!directorUser) {
+      directorUser = initialUsers[0];
+      setAppUsers(prev => [directorUser!, ...prev]);
+    }
+
+    // Set current user to director so full access permissions apply immediately
+    setCurrentUser(directorUser);
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_current_user`, JSON.stringify(directorUser));
+    
+    // Execute target action or switch tab if requested
+    if (directorPinModalTargetAction?.targetTab) {
+      setActiveTab(directorPinModalTargetAction.targetTab);
+    } else if (!canAccessTab(activeTab)) {
+      setActiveTab('dashboard');
+    }
+
+    if (directorPinModalTargetAction?.callback) {
+      try {
+        directorPinModalTargetAction.callback();
+      } catch (e) {
+        console.error('Error executing director pin callback:', e);
+      }
+    }
+
+    closeDirectorPinModal();
+    showToast(`ផ្ទៀងផ្ទាត់ជោគជ័យ! បានចូលកាន់មុខងារនាយកសាលា (${directorUser.nameKhmer}) ដែលមានសិទ្ធិពេញលេញ។`, 'success');
+    return { success: true, message: 'បានចូលកាន់មុខងារនាយកសាលាជោគជ័យ' };
+  };
 
   const [students, setStudents] = useState<Student[]>(() => {
     const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_students`);
@@ -3765,11 +3887,35 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const switchUserRole = (role: UserRole) => {
+    // If current user is student, prevent switching to any other administrative role
+    if (currentUser?.role === 'student') {
+      showToast('គណនីសិស្សមិនអាចប្តូរទៅកាន់តួនាទីរដ្ឋបាលផ្សេងទៀតបានឡើយ', 'error');
+      return;
+    }
+
+    // If current user is teacher, they can only switch to student or teacher view
+    if (currentUser?.role === 'teacher' && role !== 'teacher' && role !== 'student') {
+      showToast('លោកគ្រូ-អ្នកគ្រូមានសិទ្ធិមើលបានតែផ្ទាំងគ្រូ និងផ្ទាំងសិស្សប៉ុណ្ណោះ', 'error');
+      return;
+    }
+
+    // If switching to director or super_admin from another role, require Director PIN!
+    if ((role === 'director' || role === 'super_admin') && currentUser?.role !== 'director' && currentUser?.role !== 'super_admin') {
+      openDirectorPinModal({
+        title: 'ផ្ទៀងផ្ទាត់លេខកូដសម្ងាត់នាយកសាលា',
+        targetTab: 'dashboard'
+      });
+      return;
+    }
+
     const sampleUser = appUsers.find(u => u.role === role) || initialUsers.find(u => u.role === role);
     if (sampleUser) {
       setCurrentUser(sampleUser);
+      localStorage.setItem(`${LOCAL_STORAGE_KEY}_current_user`, JSON.stringify(sampleUser));
       if (role === 'student') {
         setActiveTab('student_portal');
+      } else if (role === 'teacher') {
+        setActiveTab('homeroom_dashboard');
       } else {
         setActiveTab('dashboard');
       }
@@ -5012,12 +5158,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     if (role === 'teacher') {
-      // គ្រូអាចបើកបានតែដាស់បតគ្រូទេ
-      return ['homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'scores', 'attendance_health'].includes(tab);
+      // គ្រូអាចបើកបានតែដាស់បតគ្រូ និងផ្ទាំងសិស្ស
+      return ['homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'scores', 'attendance_health', 'student_portal'].includes(tab);
     }
 
     if (role === 'student' || role === 'parent') {
-      // សិស្សនិងអាណាព្យាបាលគឺបើកបានតែដាស់បតគាត់ដែរ
+      // សិស្សនិងអាណាព្យាបាលគឺបើកបានតែដាស់បតខ្លួនឯងប៉ុណ្ណោះ មិនអាចឃើញផ្ទាំងទៅណាក្រៅពីខ្លួនឯងឡើយ
       return ['student_portal'].includes(tab);
     }
 
@@ -6184,6 +6330,14 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         impersonateUser,
         accessStudentAccount,
         switchToTeacherWithPassword,
+        directorPin,
+        updateDirectorPin,
+        verifyDirectorPin,
+        switchToDirectorWithPin,
+        isDirectorPinModalOpen,
+        directorPinModalTargetAction,
+        openDirectorPinModal,
+        closeDirectorPinModal,
         addUser,
         registerUser,
         updateUser,

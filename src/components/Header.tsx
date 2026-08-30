@@ -50,7 +50,8 @@ import {
   FolderKanban,
   ShieldCheck,
   Bot,
-  UserPlus
+  UserPlus,
+  Lock
 } from 'lucide-react';
 import { NotificationsModal } from './NotificationsModal';
 import { OfflineSyncStatusBadge } from './OfflineSyncStatusBadge';
@@ -90,6 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
     currentUser,
     logoutApp,
     switchUserRole,
+    openDirectorPinModal,
     unreadNotifCount,
     language,
     setLanguage,
@@ -558,76 +560,100 @@ export const Header: React.FC<HeaderProps> = ({
                     <span>{language === 'en' ? 'My Account Settings' : '⚙️ ការកំណត់គណនី និងប្រវត្តិរូប'}</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowRoleMenu(false);
-                      setActiveTab('accounts');
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold mb-1 border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-950/20"
-                  >
-                    <UserPlus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span>{language === 'en' ? 'Create & Manage Accounts' : '👥 គ្រប់គ្រង & បង្កើតគណនីថ្មី'}</span>
-                  </button>
+                  {/* Create & Manage Accounts: ONLY for director, super_admin, secretary */}
+                  {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowRoleMenu(false);
+                        setActiveTab('accounts');
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold mb-1 border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-950/20"
+                    >
+                      <UserPlus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span>{language === 'en' ? 'Create & Manage Accounts' : '👥 គ្រប់គ្រង & បង្កើតគណនីថ្មី'}</span>
+                    </button>
+                  )}
 
-                  <p className="text-[10px] font-bold uppercase text-slate-400 px-2 py-1">
-                    {language === 'en' ? 'Switch Role' : 'ប្តូរតួនាទីរដ្ឋបាល'}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUserRole('director');
-                      setShowRoleMenu(false);
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300"
-                  >
-                    <Building2 className="w-3.5 h-3.5 text-blue-600" />
-                    <span>{language === 'en' ? 'School Director' : 'នាយកសាលា (Director)'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUserRole('secretary');
-                      setShowRoleMenu(false);
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300"
-                  >
-                    <Shield className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>{language === 'en' ? 'Secretary' : 'លេខាធិការ (Secretary)'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUserRole('librarian');
-                      setShowRoleMenu(false);
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300"
-                  >
-                    <BookOpen className="w-3.5 h-3.5 text-amber-600" />
-                    <span>{language === 'en' ? 'Librarian' : 'បណ្ណារក្ស (Librarian)'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUserRole('teacher');
-                      setShowRoleMenu(false);
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300"
-                  >
-                    <UserIcon className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>{language === 'en' ? 'Teacher' : 'គ្រូបង្រៀន (Teacher)'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      switchUserRole('student');
-                      setShowRoleMenu(false);
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300"
-                  >
-                    <GraduationCap className="w-3.5 h-3.5 text-purple-600" />
-                    <span>{language === 'en' ? 'Student (STU-001)' : 'សិស្ស (Student STU-001)'}</span>
-                  </button>
+                  {/* Role Switcher Section:
+                      - For Student/Parent: Hidden entirely (សិស្សមិនអាចឃើញផ្ទាំងទៅណាក្រៅពីខ្លួនឯងឡើយ)
+                      - For Teacher: Can only switch to Student Portal
+                      - For Director/SuperAdmin/Secretary: Can switch across administrative roles
+                  */}
+                  {currentUser?.role !== 'student' && currentUser?.role !== 'parent' && (
+                    <>
+                      <p className="text-[10px] font-bold uppercase text-slate-400 px-2 py-1">
+                        {language === 'en' ? 'Switch Role' : 'ប្តូរតួនាទី'}
+                      </p>
+
+                      {(currentUser?.role === 'director' || currentUser?.role === 'super_admin') && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            switchUserRole('director');
+                            setShowRoleMenu(false);
+                          }}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-amber-50 dark:hover:bg-amber-950/30 flex items-center justify-between text-slate-700 dark:text-slate-300 group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-3.5 h-3.5 text-amber-600" />
+                            <span className="font-semibold">{language === 'en' ? 'School Director' : 'នាយកសាលា (Director)'}</span>
+                          </div>
+                        </button>
+                      )}
+
+                      {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              switchUserRole('secretary');
+                              setShowRoleMenu(false);
+                            }}
+                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                          >
+                            <Shield className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>{language === 'en' ? 'Secretary' : 'លេខាធិការ (Secretary)'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              switchUserRole('librarian');
+                              setShowRoleMenu(false);
+                            }}
+                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                          >
+                            <BookOpen className="w-3.5 h-3.5 text-amber-600" />
+                            <span>{language === 'en' ? 'Librarian' : 'បណ្ណារក្ស (Librarian)'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              switchUserRole('teacher');
+                              setShowRoleMenu(false);
+                            }}
+                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                          >
+                            <UserIcon className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>{language === 'en' ? 'Teacher' : 'គ្រូបង្រៀន (Teacher)'}</span>
+                          </button>
+                        </>
+                      )}
+
+                      {/* Teacher & Director can switch to student view */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          switchUserRole('student');
+                          setShowRoleMenu(false);
+                        }}
+                        className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                      >
+                        <GraduationCap className="w-3.5 h-3.5 text-purple-600" />
+                        <span>{language === 'en' ? 'Student Portal' : 'ផ្ទាំងសិស្ស (Student STU-001)'}</span>
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 <div className="pt-1 border-t border-slate-100 dark:border-slate-800">
@@ -647,16 +673,18 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Quick Settings Button */}
-          <button
-            id="top-settings-btn"
-            onClick={onOpenSettings}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition-colors border border-slate-200 dark:border-slate-700"
-            title={language === 'en' ? 'Edit School Settings' : 'កែប្រែព័ត៌មានសាលារៀន'}
-          >
-            <Settings className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-            <span className="hidden lg:inline">{language === 'en' ? 'Settings' : 'កំណត់ព័ត៌មាន'}</span>
-          </button>
+          {/* Quick Settings Button - ONLY for director, super_admin, secretary */}
+          {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && (
+            <button
+              id="top-settings-btn"
+              onClick={onOpenSettings}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition-colors border border-slate-200 dark:border-slate-700"
+              title={language === 'en' ? 'Edit School Settings' : 'កែប្រែព័ត៌មានសាលារៀន'}
+            >
+              <Settings className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+              <span className="hidden lg:inline">{language === 'en' ? 'Settings' : 'កំណត់ព័ត៌មាន'}</span>
+            </button>
+          )}
         </div>
       </div>
 

@@ -208,13 +208,15 @@ export const StudentPortal: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowTeacherPasswordModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold shadow-lg transition-all cursor-pointer animate-pulse"
-            >
-              <span>🔄 ត្រឡប់ទៅគណនីគ្រូវិញ</span>
-            </button>
+            {previousTeacherUser && currentUser?.role !== 'student' && (
+              <button
+                type="button"
+                onClick={() => setShowTeacherPasswordModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold shadow-lg transition-all cursor-pointer"
+              >
+                <span>🔄 ត្រឡប់ទៅគណនីគ្រូវិញ</span>
+              </button>
+            )}
 
             <button
               type="button"

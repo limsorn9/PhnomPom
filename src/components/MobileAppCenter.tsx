@@ -127,7 +127,7 @@ export const MobileAppCenter: React.FC<MobileAppCenterProps> = ({ onOpenMenu }) 
     { id: 'school_admin' as ActiveTab, label: 'ព័ត៌មានសាលា', sub: 'ទំនាក់ទំនង', icon: Building2, bgIcon: 'bg-slate-700' },
   ];
 
-  const currentAppList = activeRoleView === 'director' ? directorApps : (activeRoleView === 'teacher' ? teacherApps : studentApps);
+  const currentAppList = (activeRoleView === 'director' ? directorApps : (activeRoleView === 'teacher' ? teacherApps : studentApps)).filter(app => canAccessTab(app.id));
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 font-battambang pb-24 lg:hidden">
@@ -181,35 +181,39 @@ export const MobileAppCenter: React.FC<MobileAppCenterProps> = ({ onOpenMenu }) 
         </div>
 
         {/* Role Selector Tabs for Quick Filtering on Mobile */}
-        <div className="relative z-10 mt-4 bg-black/20 backdrop-blur-md p-1 rounded-2xl flex items-center justify-between gap-1 border border-white/15 text-xs font-bold text-white">
-          <button
-            onClick={() => setActiveRoleView('director')}
-            className={`flex-1 py-1.5 px-2 rounded-xl text-center transition-all flex items-center justify-center gap-1 text-[11px] ${
-              activeRoleView === 'director' ? 'bg-white text-blue-900 shadow-sm' : 'text-blue-100 hover:bg-white/10'
-            }`}
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>នាយក</span>
-          </button>
-          <button
-            onClick={() => setActiveRoleView('teacher')}
-            className={`flex-1 py-1.5 px-2 rounded-xl text-center transition-all flex items-center justify-center gap-1 text-[11px] ${
-              activeRoleView === 'teacher' ? 'bg-white text-sky-900 shadow-sm' : 'text-blue-100 hover:bg-white/10'
-            }`}
-          >
-            <Award className="w-3.5 h-3.5" />
-            <span>គ្រូបង្រៀន</span>
-          </button>
-          <button
-            onClick={() => setActiveRoleView('student')}
-            className={`flex-1 py-1.5 px-2 rounded-xl text-center transition-all flex items-center justify-center gap-1 text-[11px] ${
-              activeRoleView === 'student' ? 'bg-white text-emerald-900 shadow-sm' : 'text-blue-100 hover:bg-white/10'
-            }`}
-          >
-            <GraduationCap className="w-3.5 h-3.5" />
-            <span>សិស្ស</span>
-          </button>
-        </div>
+        {currentUser?.role !== 'student' && currentUser?.role !== 'parent' && (
+          <div className="relative z-10 mt-4 bg-black/20 backdrop-blur-md p-1 rounded-2xl flex items-center justify-between gap-1 border border-white/15 text-xs font-bold text-white">
+            {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && (
+              <button
+                onClick={() => setActiveRoleView('director')}
+                className={`flex-1 py-1.5 px-2 rounded-xl text-center transition-all flex items-center justify-center gap-1 text-[11px] ${
+                  activeRoleView === 'director' ? 'bg-white text-blue-900 shadow-sm' : 'text-blue-100 hover:bg-white/10'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>នាយក</span>
+              </button>
+            )}
+            <button
+              onClick={() => setActiveRoleView('teacher')}
+              className={`flex-1 py-1.5 px-2 rounded-xl text-center transition-all flex items-center justify-center gap-1 text-[11px] ${
+                activeRoleView === 'teacher' ? 'bg-white text-sky-900 shadow-sm' : 'text-blue-100 hover:bg-white/10'
+              }`}
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>គ្រូបង្រៀន</span>
+            </button>
+            <button
+              onClick={() => setActiveRoleView('student')}
+              className={`flex-1 py-1.5 px-2 rounded-xl text-center transition-all flex items-center justify-center gap-1 text-[11px] ${
+                activeRoleView === 'student' ? 'bg-white text-emerald-900 shadow-sm' : 'text-blue-100 hover:bg-white/10'
+              }`}
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span>សិស្ស</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Floating Content Container */}

@@ -34,7 +34,8 @@ import {
   Clock,
   ClipboardList,
   CheckCircle2,
-  Filter
+  Filter,
+  Lock
 } from 'lucide-react';
 
 interface QuickActionItem {
@@ -75,7 +76,8 @@ export const QuickActionsHub: React.FC<QuickActionsHubProps> = ({
     libraryBooks,
     teacherDailyTasks,
     budgetTransactions,
-    showToast
+    showToast,
+    openDirectorPinModal
   } = useSchool();
 
   const [selectedRole, setSelectedRole] = useState<'director' | 'teacher' | 'student'>(currentMode);
@@ -89,6 +91,15 @@ export const QuickActionsHub: React.FC<QuickActionsHubProps> = ({
   }, [currentMode]);
 
   const handleRoleSelect = (role: 'director' | 'teacher' | 'student') => {
+    if (currentUser?.role === 'student' && role !== 'student') {
+      return;
+    }
+    if (currentUser?.role === 'teacher' && role === 'director') {
+      return;
+    }
+    if (role === 'director' && currentUser?.role !== 'director' && currentUser?.role !== 'super_admin' && currentUser?.role !== 'secretary') {
+      return;
+    }
     setSelectedRole(role);
     if (onModeChange) {
       onModeChange(role);
@@ -584,7 +595,7 @@ export const QuickActionsHub: React.FC<QuickActionsHubProps> = ({
       if (canAccessTab(action.targetTab)) {
         setActiveTab(action.targetTab);
       } else {
-        showToast('អ្នកមិនមានសិទ្ធិចូលប្រើប្រាស់មុខងារនេះទេ!', 'error');
+        showToast('អ្នកមិនមានសិទ្ធិចូលប្រើមុខងារនេះទេ!', 'error');
       }
     }
   };
@@ -600,12 +611,12 @@ export const QuickActionsHub: React.FC<QuickActionsHubProps> = ({
   ];
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 lg:p-7 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-7 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5 sm:space-y-6">
       {/* Top Header & Role Switcher Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4 sm:pb-5">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 sm:p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0">
               <Sparkles className="w-5 h-5" />
             </span>
             <div>
@@ -620,32 +631,41 @@ export const QuickActionsHub: React.FC<QuickActionsHubProps> = ({
         </div>
 
         {/* Role Switcher Tabs */}
-        <div className="flex items-center bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 self-start md:self-auto">
-          <button
-            onClick={() => handleRoleSelect('director')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-              selectedRole === 'director'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>នាយកសាលា</span>
-          </button>
-          <button
-            onClick={() => handleRoleSelect('teacher')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-              selectedRole === 'teacher'
-                ? 'bg-sky-600 text-white shadow-md shadow-sky-500/20'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Award className="w-3.5 h-3.5" />
-            <span>លោកគ្រូ-អ្នកគ្រូ</span>
-          </button>
+        <div className="flex items-center bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700 w-full sm:w-auto overflow-x-auto">
+          {/* Director Tab - Only for director, super_admin, secretary */}
+          {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && (
+            <button
+              onClick={() => handleRoleSelect('director')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap min-h-[38px] ${
+                selectedRole === 'director'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>នាយកសាលា</span>
+            </button>
+          )}
+
+          {/* Teacher Tab */}
+          {currentUser?.role !== 'student' && currentUser?.role !== 'parent' && (
+            <button
+              onClick={() => handleRoleSelect('teacher')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap min-h-[38px] ${
+                selectedRole === 'teacher'
+                  ? 'bg-sky-600 text-white shadow-md shadow-sky-500/20'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>លោកគ្រូ-អ្នកគ្រូ</span>
+            </button>
+          )}
+
+          {/* Student Tab */}
           <button
             onClick={() => handleRoleSelect('student')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap min-h-[38px] ${
               selectedRole === 'student'
                 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
                 : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
@@ -796,8 +816,8 @@ export const QuickActionsHub: React.FC<QuickActionsHubProps> = ({
         )}
       </div>
 
-      {/* Grid of Quick Action Cards (Bento style for Desktop) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {/* Grid of Quick Action Cards (Optimized for Mobile Tiles & Desktop Bento) */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
         {filteredActions.map(action => {
           const Icon = action.icon;
           return (
@@ -806,16 +826,16 @@ export const QuickActionsHub: React.FC<QuickActionsHubProps> = ({
               onClick={() => handleActionClick(action)}
               role="button"
               tabIndex={0}
-              className={`group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-gradient-to-br ${action.colorGradient} bg-white dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 ${action.borderHover} shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              className={`group relative flex flex-col justify-between p-3.5 sm:p-4 md:p-5 rounded-2xl bg-gradient-to-br ${action.colorGradient} bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/80 ${action.borderHover} shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-blue-500 active:scale-[0.98] min-h-[140px] sm:min-h-[170px]`}
             >
               <div>
                 {/* Icon & Badge Row */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center shadow-xs transition-transform group-hover:scale-110 duration-200 ${action.iconBg}`}>
-                    <Icon className="w-5 h-5 stroke-[2]" />
+                <div className="flex items-center justify-between mb-2.5 sm:mb-3">
+                  <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shadow-xs transition-transform group-hover:scale-110 duration-200 shrink-0 ${action.iconBg}`}>
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2]" />
                   </div>
                   {action.badge && (
-                    <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono ${action.badgeColor}`}>
+                    <span className={`px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px] font-bold font-mono truncate max-w-[90px] sm:max-w-none ${action.badgeColor}`}>
                       {action.badge}
                     </span>
                   )}
@@ -823,24 +843,24 @@ export const QuickActionsHub: React.FC<QuickActionsHubProps> = ({
 
                 {/* Titles & Subtitle */}
                 <div>
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-snug line-clamp-2">
                     {action.titleKhmer}
                   </h4>
-                  <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 font-sans mt-0.5">
+                  <p className="text-[10px] sm:text-[11px] font-medium text-slate-400 dark:text-slate-500 font-sans mt-0.5 truncate">
                     {action.titleEnglish}
                   </p>
                 </div>
 
-                {/* Description */}
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                {/* Description (Visible on tablets & desktop for rich context, concealed on compact phone tiles) */}
+                <p className="hidden sm:block text-xs text-slate-500 dark:text-slate-400 mt-2 line-clamp-2 leading-relaxed">
                   {action.description}
                 </p>
               </div>
 
               {/* Bottom Action Hint */}
-              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs font-semibold text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                <span className="text-[11px]">ដំណើរការ</span>
-                <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
+              <div className="mt-2.5 sm:mt-4 pt-2 sm:pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[11px] sm:text-xs font-semibold text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                <span className="text-[10px] sm:text-[11px]">ដំណើរការ</span>
+                <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 transform group-hover:translate-x-1 transition-transform text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
               </div>
             </div>
           );
