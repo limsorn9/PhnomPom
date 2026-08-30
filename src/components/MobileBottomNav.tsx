@@ -14,7 +14,7 @@ import {
 
 interface MobileBottomNavProps {
   onOpenMobileMenu: () => void;
-  onOpenSettings: () => void;
+  onOpenSettings?: () => void;
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenMobileMenu, onOpenSettings }) => {
@@ -59,7 +59,11 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenMobileMe
                 if (tab.id === 'all_apps') {
                   onOpenMobileMenu();
                 } else if (tab.id === 'account_modal') {
-                  onOpenSettings();
+                  if (typeof onOpenSettings === 'function') {
+                    onOpenSettings();
+                  } else {
+                    setActiveTab('accounts');
+                  }
                 } else {
                   setActiveTab(tab.id);
                 }

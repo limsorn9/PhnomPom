@@ -7,11 +7,19 @@ import firebaseConfig from '../firebase-applet-config.json';
 // Initialize Firebase App
 export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Cloud Firestore using the provisioned custom databaseId if present
+// Initialize Cloud Firestore using the provisioned custom databaseId if present with resilient auto long-polling
 const customDbId = (firebaseConfig as any).firestoreDatabaseId || (firebaseConfig as any).databaseId;
-export const db = customDbId
-  ? getFirestore(app, customDbId)
-  : getFirestore(app);
+
+export const db = (() => {
+  try {
+    return initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true,
+      ignoreUndefinedProperties: true
+    }, customDbId);
+  } catch {
+    return customDbId ? getFirestore(app, customDbId) : getFirestore(app);
+  }
+})();
 
 // Enable offline multi-tab persistence gracefully
 try {

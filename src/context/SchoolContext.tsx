@@ -6835,7 +6835,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     if (existing) {
       addActivityLog({
-        domain: 'school_management',
+        domain: 'admin',
         actionType: 'delete',
         title: `បានលុបទិន្នន័យខ្នងផ្ទះ៖ ${existing.headName}`,
         description: `ខ្នងផ្ទះលេខ ${existing.houseNumber || 'N/A'} • ${existing.village} • សមាជិក ${existing.members?.length || 0} នាក់`,

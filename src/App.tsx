@@ -209,7 +209,10 @@ const MainLayout: React.FC = () => {
         </main>
 
         {/* Mobile Quick Bottom Navigation */}
-        <MobileBottomNav onOpenMobileMenu={() => setIsMobileSidebarOpen(true)} />
+        <MobileBottomNav
+          onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
+          onOpenSettings={handleOpenSettings}
+        />
 
         {/* Global Desktop & Tablet Footer */}
         <footer className="bg-white border-t border-slate-200 py-3.5 px-6 text-center text-xs text-slate-500 no-print hidden sm:block">
