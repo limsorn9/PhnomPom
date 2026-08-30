@@ -1032,7 +1032,7 @@ export type StudentScore = StudentScoreRecord;
 
 export interface LibraryBook {
   id: string;
-  code: string; // កូដសៀវភៅ
+  code: string; // កូដសៀវភៅ ឧ. BK-2024-001
   titleKhmer: string; // ចំណងជើងសៀវភៅ
   titleLatin?: string;
   category: LibraryBookCategory; 
@@ -1048,8 +1048,28 @@ export interface LibraryBook {
   coverUrl?: string;
   coverPhotoUrl?: string;
   shelfLocation?: string; // ទីតាំងទូ/ធ្នើ ឬ "តំណភ្ជាប់ឌីជីថល"
+  isbnBarcode?: string; // លេខ ISBN / Barcode
+  bookCondition?: 'good' | 'fair' | 'damaged' | 'lost'; // ស្ថានភាពសៀវភៅ
   description?: string;
   notes?: string;
+  createdAt?: string;
+}
+
+export type LibraryVisitPurpose = 'reading' | 'borrow_return' | 'research' | 'homework' | 'library_class' | 'storytelling';
+
+export interface LibraryVisitorLog {
+  id: string;
+  studentId?: string;
+  studentCode?: string;
+  studentNameKhmer: string;
+  grade: number;
+  section: string;
+  visitDate: string; // YYYY-MM-DD
+  timeIn: string; // HH:mm
+  timeOut?: string; // HH:mm
+  purpose: LibraryVisitPurpose;
+  notes?: string;
+  librarianName?: string;
 }
 
 export interface StudentMonthlyFeedback {
@@ -1075,7 +1095,11 @@ export interface LibraryReadingLog {
   studentNameKhmer: string;
   grade: number;
   section: string;
+  // Compatibility helpers
+  studentGrade?: number;
+  studentSection?: string;
   bookId: string;
+  bookCode?: string;
   bookTitle: string;
   bookCategory: string;
   borrowDate: string;
@@ -1084,7 +1108,13 @@ export interface LibraryReadingLog {
   status: 'borrowed' | 'returned' | 'overdue';
   pagesRead?: number;
   readingSummary?: string; // សង្ខេបខ្លឹមសាររឿងដែលបានអាន
+  summaryOrImpression?: string;
+  rating?: number; // 1 to 5 stars
+  comprehensionScore?: number; // 1-10
+  conditionOnReturn?: 'good' | 'damaged' | 'lost';
+  librarianName?: string;
   teacherLibrarianSign?: string;
+  notes?: string;
 }
 
 export type SignatureQRStyle = 'classic_square' | 'rounded_modern' | 'dot_pattern' | 'framed_seal' | 'bordered_moeys';

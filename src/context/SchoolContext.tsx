@@ -23,6 +23,7 @@ import {
   HouseholdRecord,
   LibraryBook,
   LibraryReadingLog,
+  LibraryVisitorLog,
   PrintSettings,
   StudentMonthlyFeedback,
   LessonPlan,
@@ -127,6 +128,7 @@ import {
   initialHouseholdRecords,
   initialLibraryBooks,
   initialReadingLogs,
+  initialLibraryVisitors,
   initialLessonPlans,
   initialParentMeetings,
   initialParentRequests,
@@ -364,12 +366,16 @@ interface SchoolContextType {
   // Library Management (គ្រប់គ្រងបណ្ណាល័យ)
   libraryBooks: LibraryBook[];
   readingLogs: LibraryReadingLog[];
+  libraryVisitors: LibraryVisitorLog[];
   addLibraryBook: (book: Omit<LibraryBook, 'id'>) => void;
   updateLibraryBook: (id: string, updated: Partial<LibraryBook>) => void;
   deleteLibraryBook: (id: string) => void;
   addReadingLog: (log: Omit<LibraryReadingLog, 'id'>) => void;
   updateReadingLog: (id: string, updated: Partial<LibraryReadingLog>) => void;
   deleteReadingLog: (id: string) => void;
+  addLibraryVisitor: (visitor: Omit<LibraryVisitorLog, 'id'>) => void;
+  updateLibraryVisitor: (id: string, updated: Partial<LibraryVisitorLog>) => void;
+  deleteLibraryVisitor: (id: string) => void;
 
   // Universal Print Settings
   printSettings: PrintSettings;
@@ -580,7 +586,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return 'secretary_dashboard';
       }
       if (userRole === 'librarian') {
-        return 'library';
+        return (saved === 'library' || saved === 'librarian_dashboard') ? saved as ActiveTab : 'librarian_dashboard';
       }
       if (userRole === 'teacher') {
         const allowedTeacherTabs: ActiveTab[] = ['homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'scores', 'attendance_health', 'student_portal'];
@@ -594,7 +600,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     if (userRole === 'student' || userRole === 'parent') return 'student_portal';
     if (userRole === 'secretary') return 'secretary_dashboard';
-    if (userRole === 'librarian') return 'library';
+    if (userRole === 'librarian') return 'librarian_dashboard';
     if (userRole === 'teacher') return 'homeroom_dashboard';
     return 'dashboard';
   });
@@ -617,7 +623,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return 'homeroom_dashboard';
     }
     if (role === 'librarian') {
-      return 'library';
+      return 'librarian_dashboard';
     }
     return 'dashboard';
   };
@@ -1005,6 +1011,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [readingLogs, setReadingLogs] = useState<LibraryReadingLog[]>(() => {
     const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_reading_logs`);
     return saved ? JSON.parse(saved) : initialReadingLogs;
+  });
+
+  // Library Visitor Logs State
+  const [libraryVisitors, setLibraryVisitors] = useState<LibraryVisitorLog[]>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_library_visitors`);
+    return saved ? JSON.parse(saved) : initialLibraryVisitors;
   });
 
   // Universal Print Settings State
@@ -3219,6 +3231,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [readingLogs]);
 
   useEffect(() => {
+    localStorage.setItem(`${LOCAL_STORAGE_KEY}_library_visitors`, JSON.stringify(libraryVisitors));
+  }, [libraryVisitors]);
+
+  useEffect(() => {
     localStorage.setItem(`${LOCAL_STORAGE_KEY}_print_settings`, JSON.stringify(printSettings));
   }, [printSettings]);
 
@@ -5324,8 +5340,8 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     if (role === 'librarian') {
-      // បណ្ណារក្សមានសិទ្ធិបើកតែដាស់បតបណ្ណារក្សដែលមានតែការងារបណ្ណាល័យ និងគ្រប់គ្រងសៀវភៅ និងធនធានសិក្សា
-      return ['library', 'librarian_dashboard', 'learning_resources'].includes(tab);
+      // បណ្ណារក្សមានសិទ្ធិបើកផ្ទាំងគ្រប់គ្រងបណ្ណារក្ស និងធនធានសិក្សា
+      return ['librarian_dashboard', 'library', 'learning_resources', 'reports_qr', 'official_documents'].includes(tab);
     }
 
     if (role === 'teacher') {
@@ -6490,6 +6506,25 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     showToast('បានលុបកំណត់ត្រាអានសៀវភៅរួចរាល់', 'info');
   };
 
+  const addLibraryVisitor = (visitor: Omit<LibraryVisitorLog, 'id'>) => {
+    const newVisitor: LibraryVisitorLog = {
+      ...visitor,
+      id: `vis-${Date.now()}`
+    };
+    setLibraryVisitors(prev => [newVisitor, ...prev]);
+    showToast(`បានកត់ត្រាវត្តមានសិស្ស «${newVisitor.studentNameKhmer}» ចូលបណ្ណាល័យ!`);
+  };
+
+  const updateLibraryVisitor = (id: string, updated: Partial<LibraryVisitorLog>) => {
+    setLibraryVisitors(prev => prev.map(v => (v.id === id ? { ...v, ...updated } : v)));
+    showToast('បានកែប្រែកំណត់ត្រាវត្តមានបណ្ណាល័យ!');
+  };
+
+  const deleteLibraryVisitor = (id: string) => {
+    setLibraryVisitors(prev => prev.filter(v => v.id !== id));
+    showToast('បានលុបកំណត់ត្រាវត្តមានបណ្ណាល័យ', 'info');
+  };
+
   const resetToDefaultData = () => {
     setSchoolProfile(initialSchoolProfile);
     setStudents(initialStudents);
@@ -6506,6 +6541,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setHouseholds(initialHouseholdRecords);
     setLibraryBooks(initialLibraryBooks);
     setReadingLogs(initialReadingLogs);
+    setLibraryVisitors(initialLibraryVisitors);
     setLessonPlans(initialLessonPlans);
     setParentMeetings(initialParentMeetings);
     setParentRequests(initialParentRequests);
@@ -6683,12 +6719,16 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         addVillage,
         libraryBooks,
         readingLogs,
+        libraryVisitors,
         addLibraryBook,
         updateLibraryBook,
         deleteLibraryBook,
         addReadingLog,
         updateReadingLog,
         deleteReadingLog,
+        addLibraryVisitor,
+        updateLibraryVisitor,
+        deleteLibraryVisitor,
         printSettings,
         setPrintSettings,
         qrScanVerificationLogs,

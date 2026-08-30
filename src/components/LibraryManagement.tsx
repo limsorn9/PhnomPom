@@ -1,183 +1,167 @@
 import React, { useState, useMemo } from 'react';
 import { useSchool } from '../context/SchoolContext';
-import { LibraryBook, LibraryReadingLog, LibraryBookCategory } from '../types';
+import { LibraryBook, LibraryReadingLog, LibraryBookCategory, LibraryBookFormat } from '../types';
 import {
-  BookOpen,
   Library,
+  BookOpen,
+  BookMarked,
+  Users,
+  Trophy,
+  Printer,
   Plus,
   Search,
-  Filter,
-  Bookmark,
-  Calendar,
-  User,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  Printer,
-  Download,
-  Award,
   Sparkles,
   Layers,
-  Star,
-  Edit2,
-  Trash2,
-  Eye,
-  Check,
-  X,
-  Save,
-  BookMarked,
-  ArrowRight,
+  Clock,
+  CheckCircle,
+  AlertCircle,
   TrendingUp,
-  FileText
+  Bookmark,
+  Calendar,
+  Award,
+  ChevronRight,
+  Eye,
+  Star,
+  ExternalLink
 } from 'lucide-react';
-import { AngkorPageWatermark, MoEYSRoyalHeader } from './AngkorMotif';
-import { UniversalPrintModal } from './UniversalPrintModal';
+import { BookCatalogTab } from './library/BookCatalogTab';
+import { CirculationDeskTab } from './library/CirculationDeskTab';
+import { VisitorTrackerTab } from './library/VisitorTrackerTab';
+import { ReadingLadderTab } from './library/ReadingLadderTab';
+import { LibraryReportsTab } from './library/LibraryReportsTab';
 
 export const LibraryManagement: React.FC = () => {
   const {
     libraryBooks,
     readingLogs,
+    libraryVisitors,
     addLibraryBook,
     updateLibraryBook,
-    deleteLibraryBook,
     addReadingLog,
-    updateReadingLog,
-    deleteReadingLog,
     students,
-    schoolProfile,
     currentUser,
-    printSettings,
+    schoolProfile,
     showToast
   } = useSchool();
 
   const isReadOnly = currentUser?.role === 'student' || currentUser?.role === 'parent';
-  
-  const [activeSubTab, setActiveSubTab] = useState<'catalog' | 'logs' | 'ladder'>('catalog');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedFormat, setSelectedFormat] = useState<string>('all');
-  const [selectedGrade, setSelectedGrade] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  const [activeTab, setActiveTab] = useState<'overview' | 'catalog' | 'circulation' | 'visitors' | 'ladder' | 'reports'>('overview');
 
   // Modals
-  const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
-  const [isAddLogModalOpen, setIsAddLogModalOpen] = useState(false);
-  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
-  const [selectedBookForDetail, setSelectedBookForDetail] = useState<LibraryBook | null>(null);
-
-  // Book Form State
+  const [isBookModalOpen, setIsBookModalOpen] = useState(false);
   const [editingBookId, setEditingBookId] = useState<string | null>(null);
   const [bookFormData, setBookFormData] = useState<Omit<LibraryBook, 'id'>>({
     code: '',
     titleKhmer: '',
     titleLatin: '',
-    category: 'literature',
+    category: 'storybook',
     format: 'physical',
     digitalFileUrl: '',
-    author: '',
-    publisher: 'ក្រសួងអប់រំ យុវជន និងកីឡា',
+    author: 'ក្រសួងអប់រំ យុវជន និងកីឡា',
+    publisher: 'MoEYS',
     gradeLevel: 1,
-    totalCopies: 5,
-    availableCopies: 5,
+    totalCopies: 10,
+    availableCopies: 10,
     shelfLocation: 'ទូ A-01',
     coverPhotoUrl: '',
     publishedYear: '2024',
-    description: ''
+    description: '',
+    bookCondition: 'good'
   });
 
-  // Log Form State
-  const [editingLogId, setEditingLogId] = useState<string | null>(null);
-  const [logFormData, setLogFormData] = useState<Omit<LibraryReadingLog, 'id'>>({
-    bookId: libraryBooks[0]?.id || '',
-    bookTitle: libraryBooks[0]?.titleKhmer || '',
+  const [isLendModalOpen, setIsLendModalOpen] = useState(false);
+  const [lendFormData, setLendFormData] = useState<{
+    studentId: string;
+    studentCode: string;
+    studentNameKhmer: string;
+    grade: number;
+    section: string;
+    bookId: string;
+    bookCode: string;
+    bookTitle: string;
+    bookCategory: string;
+    borrowDate: string;
+    dueDate: string;
+    notes: string;
+  }>({
     studentId: students[0]?.id || '',
     studentCode: students[0]?.code || '',
     studentNameKhmer: students[0]?.nameKhmer || '',
-    studentGrade: students[0]?.grade || 1,
-    studentSection: students[0]?.section || 'ក',
+    grade: students[0]?.grade || 1,
+    section: students[0]?.section || 'ក',
+    bookId: libraryBooks[0]?.id || '',
+    bookCode: libraryBooks[0]?.code || '',
+    bookTitle: libraryBooks[0]?.titleKhmer || '',
+    bookCategory: libraryBooks[0]?.category || 'storybook',
     borrowDate: new Date().toISOString().split('T')[0],
     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    status: 'borrowed',
-    pagesRead: 15,
-    summaryOrImpression: '',
-    librarianName: currentUser?.nameKhmer || 'បណ្ណារក្ស'
+    notes: ''
   });
 
-  // Filtered Books
-  const filteredBooks = useMemo(() => {
-    return libraryBooks.filter(b => {
-      const matchCat = selectedCategory === 'all' || b.category === selectedCategory;
-      const matchG = selectedGrade === 'all' || b.gradeLevel === parseInt(selectedGrade);
-      const q = searchQuery.trim().toLowerCase();
-      const matchQ =
-        !q ||
-        b.titleKhmer.toLowerCase().includes(q) ||
-        (b.titleLatin && b.titleLatin.toLowerCase().includes(q)) ||
-        b.code.toLowerCase().includes(q) ||
-        (b.author && b.author.toLowerCase().includes(q));
-      return matchCat && matchG && matchQ;
-    });
-  }, [libraryBooks, selectedCategory, selectedGrade, searchQuery]);
+  const toKhmerNum = (num: number | string): string => {
+    const khmerDigits = ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'];
+    return num.toString().replace(/[0-9]/g, (d) => khmerDigits[parseInt(d, 10)]);
+  };
 
-  // Statistics
-  const libraryStats = useMemo(() => {
+  // Overview Statistics
+  const stats = useMemo(() => {
     const totalTitles = libraryBooks.length;
-    let totalCopiesCount = 0;
-    let availableCopiesCount = 0;
+    let totalCopies = 0;
+    let availableCopies = 0;
     libraryBooks.forEach(b => {
-      totalCopiesCount += b.totalCopies;
-      availableCopiesCount += b.availableCopies;
+      totalCopies += b.totalCopies;
+      availableCopies += b.availableCopies;
     });
-    const currentlyBorrowedCount = totalCopiesCount - availableCopiesCount;
-    const totalReadingSessions = readingLogs.length;
+    const borrowedCopies = totalCopies - availableCopies;
 
-    // Student Reading Champions
-    const readerCounts: { [studentName: string]: { count: number; grade: number; section: string; code: string } } = {};
-    readingLogs.forEach(l => {
-      if (!readerCounts[l.studentNameKhmer]) {
-        readerCounts[l.studentNameKhmer] = { count: 0, grade: l.studentGrade, section: l.studentSection, code: l.studentCode };
-      }
-      readerCounts[l.studentNameKhmer].count += 1;
-    });
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayVisitors = libraryVisitors.filter(v => v.visitDate === todayStr).length;
 
-    const topReaders = Object.entries(readerCounts)
-      .map(([name, data]) => ({ name, ...data }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+    const overdueCount = readingLogs.filter(l => {
+      if (l.status === 'returned') return false;
+      const due = new Date(l.dueDate);
+      const today = new Date();
+      return due < today;
+    }).length;
+
+    const totalLoans = readingLogs.length;
 
     return {
       totalTitles,
-      totalCopiesCount,
-      availableCopiesCount,
-      currentlyBorrowedCount,
-      totalReadingSessions,
-      topReaders
+      totalCopies,
+      availableCopies,
+      borrowedCopies,
+      todayVisitors,
+      overdueCount,
+      totalLoans
     };
-  }, [libraryBooks, readingLogs]);
+  }, [libraryBooks, readingLogs, libraryVisitors]);
 
-  // Open Create Book Modal
+  // Handle Book Modal Open
   const handleOpenCreateBook = () => {
     setEditingBookId(null);
     setBookFormData({
       code: `BK-2024-${String(libraryBooks.length + 1).padStart(3, '0')}`,
       titleKhmer: '',
       titleLatin: '',
-      category: 'literature',
+      category: 'storybook',
       format: 'physical',
       digitalFileUrl: '',
-      author: 'ក្រសួងអប់រំ / អង្គការដៃគូ',
+      author: 'ក្រសួងអប់រំ យុវជន និងកីឡា',
       publisher: 'MoEYS',
-      gradeLevel: 2,
-      totalCopies: 6,
-      availableCopies: 6,
+      gradeLevel: 1,
+      totalCopies: 10,
+      availableCopies: 10,
       shelfLocation: 'ទូ A-01',
       coverPhotoUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&auto=format&fit=crop&q=80',
       publishedYear: '2024',
-      description: ''
+      description: '',
+      bookCondition: 'good'
     });
-    setIsAddBookModalOpen(true);
+    setIsBookModalOpen(true);
   };
 
-  // Open Edit Book Modal
   const handleOpenEditBook = (book: LibraryBook) => {
     setEditingBookId(book.id);
     setBookFormData({
@@ -189,786 +173,549 @@ export const LibraryManagement: React.FC = () => {
       digitalFileUrl: book.digitalFileUrl || '',
       author: book.author || '',
       publisher: book.publisher || '',
-      gradeLevel: book.gradeLevel,
+      gradeLevel: book.gradeLevel || 1,
       totalCopies: book.totalCopies,
       availableCopies: book.availableCopies,
       shelfLocation: book.shelfLocation || '',
       coverPhotoUrl: book.coverPhotoUrl || '',
       publishedYear: book.publishedYear || '',
-      description: book.description || ''
+      description: book.description || '',
+      bookCondition: book.bookCondition || 'good'
     });
-    setIsAddBookModalOpen(true);
+    setIsBookModalOpen(true);
   };
 
-  // Save Book
   const handleSaveBook = (e: React.FormEvent) => {
     e.preventDefault();
     if (!bookFormData.titleKhmer.trim()) {
-      showToast('សូមបញ្ចូលចំណងជើងសៀវភៅជាភាសាខ្មែរ!', 'error');
+      showToast('សូមបញ្ចូលចំណងជើងសៀវភៅ!', 'warning');
       return;
     }
+
     if (editingBookId) {
       updateLibraryBook(editingBookId, bookFormData);
     } else {
       addLibraryBook(bookFormData);
     }
-    setIsAddBookModalOpen(false);
+    setIsBookModalOpen(false);
   };
 
-  // Open Create Reading Log Modal
-  const handleOpenCreateLog = (presetBook?: LibraryBook) => {
-    setEditingLogId(null);
-    const targetBook = presetBook || libraryBooks[0];
-    const targetStudent = students[0];
+  // Handle Lend Modal Open
+  const handleOpenLendModal = () => {
+    const firstStu = students[0];
+    const availableBooks = libraryBooks.filter(b => b.availableCopies > 0);
+    const firstBook = availableBooks[0] || libraryBooks[0];
 
-    setLogFormData({
-      bookId: targetBook?.id || '',
-      bookTitle: targetBook?.titleKhmer || '',
-      studentId: targetStudent?.id || '',
-      studentCode: targetStudent?.code || '',
-      studentNameKhmer: targetStudent?.nameKhmer || '',
-      studentGrade: targetStudent?.grade || 1,
-      studentSection: targetStudent?.section || 'ក',
+    setLendFormData({
+      studentId: firstStu?.id || '',
+      studentCode: firstStu?.code || '',
+      studentNameKhmer: firstStu?.nameKhmer || '',
+      grade: firstStu?.grade || 1,
+      section: firstStu?.section || 'ក',
+      bookId: firstBook?.id || '',
+      bookCode: firstBook?.code || '',
+      bookTitle: firstBook?.titleKhmer || '',
+      bookCategory: firstBook?.category || 'storybook',
       borrowDate: new Date().toISOString().split('T')[0],
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status: 'borrowed',
-      pagesRead: 20,
-      summaryOrImpression: '',
-      librarianName: currentUser?.nameKhmer || 'បណ្ណារក្ស'
+      notes: ''
     });
-    setIsAddLogModalOpen(true);
+    setIsLendModalOpen(true);
   };
 
-  // Save Reading Log
-  const handleSaveLog = (e: React.FormEvent) => {
+  const handleSaveLend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!logFormData.studentNameKhmer) {
-      showToast('សូមជ្រើសរើសសិស្សានុសិស្ស!', 'error');
+    const book = libraryBooks.find(b => b.id === lendFormData.bookId);
+    if (!book || book.availableCopies <= 0) {
+      showToast('សៀវភៅនេះត្រូវបានខ្ចីអស់ពីស្តុកហើយ!', 'warning');
       return;
     }
-    if (editingLogId) {
-      updateReadingLog(editingLogId, logFormData);
-    } else {
-      addReadingLog(logFormData);
-    }
-    setIsAddLogModalOpen(false);
-  };
 
-  // Return Book Action
-  const handleMarkReturned = (log: LibraryReadingLog) => {
-    updateReadingLog(log.id, {
-      status: 'returned',
-      returnDate: new Date().toISOString().split('T')[0]
+    addReadingLog({
+      studentId: lendFormData.studentId,
+      studentCode: lendFormData.studentCode,
+      studentNameKhmer: lendFormData.studentNameKhmer,
+      grade: lendFormData.grade,
+      section: lendFormData.section,
+      bookId: lendFormData.bookId,
+      bookCode: lendFormData.bookCode,
+      bookTitle: lendFormData.bookTitle,
+      bookCategory: lendFormData.bookCategory,
+      borrowDate: lendFormData.borrowDate,
+      dueDate: lendFormData.dueDate,
+      status: 'borrowed',
+      pagesRead: 0,
+      librarianName: currentUser?.nameKhmer || 'បណ្ណារក្ស'
     });
-    showToast(`សិស្ស «${log.studentNameKhmer}» បានសងសៀវភៅ «${log.bookTitle}» រួចរាល់!`);
+
+    setIsLendModalOpen(false);
   };
 
-  const getCategoryLabel = (cat: LibraryBookCategory) => {
-    switch (cat) {
-      case 'storybook':
-        return <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-200">សៀវភៅរឿងនិទានកុមារ</span>;
-      case 'core_textbook':
-        return <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-200">សៀវភៅពុម្ពគោល MoEYS</span>;
-      case 'reference':
-        return <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200">វចនានុក្រម / ឯកសារស្រាវជ្រាវ</span>;
-      default:
-        return <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full">ទូទៅ</span>;
-    }
-  };
+  interface LibraryTabItem {
+    id: 'overview' | 'catalog' | 'circulation' | 'visitors' | 'ladder' | 'reports';
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    count?: number;
+  }
 
-  // Export Library CSV
-  const handleExportCsv = () => {
-    const headers = ['លេខកូដ', 'ចំណងជើងខ្មែរ', 'ចំណងជើងឡាតាំង', 'ប្រភេទ', 'ថ្នាក់', 'អ្នកនិពន្ធ', 'ចំនួនសរុប', 'នៅសល់', 'ទីតាំងទូ'];
-    const rows = libraryBooks.map(b => [
-      `"${b.code}"`,
-      `"${b.titleKhmer}"`,
-      `"${b.titleLatin || ''}"`,
-      `"${b.category}"`,
-      b.gradeLevel,
-      `"${b.author || ''}"`,
-      b.totalCopies,
-      b.availableCopies,
-      `"${b.shelfLocation || ''}"`
-    ]);
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    const safeLatinName = (schoolProfile.nameLatin || 'Phnom_Pom').replace(/\s+/g, '_');
-    link.download = `Library_Catalog_${safeLatinName}.csv`;
-    link.click();
-    showToast('បានទាញយកទិន្នន័យបណ្ណាល័យជា CSV ជោគជ័យ!');
-  };
+  const tabs: LibraryTabItem[] = [
+    { id: 'overview', label: '📊 ផ្ទាំងសង្ខេប (Dashboard)', icon: Library },
+    { id: 'catalog', label: '📚 បញ្ជីសៀវភៅ (Catalog)', icon: BookOpen, count: libraryBooks.length },
+    { id: 'circulation', label: '🔄 ខ្ចី-សងសៀវភៅ (Circulation)', icon: BookMarked, count: readingLogs.filter(l => l.status === 'borrowed').length },
+    { id: 'visitors', label: '👥 វត្តមានបណ្ណាល័យ (Visitors)', icon: Users, count: stats.todayVisitors },
+    { id: 'ladder', label: '🏆 ជណ្តើរអំណាន (Champions)', icon: Trophy },
+    { id: 'reports', label: '🖨️ របាយការណ៍ MoEYS', icon: Printer }
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Screen & Printable Watermark */}
-      <AngkorPageWatermark />
-
-      {/* Screen Header */}
-      <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="p-3 bg-teal-50 rounded-2xl border border-teal-100 text-teal-600 shadow-inner">
-            <Library className="w-7 h-7" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-slate-800 font-moul">បណ្ណាល័យ & កំណត់ត្រាអានសៀវភៅ</h1>
-              <span className="bg-teal-100 text-teal-800 text-xs px-2.5 py-0.5 rounded-full font-bold">
-                MoEYS Library Standards
-              </span>
+      {/* Top Header Card */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-500 text-white flex items-center justify-center shadow-lg shadow-teal-500/20">
+              <Library className="w-6 h-6" />
             </div>
-            <p className="text-xs text-slate-500 mt-1">
-              គ្រប់គ្រងសៀវភៅរឿង សៀវភៅពុម្ពគោល និងតាមដានជណ្តើរអំណានសិស្សានុសិស្ស {schoolProfile.nameKhmer}
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="font-moul text-lg sm:text-2xl text-slate-800">
+                  ផ្ទាំងគ្រប់គ្រងបណ្ណារក្ស
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-100 text-teal-800 border border-teal-200">
+                  បណ្ណាល័យសាលា
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500 font-battambang mt-0.5">
+                ប្រព័ន្ធគ្រប់គ្រងសៀវភៅ ចរាចរណ៍ខ្ចី-សង និងតាមដានសកម្មភាពអានរបស់សិស្សានុសិស្ស {schoolProfile.nameKhmer}
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Header Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2 no-print">
-          {!isReadOnly && (
-            <>
-          <button
-            onClick={handleExportCsv}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all"
-          >
-            <Download className="w-4 h-4 text-slate-600" />
-            <span>ទាញយក CSV</span>
-          </button>
-
-          <button
-            onClick={() => setIsPrintModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 transition-all"
-          >
-            <Printer className="w-4 h-4 text-indigo-600" />
-            <span>បោះពុម្ពបញ្ជីបណ្ណាល័យ</span>
-          </button>
-
-          <button
-            onClick={() => handleOpenCreateLog()}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-md transition-all"
-          >
-            <BookMarked className="w-4 h-4" />
-            <span>កត់ត្រាការខ្ចី-អាន (Borrow)</span>
-          </button>
-
-          <button
-            onClick={handleOpenCreateBook}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>បញ្ចូលសៀវភៅថ្មី (New Book)</span>
-          </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Summary Statistics Dashboard Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 no-print">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500 font-medium">ចំណងជើងសៀវភៅ</span>
-            <BookOpen className="w-4 h-4 text-teal-600" />
-          </div>
-          <p className="text-2xl font-bold text-slate-800 mt-2 font-moul">{libraryStats.totalTitles} <span className="text-xs font-normal text-slate-500 font-battambang">ក្បាល</span></p>
-          <span className="text-[11px] text-teal-600 font-medium mt-1">ក្នុងបញ្ជីសារពើភណ្ឌ</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500 font-medium">ច្បាប់សៀវភៅសរុប</span>
-            <Layers className="w-4 h-4 text-blue-600" />
-          </div>
-          <p className="text-2xl font-bold text-slate-800 mt-2 font-moul">{libraryStats.totalCopiesCount} <span className="text-xs font-normal text-slate-500 font-battambang">ច្បាប់</span></p>
-          <span className="text-[11px] text-blue-600 font-medium mt-1">គ្រប់ប្រភេទទាំងអស់</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500 font-medium">សៀវភៅក្នុងបណ្ណាល័យ</span>
-            <CheckCircle className="w-4 h-4 text-emerald-600" />
-          </div>
-          <p className="text-2xl font-bold text-emerald-600 mt-2 font-moul">{libraryStats.availableCopiesCount} <span className="text-xs font-normal text-slate-500 font-battambang">ច្បាប់</span></p>
-          <span className="text-[11px] text-emerald-600 font-medium mt-1">ទំនេរអាចខ្ចីបាន</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500 font-medium">កំពុងខ្ចីអាន</span>
-            <Clock className="w-4 h-4 text-amber-600" />
-          </div>
-          <p className="text-2xl font-bold text-amber-600 mt-2 font-moul">{libraryStats.currentlyBorrowedCount} <span className="text-xs font-normal text-slate-500 font-battambang">ច្បាប់</span></p>
-          <span className="text-[11px] text-amber-600 font-medium mt-1">សិស្សកំពុងខ្ចី</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500 font-medium">កំណត់ត្រាអានសរុប</span>
-            <Award className="w-4 h-4 text-purple-600" />
-          </div>
-          <p className="text-2xl font-bold text-purple-600 mt-2 font-moul">{libraryStats.totalReadingSessions} <span className="text-xs font-normal text-slate-500 font-battambang">លើក</span></p>
-          <span className="text-[11px] text-purple-600 font-medium mt-1">ជណ្តើរអំណានសិស្ស</span>
-        </div>
-      </div>
-
-      {/* Sub-Tab Navigation Bar */}
-      <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3 no-print">
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setActiveSubTab('catalog')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-              activeSubTab === 'catalog'
-                ? 'bg-teal-600 text-white shadow-md'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>កាតាឡុកសៀវភៅ ({libraryBooks.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('logs')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-              activeSubTab === 'logs'
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <BookMarked className="w-4 h-4" />
-            <span>កំណត់ហេតុខ្ចី-សង ({readingLogs.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('ladder')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-              activeSubTab === 'ladder'
-                ? 'bg-amber-600 text-white shadow-md'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Award className="w-4 h-4" />
-            <span>ជណ្តើរអំណាន & ជើងឯកអាន</span>
-          </button>
-        </div>
-
-        {/* Filters for Catalog */}
-        {activeSubTab === 'catalog' && (
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            {/* Category Filter */}
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
-              <Filter className="w-3.5 h-3.5 text-teal-600" />
-              <span className="text-slate-500">ប្រភេទ៖</span>
-              <select
-                value={selectedCategory}
-                onChange={e => setSelectedCategory(e.target.value)}
-                className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+          <div className="flex flex-wrap items-center gap-2">
+            {!isReadOnly && (
+              <button
+                onClick={handleOpenLendModal}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs sm:text-sm shadow transition-transform active:scale-95"
               >
-                <option value="all">គ្រប់ប្រភេទទាំងអស់</option>
-                <option value="storybook">សៀវភៅរឿងនិទានកុមារ</option>
-                <option value="core_textbook">សៀវភៅពុម្ពគោល MoEYS</option>
-                <option value="reference">វចនានុក្រម / ស្រាវជ្រាវ</option>
-              </select>
-            </div>
+                <Plus className="w-4 h-4" />
+                <span>កត់ត្រាការខ្ចី (Lend)</span>
+              </button>
+            )}
 
-            {/* Grade Filter */}
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
-              <span className="text-slate-500">កម្រិតថ្នាក់៖</span>
-              <select
-                value={selectedGrade}
-                onChange={e => setSelectedGrade(e.target.value)}
-                className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+            {!isReadOnly && (
+              <button
+                onClick={handleOpenCreateBook}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs sm:text-sm shadow transition-transform active:scale-95"
               >
-                <option value="all">គ្រប់ថ្នាក់ (១-៦)</option>
-                {[1, 2, 3, 4, 5, 6].map(g => (
-                  <option key={g} value={g}>ថ្នាក់ទី{g}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Search Input */}
-            <div className="relative min-w-[180px]">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="ស្វែងរកចំណងជើង ឬកូដ..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* SUBTAB 1: Catalog Presentation */}
-      {activeSubTab === 'catalog' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 no-print">
-          {filteredBooks.map(b => (
-            <div
-              key={b.id}
-              className="bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between group"
-            >
-              <div>
-                {/* Book Cover Photo */}
-                <div className="relative h-48 bg-slate-100 overflow-hidden border-b border-slate-100 flex items-center justify-center">
-                  <img
-                    src={b.coverPhotoUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&auto=format&fit=crop&q=80'}
-                    alt={b.titleKhmer}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-
-                  {/* Category Pill Top Left */}
-                  <div className="absolute top-3 left-3">
-                    {getCategoryLabel(b.category)}
-                  </div>
-
-                  {/* Grade Badge Top Right */}
-                  <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm text-slate-900 font-bold text-[10px] px-2 py-0.5 rounded-lg shadow-sm">
-                    ថ្នាក់ទី{b.gradeLevel}
-                  </div>
-
-                  {/* Shelf Location & Code Overlay */}
-                  <div className="absolute bottom-2.5 left-3 right-3 text-white">
-                    <p className="text-[11px] font-mono text-amber-300 font-bold">{b.code}</p>
-                    <p className="text-sm font-bold font-moul leading-tight line-clamp-1 drop-shadow-sm">{b.titleKhmer}</p>
-                  </div>
-                </div>
-
-                {/* Book Information Body */}
-                <div className="p-4 space-y-2.5 text-xs text-slate-600">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <span className="text-slate-500">អ្នកនិពន្ធ/រៀបរៀង៖</span>
-                    <span className="font-semibold text-slate-800 line-clamp-1">{b.author || 'MoEYS'}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <span className="text-slate-500">ទីតាំងទូដាក់៖</span>
-                    <span className="font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded">
-                      {b.shelfLocation || 'ទូ A-01'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-slate-500">ចំនួនក្នុងស្តុក៖</span>
-                    <span className="font-bold text-slate-900">
-                      <span className="text-emerald-600 font-bold">{b.availableCopies}</span> / {b.totalCopies} ច្បាប់
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Book Actions */}
-              {!isReadOnly && (
-              <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-1.5">
-                <button
-                  onClick={() => handleOpenCreateLog(b)}
-                  disabled={b.availableCopies <= 0}
-                  className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-bold rounded-xl transition-all ${
-                    b.availableCopies > 0
-                      ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-sm'
-                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                  }`}
-                >
-                  <BookMarked className="w-3.5 h-3.5" />
-                  <span>{b.availableCopies > 0 ? 'កត់ត្រាខ្ចី' : 'អស់ពីស្តុក'}</span>
-                </button>
-
-                <button
-                  onClick={() => handleOpenEditBook(b)}
-                  className="p-1.5 text-slate-500 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors"
-                  title="កែសម្រួល"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (confirm(`តើអ្នកពិតជាចង់លុបសៀវភៅ «${b.titleKhmer}» ចេញពីបណ្ណាល័យមែនទេ?`)) {
-                      deleteLibraryBook(b.id);
-                    }
-                  }}
-                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="លុបសៀវភៅ"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* SUBTAB 2: Borrowing and Return Logs */}
-      {activeSubTab === 'logs' && (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm no-print">
-          <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-            <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-              <BookMarked className="w-4 h-4 text-purple-600" />
-              <span>បញ្ជីតាមដានការខ្ចី និងសងសៀវភៅបណ្ណាល័យ ({readingLogs.length} កំណត់ត្រា)</span>
-            </h3>
-            <button
-              onClick={() => handleOpenCreateLog()}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-sm"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>កត់ត្រាការខ្ចីថ្មី</span>
-            </button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left border-collapse">
-              <thead className="bg-slate-100 text-slate-700 border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4 text-center font-bold">ល.រ</th>
-                  <th className="py-3 px-4 font-bold">ឈ្មោះសិស្ស</th>
-                  <th className="py-3 px-4 font-bold">ថ្នាក់</th>
-                  <th className="py-3 px-4 font-bold">ចំណងជើងសៀវភៅ</th>
-                  <th className="py-3 px-4 font-bold">ថ្ងៃខ្ចី</th>
-                  <th className="py-3 px-4 font-bold">ថ្ងៃកំណត់សង</th>
-                  <th className="py-3 px-4 font-bold text-center">ស្ថានភាព</th>
-                  <th className="py-3 px-4 font-bold text-center">ទំព័រអាន</th>
-                  {!isReadOnly && <th className="py-3 px-4 font-bold text-center">សកម្មភាព</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 text-slate-700">
-                {readingLogs.map((log, idx) => (
-                  <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-3 px-4 text-center font-semibold text-slate-500">{idx + 1}</td>
-                    <td className="py-3 px-4">
-                      <p className="font-bold text-slate-900">{log.studentNameKhmer}</p>
-                      <p className="text-[10px] text-slate-400 font-mono">{log.studentCode}</p>
-                    </td>
-                    <td className="py-3 px-4 font-bold text-slate-700">
-                      ថ្នាក់ទី{log.studentGrade}{log.studentSection}
-                    </td>
-                    <td className="py-3 px-4 font-semibold text-blue-900">
-                      {log.bookTitle}
-                    </td>
-                    <td className="py-3 px-4 font-mono text-slate-600">{log.borrowDate}</td>
-                    <td className="py-3 px-4 font-mono text-slate-600">{log.dueDate}</td>
-                    <td className="py-3 px-4 text-center">
-                      {log.status === 'returned' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-lg text-[10px]">
-                          <CheckCircle className="w-3 h-3" />
-                          <span>បានសងរួច</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-800 font-bold rounded-lg text-[10px]">
-                          <Clock className="w-3 h-3" />
-                          <span>កំពុងខ្ចី</span>
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-center font-bold text-purple-700">
-                      {log.pagesRead || '-'} ទំព័រ
-                    </td>
-                    {!isReadOnly && (
-                    <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        {log.status === 'borrowed' && (
-                          <button
-                            onClick={() => handleMarkReturned(log)}
-                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[10px] shadow-sm flex items-center gap-1"
-                            title="ទទួលសៀវភៅមកវិញ"
-                          >
-                            <Check className="w-3 h-3" />
-                            <span>សងសៀវភៅ</span>
-                          </button>
-                        )}
-                        <button
-                          onClick={() => {
-                            if (confirm(`តើអ្នកពិតជាចង់លុបកំណត់ត្រាអាននេះមែនទេ?`)) {
-                              deleteReadingLog(log.id);
-                            }
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                <Plus className="w-4 h-4" />
+                <span>បន្ថែមសៀវភៅ (Add Book)</span>
+              </button>
+            )}
           </div>
         </div>
-      )}
 
-      {/* SUBTAB 3: Reading Ladder & Champions */}
-      {activeSubTab === 'ladder' && (
-        <div className="space-y-6 no-print">
-          {/* Champions Podium */}
-          <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
-            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="space-y-2 text-center md:text-left">
-                <div className="inline-flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-xs font-bold">
-                  <Sparkles className="w-4 h-4 text-amber-200" />
-                  <span>កម្មវិធីជំរុញការអានសាលាបឋមសិក្សារដ្ឋ</span>
-                </div>
-                <h2 className="text-2xl font-bold font-moul">ជើងឯកអំណានប្រចាំឆ្នាំសិក្សា</h2>
-                <p className="text-xs text-amber-100 max-w-xl">
-                  លើកទឹកចិត្តសិស្សានុសិស្សដែលបានអានសៀវភៅ និងកត់ត្រាចំណាប់អារម្មណ៍អំណានបានច្រើនជាងគេក្នុងបណ្ណាល័យ {schoolProfile.nameKhmer}
-                </p>
-              </div>
-
-              {/* Gold Trophy Icon */}
-              <div className="w-24 h-24 bg-white/15 rounded-3xl backdrop-blur-md flex items-center justify-center border border-white/30 shadow-inner">
-                <Award className="w-14 h-14 text-yellow-200 drop-shadow-md" />
-              </div>
-            </div>
-          </div>
-
-          {/* Top Readers Roster */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {libraryStats.topReaders.map((reader, idx) => (
-              <div
-                key={reader.name}
-                className={`bg-white rounded-2xl border p-5 shadow-sm relative overflow-hidden flex flex-col justify-between ${
-                  idx === 0 ? 'border-amber-400 ring-2 ring-amber-300' : 'border-slate-200'
+        {/* Navigation Tabs Bar */}
+        <div className="flex items-center gap-1.5 overflow-x-auto mt-6 pt-4 border-t border-slate-100 no-scrollbar">
+          {tabs.map(tab => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
+                  isActive
+                    ? 'bg-teal-700 text-white shadow-md'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
-                {/* Ranking Tag */}
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm text-white ${
-                      idx === 0 ? 'bg-amber-500' : idx === 1 ? 'bg-slate-400' : idx === 2 ? 'bg-amber-700' : 'bg-blue-600'
-                    }`}>
-                      {idx + 1}
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900 text-sm">{reader.name}</h4>
-                      <p className="text-[11px] text-slate-500">ថ្នាក់ទី{reader.grade}{reader.section} • {reader.code}</p>
-                    </div>
-                  </div>
+                <Icon className={`w-4 h-4 ${isActive ? 'text-teal-200' : 'text-slate-500'}`} />
+                <span>{tab.label}</span>
+                {tab.count !== undefined && tab.count > 0 && (
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+                      isActive ? 'bg-teal-800 text-white' : 'bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {toKhmerNum(tab.count)}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-                  <Award className={`w-6 h-6 ${idx === 0 ? 'text-amber-500' : 'text-slate-400'}`} />
+      {/* Tab 1: Overview Dashboard */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* KPI Dashboard Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-battambang">សៀវភៅក្នុងបណ្ណាល័យ</p>
+                <p className="text-2xl sm:text-3xl font-bold font-times text-teal-800 mt-1">
+                  {toKhmerNum(stats.totalTitles)}{' '}
+                  <span className="text-xs text-slate-500 font-battambang font-normal">
+                    ចំណងជើង ({toKhmerNum(stats.totalCopies)} ច្បាប់)
+                  </span>
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-teal-50 text-teal-700 rounded-2xl flex items-center justify-center">
+                <BookOpen className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-battambang">សៀវភៅកំពុងខ្ចី</p>
+                <p className="text-2xl sm:text-3xl font-bold font-times text-blue-700 mt-1">
+                  {toKhmerNum(stats.borrowedCopies)}{' '}
+                  <span className="text-xs text-slate-500 font-battambang font-normal">ច្បាប់</span>
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-blue-50 text-blue-700 rounded-2xl flex items-center justify-center">
+                <Clock className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-xs text-rose-600 font-bold font-battambang">ហួសកាលកំណត់</p>
+                <p className="text-2xl sm:text-3xl font-bold font-times text-rose-700 mt-1">
+                  {toKhmerNum(stats.overdueCount)}{' '}
+                  <span className="text-xs text-slate-500 font-battambang font-normal">ក្បាល</span>
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-rose-50 text-rose-700 rounded-2xl flex items-center justify-center">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-battambang">វត្តមានសិស្សថ្ងៃនេះ</p>
+                <p className="text-2xl sm:text-3xl font-bold font-times text-emerald-700 mt-1">
+                  {toKhmerNum(stats.todayVisitors)}{' '}
+                  <span className="text-xs text-slate-500 font-battambang font-normal">នាក់</span>
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-emerald-50 text-emerald-700 rounded-2xl flex items-center justify-center">
+                <Users className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Shortcuts & Live Activity Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Active Loans Card */}
+            <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BookMarked className="w-5 h-5 text-purple-700" />
+                  <h3 className="font-moul text-sm sm:text-base text-slate-800">
+                    សៀវភៅកំពុងស្ថិតក្នុងការខ្ចី ({toKhmerNum(readingLogs.filter(l => l.status === 'borrowed').length)})
+                  </h3>
                 </div>
+                <button
+                  onClick={() => setActiveTab('circulation')}
+                  className="text-xs text-purple-700 hover:text-purple-900 font-bold flex items-center gap-1"
+                >
+                  <span>មើលទាំងអស់</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
 
-                {/* Score Stats */}
-                <div className="py-4 space-y-2 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">ចំនួនសៀវភៅបានអាន៖</span>
-                    <span className="font-bold font-moul text-base text-purple-700">{reader.count} ក្បាល</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">កម្រិតជណ្តើរអំណាន៖</span>
-                    <span className="font-bold text-emerald-700">កម្រិត {Math.min(5, Math.ceil(reader.count / 2))} (ផ្កាយ ៥)</span>
-                  </div>
-                </div>
+              <div className="divide-y divide-slate-100 text-xs sm:text-sm font-battambang">
+                {readingLogs.filter(l => l.status === 'borrowed').length === 0 ? (
+                  <p className="py-6 text-center text-slate-400">មិនមានសៀវភៅកំពុងខ្ចីឡើយ</p>
+                ) : (
+                  readingLogs
+                    .filter(l => l.status === 'borrowed')
+                    .slice(0, 5)
+                    .map(log => (
+                      <div key={log.id} className="py-3 flex items-center justify-between gap-2">
+                        <div>
+                          <p className="font-bold text-slate-800">{log.bookTitle}</p>
+                          <p className="text-xs text-slate-500 font-mono">
+                            ខ្ចីដោយ៖ <span className="font-bold text-blue-900">{log.studentNameKhmer}</span> (ថ្នាក់ទី {toKhmerNum(log.grade || log.studentGrade || 1)}{log.section || 'ក'})
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                            ត្រូវសង៖ {log.dueDate}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
+            </div>
 
-                <div className="bg-slate-50 rounded-xl p-2.5 text-center text-xs font-bold text-blue-700">
-                  ★ ប័ណ្ណសរសើរអំណានឆ្នើម MoEYS ★
+            {/* Quick Actions & Top Books */}
+            <div className="space-y-4">
+              <div className="bg-gradient-to-br from-teal-700 to-emerald-800 text-white rounded-2xl p-5 shadow-sm space-y-3">
+                <h3 className="font-moul text-sm sm:text-base text-white flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-teal-200" />
+                  <span>សកម្មភាពរហ័ស (Quick Actions)</span>
+                </h3>
+                <p className="text-xs text-teal-100 font-battambang">
+                  ចុចដើម្បីកត់ត្រាការងារបណ្ណាល័យប្រចាំថ្ងៃបានឆាប់រហ័ស
+                </p>
+
+                <div className="space-y-2 pt-2">
+                  <button
+                    onClick={() => setActiveTab('visitors')}
+                    className="w-full py-2.5 px-4 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold flex items-center justify-between transition-colors"
+                  >
+                    <span>កត់ត្រាវត្តមានចូលបណ្ណាល័យ</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('ladder')}
+                    className="w-full py-2.5 px-4 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold flex items-center justify-between transition-colors"
+                  >
+                    <span>ចេញលិខិតសរសើរជើងឯកអាន</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('reports')}
+                    className="w-full py-2.5 px-4 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold flex items-center justify-between transition-colors"
+                  >
+                    <span>បោះពុម្ពបញ្ជីសារពើភណ្ឌ MoEYS</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Official MoEYS Printable Library Ledger (Hidden on screen, shown in print) */}
-      <div className="hidden print:block bg-white p-4 space-y-6">
-        <MoEYSRoyalHeader />
+      {/* Tab 2: Catalog Tab */}
+      {activeTab === 'catalog' && (
+        <BookCatalogTab
+          onOpenCreateBook={handleOpenCreateBook}
+          onOpenEditBook={handleOpenEditBook}
+        />
+      )}
 
-        <div className="text-center space-y-1 mt-4">
-          <h2 className="text-lg font-bold font-moul text-slate-900">សៀវភៅតាមដានការខ្ចី-សងសៀវភៅ និងជណ្តើរអំណាន</h2>
-          <p className="text-xs font-bold text-slate-700">
-            {schoolProfile.nameKhmer} • បណ្ណាល័យបឋមសិក្សា
-          </p>
-          <p className="text-[11px] text-slate-600">
-            ឆ្នាំសិក្សា {schoolProfile.academicYear} • ឃុំ{schoolProfile.commune} ស្រុក{schoolProfile.district} {schoolProfile.province}
-          </p>
-        </div>
+      {/* Tab 3: Circulation Desk Tab */}
+      {activeTab === 'circulation' && (
+        <CirculationDeskTab onOpenLendModal={handleOpenLendModal} />
+      )}
 
-        {/* Printable Table */}
-        <table className="w-full text-[11px] border-collapse border border-slate-900 mt-4">
-          <thead>
-            <tr className="bg-slate-100 border-b border-slate-900 text-center font-bold">
-              <th className="border border-slate-900 p-1.5 w-10">ល.រ</th>
-              <th className="border border-slate-900 p-1.5">ឈ្មោះសិស្ស</th>
-              <th className="border border-slate-900 p-1.5 w-14">ថ្នាក់</th>
-              <th className="border border-slate-900 p-1.5">ចំណងជើងសៀវភៅអាន</th>
-              <th className="border border-slate-900 p-1.5 w-20">ថ្ងៃខ្ចី</th>
-              <th className="border border-slate-900 p-1.5 w-20">ថ្ងៃសង</th>
-              <th className="border border-slate-900 p-1.5 w-16">ទំព័រ</th>
-              <th className="border border-slate-900 p-1.5 w-20">ស្ថានភាព</th>
-              <th className="border border-slate-900 p-1.5">បណ្ណារក្ស</th>
-            </tr>
-          </thead>
-          <tbody>
-            {readingLogs.map((log, i) => (
-              <tr key={log.id} className="border-b border-slate-800 text-slate-900">
-                <td className="border border-slate-900 p-1.5 text-center">{i + 1}</td>
-                <td className="border border-slate-900 p-1.5 font-bold">{log.studentNameKhmer}</td>
-                <td className="border border-slate-900 p-1.5 text-center">ថ្នាក់ទី{log.studentGrade}{log.studentSection}</td>
-                <td className="border border-slate-900 p-1.5 font-semibold">{log.bookTitle}</td>
-                <td className="border border-slate-900 p-1.5 text-center font-mono">{log.borrowDate}</td>
-                <td className="border border-slate-900 p-1.5 text-center font-mono">{log.returnDate || log.dueDate}</td>
-                <td className="border border-slate-900 p-1.5 text-center font-bold">{log.pagesRead || '-'}</td>
-                <td className="border border-slate-900 p-1.5 text-center">{log.status === 'returned' ? 'បានសង' : 'កំពុងខ្ចី'}</td>
-                <td className="border border-slate-900 p-1.5">{log.librarianName || 'បណ្ណារក្ស'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Tab 4: Visitors Tab */}
+      {activeTab === 'visitors' && <VisitorTrackerTab />}
 
-        {/* Printable Signatures & Stamps Footer */}
-        <div className="grid grid-cols-2 gap-8 pt-8 text-xs text-slate-900 mt-6 page-break-inside-avoid">
-          <div className="text-center space-y-1">
-            <p className="font-bold">បានឃើញ និងពិនិត្យត្រឹមត្រូវ</p>
-            <p className="font-bold">បណ្ណារក្សសាលារៀន</p>
-            <div className="h-20" />
-            <p className="font-bold">{currentUser?.nameKhmer || 'អ្នកគ្រូ បណ្ណារក្ស'}</p>
-          </div>
+      {/* Tab 5: Reading Ladder Tab */}
+      {activeTab === 'ladder' && <ReadingLadderTab />}
 
-          <div className="text-center space-y-1 relative">
-            <p>ថ្ងៃ................ខែ..........ឆ្នាំ..............ព.ស.២៥៦...</p>
-            <p className="font-bold">{schoolProfile.district}, ថ្ងៃទី....... ខែ....... ឆ្នាំ២០២...</p>
-            <p className="font-bold font-moul text-sm text-blue-950">នាយកសាលាបឋមសិក្សា</p>
+      {/* Tab 6: Reports Tab */}
+      {activeTab === 'reports' && <LibraryReportsTab />}
 
-            <div className="h-24 relative flex items-center justify-center">
-              {/* Optional Official Stamp */}
-              {printSettings.showRoundStamp && (
-                <div className="absolute w-28 h-28 rounded-full border-2 border-dashed border-red-600/80 flex flex-col items-center justify-center text-red-600 p-1 opacity-90 rotate-[-8deg]">
-                  <span className="text-[9px] font-bold">ក្រសួងអប់រំ យុវជន និងកីឡា</span>
-                  <span className="text-[8px] font-bold text-center">★ សាលាបឋមសិក្សាភ្នំពុំ ★</span>
-                  <span className="text-[7px]">បាត់ដំបង</span>
-                </div>
-              )}
-
-              {/* Optional Director Signature */}
-              {printSettings.showDirectorSignature && (
-                <span className="font-cursive text-2xl text-blue-900 transform -rotate-6 z-10 select-none">
-                  Lim Sorn
-                </span>
-              )}
-            </div>
-
-            {/* Director Name */}
-            <p className={`font-bold font-moul text-sm ${printSettings.showDirectorRedName ? 'text-red-600' : 'text-slate-900'}`}>
-              {schoolProfile.principalName}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* MODAL 1: Add/Edit Book */}
-      {isAddBookModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 no-print animate-fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full overflow-hidden">
-            <div className="bg-gradient-to-r from-teal-700 to-emerald-700 px-6 py-4 text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <BookOpen className="w-5 h-5 text-amber-300" />
-                <h3 className="font-bold text-lg font-moul">
-                  {editingBookId ? 'កែប្រែព័ត៌មានសៀវភៅ' : 'បញ្ចូលសៀវភៅថ្មីក្នុងបណ្ណាល័យ'}
+      {/* Add / Edit Book Modal */}
+      {isBookModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 my-8">
+            <div className="bg-teal-800 text-white px-5 py-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-teal-200" />
+                <h3 className="font-moul text-sm sm:text-base">
+                  {editingBookId ? 'កែប្រែទិន្នន័យសៀវភៅ' : 'បន្ថែមសៀវភៅថ្មីចូលបណ្ណាល័យ'}
                 </h3>
               </div>
-              <button onClick={() => setIsAddBookModalOpen(false)} className="text-white/80 hover:text-white">
-                <X className="w-5 h-5" />
+              <button
+                onClick={() => setIsBookModalOpen(false)}
+                className="text-white/80 hover:text-white"
+              >
+                ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveBook} className="p-6 space-y-4 text-xs">
+            <form onSubmit={handleSaveBook} className="p-5 sm:p-6 space-y-4 font-battambang text-xs sm:text-sm">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">លេខកូដសៀវភៅ / ISBN *</label>
+                  <label className="block text-slate-700 font-bold mb-1">កូដសៀវភៅ (Book Code)</label>
                   <input
                     type="text"
-                    required
                     value={bookFormData.code}
                     onChange={e => setBookFormData({ ...bookFormData, code: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold"
+                    required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">ប្រភេទសៀវភៅ *</label>
+                  <label className="block text-slate-700 font-bold mb-1">ទម្រង់សៀវភៅ</label>
                   <select
-                    value={bookFormData.category}
-                    onChange={e => setBookFormData({ ...bookFormData, category: e.target.value as LibraryBookCategory })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-slate-800"
+                    value={bookFormData.format || 'physical'}
+                    onChange={e => setBookFormData({ ...bookFormData, format: e.target.value as LibraryBookFormat })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold"
                   >
-                    <option value="storybook">សៀវភៅរឿងនិទានកុមារ</option>
-                    <option value="core_textbook">សៀវភៅពុម្ពគោល MoEYS</option>
-                    <option value="reference">វចនានុក្រម / ស្រាវជ្រាវ</option>
+                    <option value="physical">📚 សៀវភៅរូបវន្ត (Physical Book)</option>
+                    <option value="digital">💻 សៀវភៅឌីជីថល (E-Book / PDF)</option>
                   </select>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">ចំណងជើងជាភាសាខ្មែរ *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="ឧ. រឿងកូនទន្សាយឈ្លាសវៃ"
-                  value={bookFormData.titleKhmer}
-                  onChange={e => setBookFormData({ ...bookFormData, titleKhmer: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-sm text-slate-900"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">ចំណងជើងសៀវភៅ (ភាសាខ្មែរ)</label>
+                  <input
+                    type="text"
+                    value={bookFormData.titleKhmer}
+                    onChange={e => setBookFormData({ ...bookFormData, titleKhmer: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold"
+                    placeholder="ឧ. រឿងកូនទន្សាយឈ្លាសវៃ"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">ចំណងជើងជាអក្សរឡាតាំង (Title Latin)</label>
+                  <input
+                    type="text"
+                    value={bookFormData.titleLatin || ''}
+                    onChange={e => setBookFormData({ ...bookFormData, titleLatin: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-times"
+                    placeholder="The Clever Rabbit"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">កម្រិតថ្នាក់</label>
+                  <label className="block text-slate-700 font-bold mb-1">ប្រភេទសៀវភៅ</label>
                   <select
-                    value={bookFormData.gradeLevel}
+                    value={bookFormData.category}
+                    onChange={e => setBookFormData({ ...bookFormData, category: e.target.value as LibraryBookCategory })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold"
+                  >
+                    <option value="storybook">រឿងនិទានកុមារ</option>
+                    <option value="core_textbook">សៀវភៅពុម្ពគោល</option>
+                    <option value="science">វិទ្យាសាស្ត្រ</option>
+                    <option value="history">ប្រវត្តិសាស្ត្រ</option>
+                    <option value="mathematics">គណិតវិទ្យា</option>
+                    <option value="geography">ភូមិវិទ្យា</option>
+                    <option value="literature">អក្សរសាស្ត្រ & កំណាព្យ</option>
+                    <option value="reference">ឯកសារយោង & វចនានុក្រម</option>
+                    <option value="magazine">ទស្សនាវដ្តី</option>
+                    <option value="general">ចំណេះដឹងទូទៅ</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">ថ្នាក់គោលដៅ</label>
+                  <select
+                    value={bookFormData.gradeLevel || 1}
                     onChange={e => setBookFormData({ ...bookFormData, gradeLevel: parseInt(e.target.value) })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold"
                   >
                     {[1, 2, 3, 4, 5, 6].map(g => (
-                      <option key={g} value={g}>ថ្នាក់ទី{g}</option>
+                      <option key={g} value={g}>
+                        ថ្នាក់ទី {toKhmerNum(g)}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">ចំនួនច្បាប់សរុប</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={bookFormData.totalCopies}
-                    onChange={e => setBookFormData({
-                      ...bookFormData,
-                      totalCopies: parseInt(e.target.value) || 1,
-                      availableCopies: parseInt(e.target.value) || 1
-                    })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-center"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">ទីតាំងទូ (Shelf)</label>
+                  <label className="block text-slate-700 font-bold mb-1">ទីតាំងទូ/ធ្នើ</label>
                   <input
                     type="text"
                     value={bookFormData.shelfLocation || ''}
                     onChange={e => setBookFormData({ ...bookFormData, shelfLocation: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono"
                     placeholder="ទូ A-01"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300"
                   />
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">អ្នកនិពន្ធ</label>
+                  <input
+                    type="text"
+                    value={bookFormData.author}
+                    onChange={e => setBookFormData({ ...bookFormData, author: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300"
+                    placeholder="MoEYS / SIPAR"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">ចំនួនសរុប (Total Copies)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={bookFormData.totalCopies}
+                    onChange={e => {
+                      const total = parseInt(e.target.value) || 1;
+                      setBookFormData({
+                        ...bookFormData,
+                        totalCopies: total,
+                        availableCopies: editingBookId ? Math.min(total, bookFormData.availableCopies) : total
+                      });
+                    }}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">ចំនួននៅសល់ (Available)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max={bookFormData.totalCopies}
+                    value={bookFormData.availableCopies}
+                    onChange={e => setBookFormData({ ...bookFormData, availableCopies: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold"
+                  />
+                </div>
+              </div>
+
+              {bookFormData.format === 'digital' && (
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">តំណភ្ជាប់ PDF / Google Drive E-Book</label>
+                  <input
+                    type="url"
+                    value={bookFormData.digitalFileUrl || ''}
+                    onChange={e => setBookFormData({ ...bookFormData, digitalFileUrl: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono"
+                    placeholder="https://..."
+                  />
+                </div>
+              )}
+
               <div>
-                <label className="block text-slate-700 font-bold mb-1">តំណរូបភាពក្របសៀវភៅ (Cover Image URL)</label>
+                <label className="block text-slate-700 font-bold mb-1">តំណភ្ជាប់រូបភាពក្របសៀវភៅ (Cover Photo URL)</label>
                 <input
                   type="url"
                   value={bookFormData.coverPhotoUrl || ''}
                   onChange={e => setBookFormData({ ...bookFormData, coverPhotoUrl: e.target.value })}
-                  placeholder="https://..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono"
+                  placeholder="https://images.unsplash.com/..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">សេចក្តីសង្ខេបខ្លឹមសារសៀវភៅ</label>
+                <textarea
+                  rows={2}
+                  value={bookFormData.description || ''}
+                  onChange={e => setBookFormData({ ...bookFormData, description: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300"
+                  placeholder="សេចក្តីសង្ខេបខ្លីៗអំពីខ្លឹមសាររឿង ឬមេរៀន..."
                 />
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
                 <button
                   type="button"
-                  onClick={() => setIsAddBookModalOpen(false)}
+                  onClick={() => setIsBookModalOpen(false)}
                   className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl"
                 >
                   បោះបង់
@@ -977,7 +724,7 @@ export const LibraryManagement: React.FC = () => {
                   type="submit"
                   className="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-md"
                 >
-                  រក្សាទុកសៀវភៅ
+                  {editingBookId ? 'រក្សាទុកការកែប្រែ' : 'បន្ថែមសៀវភៅ'}
                 </button>
               </div>
             </form>
@@ -985,82 +732,88 @@ export const LibraryManagement: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 2: Add Borrowing / Reading Log */}
-      {isAddLogModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 no-print animate-fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-xl w-full overflow-hidden">
-            <div className="bg-gradient-to-r from-purple-700 to-indigo-700 px-6 py-4 text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <BookMarked className="w-5 h-5 text-amber-300" />
-                <h3 className="font-bold text-lg font-moul">កត់ត្រាការខ្ចី ឬអានសៀវភៅ</h3>
+      {/* Lend Book Wizard Modal */}
+      {isLendModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in duration-200">
+            <div className="bg-purple-700 text-white px-5 py-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BookMarked className="w-5 h-5 text-purple-200" />
+                <h3 className="font-moul text-sm sm:text-base">កត់ត្រាការខ្ចីសៀវភៅបណ្ណាល័យ</h3>
               </div>
-              <button onClick={() => setIsAddLogModalOpen(false)} className="text-white/80 hover:text-white">
-                <X className="w-5 h-5" />
+              <button
+                onClick={() => setIsLendModalOpen(false)}
+                className="text-white/80 hover:text-white"
+              >
+                ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveLog} className="p-6 space-y-4 text-xs">
-              {/* Select Student */}
+            <form onSubmit={handleSaveLend} className="p-5 space-y-4 font-battambang text-xs sm:text-sm">
               <div>
-                <label className="block text-slate-700 font-bold mb-1">ជ្រើសរើសសិស្សានុសិស្ស *</label>
+                <label className="block text-slate-700 font-bold mb-1">ជ្រើសរើសសិស្សដែលខ្ចី</label>
                 <select
-                  value={logFormData.studentId}
+                  value={lendFormData.studentId}
                   onChange={e => {
-                    const st = students.find(s => s.id === e.target.value);
-                    if (st) {
-                      setLogFormData({
-                        ...logFormData,
-                        studentId: st.id,
-                        studentCode: st.code,
-                        studentNameKhmer: st.nameKhmer,
-                        studentGrade: st.grade,
-                        studentSection: st.section
+                    const stu = students.find(s => s.id === e.target.value);
+                    if (stu) {
+                      setLendFormData({
+                        ...lendFormData,
+                        studentId: stu.id,
+                        studentCode: stu.code || '',
+                        studentNameKhmer: stu.nameKhmer,
+                        grade: stu.grade || 1,
+                        section: stu.section || 'ក'
                       });
                     }
                   }}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-slate-900 text-sm"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold"
+                  required
                 >
                   {students.map(s => (
                     <option key={s.id} value={s.id}>
-                      {s.nameKhmer} ({s.code}) - ថ្នាក់ទី{s.grade}{s.section}
+                      {s.nameKhmer} ({s.code || 'STU'}) - ថ្នាក់ទី {toKhmerNum(s.grade || 1)}{s.section || 'ក'}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Select Book */}
               <div>
-                <label className="block text-slate-700 font-bold mb-1">ជ្រើសរើសសៀវភៅ *</label>
+                <label className="block text-slate-700 font-bold mb-1">ជ្រើសរើសសៀវភៅដែលត្រូវខ្ចី</label>
                 <select
-                  value={logFormData.bookId}
+                  value={lendFormData.bookId}
                   onChange={e => {
                     const bk = libraryBooks.find(b => b.id === e.target.value);
                     if (bk) {
-                      setLogFormData({
-                        ...logFormData,
+                      setLendFormData({
+                        ...lendFormData,
                         bookId: bk.id,
-                        bookTitle: bk.titleKhmer
+                        bookCode: bk.code,
+                        bookTitle: bk.titleKhmer,
+                        bookCategory: bk.category
                       });
                     }
                   }}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-slate-900 text-sm"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold"
+                  required
                 >
                   {libraryBooks.map(b => (
-                    <option key={b.id} value={b.id}>
-                      {b.titleKhmer} ({b.code}) - នៅសល់ {b.availableCopies} ច្បាប់
+                    <option key={b.id} value={b.id} disabled={b.availableCopies <= 0}>
+                      {b.titleKhmer} ({b.code}) {b.availableCopies > 0 ? `- នៅសល់ ${toKhmerNum(b.availableCopies)} ច្បាប់` : '(ខ្ចីអស់)'}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">ថ្ងៃខ្ចី</label>
                   <input
                     type="date"
-                    value={logFormData.borrowDate}
-                    onChange={e => setLogFormData({ ...logFormData, borrowDate: e.target.value })}
+                    value={lendFormData.borrowDate}
+                    onChange={e => setLendFormData({ ...lendFormData, borrowDate: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold"
+                    required
                   />
                 </div>
 
@@ -1068,39 +821,55 @@ export const LibraryManagement: React.FC = () => {
                   <label className="block text-slate-700 font-bold mb-1">ថ្ងៃត្រូវសង</label>
                   <input
                     type="date"
-                    value={logFormData.dueDate}
-                    onChange={e => setLogFormData({ ...logFormData, dueDate: e.target.value })}
+                    value={lendFormData.dueDate}
+                    onChange={e => setLendFormData({ ...lendFormData, dueDate: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono font-bold"
+                    required
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">ចំនួនទំព័រអានបាន</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={logFormData.pagesRead || 10}
-                  onChange={e => setLogFormData({ ...logFormData, pagesRead: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">ចំណាប់អារម្មណ៍ ឬសេចក្តីសង្ខេបរបស់សិស្ស</label>
-                <textarea
-                  rows={2}
-                  placeholder="សិស្សបានសង្ខេប ឬរៀបរាប់អំពីចំណុចល្អក្នុងសៀវភៅ..."
-                  value={logFormData.summaryOrImpression || ''}
-                  onChange={e => setLogFormData({ ...logFormData, summaryOrImpression: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300"
-                />
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500">កំណត់រយៈពេល៖</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + 7);
+                    setLendFormData({ ...lendFormData, dueDate: d.toISOString().split('T')[0] });
+                  }}
+                  className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-xs"
+                >
+                  ៧ ថ្ងៃ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + 14);
+                    setLendFormData({ ...lendFormData, dueDate: d.toISOString().split('T')[0] });
+                  }}
+                  className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-xs"
+                >
+                  ១៤ ថ្ងៃ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + 30);
+                    setLendFormData({ ...lendFormData, dueDate: d.toISOString().split('T')[0] });
+                  }}
+                  className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-xs"
+                >
+                  ១ ខែ
+                </button>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
                 <button
                   type="button"
-                  onClick={() => setIsAddLogModalOpen(false)}
+                  onClick={() => setIsLendModalOpen(false)}
                   className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl"
                 >
                   បោះបង់
@@ -1116,14 +885,6 @@ export const LibraryManagement: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Universal Print Modal */}
-      <UniversalPrintModal
-        isOpen={isPrintModalOpen}
-        onClose={() => setIsPrintModalOpen(false)}
-        titleKhmer="សៀវភៅតាមដានការខ្ចី-សងសៀវភៅ និងជណ្តើរអំណានបណ្ណាល័យ"
-        documentSubtitle={`បណ្ណាល័យ ${schoolProfile.nameKhmer} • ឆ្នាំសិក្សា ${schoolProfile.academicYear}`}
-      />
     </div>
   );
 };

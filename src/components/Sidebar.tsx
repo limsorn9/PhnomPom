@@ -183,6 +183,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           badge: 'Secretary',
           badgeColor: 'bg-indigo-100 text-indigo-800 font-bold border border-indigo-300'
         },
+        {
+          id: 'librarian_dashboard' as ActiveTab,
+          labelKh: '📚 ផ្ទាំងគ្រប់គ្រងបណ្ណារក្ស',
+          labelEn: 'Librarian Dashboard',
+          icon: LibraryIcon,
+          badge: libraryBooks.length,
+          badgeColor: 'bg-teal-100 text-teal-800 font-bold border border-teal-300'
+        },
         ...(currentUser?.role === 'super_admin' ? [{
           id: 'super_admin_hub' as ActiveTab,
           labelKh: '👑 Super Admin Hub',
