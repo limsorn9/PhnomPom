@@ -58,6 +58,8 @@ export const HouseholdCensus: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'table' | 'map'>('grid');
 
+  const isDirector = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
+
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
@@ -804,17 +806,19 @@ export const HouseholdCensus: React.FC = () => {
                       <Edit2 className="w-4 h-4" />
                     </button>
 
-                    <button
-                      onClick={() => {
-                        if (confirm(`តើអ្នកពិតជាចង់លុបទិន្នន័យខ្នងផ្ទះរបស់ «${h.headName}» មែនទេ?`)) {
-                          deleteHousehold(h.id);
-                        }
-                      }}
-                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                      title="លុបខ្នងផ្ទះ"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {isDirector && (
+                      <button
+                        onClick={() => {
+                          if (confirm(`តើអ្នកពិតជាចង់លុបទិន្នន័យខ្នងផ្ទះរបស់ «${h.headName}» មែនទេ?`)) {
+                            deleteHousehold(h.id);
+                          }
+                        }}
+                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                        title="លុបខ្នងផ្ទះ (សិទ្ធិនាយកសាលា)"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -885,17 +889,19 @@ export const HouseholdCensus: React.FC = () => {
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => {
-                            if (confirm(`តើអ្នកពិតជាចង់លុបទិន្នន័យខ្នងផ្ទះរបស់ «${h.headName}» មែនទេ?`)) {
-                              deleteHousehold(h.id);
-                            }
-                          }}
-                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
-                          title="លុប"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {isDirector && (
+                          <button
+                            onClick={() => {
+                              if (confirm(`តើអ្នកពិតជាចង់លុបទិន្នន័យខ្នងផ្ទះរបស់ «${h.headName}» មែនទេ?`)) {
+                                deleteHousehold(h.id);
+                              }
+                            }}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                            title="លុបខ្នងផ្ទះ (សិទ្ធិនាយកសាលា)"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -908,68 +914,24 @@ export const HouseholdCensus: React.FC = () => {
 
       {/* Interactive Map View */}
       {viewMode === 'map' && (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm p-4 space-y-4 no-print">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Compass className="w-5 h-5 text-emerald-600" />
-              <h3 className="text-base font-bold text-slate-800">ផែនទីទីតាំងខ្នងផ្ទះសិស្សក្នុងតំបន់សេវា ({filteredHouseholds.length} ខ្នង)</h3>
-            </div>
-            <a
-              href="https://maps.app.goo.gl/ackTYSYsd7t54vGP6"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors"
-            >
-              <span>បើកទីតាំងសាលារៀនលើ Google Maps</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
-
-          {/* Embedded Google Map with School & Household Pinpoints */}
-          <div className="relative w-full h-[520px] rounded-2xl overflow-hidden border border-slate-300 shadow-inner bg-slate-100">
-            <iframe
-              title="Google Map Phnom Pom Primary School Catchment Area"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15654.897451234!2d102.342145!3d13.241567!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTPCsDE0JzI5LjYiTiAxMDLCsDIwJzMxLjciRQ!5e0!3m2!1skm!2skh!4v1700000000000!5m2!1skm!2skh"
-              className="w-full h-full border-0"
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-
-            {/* Floating Household Pins Overlay Legend */}
-            <div className="absolute top-4 right-4 max-w-sm w-full bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-slate-200/80 max-h-[460px] overflow-y-auto space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                <span className="text-xs font-bold text-slate-800">បញ្ជីខ្នងផ្ទះលើផែនទី</span>
-                <span className="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                  {filteredHouseholds.length} ទីតាំង
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                {filteredHouseholds.map(h => (
-                  <div
-                    key={h.id}
-                    onClick={() => {
-                      setSelectedHousehold(h);
-                      setIsDetailModalOpen(true);
-                    }}
-                    className="p-2.5 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 cursor-pointer transition-all flex items-start gap-2.5 text-xs"
-                  >
-                    <div className="p-1.5 bg-emerald-100 text-emerald-700 rounded-lg shrink-0 mt-0.5">
-                      <MapPin className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-slate-800 truncate">{h.headName} (ផ្ទះ {h.houseNumber || 'N/A'})</p>
-                      <p className="text-[11px] text-slate-500">{h.village} • {h.members.length} នាក់</p>
-                      <div className="flex items-center gap-1 mt-1">
-                        {getPovertyBadge(h.familyStatus)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+        <div className="space-y-4 no-print">
+          <StudentHouseholdMap
+            households={filteredHouseholds}
+            schoolProfile={schoolProfile}
+            students={students}
+            villages={villages}
+            onSelectHousehold={(h) => {
+              setSelectedHousehold(h);
+              setIsDetailModalOpen(true);
+            }}
+            onDeleteHousehold={isDirector ? (id, name) => {
+              if (confirm(`តើអ្នកពិតជាចង់លុបទិន្នន័យខ្នងផ្ទះរបស់ «${name}» មែនទេ?`)) {
+                deleteHousehold(id);
+              }
+            } : undefined}
+            isDirector={isDirector}
+            selectedHouseholdId={selectedHousehold?.id}
+          />
         </div>
       )}
 

@@ -26,7 +26,8 @@ import {
   Tag,
   Crosshair,
   Route,
-  Share2
+  Share2,
+  Trash2
 } from 'lucide-react';
 
 interface StudentHouseholdMapProps {
@@ -35,6 +36,8 @@ interface StudentHouseholdMapProps {
   students?: Student[];
   villages?: string[];
   onSelectHousehold?: (household: HouseholdRecord) => void;
+  onDeleteHousehold?: (householdId: string, headName: string) => void;
+  isDirector?: boolean;
   selectedHouseholdId?: string | null;
 }
 
@@ -46,6 +49,8 @@ export const StudentHouseholdMap: React.FC<StudentHouseholdMapProps> = ({
   students = [],
   villages = [],
   onSelectHousehold,
+  onDeleteHousehold,
+  isDirector = false,
   selectedHouseholdId
 }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -396,21 +401,31 @@ export const StudentHouseholdMap: React.FC<StudentHouseholdMapProps> = ({
           ` : ''}
 
           <!-- Action Buttons -->
-          <div class="grid grid-cols-2 gap-1.5 pt-1">
+          <div class="grid ${isDirector && onDeleteHousehold ? 'grid-cols-3' : 'grid-cols-2'} gap-1.5 pt-1">
             <button
               id="btn-route-${h.id}"
-              class="w-full py-1.5 px-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1 shadow-sm transition-all"
+              class="w-full py-1.5 px-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-              <span>ទៅផ្ទះសិស្ស</span>
+              <span>ផ្លូវ</span>
             </button>
             <button
               id="btn-view-${h.id}"
-              class="w-full py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center justify-center gap-1 border border-slate-300 transition-all"
+              class="w-full py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center justify-center gap-1 border border-slate-300 transition-all cursor-pointer"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-              <span>ព័ត៌មានលម្អិត</span>
+              <span>លម្អិត</span>
             </button>
+            ${isDirector && onDeleteHousehold ? `
+              <button
+                id="btn-del-${h.id}"
+                class="w-full py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold flex items-center justify-center gap-1 border border-rose-200 transition-all cursor-pointer"
+                title="លុបទិន្នន័យខ្នងផ្ទះ (សិទ្ធិនាយកសាលា)"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                <span>លុប</span>
+              </button>
+            ` : ''}
           </div>
         </div>
       `;
@@ -433,6 +448,14 @@ export const StudentHouseholdMap: React.FC<StudentHouseholdMapProps> = ({
             onSelectHousehold(h);
           };
         }
+
+        const delBtn = document.getElementById(`btn-del-${h.id}`);
+        if (delBtn && onDeleteHousehold) {
+          delBtn.onclick = () => {
+            marker.closePopup();
+            onDeleteHousehold(h.id, h.headName);
+          };
+        }
       });
 
       marker.on('click', () => {
@@ -442,7 +465,7 @@ export const StudentHouseholdMap: React.FC<StudentHouseholdMapProps> = ({
       markersLayer.addLayer(marker);
     });
 
-  }, [filteredHouseholds, showNamesAlways, selectedHouseholdId, hoveredHouseholdId, activeRouteHousehold]);
+  }, [filteredHouseholds, showNamesAlways, selectedHouseholdId, hoveredHouseholdId, activeRouteHousehold, isDirector, onDeleteHousehold]);
 
   // Pan to selected household when selectedHouseholdId changes
   useEffect(() => {
@@ -864,6 +887,19 @@ export const StudentHouseholdMap: React.FC<StudentHouseholdMapProps> = ({
                           >
                             <Eye className="w-3 h-3" />
                             <span>លម្អិត</span>
+                          </button>
+                        )}
+                        {isDirector && onDeleteHousehold && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteHousehold(h.id, h.headName);
+                            }}
+                            className="py-1 px-2 bg-red-900/30 hover:bg-red-800/60 text-red-400 border border-red-800/60 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-colors"
+                            title="លុបខ្នងផ្ទះ (សិទ្ធិនាយកសាលា)"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>លុប</span>
                           </button>
                         )}
                       </div>

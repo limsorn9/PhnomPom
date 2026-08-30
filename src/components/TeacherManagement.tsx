@@ -455,11 +455,12 @@ export const TeacherManagement: React.FC = () => {
               onChange={e => setSelectedRole(e.target.value)}
               className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             >
-              <option value="all">គ្រប់មុខងារ/តួនាទីទាំងអស់</option>
-              <option value="នាយក">គណៈគ្រប់គ្រង (នាយក/នាយករង)</option>
+              <option value="all">គ្រប់មុខងារ/តួនាទីទាំងអស់ (គ្រូបង្រៀន & បុគ្គលិក)</option>
               <option value="គ្រូបន្ទុកថ្នាក់">គ្រូបន្ទុកថ្នាក់</option>
+              <option value="នាយក">គណៈគ្រប់គ្រង (នាយក/នាយករង)</option>
+              <option value="លេខាធិការ">លេខាធិការ (Secretary / បុគ្គលិករដ្ឋបាល)</option>
               <option value="បណ្ណារក្ស">បណ្ណារក្ស</option>
-              <option value="លេខាធិការ">លេខាធិការ</option>
+              <option value="មន្ត្រីទីចាត់ការ">មន្ត្រីទីចាត់ការ</option>
             </select>
           </div>
 
