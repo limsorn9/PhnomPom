@@ -6829,8 +6829,24 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const deleteHousehold = (id: string) => {
+    const existing = households.find(h => h.id === id);
     setHouseholds(prev => prev.filter(h => h.id !== id));
-    showToast('បានលុបទិន្នន័យខ្នងផ្ទះរួចរាល់', 'info');
+    showToast(`បានលុបទិន្នន័យខ្នងផ្ទះ «${existing?.headName || ''}» រួចរាល់!`, 'info');
+
+    if (existing) {
+      addActivityLog({
+        domain: 'school_management',
+        actionType: 'delete',
+        title: `បានលុបទិន្នន័យខ្នងផ្ទះ៖ ${existing.headName}`,
+        description: `ខ្នងផ្ទះលេខ ${existing.houseNumber || 'N/A'} • ${existing.village} • សមាជិក ${existing.members?.length || 0} នាក់`,
+        entityId: id,
+        entityName: existing.headName,
+        actorName: currentUser?.nameKhmer || 'នាយកសាលា',
+        actorRole: currentUser?.role === 'director' ? 'នាយកសាលា' : (currentUser?.role || 'អ្នកគ្រប់គ្រង'),
+        targetTab: 'household_census',
+        tags: [existing.village, 'ជំរឿនខ្នងផ្ទះ']
+      });
+    }
   };
 
   const addVillage = (villageName: string) => {

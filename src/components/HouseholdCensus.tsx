@@ -58,7 +58,14 @@ export const HouseholdCensus: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'table' | 'map'>('grid');
 
-  const isDirector = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
+  const isDirector = 
+    currentUser?.role === 'director' || 
+    currentUser?.role === 'super_admin' ||
+    currentUser?.role === 'secretary' ||
+    currentUser?.email?.toLowerCase() === 'limsorn9@gmail.com' ||
+    currentUser?.username?.toLowerCase() === 'director' ||
+    currentUser?.username?.toLowerCase() === 'limsorn' ||
+    Boolean(currentUser?.nameKhmer && (currentUser.nameKhmer.includes('លីម សន') || currentUser.nameKhmer.includes('នាយក')));
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
@@ -66,6 +73,7 @@ export const HouseholdCensus: React.FC = () => {
   const [isAddVillageModalOpen, setIsAddVillageModalOpen] = useState<boolean>(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
   const [selectedHousehold, setSelectedHousehold] = useState<HouseholdRecord | null>(null);
+  const [householdToDelete, setHouseholdToDelete] = useState<HouseholdRecord | null>(null);
   const [newVillageName, setNewVillageName] = useState<string>('');
 
   // Form state for creating / editing household
@@ -808,12 +816,8 @@ export const HouseholdCensus: React.FC = () => {
 
                     {isDirector && (
                       <button
-                        onClick={() => {
-                          if (confirm(`តើអ្នកពិតជាចង់លុបទិន្នន័យខ្នងផ្ទះរបស់ «${h.headName}» មែនទេ?`)) {
-                            deleteHousehold(h.id);
-                          }
-                        }}
-                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                        onClick={() => setHouseholdToDelete(h)}
+                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
                         title="លុបខ្នងផ្ទះ (សិទ្ធិនាយកសាលា)"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -877,26 +881,22 @@ export const HouseholdCensus: React.FC = () => {
                             setSelectedHousehold(h);
                             setIsDetailModalOpen(true);
                           }}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
                           title="មើលលម្អិត"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleOpenEdit(h)}
-                          className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                          className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg cursor-pointer"
                           title="កែសម្រួល"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         {isDirector && (
                           <button
-                            onClick={() => {
-                              if (confirm(`តើអ្នកពិតជាចង់លុបទិន្នន័យខ្នងផ្ទះរបស់ «${h.headName}» មែនទេ?`)) {
-                                deleteHousehold(h.id);
-                              }
-                            }}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                            onClick={() => setHouseholdToDelete(h)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
                             title="លុបខ្នងផ្ទះ (សិទ្ធិនាយកសាលា)"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -925,9 +925,13 @@ export const HouseholdCensus: React.FC = () => {
               setIsDetailModalOpen(true);
             }}
             onDeleteHousehold={isDirector ? (id, name) => {
-              if (confirm(`តើអ្នកពិតជាចង់លុបទិន្នន័យខ្នងផ្ទះរបស់ «${name}» មែនទេ?`)) {
-                deleteHousehold(id);
-              }
+              const target = households.find(item => item.id === id) || ({
+                id,
+                headName: name,
+                village: '',
+                members: []
+              } as unknown as HouseholdRecord);
+              setHouseholdToDelete(target);
             } : undefined}
             isDirector={isDirector}
             selectedHouseholdId={selectedHousehold?.id}
@@ -1602,14 +1606,29 @@ export const HouseholdCensus: React.FC = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setIsDetailModalOpen(false)}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-xl transition-colors font-medium"
-              >
-                បិទ (Close)
-              </button>
+            <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-xl transition-colors font-medium cursor-pointer"
+                >
+                  បិទ (Close)
+                </button>
+                {isDirector && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHouseholdToDelete(selectedHousehold);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-bold transition-all cursor-pointer"
+                    title="លុបទិន្នន័យខ្នងផ្ទះនេះចេញពីប្រព័ន្ធ (សិទ្ធិនាយកសាលា)"
+                  >
+                    <Trash2 className="w-4 h-4 text-rose-600" />
+                    <span>លុបខ្នងផ្ទះ</span>
+                  </button>
+                )}
+              </div>
 
               <button
                 type="button"
@@ -1617,7 +1636,7 @@ export const HouseholdCensus: React.FC = () => {
                   setIsDetailModalOpen(false);
                   setIsPrintModalOpen(true);
                 }}
-                className="flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-all"
+                className="flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-all cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
                 <span>បោះពុម្ពឯកសារខ្នងផ្ទះនេះ</span>
@@ -1673,6 +1692,80 @@ export const HouseholdCensus: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: Custom Delete Confirmation Modal */}
+      {householdToDelete && (
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 no-print animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-rose-100 max-w-md w-full overflow-hidden">
+            <div className="bg-gradient-to-r from-rose-600 to-red-700 px-6 py-4 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                  <Trash2 className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold font-moul text-sm">បញ្ជាក់ការលុបខ្នងផ្ទះ</h3>
+                  <p className="text-[11px] text-rose-100">សិទ្ធិអនុញ្ញាតដោយ៖ នាយកសាលា</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setHouseholdToDelete(null)}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-2">
+                <p className="text-rose-900 font-bold text-sm">
+                  តើអ្នកពិតជាចង់លុបទិន្នន័យជំរឿនខ្នងផ្ទះនេះមែនទេ?
+                </p>
+                <div className="space-y-1 text-slate-700 pt-1">
+                  <p><span className="font-semibold text-slate-500">មេគ្រួសារ៖</span> <strong className="text-slate-900 text-sm">{householdToDelete.headName}</strong></p>
+                  {householdToDelete.houseNumber && (
+                    <p><span className="font-semibold text-slate-500">លេខផ្ទះ៖</span> <strong className="text-slate-800">{householdToDelete.houseNumber}</strong></p>
+                  )}
+                  {householdToDelete.village && (
+                    <p><span className="font-semibold text-slate-500">ទីតាំងភូមិ៖</span> <span className="font-medium text-emerald-800">{householdToDelete.village}</span></p>
+                  )}
+                  {householdToDelete.members && (
+                    <p><span className="font-semibold text-slate-500">សមាជិកគ្រួសារ៖</span> <span className="font-bold text-blue-700">{householdToDelete.members.length} នាក់</span></p>
+                  )}
+                </div>
+              </div>
+
+              <p className="text-slate-500 text-[11px] leading-relaxed">
+                ⚠️ សម្គាល់៖ ការលុបនេះនឹងដកទិន្នន័យខ្នងផ្ទះ និងទីតាំងលើផែនទីសាលាចេញពីប្រព័ន្ធជំរឿនជាអចិន្ត្រៃយ៍។
+              </p>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setHouseholdToDelete(null)}
+                  className="px-4 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors font-medium cursor-pointer"
+                >
+                  បោះបង់ (Cancel)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    deleteHousehold(householdToDelete.id);
+                    if (selectedHousehold?.id === householdToDelete.id) {
+                      setIsDetailModalOpen(false);
+                      setSelectedHousehold(null);
+                    }
+                    setHouseholdToDelete(null);
+                  }}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>យល់ព្រមលុប (Confirm Delete)</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
