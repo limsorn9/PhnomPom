@@ -4410,9 +4410,9 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     addAccountAuditLog({
       eventType: 'permanent_delete',
-      targetUserId: deletedRecord.user?.id || 'unknown',
-      targetUserName: deletedRecord.user?.nameKhmer || 'មិនស្គាល់',
-      targetUserRole: deletedRecord.user?.role || 'teacher',
+      targetUserId: deletedRecord.user?.id || deletedRecord.studentProfileBackup?.id || deletedRecord.teacherProfileBackup?.id || 'unknown',
+      targetUserName: deletedRecord.user?.nameKhmer || deletedRecord.studentProfileBackup?.nameKhmer || deletedRecord.teacherProfileBackup?.nameKhmer || 'មិនស្គាល់',
+      targetUserRole: deletedRecord.entityType === 'student' ? 'student' : (deletedRecord.user?.role || 'teacher') || 'teacher',
       targetUserEmail: deletedRecord.user?.email,
       targetStaffCode: deletedRecord.user?.staffCode,
       actor: {
@@ -4422,10 +4422,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         role: currentUser?.role || 'director'
       },
       reason: 'លុបជាស្ថាពរចេញពីប្រព័ន្ធ',
-      details: `បានលុបគណនី «${deletedRecord.user?.nameKhmer || 'មិនស្គាល់'}» ជាស្ថាពរចេញពីធុងសំរាម`
+      details: `បានលុបគណនី «${deletedRecord.user?.nameKhmer || deletedRecord.studentProfileBackup?.nameKhmer || deletedRecord.teacherProfileBackup?.nameKhmer || 'មិនស្គាល់'}» ជាស្ថាពរចេញពីធុងសំរាម`
     });
 
-    showToast(`បានលុបគណនី «${deletedRecord.user?.nameKhmer || 'មិនស្គាល់'}» ជាស្ថាពររួចរាល់`, 'info');
+    showToast(`បានលុបគណនី «${deletedRecord.user?.nameKhmer || deletedRecord.studentProfileBackup?.nameKhmer || deletedRecord.teacherProfileBackup?.nameKhmer || 'មិនស្គាល់'}» ជាស្ថាពររួចរាល់`, 'info');
     return { success: true, message: 'បានលុបជាស្ថាពរ' };
   };
 
@@ -5299,7 +5299,25 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     setStudents(prev => prev.filter(s => s.id !== id));
-    showToast('បានលុបទិន្នន័យសិស្សចេញពីប្រព័ន្ធ!', 'info');
+
+    // Add to deletedUsers bin
+    const deletedRecord: DeletedAppUser = {
+      id: `del-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      entityType: 'student',
+      studentProfileBackup: existing,
+      deletedAt: new Date().toISOString(),
+      deletedBy: {
+        id: currentUser?.id,
+        nameKhmer: currentUser?.nameKhmer || 'មិនស្គាល់',
+        email: currentUser?.email || '',
+        role: currentUser?.role || 'unknown'
+      },
+      reason: 'លុបចេញពីបញ្ជីសិស្ស',
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    setDeletedUsers(prev => [deletedRecord, ...prev]);
+
+    showToast('បានលុបទិន្នន័យសិស្ស និងរក្សាទុកក្នុងធុងសំរាម!', 'info');
 
     if (existing) {
       addActivityLog({
@@ -5535,7 +5553,26 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Remove corresponding AppUser
     setAppUsers(prev => prev.filter(u => u.id !== `u-${id}` && (!existing || (u.email !== existing.email && (!existing.phone || u.phone !== existing.phone)))));
 
-    showToast('បានលុបទិន្នន័យគ្រូបង្រៀន និងគណនីរួចរាល់', 'info');
+    // Add to deletedUsers bin
+    if (existing) {
+      const deletedRecord: DeletedAppUser = {
+        id: `del-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        entityType: 'teacher',
+        teacherProfileBackup: existing,
+        deletedAt: new Date().toISOString(),
+        deletedBy: {
+          id: currentUser?.id,
+          nameKhmer: currentUser?.nameKhmer || 'មិនស្គាល់',
+          email: currentUser?.email || '',
+          role: currentUser?.role || 'unknown'
+        },
+        reason: 'លុបចេញពីបញ្ជីគ្រូបង្រៀន',
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      };
+      setDeletedUsers(prev => [deletedRecord, ...prev]);
+    }
+
+    showToast('បានលុបទិន្នន័យគ្រូបង្រៀន និងរក្សាទុកក្នុងធុងសំរាម!', 'info');
 
     if (existing) {
       addActivityLog({

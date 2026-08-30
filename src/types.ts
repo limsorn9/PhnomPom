@@ -612,7 +612,10 @@ export interface SuspiciousActivityAlert {
 
 export interface DeletedAppUser {
   id: string;
-  user: AppUser;
+  entityType?: 'appUser' | 'student' | 'teacher';
+  user?: AppUser;
+  studentProfileBackup?: Student;
+  teacherProfileBackup?: Teacher;
   deletedAt: string; // ISO string
   deletedBy: {
     id?: string;
@@ -622,7 +625,6 @@ export interface DeletedAppUser {
   };
   reason: string;
   expiresAt: string; // ISO string (30 days from deletedAt)
-  teacherProfileBackup?: Teacher;
 }
 
 export type AccountAuditEventType =

@@ -193,7 +193,7 @@ export const TeacherManagement: React.FC = () => {
       spouseOccupation: formData.spouseOccupation,
       childrenCount: Number(formData.childrenCount) || 0,
       status: formData.status,
-      avatarUrl: formData.gender === 'F'
+      avatarUrl: formData.avatarUrl && formData.avatarUrl.trim() !== '' ? formData.avatarUrl : formData.gender === 'F'
         ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'
         : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
       schedule: editingTeacher?.schedule || [
