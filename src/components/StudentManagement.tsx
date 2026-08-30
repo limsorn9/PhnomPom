@@ -49,8 +49,13 @@ import {
   CalendarDays,
   History,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Crop,
+  Video
 } from 'lucide-react';
+import { DirectCameraCaptureModal } from './common/DirectCameraCaptureModal';
+import { PhotoCropAndAlignModal } from './common/PhotoCropAndAlignModal';
+import { BatchStudentPhotoImportModal } from './common/BatchStudentPhotoImportModal';
 import { uploadStudentProfilePhoto, compressImageFile } from '../services/firebaseStorage';
 import { uploadProfilePhotoToDrive } from '../services/googleDrive';
 import {
@@ -181,6 +186,10 @@ export const StudentManagement: React.FC = () => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isDragOverPhoto, setIsDragOverPhoto] = useState(false);
   const [photoUploadSource, setPhotoUploadSource] = useState<'firebase' | 'base64' | 'url' | null>(null);
+  const [isBatchPhotoModalOpen, setIsBatchPhotoModalOpen] = useState(false);
+  const [isDirectCameraOpen, setIsDirectCameraOpen] = useState(false);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [cropModalImageSrc, setCropModalImageSrc] = useState<string | null>(null);
 
   // Handle Photo File Upload directly to Google Drive (with storage/base64 fallback)
   const handlePhotoFileUpload = async (file: File) => {
@@ -860,6 +869,17 @@ export const StudentManagement: React.FC = () => {
                 <span>បង្កើតគណនីសិស្សដែលខ្វះ ({students.filter(s => !isStudentRegisteredInAccounts(s)).length})</span>
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => setIsBatchPhotoModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-700 hover:to-orange-800 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-amber-300/60"
+              title="Upload រូបថតសិស្សច្រើននាក់ព្រមគ្នា និងផ្គូផ្គងស្វ័យប្រវត្តិតាមអត្តលេខ ឬឈ្មោះ"
+            >
+              <Camera className="w-4 h-4 text-amber-200" />
+              <span>Upload រូបថតច្រើននាក់ (Batch)</span>
+            </button>
+
             {(isDirector || isSecretary) ? (
               <button
                 id="add-student-btn"
@@ -2299,9 +2319,19 @@ export const StudentManagement: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsDirectCameraOpen(true)}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
+                        title="បើកកាមេរ៉ា Webcam ថតផ្ទាល់"
+                      >
+                        <Video className="w-4 h-4" />
+                        <span>ថតផ្ទាល់ (Camera)</span>
+                      </button>
+
                       <label
-                        className={`cursor-pointer flex items-center justify-center gap-2 px-3 py-2 bg-white hover:bg-slate-100 border rounded-lg text-xs font-semibold shadow-2xs transition-all ${
+                        className={`cursor-pointer flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-100 border rounded-lg text-xs font-bold shadow-2xs transition-all ${
                           isUploadingPhoto
                             ? 'opacity-60 pointer-events-none border-slate-200 text-slate-400'
                             : 'border-blue-300 text-blue-700 hover:border-blue-400 hover:bg-blue-50/50'
@@ -2312,7 +2342,7 @@ export const StudentManagement: React.FC = () => {
                         ) : (
                           <Camera className="w-4 h-4 text-blue-600" />
                         )}
-                        <span>{isUploadingPhoto ? 'កំពុងផ្ទុកឡើង Firebase...' : 'ជ្រើសរើសរូបថត (Upload)'}</span>
+                        <span>{isUploadingPhoto ? 'កំពុងផ្ទុក...' : 'ជ្រើសរើសរូប (Upload)'}</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -2325,6 +2355,35 @@ export const StudentManagement: React.FC = () => {
                         />
                       </label>
 
+                      {formData.avatarUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCropModalImageSrc(formData.avatarUrl);
+                            setIsCropModalOpen(true);
+                          }}
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                        >
+                          <Crop className="w-4 h-4 text-amber-600" />
+                          <span>ច្រឹប/តម្រឹម 3x4</span>
+                        </button>
+                      ) : (
+                        <div className="relative">
+                          <input
+                            type="url"
+                            value={formData.avatarUrl || ''}
+                            onChange={(e) => {
+                              setFormData({ ...formData, avatarUrl: e.target.value });
+                              setPhotoUploadSource(e.target.value ? 'url' : null);
+                            }}
+                            placeholder="បិទភ្ជាប់ Image URL..."
+                            className="w-full px-2.5 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none placeholder:text-slate-400"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {formData.avatarUrl && (
                       <div className="relative">
                         <input
                           type="url"
@@ -2334,10 +2393,10 @@ export const StudentManagement: React.FC = () => {
                             setPhotoUploadSource(e.target.value ? 'url' : null);
                           }}
                           placeholder="ឬបិទភ្ជាប់ Image URL (Google Drive / Web)..."
-                          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none placeholder:text-slate-400"
+                          className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none placeholder:text-slate-400"
                         />
                       </div>
-                    </div>
+                    )}
 
                     <p className="text-[10px] text-slate-500 flex items-center gap-1">
                       <span>💡</span>
@@ -3143,6 +3202,45 @@ export const StudentManagement: React.FC = () => {
         title="បញ្ជាក់ការលុបទិន្នន័យសិស្ស"
         student={studentToDelete}
         warningMessage="តើលោកអ្នកពិតជាចង់លុបទិន្នន័យសិស្សរូបនេះចេញពីប្រព័ន្ធមែនឬទេ? ការលុបនេះនឹងលុបចេញជាអចិន្ត្រៃយ៍ ដើម្បីការពារការបាត់បង់ទិន្នន័យដោយអចេតនា។"
+      />
+
+      {/* Direct Webcam Camera Snapshot Modal */}
+      <DirectCameraCaptureModal
+        isOpen={isDirectCameraOpen}
+        onClose={() => setIsDirectCameraOpen(false)}
+        onCapture={(blob, dataUrl) => {
+          setFormData(prev => ({ ...prev, avatarUrl: dataUrl }));
+          setPhotoUploadSource('base64');
+          showToast('បានថតរូបភាពសិស្សជោគជ័យ!', 'success');
+        }}
+        onOpenCropEditor={(dataUrl) => {
+          setCropModalImageSrc(dataUrl);
+          setIsCropModalOpen(true);
+        }}
+        title="ថតរូបសិស្សផ្ទាល់ពីកាមេរ៉ា (Camera Snapshot)"
+        subtitle="ថតរូបភាពសិស្សតាមខ្នាតស្តង់ដារ 3x4 សម្រាប់បណ្ណសិស្ស និងប្រវត្តិរូប MoEYS"
+      />
+
+      {/* Photo Crop & Adjust Modal */}
+      <PhotoCropAndAlignModal
+        isOpen={isCropModalOpen}
+        imageSrc={cropModalImageSrc}
+        onClose={() => {
+          setIsCropModalOpen(false);
+          setCropModalImageSrc(null);
+        }}
+        onConfirmCrop={(blob, dataUrl) => {
+          setFormData(prev => ({ ...prev, avatarUrl: dataUrl }));
+          setPhotoUploadSource('base64');
+          showToast('បានច្រឹប និងតម្រឹមកែសម្រួលរូបថតសិស្សជោគជ័យ!', 'success');
+        }}
+        title="ច្រឹប និងតម្រឹមកែសម្រួលរូបថតសិស្ស (3x4 Passport)"
+      />
+
+      {/* Batch Student Photo Import Modal */}
+      <BatchStudentPhotoImportModal
+        isOpen={isBatchPhotoModalOpen}
+        onClose={() => setIsBatchPhotoModalOpen(false)}
       />
     </div>
   );

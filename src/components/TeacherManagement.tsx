@@ -36,8 +36,12 @@ import {
   Upload,
   Loader2,
   CloudUpload,
+  Crop,
+  Video,
   Image as ImageIcon
 } from 'lucide-react';
+import { DirectCameraCaptureModal } from './common/DirectCameraCaptureModal';
+import { PhotoCropAndAlignModal } from './common/PhotoCropAndAlignModal';
 import {
   MoEYSRoyalHeader,
   AngkorPageWatermark
@@ -71,6 +75,9 @@ export const TeacherManagement: React.FC = () => {
   const [batchModalGrade, setBatchModalGrade] = useState<number>(1);
   const [batchModalSection, setBatchModalSection] = useState<string>('ក');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isDirectCameraOpen, setIsDirectCameraOpen] = useState(false);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [cropModalImageSrc, setCropModalImageSrc] = useState<string | null>(null);
   const teacherPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const handleTeacherPhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1057,38 +1064,52 @@ export const TeacherManagement: React.FC = () => {
                         className="hidden"
                       />
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <button
                           type="button"
-                          disabled={isUploadingPhoto}
-                          onClick={() => teacherPhotoInputRef.current?.click()}
-                          className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          onClick={() => setIsDirectCameraOpen(true)}
+                          className="px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                          {isUploadingPhoto ? (
-                            <>
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              <span>កំពុងផ្ទុកឡើង...</span>
-                            </>
-                          ) : (
-                            <>
-                              <CloudUpload className="w-3.5 h-3.5" />
-                              <span>ជ្រើសរូបថត (Gallery/Files)</span>
-                            </>
-                          )}
+                          <Video className="w-3.5 h-3.5" />
+                          <span>ថតផ្ទាល់ (Webcam)</span>
                         </button>
 
                         <button
                           type="button"
                           disabled={isUploadingPhoto}
-                          onClick={() => {
-                            const cam = document.getElementById('camera-staff-photo-capture') as HTMLInputElement;
-                            cam?.click();
-                          }}
-                          className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          onClick={() => teacherPhotoInputRef.current?.click()}
+                          className="px-3 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
-                          <Camera className="w-3.5 h-3.5" />
-                          <span>ថតរូបផ្ទាល់ (Camera)</span>
+                          {isUploadingPhoto ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                              <span>កំពុងផ្ទុក...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CloudUpload className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>ជ្រើសរូប (Upload)</span>
+                            </>
+                          )}
                         </button>
+
+                        {formData.avatarUrl ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCropModalImageSrc(formData.avatarUrl);
+                              setIsCropModalOpen(true);
+                            }}
+                            className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Crop className="w-3.5 h-3.5 text-amber-600" />
+                            <span>ច្រឹប/តម្រឹម 3x4</span>
+                          </button>
+                        ) : (
+                          <div className="text-[11px] text-slate-400 flex items-center justify-center">
+                            <span>ទំហំស្តង់ដារ 3x4</span>
+                          </div>
+                        )}
                       </div>
 
                       <input
@@ -1418,6 +1439,37 @@ export const TeacherManagement: React.FC = () => {
           defaultSection={batchModalSection}
         />
       )}
+
+      {/* Direct Webcam Camera Snapshot Modal */}
+      <DirectCameraCaptureModal
+        isOpen={isDirectCameraOpen}
+        onClose={() => setIsDirectCameraOpen(false)}
+        onCapture={(blob, dataUrl) => {
+          setFormData(prev => ({ ...prev, avatarUrl: dataUrl }));
+          showToast('បានថតរូបភាពបុគ្គលិកជោគជ័យ!', 'success');
+        }}
+        onOpenCropEditor={(dataUrl) => {
+          setCropModalImageSrc(dataUrl);
+          setIsCropModalOpen(true);
+        }}
+        title="ថតរូបលោកគ្រូ-អ្នកគ្រូផ្ទាល់ពីកាមេរ៉ា (Camera Snapshot)"
+        subtitle="ថតរូបភាពបុគ្គលិកតាមខ្នាតស្តង់ដារ 3x4 សម្រាប់បណ្ណបុគ្គលិក និងប្រវត្តិរូប MoEYS"
+      />
+
+      {/* Photo Crop & Adjust Modal */}
+      <PhotoCropAndAlignModal
+        isOpen={isCropModalOpen}
+        imageSrc={cropModalImageSrc}
+        onClose={() => {
+          setIsCropModalOpen(false);
+          setCropModalImageSrc(null);
+        }}
+        onConfirmCrop={(blob, dataUrl) => {
+          setFormData(prev => ({ ...prev, avatarUrl: dataUrl }));
+          showToast('បានច្រឹប និងតម្រឹមកែសម្រួលរូបថតបុគ្គលិកជោគជ័យ!', 'success');
+        }}
+        title="ច្រឹប និងតម្រឹមកែសម្រួលរូបថតបុគ្គលិក (3x4 Passport)"
+      />
     </div>
   );
 };

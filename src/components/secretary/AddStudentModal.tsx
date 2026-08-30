@@ -19,8 +19,12 @@ import {
   Hash,
   ShieldCheck,
   Sparkles,
-  Loader2
+  Loader2,
+  Crop,
+  Video
 } from 'lucide-react';
+import { DirectCameraCaptureModal } from '../common/DirectCameraCaptureModal';
+import { PhotoCropAndAlignModal } from '../common/PhotoCropAndAlignModal';
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -46,6 +50,9 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
 
   const [activeTab, setActiveTab] = useState<'general' | 'family' | 'vulnerability'>('general');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isDirectCameraOpen, setIsDirectCameraOpen] = useState(false);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [cropModalImageSrc, setCropModalImageSrc] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -344,28 +351,54 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
             <div className="space-y-4 animate-in fade-in duration-150">
               {/* Photo & Quick Overview Header */}
               <div className="p-4 bg-blue-50/60 dark:bg-blue-950/20 rounded-2xl border border-blue-100 dark:border-blue-900/40 flex flex-col sm:flex-row items-center gap-4">
-                <div className="relative group shrink-0">
-                  {formData.avatarUrl ? (
-                    <img
-                      src={formData.avatarUrl}
-                      alt="Student"
-                      className="w-20 h-20 rounded-2xl object-cover border-2 border-blue-400 shadow-sm"
-                    />
-                  ) : (
-                    <div className="w-20 h-20 rounded-2xl bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold text-2xl flex items-center justify-center border-2 border-dashed border-blue-300 dark:border-blue-700 shadow-xs">
-                      {formData.nameKhmer ? formData.nameKhmer.slice(0, 2) : <User className="w-8 h-8 text-blue-400" />}
-                    </div>
-                  )}
-                  <label className="absolute -bottom-2 -right-2 p-1.5 bg-blue-600 text-white rounded-xl shadow-md cursor-pointer hover:bg-blue-700 transition-colors">
-                    {isUploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handlePhotoUpload}
-                      disabled={isUploadingPhoto}
-                    />
-                  </label>
+                <div className="flex flex-col items-center gap-1.5 shrink-0">
+                  <div className="relative group">
+                    {formData.avatarUrl ? (
+                      <img
+                        src={formData.avatarUrl}
+                        alt="Student"
+                        className="w-20 h-24 rounded-2xl object-cover border-2 border-blue-400 shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-20 h-24 rounded-2xl bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold text-2xl flex items-center justify-center border-2 border-dashed border-blue-300 dark:border-blue-700 shadow-xs">
+                        {formData.nameKhmer ? formData.nameKhmer.slice(0, 2) : <User className="w-8 h-8 text-blue-400" />}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsDirectCameraOpen(true)}
+                      className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition-all"
+                      title="ថតផ្ទាល់ (Webcam)"
+                    >
+                      <Video className="w-3.5 h-3.5" />
+                    </button>
+                    <label className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer transition-colors" title="ជ្រើសរើសរូបថត (Upload)">
+                      {isUploadingPhoto ? <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" /> : <Camera className="w-3.5 h-3.5" />}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handlePhotoUpload}
+                        disabled={isUploadingPhoto}
+                      />
+                    </label>
+                    {formData.avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCropModalImageSrc(formData.avatarUrl);
+                          setIsCropModalOpen(true);
+                        }}
+                        className="p-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg transition-colors"
+                        title="ច្រឹប/តម្រឹម 3x4"
+                      >
+                        <Crop className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="flex-1 text-center sm:text-left">
                   <h4 className="font-bold text-slate-800 dark:text-white text-base">
@@ -889,6 +922,37 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Direct Webcam Camera Snapshot Modal */}
+      <DirectCameraCaptureModal
+        isOpen={isDirectCameraOpen}
+        onClose={() => setIsDirectCameraOpen(false)}
+        onCapture={(blob, dataUrl) => {
+          setFormData(prev => ({ ...prev, avatarUrl: dataUrl }));
+          showToast('បានថតរូបភាពសិស្សជោគជ័យ!', 'success');
+        }}
+        onOpenCropEditor={(dataUrl) => {
+          setCropModalImageSrc(dataUrl);
+          setIsCropModalOpen(true);
+        }}
+        title="ថតរូបសិស្សផ្ទាល់ពីកាមេរ៉ា (Camera Snapshot)"
+        subtitle="ថតរូបភាពសិស្សតាមខ្នាតស្តង់ដារ 3x4 សម្រាប់បណ្ណសិស្ស និងប្រវត្តិរូប MoEYS"
+      />
+
+      {/* Photo Crop & Adjust Modal */}
+      <PhotoCropAndAlignModal
+        isOpen={isCropModalOpen}
+        imageSrc={cropModalImageSrc}
+        onClose={() => {
+          setIsCropModalOpen(false);
+          setCropModalImageSrc(null);
+        }}
+        onConfirmCrop={(blob, dataUrl) => {
+          setFormData(prev => ({ ...prev, avatarUrl: dataUrl }));
+          showToast('បានច្រឹប និងតម្រឹមកែសម្រួលរូបថតសិស្សជោគជ័យ!', 'success');
+        }}
+        title="ច្រឹប និងតម្រឹមកែសម្រួលរូបថតសិស្ស (3x4 Passport)"
+      />
     </div>
   );
 };
