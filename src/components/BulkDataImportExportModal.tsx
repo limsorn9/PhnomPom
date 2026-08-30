@@ -106,6 +106,24 @@ export const BulkDataImportExportModal: React.FC<BulkDataImportExportModalProps>
     showToast('បានទាញយកគំរូ CSV កំណត់ត្រាសុខភាពសិស្ស MoEYS ជោគជ័យ!');
   };
 
+  // Generate Sample Student Account CSV Template
+  const handleDownloadStudentAccountTemplate = () => {
+    const csvContent =
+      '\uFEFF' +
+      'អត្តលេខសិស្ស,ឈ្មោះខ្មែរ,ឈ្មោះឡាតាំង,ថ្នាក់ទី,បន្ទប់,ឈ្មោះគណនី (Username),ពាក្យសម្ងាត់ (Password),លេខទូរស័ព្ទអាណាព្យាបាល,អ៊ីមែល\n' +
+      'STU-001,សុខ ចិន្តា,SOK CHENDA,5,ក,stu_001,123456,012345678,stu_001@student.moeys.gov.kh\n' +
+      'STU-002,ចាន់ រតនៈ,CHAN RATTANAK,5,ក,stu_002,123456,098765432,stu_002@student.moeys.gov.kh\n' +
+      'STU-003,សេង ស្រីពៅ,SENG SREYPOV,5,ក,stu_003,123456,077112233,stu_003@student.moeys.gov.kh';
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Template_Student_Accounts_Class_${schoolProfile.academicYear.replace(/\s+/g, '_')}.csv`;
+    link.click();
+    showToast('បានទាញយកគំរូ CSV បង្កើតគណនីសិស្សតាមថ្នាក់ជោគជ័យ!');
+  };
+
   // Parse Student CSV/Text
   const handleParseStudents = (rawText: string) => {
     setParseError(null);
@@ -656,7 +674,7 @@ export const BulkDataImportExportModal: React.FC<BulkDataImportExportModalProps>
 
           {/* TAB 4: Export All */}
           {activeTab === 'export_all' && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3 flex flex-col justify-between">
                 <div>
                   <h4 className="font-bold text-slate-800 text-sm">ទាញយកបញ្ជីសិស្សទាំងអស់ (CSV)</h4>
@@ -668,6 +686,20 @@ export const BulkDataImportExportModal: React.FC<BulkDataImportExportModalProps>
                 >
                   <Download className="w-4 h-4" />
                   <span>ទាញយក CSV សិស្ស</span>
+                </button>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3 flex flex-col justify-between">
+                <div>
+                  <h4 className="font-bold text-slate-800 text-sm">គំរូបង្កើតគណនីសិស្សតាមថ្នាក់ (CSV)</h4>
+                  <p className="text-[11px] text-slate-500 mt-1">ទម្រង់បង្កើត និងគ្រប់គ្រងគណនីសិស្សម្តង១ថ្នាក់</p>
+                </div>
+                <button
+                  onClick={handleDownloadStudentAccountTemplate}
+                  className="flex items-center justify-center gap-1.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>ទាញយក CSV គណនីសិស្ស</span>
                 </button>
               </div>
 

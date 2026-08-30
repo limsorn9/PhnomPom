@@ -56,6 +56,7 @@ import {
 import { DirectCameraCaptureModal } from './common/DirectCameraCaptureModal';
 import { PhotoCropAndAlignModal } from './common/PhotoCropAndAlignModal';
 import { BatchStudentPhotoImportModal } from './common/BatchStudentPhotoImportModal';
+import { BatchClassStudentAccountsModal } from './BatchClassStudentAccountsModal';
 import { uploadStudentProfilePhoto, compressImageFile } from '../services/firebaseStorage';
 import { uploadProfilePhotoToDrive } from '../services/googleDrive';
 import {
@@ -153,6 +154,7 @@ export const StudentManagement: React.FC = () => {
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   const [isSingleDeleteDialogOpen, setIsSingleDeleteDialogOpen] = useState(false);
   const [isMoeyMasterModalOpen, setIsMoeyMasterModalOpen] = useState(false);
+  const [isBatchClassAccountsModalOpen, setIsBatchClassAccountsModalOpen] = useState(false);
   const [selectedStudentForView, setSelectedStudentForView] = useState<Student | null>(null);
   const [selectedStudentForPdfPrint, setSelectedStudentForPdfPrint] = useState<Student | null>(null);
 
@@ -867,6 +869,18 @@ export const StudentManagement: React.FC = () => {
               >
                 <UserCheck className="w-4 h-4 text-purple-200" />
                 <span>បង្កើតគណនីសិស្សដែលខ្វះ ({students.filter(s => !isStudentRegisteredInAccounts(s)).length})</span>
+              </button>
+            )}
+
+            {(isDirector || isSecretary || isTeacher) && (
+              <button
+                type="button"
+                onClick={() => setIsBatchClassAccountsModalOpen(true)}
+                className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-800 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-purple-300/60"
+                title="បង្កើតគណនីសិស្សម្តងមួយថ្នាក់ ដោយអាប់ឡូតឯកសារពីគំរូ CSV"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-amber-300" />
+                <span>+ បង្កើតគណនីម្តង១ថ្នាក់ (គំរូ CSV)</span>
               </button>
             )}
 
@@ -3241,6 +3255,14 @@ export const StudentManagement: React.FC = () => {
       <BatchStudentPhotoImportModal
         isOpen={isBatchPhotoModalOpen}
         onClose={() => setIsBatchPhotoModalOpen(false)}
+      />
+
+      {/* Batch Class Student Accounts Creator Modal */}
+      <BatchClassStudentAccountsModal
+        isOpen={isBatchClassAccountsModalOpen}
+        onClose={() => setIsBatchClassAccountsModalOpen(false)}
+        initialGrade={selectedGrade === 'all' ? (isTeacher ? teacherGrade : 1) : Number(selectedGrade)}
+        initialSection={isTeacher ? teacherSection : 'ក'}
       />
     </div>
   );

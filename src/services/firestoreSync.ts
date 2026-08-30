@@ -89,19 +89,45 @@ let pendingPayload: Partial<CloudSchoolData> | null = null;
 let lastSyncedDataHash = '';
 let quotaExhaustedUntil = 0;
 
+const QUOTA_STORAGE_KEY = 'school_firestore_quota_exhausted_until';
+
 /**
  * Check whether Firestore is currently in a quota exhaustion cooldown
  */
 export const isFirestoreQuotaExhausted = (): boolean => {
-  return Date.now() < quotaExhaustedUntil;
+  if (quotaExhaustedUntil && Date.now() < quotaExhaustedUntil) {
+    return true;
+  }
+  try {
+    const stored = Number(localStorage.getItem(QUOTA_STORAGE_KEY) || '0');
+    if (stored && Date.now() < stored) {
+      quotaExhaustedUntil = stored;
+      return true;
+    }
+  } catch {}
+  return false;
 };
 
 /**
  * Mark Firestore quota as exhausted to circuit-break further requests
  */
-export const markFirestoreQuotaExhausted = (cooldownMinutes = 15) => {
-  quotaExhaustedUntil = Date.now() + cooldownMinutes * 60 * 1000;
+export const markFirestoreQuotaExhausted = (cooldownMinutes = 60) => {
+  const until = Date.now() + cooldownMinutes * 60 * 1000;
+  quotaExhaustedUntil = until;
+  try {
+    localStorage.setItem(QUOTA_STORAGE_KEY, String(until));
+  } catch {}
   pendingPayload = null; // Clear pending queue to prevent memory leak and retry cascades
+};
+
+/**
+ * Manually reset quota cooldown (e.g. after quota window resets or admin tests)
+ */
+export const clearFirestoreQuotaCooldown = () => {
+  quotaExhaustedUntil = 0;
+  try {
+    localStorage.removeItem(QUOTA_STORAGE_KEY);
+  } catch {}
 };
 
 /**
@@ -435,10 +461,20 @@ export const subscribeToSchoolData = (
     });
   };
 
+  const detachAll = () => {
+    unsubscribers.forEach(unsub => {
+      try {
+        unsub();
+      } catch {}
+    });
+    unsubscribers.length = 0;
+  };
+
   const handleSnapshotError = (err: any) => {
     if (err?.code === 'resource-exhausted' || err?.message?.toLowerCase().includes('quota')) {
-      markFirestoreQuotaExhausted(30);
-      console.warn('[Firestore] Real-time listener detected quota exhaustion, silencing listener.');
+      markFirestoreQuotaExhausted(60);
+      detachAll();
+      console.warn('[Firestore] Real-time listener detected quota exhaustion, detached listeners.');
       return;
     }
     console.warn('Real-time listener notice:', err?.message || err);

@@ -91,7 +91,8 @@ import { parseQRScanData } from '../utils/qrAuthService';
 import {
   syncSchoolDataToFirestore,
   fetchSchoolDataFromFirestore,
-  subscribeToSchoolData
+  subscribeToSchoolData,
+  isFirestoreQuotaExhausted
 } from '../services/firestoreSync';
 import {
   setupOfflineAutoSync,
@@ -3546,7 +3547,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         showToast('បានរក្សាទុកទិន្នន័យឡើង Cloud Firestore ដោយជោគជ័យ!', 'success');
         return true;
       } else {
-        showToast('មិនអាចរក្សាទុកទៅកាន់ Cloud បានទេ: ' + result.error, 'error');
+        if (result.error?.toLowerCase().includes('quota') || isFirestoreQuotaExhausted()) {
+          showToast('ទិន្នន័យត្រូវបានរក្សាទុកក្នុង Local Storage / IndexedDB យ៉ាងមានសុវត្ថិភាព (Quota ឥតគិតថ្លៃប្រចាំថ្ងៃរបស់ Firestore បានពេញបណ្ដោះអាសន្ន)', 'info');
+        } else {
+          showToast('មិនអាចរក្សាទុកទៅកាន់ Cloud បានទេ: ' + result.error, 'error');
+        }
         return false;
       }
     } catch (e) {
@@ -3753,7 +3758,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     fetchSchoolDataFromFirestore().then(cloudData => {
       if (cloudData && Object.keys(cloudData).length > 0 && cloudData.lastUpdated) {
         applyCloudDataIfNewer(cloudData, true);
-      } else {
+      } else if (!isFirestoreQuotaExhausted()) {
         console.info('Cloud database is empty on first startup, initializing cloud...');
         syncSchoolDataToFirestore(getFullSchoolPayload(), true).catch(console.warn);
       }
@@ -4506,9 +4511,9 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Auto-generate Student Accounts for students without accounts
   const autoGenerateStudentAccounts = (targetStudentIds?: string[]): { createdCount: number; existingCount: number } => {
-    const isDirectorOrSecretary = currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary';
-    if (!isDirectorOrSecretary) {
-      showToast('មានតែនាយកសាលា និងលេខាធិការប៉ុណ្ណោះ ទើបមានសិទ្ធិបង្កើតគណនីសិស្ស!', 'error');
+    const isAuthorized = currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary' || currentUser?.role === 'teacher';
+    if (!isAuthorized) {
+      showToast('អ្នកពុំមានសិទ្ធិបង្កើតគណនីសិស្សទេ!', 'error');
       return { createdCount: 0, existingCount: 0 };
     }
 

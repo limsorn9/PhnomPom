@@ -166,13 +166,20 @@ export async function getPendingReportsCount(): Promise<number> {
  * Sync single report to Firestore doc
  */
 async function syncSingleReportToFirestore(report: StudentProgressReport): Promise<void> {
-  if (!db) return;
-  const reportDocRef = doc(db, 'student_progress_reports', report.id);
-  await setDoc(reportDocRef, {
-    ...report,
-    syncStatus: 'synced',
-    lastSyncedAt: new Date().toISOString()
-  }, { merge: true });
+  if (!db || isFirestoreQuotaExhausted()) return;
+  try {
+    const reportDocRef = doc(db, 'student_progress_reports', report.id);
+    await setDoc(reportDocRef, {
+      ...report,
+      syncStatus: 'synced',
+      lastSyncedAt: new Date().toISOString()
+    }, { merge: true });
+  } catch (err: any) {
+    if (err?.code === 'resource-exhausted' || err?.message?.toLowerCase().includes('quota')) {
+      markFirestoreQuotaExhausted(60);
+    }
+    throw err;
+  }
 }
 
 /**

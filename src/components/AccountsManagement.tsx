@@ -20,6 +20,7 @@ import { RolePermissionsInspectorModal } from './RolePermissionsInspectorModal';
 import { RecentlyDeletedTab } from './RecentlyDeletedTab';
 import { DeleteAccountModal } from './DeleteAccountModal';
 import { AccountAuditLogTab } from './AccountAuditLogTab';
+import { BatchClassStudentAccountsModal } from './BatchClassStudentAccountsModal';
 import {
   Users,
   UserPlus,
@@ -58,6 +59,7 @@ import {
   Sliders,
   Camera,
   Loader2,
+  FileSpreadsheet,
   CloudUpload,
   Zap,
   UserX,
@@ -103,6 +105,9 @@ export const AccountsManagement: React.FC = () => {
   const [dismiss90DayNotice, setDismiss90DayNotice] = useState(false);
   const [showBulkForceConfirmModal, setShowBulkForceConfirmModal] = useState(false);
   const [showPatternsPanel, setShowPatternsPanel] = useState(true);
+  const [showBatchClassAccountsModal, setShowBatchClassAccountsModal] = useState(false);
+  const [batchClassInitialGrade, setBatchClassInitialGrade] = useState<number>(1);
+  const [batchClassInitialSection, setBatchClassInitialSection] = useState<string>('ក');
 
   // Role Inspector and Delete Confirmation State
   const [showRoleInspectorModal, setShowRoleInspectorModal] = useState(false);
@@ -761,28 +766,44 @@ export const AccountsManagement: React.FC = () => {
 
           {/* Create User Button */}
           {(isDirector || isSecretary || isTeacher) && (
-            <button
-              type="button"
-              onClick={() => {
-                resetForm();
-                if (activeTab === 'students') {
-                  setNewRole('student');
-                } else if (activeTab === 'teachers_staff') {
-                  setNewRole('teacher');
-                }
-                setShowCreateModal(true);
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer hover:shadow-lg active:scale-95"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>
-                {activeTab === 'students'
-                  ? '+ បង្កើតគណនីសិស្ស'
-                  : activeTab === 'teachers_staff'
-                  ? '+ បង្កើតគណនីគ្រូ/បុគ្គលិក'
-                  : '+ បង្កើតគណនីថ្មី'}
-              </span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setBatchClassInitialGrade(typeof studentGradeFilter === 'number' ? studentGradeFilter : 1);
+                  setBatchClassInitialSection(studentSectionFilter !== 'all' ? studentSectionFilter : 'ក');
+                  setShowBatchClassAccountsModal(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer hover:shadow-lg active:scale-95 border border-purple-400/30"
+                title="បង្កើតគណនីសិស្សម្តងមួយថ្នាក់ ដោយអាប់ឡូតឯកសារពីគំរូ CSV"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-amber-300" />
+                <span>+ បង្កើតម្តង១ថ្នាក់ (គំរូ CSV)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  resetForm();
+                  if (activeTab === 'students') {
+                    setNewRole('student');
+                  } else if (activeTab === 'teachers_staff') {
+                    setNewRole('teacher');
+                  }
+                  setShowCreateModal(true);
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer hover:shadow-lg active:scale-95"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>
+                  {activeTab === 'students'
+                    ? '+ បង្កើតគណនីសិស្ស'
+                    : activeTab === 'teachers_staff'
+                    ? '+ បង្កើតគណនីគ្រូ/បុគ្គលិក'
+                    : '+ បង្កើតគណនីថ្មី'}
+                </span>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -980,23 +1001,39 @@ export const AccountsManagement: React.FC = () => {
                         គ្រប់គ្រងគណនីចូលប្រើប្រាស់របស់សិស្សានុសិស្សទូទាំងសាលា តាមកម្រិតថ្នាក់ និងបន្ទប់សិក្សា
                       </p>
                     </div>
-                    {missingStudentsList.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
                       <button
                         type="button"
-                        onClick={handleBatchCreateMissingStudentAccounts}
-                        className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95"
+                        onClick={() => {
+                          setBatchClassInitialGrade(typeof studentGradeFilter === 'number' ? studentGradeFilter : 1);
+                          setBatchClassInitialSection(studentSectionFilter !== 'all' ? studentSectionFilter : 'ក');
+                          setShowBatchClassAccountsModal(true);
+                        }}
+                        className="px-3 py-1.5 bg-gradient-to-r from-purple-800 to-indigo-800 hover:from-purple-900 hover:to-indigo-900 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 border border-purple-400/30"
+                        title="បង្កើតគណនីសិស្សម្តងមួយថ្នាក់ ដោយអាប់ឡូតឯកសារពីគំរូ CSV"
                       >
-                        <Zap className="w-3.5 h-3.5 text-amber-300" />
-                        <span>បង្កើតគណនីសិស្សដែលខ្វះ ({missingStudentsList.length})</span>
+                        <FileSpreadsheet className="w-3.5 h-3.5 text-amber-300" />
+                        <span>បង្កើតម្តង១ថ្នាក់ (Upload គំរូ CSV)</span>
                       </button>
-                    )}
+
+                      {missingStudentsList.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleBatchCreateMissingStudentAccounts}
+                          className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95"
+                        >
+                          <Zap className="w-3.5 h-3.5 text-amber-300" />
+                          <span>បង្កើតទាំងអស់ដែលខ្វះ ({missingStudentsList.length})</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Missing Student Accounts Alert Banner (if any) */}
               {missingStudentsList.length > 0 && (
-                <div className="bg-amber-50 border border-amber-300/80 rounded-2xl p-3.5 text-xs text-amber-900 flex items-center justify-between gap-3 shadow-xs">
+                <div className="bg-amber-50 border border-amber-300/80 rounded-2xl p-3.5 text-xs text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                   <div className="flex items-center gap-2.5">
                     <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
                     <div>
@@ -1004,18 +1041,32 @@ export const AccountsManagement: React.FC = () => {
                         រកឃើញសិស្សចំនួន {missingStudentsList.length} នាក់ ក្នុងបញ្ជីសាលាមិនទាន់មានគណនីចូលប្រើ!
                       </p>
                       <p className="text-amber-700 text-[11px]">
-                        អ្នកអាចចុចបង្កើតគណនីស្វ័យប្រវត្តិដោយកំណត់ពាក្យសម្ងាត់ស្មើនឹងអត្តលេខសិស្ស។
+                        អ្នកអាចជ្រើសរើសបង្កើតម្តង១ថ្នាក់ដោយអាប់ឡូតឯកសារគំរូ ឬចុចបង្កើតស្វ័យប្រវត្តិតែម្តង។
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleBatchCreateMissingStudentAccounts}
-                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1 cursor-pointer shrink-0"
-                  >
-                    <Zap className="w-3.5 h-3.5" />
-                    <span>បង្កើតឥឡូវនេះ</span>
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBatchClassInitialGrade(typeof studentGradeFilter === 'number' ? studentGradeFilter : 1);
+                        setBatchClassInitialSection(studentSectionFilter !== 'all' ? studentSectionFilter : 'ក');
+                        setShowBatchClassAccountsModal(true);
+                      }}
+                      className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <FileSpreadsheet className="w-3.5 h-3.5 text-amber-300" />
+                      <span>នាំចូលតាមគំរូ ១ថ្នាក់</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleBatchCreateMissingStudentAccounts}
+                      className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>បង្កើតស្វ័យប្រវត្តិទាំងអស់</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -2386,6 +2437,14 @@ export const AccountsManagement: React.FC = () => {
           deleteUser(userId, reason);
           showToast(`បានលុបគណនី និងផ្លាស់ទីទៅធុងសំរាម ៣០ ថ្ងៃ`, 'success');
         }}
+      />
+
+      {/* Batch Class Student Accounts Creator Modal */}
+      <BatchClassStudentAccountsModal
+        isOpen={showBatchClassAccountsModal}
+        onClose={() => setShowBatchClassAccountsModal(false)}
+        initialGrade={batchClassInitialGrade}
+        initialSection={batchClassInitialSection}
       />
     </div>
   );
