@@ -1360,4 +1360,55 @@ export const fetchLatestCloudMasterBackup = async (
   }
 };
 
+/**
+ * Upload User/Director/Teacher/Student Profile Photo to Google Drive
+ * Sets permissions so the photo is publicly viewable by link and returns the direct Google Drive photo URL
+ */
+export const uploadProfilePhotoToDrive = async (
+  file: File | Blob,
+  fileName: string = `profile_${Date.now()}.jpg`,
+  parentFolderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+): Promise<{ fileId: string; viewUrl: string; directPhotoUrl: string }> => {
+  const token = await getAccessToken();
+  if (!token) {
+    throw new Error('ត្រូវការភ្ជាប់គណនី Google (Google Drive) ជាមុនសិន');
+  }
+
+  // 1. Upload the image file to Google Drive folder
+  const driveItem = await uploadFileToDrive(
+    file,
+    fileName,
+    'image/jpeg',
+    parentFolderId,
+    `រូបថតប្រវត្តិរូប (Profile Photo) ផ្ទុកឡើងនៅ ${new Date().toLocaleString('km-KH')}`
+  );
+
+  // 2. Set file permission to anyone with the link can view
+  try {
+    await fetch(`https://www.googleapis.com/drive/v3/files/${driveItem.id}/permissions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        role: 'reader',
+        type: 'anyone'
+      })
+    });
+  } catch (permErr) {
+    console.warn('Could not set public permission on Google Drive photo:', permErr);
+  }
+
+  // 3. Generate high-reliability direct photo URL
+  const directPhotoUrl = `https://lh3.googleusercontent.com/d/${driveItem.id}`;
+  const viewUrl = driveItem.webViewLink || `https://drive.google.com/file/d/${driveItem.id}/view`;
+
+  return {
+    fileId: driveItem.id,
+    viewUrl,
+    directPhotoUrl
+  };
+};
+
 

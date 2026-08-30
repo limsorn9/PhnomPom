@@ -66,13 +66,17 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
     teachers,
     studentBadgeAssignments,
     activityLogs,
-    transfers
+    transfers,
+    currentUser
   } = useSchool();
   const [formData, setFormData] = useState<SchoolProfile>(initialProfile);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState<'general' | 'location' | 'contact' | 'links' | 'settings' | 'security'>('general');
   const [isExportingSnapshot, setIsExportingSnapshot] = useState(false);
+
+  // Check role: strictly director or super_admin
+  const isAuthorized = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
 
   // Reset form when modal opens with fresh initialProfile
   useEffect(() => {
@@ -269,6 +273,12 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!isAuthorized) {
+      showToast('មុខងារកំណត់ព័ត៌មានសាលារៀនគឺស្ថិតនៅក្នុងប្រូហ្វាល់នាយកសាលាតែម្នាក់គត់!', 'error');
+      onClose();
+      return;
+    }
+
     // Mark all as touched
     setTouched({
       nameKhmer: true,
@@ -367,6 +377,7 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
   const hasErrors = useMemo(() => Object.keys(errors).length > 0, [errors]);
 
   if (!isOpen) return null;
+  if (!isAuthorized) return null;
 
   return (
     <div

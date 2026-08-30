@@ -112,6 +112,10 @@ const MainLayout: React.FC = () => {
   };
 
   const handleOpenSettings = () => {
+    if (currentUser?.role !== 'director' && currentUser?.role !== 'super_admin') {
+      showToast('មុខងារកំណត់ព័ត៌មានសាលារៀនគឺស្ថិតនៅក្នុងប្រូហ្វាល់នាយកសាលាតែម្នាក់គត់!', 'error');
+      return;
+    }
     setIsSettingsOpen(true);
   };
 

@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { AppUser } from '../types';
-import { User, KeyRound, Shield, CheckCircle2, AlertTriangle, Eye, EyeOff, Camera, Mail, Phone, Send, X } from 'lucide-react';
+import { uploadProfilePhotoToDrive } from '../services/googleDrive';
+import { compressImageFile, fileToBase64 } from '../services/firebaseStorage';
+import { User, KeyRound, Shield, CheckCircle2, AlertTriangle, Eye, EyeOff, Camera, Mail, Phone, Send, X, Upload, Loader2, CloudUpload, Image as ImageIcon } from 'lucide-react';
 
 interface UserProfileSettingsModalProps {
   isOpen: boolean;
@@ -19,6 +21,8 @@ export const UserProfileSettingsModal: React.FC<UserProfileSettingsModalProps> =
   } = useSchool();
 
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Profile Form state
   const [nameKhmer, setNameKhmer] = useState(currentUser?.nameKhmer || '');
@@ -42,6 +46,48 @@ export const UserProfileSettingsModal: React.FC<UserProfileSettingsModalProps> =
 
   const isStudent = currentUser.role === 'student';
   const canDirectChangePassword = currentUser.role === 'director' || isStudent;
+
+  // Handle Profile Photo Upload to Google Drive
+  const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check size limit (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('ទំហំរូបថតត្រូវតែតូចជាង 10MB!', 'error');
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      // 1. Compress image for optimal performance
+      const compressedBlob = await compressImageFile(file, 800, 800, 0.88);
+
+      // 2. Try uploading to Google Drive
+      try {
+        const result = await uploadProfilePhotoToDrive(
+          compressedBlob,
+          `user_avatar_${currentUser.id}_${Date.now()}.jpg`
+        );
+        if (result.directPhotoUrl) {
+          setAvatarUrl(result.directPhotoUrl);
+          showToast('បានផ្ទុកឡើងរូបថតទៅកាន់ Google Drive និងទាញយកមកស្វ័យប្រវត្តិជោគជ័យ!', 'success');
+        }
+      } catch (driveErr: any) {
+        console.warn('Google Drive direct upload notice:', driveErr?.message || driveErr);
+        // Fallback: Convert to Base64 image
+        const base64Url = await fileToBase64(compressedBlob);
+        setAvatarUrl(base64Url);
+        showToast('បានរក្សាទុករូបថតប្រវត្តិរូបជា Base64 ជោគជ័យ (បើចង់រក្សាលើ Google Drive សូមភ្ជាប់គណនី Google)', 'info');
+      }
+    } catch (err: any) {
+      console.error('Error processing photo:', err);
+      showToast('បរាជ័យក្នុងការបញ្ចូលរូបថត: ' + (err.message || 'សូមព្យាយាមម្តងទៀត'), 'error');
+    } finally {
+      setIsUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,36 +217,69 @@ export const UserProfileSettingsModal: React.FC<UserProfileSettingsModalProps> =
                 </div>
               </div>
 
-              {(!isStudent && currentUser.role === 'director') && (
-                <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    តំណរូបថត (Avatar Image URL)
-                  </label>
-                  <div className="flex gap-2">
+              {!isStudent && (
+                <div className="space-y-2 p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <ImageIcon className="w-4 h-4 text-blue-600" />
+                      <span>រូបថតប្រវត្តិរូប (Google Drive Profile Photo)</span>
+                    </label>
+                    {avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setAvatarUrl('')}
+                        className="text-[11px] text-red-500 hover:text-red-700 font-medium cursor-pointer"
+                      >
+                        លុបរូបថតចេញ
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Hidden File Input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png, image/jpeg, image/webp, image/jpg"
+                    onChange={handlePhotoFileChange}
+                    className="hidden"
+                  />
+
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="button"
+                      disabled={isUploadingPhoto}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {isUploadingPhoto ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>កំពុងផ្ទុកឡើងទៅ Google Drive...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CloudUpload className="w-4 h-4" />
+                          <span>បញ្ចូលរូបថតពីកុំព្យូទ័រ/ទូរស័ព្ទ (Google Drive)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex gap-2 items-center">
                     <input
                       type="url"
                       value={avatarUrl}
                       onChange={e => setAvatarUrl(e.target.value)}
-                      placeholder="https://example.com/photo.jpg"
-                      className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                      placeholder="ឬបញ្ចូលតំណភ្ជាប់រូបភាពផ្ទាល់ (URL / Google Drive Link)..."
+                      className="flex-1 px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-blue-500 text-xs"
                     />
-                    <div className="px-3 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl flex items-center gap-1">
-                      <Camera className="w-4 h-4" />
+                    <div className="px-3 py-2 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl flex items-center gap-1">
+                      <Camera className="w-3.5 h-3.5" />
                     </div>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">នាយកសាលាអាចដាក់ URL រូបថតបាន។</p>
-                </div>
-              )}
-              {isStudent && (
-                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-200 rounded-xl flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
-                  <span>ចំពោះគណនីសិស្ស មិនអាចប្តូររូបថតបានតាមចិត្តទេ។ រូបថតត្រូវបានគ្រប់គ្រងដោយគ្រូបន្ទុកថ្នាក់។</span>
-                </div>
-              )}
-              {(!isStudent && currentUser.role !== 'director') && (
-                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-200 rounded-xl flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
-                  <span>ការប្តូររូបថតផ្ទាល់ខ្លួនត្រូវបានកម្រិត។ សូមទាក់ទងនាយកសាលា។</span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    💡 រូបថតត្រូវបានផ្ទុក និងរក្សាទុកក្នុង Google Drive ដោយស្វ័យប្រវត្តិ ហើយប្រព័ន្ធនឹងទាញយករូបភាពមកបង្ហាញគ្រប់ទីកន្លែង។
+                  </p>
                 </div>
               )}
 

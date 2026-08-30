@@ -522,8 +522,12 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setShowRoleMenu(!showRoleMenu)}
               className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
             >
-              <div className="w-7 h-7 rounded-lg bg-blue-700 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
-                {currentUser?.nameKhmer ? currentUser.nameKhmer.charAt(0) : 'U'}
+              <div className="w-7 h-7 rounded-lg bg-blue-700 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {currentUser?.avatarUrl ? (
+                  <img src={currentUser.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  currentUser?.nameKhmer ? currentUser.nameKhmer.charAt(0) : 'U'
+                )}
               </div>
               <div className="text-left hidden md:block">
                 <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-none truncate max-w-[95px]">
@@ -673,8 +677,8 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Quick Settings Button - ONLY for director, super_admin, secretary */}
-          {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && (
+          {/* Quick Settings Button - ONLY for director and super_admin */}
+          {(currentUser?.role === 'director' || currentUser?.role === 'super_admin') && (
             <button
               id="top-settings-btn"
               onClick={onOpenSettings}

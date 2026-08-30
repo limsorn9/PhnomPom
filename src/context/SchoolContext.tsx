@@ -559,9 +559,22 @@ const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
 const LOCAL_STORAGE_KEY = 'phnom_pom_primary_school_v2';
 
 export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
+    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_active_tab`);
+    if (saved) {
+      return saved as ActiveTab;
+    }
+    return 'dashboard';
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
+
+  // Save activeTab to localStorage on change
+  useEffect(() => {
+    if (activeTab) {
+      localStorage.setItem(`${LOCAL_STORAGE_KEY}_active_tab`, activeTab);
+    }
+  }, [activeTab]);
 
   // App Users State
   const [appUsers, setAppUsers] = useState<AppUser[]>(() => {
@@ -6177,6 +6190,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const updateSchoolProfile = (profile: Partial<SchoolProfile>) => {
+    if (currentUser && currentUser.role !== 'director' && currentUser.role !== 'super_admin') {
+      showToast('សិទ្ធិកែប្រែកំណត់ព័ត៌មានសាលារៀនគឺស្ថិតនៅក្នុងប្រូហ្វាល់នាយកសាលាតែម្នាក់គត់!', 'error');
+      return;
+    }
     setSchoolProfile(prev => ({ ...prev, ...profile }));
     showToast('បានធ្វើបច្ចុប្បន្នភាពព័ត៌មានសាលារៀនជោគជ័យ!');
   };

@@ -792,8 +792,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} pt-1`}>
           {!isCollapsed && (
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-                {currentUser?.nameKhmer ? currentUser.nameKhmer.charAt(0) : <UserIcon className="w-4 h-4" />}
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-sm overflow-hidden flex-shrink-0">
+                {currentUser?.avatarUrl ? (
+                  <img src={currentUser.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : currentUser?.nameKhmer ? (
+                  currentUser.nameKhmer.charAt(0)
+                ) : (
+                  <UserIcon className="w-4 h-4" />
+                )}
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-white truncate">
@@ -806,7 +812,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
 
-          {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && (
+          {(currentUser?.role === 'director' || currentUser?.role === 'super_admin') && (
             <button
               onClick={onOpenSettings}
               className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
