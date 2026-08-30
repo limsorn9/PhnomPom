@@ -15,6 +15,7 @@ import {
   Filter,
   Eye,
   Edit2,
+  Key,
   Trash2,
   QrCode,
   HeartPulse,
@@ -89,6 +90,7 @@ export const StudentManagement: React.FC = () => {
     studentBadgeAssignments,
     getStudentBadges,
     getStudentTotalPoints,
+    verifyAndResetStudentPassword,
     canAccessStudentDashboard,
     academicYears,
     selectedAcademicYear,
@@ -383,7 +385,8 @@ export const StudentManagement: React.FC = () => {
     }
 
     // 2. Date of Birth & MoEYS Primary School Age Validation (Normally 5 to 16 years old)
-    if (!formData.dob) {
+    if (editingStudent) {
+      if (!formData.dob) {
       errors.push('សូមជ្រើសរើសថ្ងៃខែឆ្នាំកំណើតរបស់សិស្ស');
     } else {
       const birthDate = new Date(formData.dob);
@@ -400,6 +403,7 @@ export const StudentManagement: React.FC = () => {
           errors.push(`អាយុសិស្សលើសពី ១៨ ឆ្នាំ សូមពិនិត្យមើលថ្ងៃខែឆ្នាំកំណើតឡើងវិញ`);
         }
       }
+    }
     }
 
     // 3. Grade & Section Validation
@@ -434,7 +438,7 @@ export const StudentManagement: React.FC = () => {
       nameKhmer: formData.nameKhmer,
       nameLatin: formData.nameLatin,
       gender: formData.gender,
-      dob: formData.dob,
+      dob: formData.dob || '2015-01-01',
       pob: pobFormatted,
       pobVillage: formData.pobVillage,
       pobCommune: formData.pobCommune,
@@ -1490,6 +1494,23 @@ export const StudentManagement: React.FC = () => {
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
+                          <button
+                            onClick={() => {
+                              const newPass = prompt(`សូមបញ្ចូលពាក្យសម្ងាត់ថ្មីសម្រាប់សិស្ស «${student.nameKhmer}» (អត្តលេខ ${student.code}):`, student.code);
+                              if (newPass) {
+                                const res = verifyAndResetStudentPassword(student.nameKhmer, student.code, newPass);
+                                if (res.success) {
+                                  showToast('ពាក្យសម្ងាត់ត្រូវបានផ្លាស់ប្តូរដោយជោគជ័យ!', 'success');
+                                } else {
+                                  showToast(res.message, 'error');
+                                }
+                              }
+                            }}
+                            title="ប្តូរពាក្យសម្ងាត់សិស្ស"
+                            className="p-1.5 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                          >
+                            <Key className="w-4 h-4" />
+                          </button>
                           {(isDirector || isSecretary) && (
                             <button
                               id={`delete-student-${student.id}`}
@@ -2042,6 +2063,76 @@ export const StudentManagement: React.FC = () => {
                 isEditing={!!editingStudent}
               />
 
+              {!editingStudent ? (
+                 <div className="space-y-4">
+                    <p className="text-emerald-700 bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-sm leading-relaxed">
+                      <span className="font-bold">📝 បញ្ចូលតែព័ត៌មានចាំបាច់សិនបានហើយ។</span><br/>
+                      ពេលបញ្ចូលរួច ប្រព័ន្ធនឹងបង្កើតគណនី និងពាក្យសម្ងាត់ជូនសិស្សដោយស្វ័យប្រវត្តិ (អត្តលេខសិស្ស = Username & Password)។ ចាំគ្រូបន្ទុកថ្នាក់ជាអ្នកបំពេញព័ត៌មានលម្អិតតាមក្រោយ។
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-slate-700 font-bold mb-1.5">គោត្តនាម និងនាម <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          required
+                          value={formData.nameKhmer}
+                          onChange={(e) => updateField('nameKhmer', e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all font-bold"
+                          placeholder="ឧ. សុខ សាន្ត"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-bold mb-1.5">ភេទ <span className="text-red-500">*</span></label>
+                        <select
+                          required
+                          value={formData.gender}
+                          onChange={(e) => updateField('gender', e.target.value as Gender)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-bold bg-white"
+                        >
+                          <option value="M">ប្រុស (M)</option>
+                          <option value="F">ស្រី (F)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-bold mb-1.5">ថ្នាក់ទី <span className="text-red-500">*</span></label>
+                        <select
+                          required
+                          value={formData.grade}
+                          onChange={(e) => updateField('grade', Number(e.target.value))}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-bold bg-white"
+                        >
+                          <option value={0} disabled>ជ្រើសរើសថ្នាក់</option>
+                          {[1, 2, 3, 4, 5, 6].map((g) => (
+                            <option key={g} value={g}>ថ្នាក់ទី {g}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-bold mb-1.5">បន្ទប់ <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          required
+                          value={formData.section}
+                          onChange={(e) => updateField('section', e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all font-bold"
+                          placeholder="ឧ. ក"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-slate-700 font-bold mb-1.5">លេខទូរស័ព្ទអាណាព្យាបាល</label>
+                        <input
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) => updateField('phone', e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all font-bold text-left"
+                          placeholder="ឧ. 012345678"
+                          dir="ltr"
+                        />
+                      </div>
+                    </div>
+                 </div>
+              ) : (
+              <>
               {/* Section 1: Core Identification */}
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-200 pb-2 gap-2">
@@ -2679,6 +2770,9 @@ export const StudentManagement: React.FC = () => {
                   />
                 </div>
               </div>
+
+              </>
+              )}
 
               {/* Form Action Buttons */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">

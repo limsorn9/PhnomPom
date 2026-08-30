@@ -50,6 +50,8 @@ export const LibraryManagement: React.FC = () => {
     showToast
   } = useSchool();
 
+  const isReadOnly = currentUser?.role === 'student' || currentUser?.role === 'parent';
+  
   const [activeSubTab, setActiveSubTab] = useState<'catalog' | 'logs' | 'ladder'>('catalog');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedFormat, setSelectedFormat] = useState<string>('all');
@@ -325,6 +327,8 @@ export const LibraryManagement: React.FC = () => {
 
         {/* Header Action Buttons */}
         <div className="flex flex-wrap items-center gap-2 no-print">
+          {!isReadOnly && (
+            <>
           <button
             onClick={handleExportCsv}
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all"
@@ -356,6 +360,8 @@ export const LibraryManagement: React.FC = () => {
             <Plus className="w-4 h-4" />
             <span>បញ្ចូលសៀវភៅថ្មី (New Book)</span>
           </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -556,6 +562,7 @@ export const LibraryManagement: React.FC = () => {
               </div>
 
               {/* Book Actions */}
+              {!isReadOnly && (
               <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-1.5">
                 <button
                   onClick={() => handleOpenCreateLog(b)}
@@ -590,6 +597,7 @@ export const LibraryManagement: React.FC = () => {
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
+              )}
             </div>
           ))}
         </div>
@@ -624,7 +632,7 @@ export const LibraryManagement: React.FC = () => {
                   <th className="py-3 px-4 font-bold">ថ្ងៃកំណត់សង</th>
                   <th className="py-3 px-4 font-bold text-center">ស្ថានភាព</th>
                   <th className="py-3 px-4 font-bold text-center">ទំព័រអាន</th>
-                  <th className="py-3 px-4 font-bold text-center">សកម្មភាព</th>
+                  {!isReadOnly && <th className="py-3 px-4 font-bold text-center">សកម្មភាព</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 text-slate-700">
@@ -659,6 +667,7 @@ export const LibraryManagement: React.FC = () => {
                     <td className="py-3 px-4 text-center font-bold text-purple-700">
                       {log.pagesRead || '-'} ទំព័រ
                     </td>
+                    {!isReadOnly && (
                     <td className="py-3 px-4 text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         {log.status === 'borrowed' && (
@@ -683,6 +692,7 @@ export const LibraryManagement: React.FC = () => {
                         </button>
                       </div>
                     </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

@@ -5002,21 +5002,23 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // នាយកសាលា (Director) និង Super Admin មានសិទ្ធិពេញលេញលើគ្រប់ផ្នែកទាំងអស់នៃកម្មវិធី
     if (role === 'super_admin' || role === 'director') return true;
 
-    // អ្នកមានសិទ្ធិឆាតបត និងប្រើប្រាស់ Telegram Bot Studio មានតែបុគ្គលិក (គ្រូបង្រៀន, លេខាធិការ, បណ្ណារក្ស) និងនាយកសាលា/Super Admin ប៉ុណ្ណោះ (សិស្សមិនមានសិទ្ធិទេ)
     if (role === 'secretary') {
       return ['dashboard', 'homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'library', 'learning_resources', 'telegram_bot'].includes(tab);
     }
 
     if (role === 'librarian') {
-      return ['library', 'teaching_resources', 'learning_resources', 'dashboard', 'calendar', 'official_documents', 'telegram_bot'].includes(tab);
+      // បណ្ណារក្សមានសិទ្ធិបើកតែដាស់បតបណ្ណារក្សដែលមានតែការងារបណ្ណាល័យ និងគ្រប់គ្រងសៀវភៅ
+      return ['library'].includes(tab);
     }
 
     if (role === 'teacher') {
-      return ['homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'dashboard', 'ai_teacher', 'activity_logs', 'official_documents', 'students', 'transfers', 'household_census', 'classrooms', 'scores', 'attendance_health', 'calendar', 'reports_qr', 'library', 'learning_resources', 'telegram_bot', 'accounts'].includes(tab);
+      // គ្រូអាចបើកបានតែដាស់បតគ្រូទេ
+      return ['homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'scores', 'attendance_health'].includes(tab);
     }
 
-    if (role === 'student') {
-      return ['student_portal', 'teaching_resources', 'learning_resources', 'calendar', 'library'].includes(tab);
+    if (role === 'student' || role === 'parent') {
+      // សិស្សនិងអាណាព្យាបាលគឺបើកបានតែដាស់បតគាត់ដែរ
+      return ['student_portal'].includes(tab);
     }
 
     return false;
@@ -5141,9 +5143,9 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const addStudent = (studentData: Omit<Student, 'id' | 'code'>) => {
-    // Strict Rule: Only Director / Super Admin can create students
-    if (currentUser && currentUser.role !== 'director' && currentUser.role !== 'super_admin') {
-      showToast('សិស្សមានតែលោកនាយកសាលា (Director) តែប៉ុណ្ណោះ ទើបមានសិទ្ធិបង្កើត/ចុះឈ្មោះចូលប្រព័ន្ធបានដាច់ខាត!', 'error');
+    // Check permissions
+    if (currentUser && !['director', 'super_admin', 'secretary', 'teacher'].includes(currentUser.role)) {
+      showToast('អ្នកគ្មានសិទ្ធិបញ្ចូលសិស្សថ្មីចូលប្រព័ន្ធទេ!', 'error');
       return;
     }
 
@@ -5155,7 +5157,25 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       code
     };
     setStudents(prev => [newStudent, ...prev]);
-    showToast(`បានបញ្ចូលសិស្ស «${newStudent.nameKhmer}» អត្តលេខ ${code} ជោគជ័យ!`);
+
+    // Auto-create an AppUser account for the new student
+    const studentUser: AppUser = {
+      id: `u-${newStudent.id}`,
+      username: code,
+      password: code,
+      nameKhmer: newStudent.nameKhmer,
+      nameLatin: newStudent.nameLatin || '',
+      email: `${code.toLowerCase()}@student.phnompom.edu.kh`,
+      phone: newStudent.guardianPhone || '',
+      role: 'student',
+      studentId: newStudent.id,
+      studentCode: code,
+      status: 'active',
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+    setAppUsers(prev => [studentUser, ...prev]);
+
+    showToast(`បានបញ្ចូលសិស្ស «${newStudent.nameKhmer}» និងបង្កើតគណនី (អត្តលេខ ${code}) ជោគជ័យ!`);
 
     // Audit log
     addActivityLog({

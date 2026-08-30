@@ -518,7 +518,8 @@ export type UserRole =
   | 'secretary'   // លេខាធិការ
   | 'librarian'   // បណ្ណារក្ស
   | 'teacher'     // គ្រូបង្រៀន / គ្រូបន្ទុកថ្នាក់
-  | 'student';    // សិស្ស
+  | 'student'     // សិស្ស
+  | 'parent';     // អាណាព្យាបាល
 
 export interface UserSessionInfo {
   id: string;
