@@ -10,7 +10,7 @@ export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 // Initialize Cloud Firestore using the provisioned custom databaseId if present
 const customDbId = (firebaseConfig as any).firestoreDatabaseId || (firebaseConfig as any).databaseId;
 export const db = customDbId
-  ? initializeFirestore(app, {}, customDbId)
+  ? getFirestore(app, customDbId)
   : getFirestore(app);
 
 // Enable offline multi-tab persistence gracefully
