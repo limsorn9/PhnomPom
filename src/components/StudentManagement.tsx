@@ -51,7 +51,8 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { uploadStudentProfilePhoto } from '../services/firebaseStorage';
+import { uploadStudentProfilePhoto, compressImageFile } from '../services/firebaseStorage';
+import { uploadProfilePhotoToDrive } from '../services/googleDrive';
 import {
   MoEYSRoyalHeader,
   AngkorPageWatermark
@@ -94,7 +95,10 @@ export const StudentManagement: React.FC = () => {
     canAccessStudentDashboard,
     academicYears,
     selectedAcademicYear,
-    setSelectedAcademicYear
+    setSelectedAcademicYear,
+    confirmAction,
+    isStudentRegisteredInAccounts,
+    autoGenerateStudentAccounts
   } = useSchool();
 
   const isDirector = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
@@ -178,7 +182,7 @@ export const StudentManagement: React.FC = () => {
   const [isDragOverPhoto, setIsDragOverPhoto] = useState(false);
   const [photoUploadSource, setPhotoUploadSource] = useState<'firebase' | 'base64' | 'url' | null>(null);
 
-  // Handle Photo File Upload to Firebase Storage
+  // Handle Photo File Upload directly to Google Drive (with storage/base64 fallback)
   const handlePhotoFileUpload = async (file: File) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
@@ -194,11 +198,29 @@ export const StudentManagement: React.FC = () => {
     setIsUploadingPhoto(true);
     try {
       const studentIdentifier = formData.nameLatin || formData.nameKhmer || 'student';
+      const compressedBlob = await compressImageFile(file, 800, 800, 0.88);
+      
+      try {
+        const driveResult = await uploadProfilePhotoToDrive(
+          compressedBlob,
+          `student_${studentIdentifier}_${Date.now()}.jpg`
+        );
+        if (driveResult && driveResult.directPhotoUrl) {
+          setFormData(prev => ({ ...prev, avatarUrl: driveResult.directPhotoUrl }));
+          setPhotoUploadSource('url');
+          showToast('បានផ្ទុកឡើងរូបថតសិស្សទៅកាន់ Google Drive ដោយជោគជ័យ!', 'success');
+          return;
+        }
+      } catch (driveErr: any) {
+        console.warn('Google Drive direct upload fallback:', driveErr);
+      }
+
+      // Fallback
       const result = await uploadStudentProfilePhoto(file, studentIdentifier);
       setFormData(prev => ({ ...prev, avatarUrl: result.downloadUrl }));
       setPhotoUploadSource(result.isFirebaseStorage ? 'firebase' : 'base64');
       if (result.isFirebaseStorage) {
-        showToast('បាន Upload រូបថតសិស្សទៅកាន់ Firebase Storage ជោគជ័យ!', 'success');
+        showToast('បាន Upload រូបថតសិស្សទៅកាន់ Storage ជោគជ័យ!', 'success');
       } else {
         showToast('បានរក្សាទុក និង Compress រូបថតសិស្សដោយជោគជ័យ!', 'success');
       }
@@ -495,16 +517,28 @@ export const StudentManagement: React.FC = () => {
       attendance: editingStudent ? editingStudent.attendance : { present: 0, absentWithPermission: 0, absentWithoutPermission: 0, totalDays: 0 }
     };
 
-    if (editingStudent) {
-      updateStudent(editingStudent.id, newStudentData);
-      setEditingStudent(null);
-      resetForm(initialFormState);
-    } else {
-      addStudent(newStudentData);
-      resetForm(initialFormState);
-    }
-
-    setIsAddModalOpen(false);
+    confirmAction({
+      title: editingStudent ? 'បញ្ជាក់ការកែប្រែទិន្នន័យសិស្ស' : 'បញ្ជាក់ការចុះឈ្មោះសិស្សថ្មី',
+      description: editingStudent
+        ? `តើអ្នកពិតជាចង់រក្សាទុកការកែប្រែព័ត៌មានសម្រាប់សិស្ស «${formData.nameKhmer}» មែនទេ?`
+        : `តើអ្នកពិតជាចង់ចុះឈ្មោះសិស្សថ្មី «${formData.nameKhmer}» ចូលថ្នាក់ទី ${formData.grade}«${formData.section}» មែនទេ?`,
+      confirmLabel: editingStudent ? 'យល់ព្រម រក្សាទុក' : 'យល់ព្រម ចុះឈ្មោះ',
+      cancelLabel: 'ត្រឡប់ក្រោយ',
+      intent: 'primary',
+      onConfirm: () => {
+        if (editingStudent) {
+          updateStudent(editingStudent.id, newStudentData);
+          setEditingStudent(null);
+          resetForm(initialFormState);
+          showToast(`បានកែប្រែទិន្នន័យសិស្ស «${formData.nameKhmer}» ដោយជោគជ័យ!`, 'success');
+        } else {
+          addStudent(newStudentData);
+          resetForm(initialFormState);
+          showToast(`បានចុះឈ្មោះសិស្សថ្មី «${formData.nameKhmer}» ដោយជោគជ័យ!`, 'success');
+        }
+        setIsAddModalOpen(false);
+      }
+    });
   };
 
   const handleEditClick = (student: Student) => {
@@ -799,6 +833,31 @@ export const StudentManagement: React.FC = () => {
               >
                 <Trash2 className="w-4 h-4 text-red-600" />
                 <span>លុបសិស្សទាំងអស់</span>
+              </button>
+            )}
+            {(isDirector || isSecretary) && students.some(s => !isStudentRegisteredInAccounts(s)) && (
+              <button
+                id="generate-missing-student-accounts-btn"
+                type="button"
+                onClick={() => {
+                  const missing = students.filter(s => !isStudentRegisteredInAccounts(s));
+                  confirmAction({
+                    title: 'បង្កើតគណនីសិស្សទាំងអស់ដែលមិនទាន់មាន',
+                    description: `តើអ្នកចង់បង្កើតគណនីប្រព័ន្ធជូនសិស្សចំនួន ${missing.length} នាក់ដែលមិនទាន់មានគណនីមែនទេ? (ពាក្យសម្ងាត់លំនាំដើម៖ អត្តលេខសិស្ស)`,
+                    confirmLabel: 'យល់ព្រម បង្កើតទាំងអស់',
+                    cancelLabel: 'បោះបង់',
+                    intent: 'primary',
+                    onConfirm: () => {
+                      const count = autoGenerateStudentAccounts(missing.map(s => s.id));
+                      showToast(`បានបង្កើតគណនីសិស្សចំនួន ${count} នាក់ដោយជោគជ័យ!`, 'success');
+                    }
+                  });
+                }}
+                className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-purple-300/60"
+                title="បង្កើតគណនីចូលប្រើប្រព័ន្ធសម្រាប់សិស្សទាំងអស់ដែលមិនទាន់មានគណនី"
+              >
+                <UserCheck className="w-4 h-4 text-purple-200" />
+                <span>បង្កើតគណនីសិស្សដែលខ្វះ ({students.filter(s => !isStudentRegisteredInAccounts(s)).length})</span>
               </button>
             )}
             {(isDirector || isSecretary) ? (
@@ -1314,6 +1373,16 @@ export const StudentManagement: React.FC = () => {
                               {student.nameLatin && <span className="font-times">{student.nameLatin}</span>}
                               <span>•</span>
                               <span className="font-times text-blue-600 font-semibold">{student.code}</span>
+                              <span>•</span>
+                              {isStudentRegisteredInAccounts(student) ? (
+                                <span className="inline-flex items-center text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md">
+                                  ✓ មានគណនី
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-md">
+                                  ✕ គ្មានគណនី
+                                </span>
+                              )}
                             </div>
 
                             {/* Risk Alert Badges */}

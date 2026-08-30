@@ -109,7 +109,10 @@ export const ClassroomScores: React.FC = () => {
     t,
     isDarkMode,
     addActivityLog,
-    printSettings
+    printSettings,
+    confirmAction,
+    isStudentRegisteredInAccounts,
+    autoGenerateStudentAccounts
   } = useSchool();
 
   // If teacher, default and lock to their assigned grade & section
@@ -158,9 +161,12 @@ export const ClassroomScores: React.FC = () => {
   });
 
   // Filter students in current class
-  const classStudents = students.filter(
+  // តាមបទបញ្ជា៖ ចំណែកឈ្មោះសិស្ស បើគ្មានក្នុងគណនីទេ មិនអនុញ្ញាតឱ្យបង្ហាញជាដាច់ខាតក្នុងថ្នាក់នីមួយៗ
+  const rawClassStudents = students.filter(
     s => s.grade === selectedGrade && s.section === selectedSection && s.status !== 'transferred'
   );
+  const classStudents = rawClassStudents.filter(s => isStudentRegisteredInAccounts(s));
+  const unverifiedStudents = rawClassStudents.filter(s => !isStudentRegisteredInAccounts(s));
 
   // Find Homeroom Teacher
   const homeroomTeacher = teachers.find(
@@ -279,16 +285,25 @@ export const ClassroomScores: React.FC = () => {
       }
     });
 
-    saveStudentScore({
-      studentId: activeStudentForScoreEdit.id,
-      monthOrSemester: selectedMonth,
-      academicYear: selectedAcademicYear,
-      scores: numericScores,
-      remarks: singleScoreForm.remarks
-    });
+    confirmAction({
+      title: 'បញ្ជាក់ការរក្សាទុកពិន្ទុសិស្ស',
+      description: `តើលោកគ្រូ-អ្នកគ្រូប្រាកដជាចង់រក្សាទុកទិន្នន័យពិន្ទុសម្រាប់សិស្ស «${activeStudentForScoreEdit.nameKhmer}» ប្រចាំខែ «${selectedMonth}» ដែរឬទេ?`,
+      confirmLabel: 'យល់ព្រម រក្សាទុក',
+      cancelLabel: 'ត្រឡប់ក្រោយ',
+      intent: 'primary',
+      onConfirm: () => {
+        saveStudentScore({
+          studentId: activeStudentForScoreEdit.id,
+          monthOrSemester: selectedMonth,
+          academicYear: selectedAcademicYear,
+          scores: numericScores,
+          remarks: singleScoreForm.remarks
+        });
 
-    showToast(`បានរក្សាទុកពិន្ទុរបស់សិស្ស «${activeStudentForScoreEdit.nameKhmer}» ជោគជ័យ!`);
-    setActiveStudentForScoreEdit(null);
+        showToast(`បានរក្សាទុកពិន្ទុរបស់សិស្ស «${activeStudentForScoreEdit.nameKhmer}» ជោគជ័យ!`, 'success');
+        setActiveStudentForScoreEdit(null);
+      }
+    });
   };
 
   const handleCreateNewSubject = (e: React.FormEvent) => {
@@ -298,25 +313,35 @@ export const ClassroomScores: React.FC = () => {
       return;
     }
 
-    addExamSubject({
-      code: newSubjectForm.code.trim().toLowerCase().replace(/\s+/g, '_'),
-      nameKhmer: newSubjectForm.nameKhmer.trim(),
-      nameLatin: newSubjectForm.nameLatin.trim() || newSubjectForm.nameKhmer.trim(),
-      category: newSubjectForm.category,
-      maxScore: Number(newSubjectForm.maxScore) || 10,
-      weight: Number(newSubjectForm.weight) || 1,
-      isDefault: false
-    });
+    confirmAction({
+      title: 'បញ្ជាក់ការបន្ថែមមុខវិជ្ជាប្រឡងថ្មី',
+      description: `តើអ្នកចង់បន្ថែមមុខវិជ្ជា «${newSubjectForm.nameKhmer}» (${newSubjectForm.code}) ទៅក្នុងប្រព័ន្ធមែនទេ?`,
+      confirmLabel: 'យល់ព្រម បន្ថែម',
+      cancelLabel: 'បោះបង់',
+      intent: 'primary',
+      onConfirm: () => {
+        addExamSubject({
+          code: newSubjectForm.code.trim().toLowerCase().replace(/\s+/g, '_'),
+          nameKhmer: newSubjectForm.nameKhmer.trim(),
+          nameLatin: newSubjectForm.nameLatin.trim() || newSubjectForm.nameKhmer.trim(),
+          category: newSubjectForm.category,
+          maxScore: Number(newSubjectForm.maxScore) || 10,
+          weight: Number(newSubjectForm.weight) || 1,
+          isDefault: false
+        });
 
-    setNewSubjectForm({
-      code: '',
-      nameKhmer: '',
-      nameLatin: '',
-      category: 'khmer',
-      maxScore: 10,
-      weight: 1
+        setNewSubjectForm({
+          code: '',
+          nameKhmer: '',
+          nameLatin: '',
+          category: 'khmer',
+          maxScore: 10,
+          weight: 1
+        });
+        setShowSubjectSettingsModal(false);
+        showToast('បានបន្ថែមមុខវិជ្ជាថ្មីជោគជ័យ!', 'success');
+      }
     });
-    setShowSubjectSettingsModal(false);
   };
 
   // Synchronize batchSubjectScores whenever selectedSubjectCode, class, month or scores change
@@ -354,39 +379,48 @@ export const ClassroomScores: React.FC = () => {
       }
     }
 
-    let savedCount = 0;
-    classStudents.forEach(stu => {
-      const existing = getStudentScore(stu.id);
-      const studentScoreVal = Number(batchSubjectScores[stu.id] ?? 8.0);
-      
-      const currentScores: MonthlySubjectScores = existing ? { ...existing.scores } : {
-        khmerReading: 8.0,
-        khmerWriting: 8.0,
-        mathematics: 8.0,
-        scienceSocial: 8.0,
-        moralCivics: 8.5,
-        artsPhysical: 8.5,
-      };
+    confirmAction({
+      title: 'បញ្ជាក់ការរក្សាទុកពិន្ទុមុខវិជ្ជាជាក្រុម',
+      description: `តើលោកគ្រូ-អ្នកគ្រូពិតជាចង់រក្សាទុកពិន្ទុមុខវិជ្ជា «${activeSub?.nameKhmer || selectedSubjectCode}» សម្រាប់សិស្សទាំង ${classStudents.length} នាក់ក្នុងថ្នាក់ទី ${selectedGrade}«${selectedSection}» មែនទេ?`,
+      confirmLabel: 'យល់ព្រម រក្សាទុក',
+      cancelLabel: 'ត្រឡប់ក្រោយ',
+      intent: 'primary',
+      onConfirm: () => {
+        let savedCount = 0;
+        classStudents.forEach(stu => {
+          const existing = getStudentScore(stu.id);
+          const studentScoreVal = Number(batchSubjectScores[stu.id] ?? 8.0);
+          
+          const currentScores: MonthlySubjectScores = existing ? { ...existing.scores } : {
+            khmerReading: 8.0,
+            khmerWriting: 8.0,
+            mathematics: 8.0,
+            scienceSocial: 8.0,
+            moralCivics: 8.5,
+            artsPhysical: 8.5,
+          };
 
-      currentScores[selectedSubjectCode] = studentScoreVal;
-      if (selectedSubjectCode === 'reading' || selectedSubjectCode === 'khmerReading') currentScores.khmerReading = studentScoreVal;
-      if (selectedSubjectCode === 'writing' || selectedSubjectCode === 'khmerWriting') currentScores.khmerWriting = studentScoreVal;
-      if (selectedSubjectCode === 'numbers' || selectedSubjectCode === 'mathematics') currentScores.mathematics = studentScoreVal;
-      if (selectedSubjectCode === 'science' || selectedSubjectCode === 'socialStudies' || selectedSubjectCode === 'scienceSocial') currentScores.scienceSocial = studentScoreVal;
-      if (selectedSubjectCode === 'moralCivics') currentScores.moralCivics = studentScoreVal;
-      if (selectedSubjectCode === 'homeEconomicsArts' || selectedSubjectCode === 'physicalHealth' || selectedSubjectCode === 'artsPhysical') currentScores.artsPhysical = studentScoreVal;
+          currentScores[selectedSubjectCode] = studentScoreVal;
+          if (selectedSubjectCode === 'reading' || selectedSubjectCode === 'khmerReading') currentScores.khmerReading = studentScoreVal;
+          if (selectedSubjectCode === 'writing' || selectedSubjectCode === 'khmerWriting') currentScores.khmerWriting = studentScoreVal;
+          if (selectedSubjectCode === 'numbers' || selectedSubjectCode === 'mathematics') currentScores.mathematics = studentScoreVal;
+          if (selectedSubjectCode === 'science' || selectedSubjectCode === 'socialStudies' || selectedSubjectCode === 'scienceSocial') currentScores.scienceSocial = studentScoreVal;
+          if (selectedSubjectCode === 'moralCivics') currentScores.moralCivics = studentScoreVal;
+          if (selectedSubjectCode === 'homeEconomicsArts' || selectedSubjectCode === 'physicalHealth' || selectedSubjectCode === 'artsPhysical') currentScores.artsPhysical = studentScoreVal;
 
-      saveStudentScore({
-        studentId: stu.id,
-        monthOrSemester: selectedMonth,
-        academicYear: selectedAcademicYear,
-        scores: currentScores,
-        remarks: existing?.remarks || 'ការសិក្សាល្អ'
-      });
-      savedCount++;
+          saveStudentScore({
+            studentId: stu.id,
+            monthOrSemester: selectedMonth,
+            academicYear: selectedAcademicYear,
+            scores: currentScores,
+            remarks: existing?.remarks || 'ការសិក្សាល្អ'
+          });
+          savedCount++;
+        });
+
+        showToast(`បានរក្សាទុកពិន្ទុមុខវិជ្ជា «${activeSub?.nameKhmer || selectedSubjectCode}» សម្រាប់សិស្ស ${savedCount} នាក់ជោគជ័យ!`, 'success');
+      }
     });
-
-    showToast(`បានរក្សាទុកពិន្ទុមុខវិជ្ជា «${activeSub?.nameKhmer || selectedSubjectCode}» សម្រាប់សិស្ស ${savedCount} នាក់ជោគជ័យ!`);
   };
 
   const triggerCelebrateConfetti = (record: StudentScoreRecord) => {
@@ -620,7 +654,26 @@ export const ClassroomScores: React.FC = () => {
             </div>
             {(currentUser?.role === 'teacher' || currentUser?.role === 'director' || currentUser?.role === 'secretary') && (
               <button
-                onClick={() => toggleReleaseClassResults(selectedGrade, selectedSection, selectedMonth, selectedAcademicYear)}
+                onClick={() => {
+                  confirmAction({
+                    title: isClassReleased ? 'បញ្ជាក់ការបិទការផ្សព្វផ្សាយពិន្ទុ' : 'បញ្ជាក់ការប្រកាសផ្សព្វផ្សាយពិន្ទុ',
+                    description: isClassReleased
+                      ? `តើអ្នកចង់បិទការប្រកាសពិន្ទុសម្រាប់ថ្នាក់ទី ${selectedGrade}«${selectedSection}» ខែ «${selectedMonth}» មែនទេ?`
+                      : `តើអ្នកចង់ប្រកាសផ្សាយលទ្ធផលពិន្ទុសម្រាប់ថ្នាក់ទី ${selectedGrade}«${selectedSection}» ខែ «${selectedMonth}» ជាផ្លូវការមែនទេ?`,
+                    confirmLabel: isClassReleased ? 'បិទការប្រកាស' : 'យល់ព្រម ប្រកាសផ្សាយ',
+                    cancelLabel: 'ត្រឡប់ក្រោយ',
+                    intent: isClassReleased ? 'warning' : 'primary',
+                    onConfirm: () => {
+                      toggleReleaseClassResults(selectedGrade, selectedSection, selectedMonth, selectedAcademicYear);
+                      showToast(
+                        isClassReleased
+                          ? `បានបិទការប្រកាសលទ្ធផលពិន្ទុថ្នាក់ទី ${selectedGrade}«${selectedSection}»!`
+                          : `បានប្រកាសផ្សាយលទ្ធផលពិន្ទុថ្នាក់ទី ${selectedGrade}«${selectedSection}» ជាផ្លូវការ!`,
+                        'success'
+                      );
+                    }
+                  });
+                }}
                 className={`px-2 py-1 rounded-lg font-bold text-[11px] shadow-sm transition-colors ${
                   isClassReleased
                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
@@ -653,6 +706,44 @@ export const ClassroomScores: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Warning Alert if students without accounts are hidden */}
+        {unverifiedStudents.length > 0 && (
+          <div className="mt-4 p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-start gap-2.5 text-amber-900">
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <strong className="block font-bold">
+                  សិស្សចំនួន {unverifiedStudents.length} នាក់ក្នុងថ្នាក់នេះមិនទាន់មានគណនីក្នុងប្រព័ន្ធ
+                </strong>
+                <span className="text-slate-600 text-[11px]">
+                  យោងតាមបទបញ្ជាសុវត្ថិភាព សិស្សដែលគ្មានគណនីមិនត្រូវបានអនុញ្ញាតឱ្យបង្ហាញឈ្មោះក្នុងបញ្ជីថ្នាក់រហូតទាល់តែបង្កើតគណនីរួចរាល់ ({unverifiedStudents.map(s => s.nameKhmer).join('、')})។
+                </span>
+              </div>
+            </div>
+            {(currentUser?.role === 'director' || currentUser?.role === 'secretary' || currentUser?.role === 'super_admin' || currentUser?.role === 'teacher') && (
+              <button
+                type="button"
+                onClick={() => {
+                  confirmAction({
+                    title: 'បង្កើតគណនីសិស្សទាំងអស់ដែលនៅសល់',
+                    description: `តើអ្នកចង់បង្កើតគណនីប្រព័ន្ធដោយស្វ័យប្រវត្តិសម្រាប់សិស្សចំនួន ${unverifiedStudents.length} នាក់ក្នុងថ្នាក់នេះមែនទេ? (ពាក្យសម្ងាត់លំនាំដើម៖ អត្តលេខសិស្ស)`,
+                    confirmLabel: 'យល់ព្រម បង្កើតគណនី',
+                    cancelLabel: 'បោះបង់',
+                    intent: 'primary',
+                    onConfirm: () => {
+                      const createdCount = autoGenerateStudentAccounts(unverifiedStudents.map(s => s.id));
+                      showToast(`បានបង្កើតគណនីសិស្សចំនួន ${createdCount} នាក់ដោយជោគជ័យ!`, 'success');
+                    }
+                  });
+                }}
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shrink-0 transition-colors shadow-xs"
+              >
+                ⚡ បង្កើតគណនីសិស្សឥឡូវនេះ
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Scoring Mode & Grading Scale Toolbar */}

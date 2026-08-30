@@ -64,6 +64,7 @@ import {
   SchoolGroupCategory,
   GroupMemberRole
 } from '../types';
+import { ConfirmActionModal, ConfirmActionConfig } from '../components/common/ConfirmActionModal';
 import { getTranslation, AppLanguage } from '../utils/translations';
 import { googleSignIn, isGoogleAuthenticated } from '../services/googleAuth';
 import {
@@ -559,6 +560,11 @@ interface SchoolContextType {
   restoreSchoolDatabaseFromDrive: (fileIdOrJsonContent: string) => Promise<boolean>;
   triggerDriveAutoSyncAll: () => Promise<void>;
   clearDriveSyncHistory: () => void;
+
+  // 7. Universal Action Confirmation & Student Account Verification
+  confirmAction: (config: ConfirmActionConfig) => void;
+  isStudentRegisteredInAccounts: (student: Student) => boolean;
+  autoGenerateStudentAccounts: (targetStudentIds?: string[]) => { createdCount: number; existingCount: number };
 }
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
@@ -606,6 +612,15 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
+  const [confirmModalConfig, setConfirmModalConfig] = useState<ConfirmActionConfig | null>(null);
+
+  const confirmAction = (config: ConfirmActionConfig) => {
+    setConfirmModalConfig(config);
+  };
+
+  const closeConfirmModal = () => {
+    setConfirmModalConfig(null);
+  };
 
   // Save activeTab to localStorage on change
   useEffect(() => {
@@ -4323,29 +4338,148 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-    // Hierarchical Account Creation
+  // Student Account Registered Status Check
+  const isStudentRegisteredInAccounts = (student: Student): boolean => {
+    if (!student) return false;
+    const cleanStudentCode = (student.code || '').trim().toLowerCase();
+    const cleanStudentId = (student.id || '').trim();
+    const cleanNameKhmer = (student.nameKhmer || '').trim();
+
+    return appUsers.some(u => {
+      if (u.role !== 'student' && u.role !== 'parent') return false;
+      const uStudentId = (u.studentId || '').trim();
+      const uStudentCode = (u.studentCode || '').trim().toLowerCase();
+      const uUsername = (u.username || '').trim().toLowerCase();
+      const uNameKhmer = (u.nameKhmer || '').trim();
+
+      return (
+        (uStudentId && uStudentId === cleanStudentId) ||
+        (u.id && (u.id === `u-${cleanStudentId}` || u.id === `usr-stu-${cleanStudentId}`)) ||
+        (cleanStudentCode && (uStudentCode === cleanStudentCode || uUsername === cleanStudentCode)) ||
+        (cleanNameKhmer && uNameKhmer === cleanNameKhmer)
+      );
+    });
+  };
+
+  // Auto-generate Student Accounts for students without accounts
+  const autoGenerateStudentAccounts = (targetStudentIds?: string[]): { createdCount: number; existingCount: number } => {
+    const isDirectorOrSecretary = currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary';
+    if (!isDirectorOrSecretary) {
+      showToast('មានតែនាយកសាលា និងលេខាធិការប៉ុណ្ណោះ ទើបមានសិទ្ធិបង្កើតគណនីសិស្ស!', 'error');
+      return { createdCount: 0, existingCount: 0 };
+    }
+
+    const studentsToProcess = targetStudentIds && targetStudentIds.length > 0
+      ? students.filter(s => targetStudentIds.includes(s.id))
+      : students;
+
+    let createdCount = 0;
+    let existingCount = 0;
+    const newUsersToAdd: AppUser[] = [];
+
+    studentsToProcess.forEach(st => {
+      const alreadyHas = isStudentRegisteredInAccounts(st);
+      if (alreadyHas) {
+        existingCount++;
+        return;
+      }
+
+      const defaultPassword = st.code || '123456';
+      const cleanUsername = st.code ? st.code.toLowerCase().replace(/[^a-z0-9]/g, '') : `student_${st.id.slice(-4)}`;
+      const cleanEmail = `${cleanUsername}@student.moeys.gov.kh`;
+
+      const newUser: AppUser = {
+        id: `usr-stu-${st.id}`,
+        username: cleanUsername,
+        email: cleanEmail,
+        password: defaultPassword,
+        nameKhmer: st.nameKhmer,
+        nameLatin: st.nameLatin || st.nameKhmer,
+        role: 'student',
+        studentId: st.id,
+        studentCode: st.code,
+        assignedGrade: st.grade,
+        assignedSection: st.section,
+        phone: st.guardianPhone || st.phone || '',
+        avatarUrl: st.avatarUrl,
+        createdBy: currentUser?.id || 'system',
+        createdAt: new Date().toISOString().split('T')[0],
+        status: 'active',
+        passwordUpdatedAt: new Date().toISOString()
+      };
+
+      newUsersToAdd.push(newUser);
+      createdCount++;
+    });
+
+    if (newUsersToAdd.length > 0) {
+      setAppUsers(prev => [...newUsersToAdd, ...prev]);
+      showToast(`បានបង្កើតគណនីសិស្សចំនួន ${createdCount} នាក់ដោយជោគជ័យ!`, 'success');
+
+      addAccountAuditLog({
+        eventType: 'create',
+        targetUserId: 'bulk-student-accounts',
+        targetUserName: `សិស្សចំនួន ${createdCount} នាក់`,
+        targetUserRole: 'student',
+        actor: {
+          id: currentUser?.id || 'admin',
+          nameKhmer: currentUser?.nameKhmer || 'អ្នកគ្រប់គ្រង',
+          email: currentUser?.email || 'admin@moeys.gov.kh',
+          role: currentUser?.role || 'secretary'
+        },
+        reason: 'បង្កើតគណនីសិស្សដោយស្វ័យប្រវត្តិតាមបញ្ជី',
+        details: `បានបង្កើតគណនីសិស្សថ្មីចំនួន ${createdCount} នាក់ (ពាក្យសម្ងាត់លំនាំដើម៖ អត្តលេខសិស្ស)`
+      });
+    } else {
+      showToast(`សិស្សទាំងអស់ (${existingCount} នាក់) មានគណនីរួចរាល់ហើយ!`, 'info');
+    }
+
+    return { createdCount, existingCount };
+  };
+
+  // Hierarchical Account Creation
   const addUser = (userData: Omit<AppUser, 'id' | 'createdAt'>) => {
     if (!currentUser) {
       return { success: false, message: 'សូមចូលប្រព័ន្ធជាមុនសិន' };
     }
 
-    // Strict Rule: Only Director / Super Admin can create accounts (Student, Teacher, Staff)
-    if (currentUser.role !== 'director' && currentUser.role !== 'super_admin') {
+    // Role creation rules:
+    // Director / Super Admin has full permissions to create any role.
+    // Secretary has permission to create student accounts!
+    const isDirector = currentUser.role === 'director' || currentUser.role === 'super_admin';
+    const isSecretary = currentUser.role === 'secretary';
+
+    if (!isDirector && (!isSecretary || userData.role !== 'student')) {
       return { 
         success: false, 
-        message: 'ការបង្កើតគណនីគ្រូបង្រៀន និងសិស្ស គឺមានតែលោកនាយកសាលា (Director) តែប៉ុណ្ណោះ ទើបមានសិទ្ធិបង្កើតបានដាច់ខាត!' 
+        message: 'លោកនាយកសាលាមានសិទ្ធិបង្កើតគ្រប់គណនី ហើយលេខាធិការមានសិទ្ធិបង្កើតគណនីសិស្សបាន!' 
       };
     }
 
     const newUser: AppUser = {
       ...userData,
-      id: `u-${Date.now()}`,
+      id: userData.role === 'student' && userData.studentId ? `usr-stu-${userData.studentId}` : `u-${Date.now()}`,
       createdBy: currentUser.id,
       createdAt: new Date().toISOString().split('T')[0],
       status: 'active'
     };
 
     setAppUsers(prev => [newUser, ...prev]);
+
+    // If student, synchronize with student record
+    if (newUser.role === 'student') {
+      const match = students.find(
+        s => (newUser.studentId && s.id === newUser.studentId) ||
+             (newUser.studentCode && s.code === newUser.studentCode) ||
+             (newUser.nameKhmer && s.nameKhmer === newUser.nameKhmer)
+      );
+      if (match && !newUser.studentId) {
+        newUser.studentId = match.id;
+        newUser.studentCode = match.code;
+        newUser.assignedGrade = match.grade;
+        newUser.assignedSection = match.section;
+      }
+    }
 
     // If a teacher account was created, also link or create a Teacher profile in teachers list if missing
     if (newUser.role === 'teacher') {
@@ -4406,7 +4540,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     showToast(`បានបង្កើតគណនីជូន ${newUser.nameKhmer} (${getRoleLabel(newUser.role)}) ដោយជោគជ័យ!`);
-    return { success: true, message: 'ជោគជ័យ' };
+    return { success: true, message: 'ជោគជ័យ', user: newUser };
   };
 
   // Self-Registration / Direct Account Creation (even when logged out)
@@ -7021,10 +7155,17 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         syncStaffDirectoryToDrive,
         restoreSchoolDatabaseFromDrive,
         triggerDriveAutoSyncAll,
-        clearDriveSyncHistory
+        clearDriveSyncHistory,
+        confirmAction,
+        isStudentRegisteredInAccounts,
+        autoGenerateStudentAccounts
       }}
     >
       {children}
+      <ConfirmActionModal
+        config={confirmModalConfig}
+        onClose={closeConfirmModal}
+      />
     </SchoolContext.Provider>
   );
 };

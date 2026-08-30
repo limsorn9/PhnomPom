@@ -1,4 +1,4 @@
-import { getAccessToken } from './googleAuth';
+import { getAccessToken, googleSignIn } from './googleAuth';
 
 export interface DriveItem {
   id: string;
@@ -1369,9 +1369,20 @@ export const uploadProfilePhotoToDrive = async (
   fileName: string = `profile_${Date.now()}.jpg`,
   parentFolderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
 ): Promise<{ fileId: string; viewUrl: string; directPhotoUrl: string }> => {
-  const token = await getAccessToken();
+  let token = await getAccessToken();
   if (!token) {
-    throw new Error('ត្រូវការភ្ជាប់គណនី Google (Google Drive) ជាមុនសិន');
+    try {
+      const authRes = await googleSignIn();
+      if (authRes?.accessToken) {
+        token = authRes.accessToken;
+      }
+    } catch (authErr) {
+      console.warn('Google sign-in prompt skipped or closed:', authErr);
+    }
+  }
+
+  if (!token) {
+    throw new Error('ត្រូវការភ្ជាប់គណនី Google (Google Drive) ជាមុនសិន ដើម្បីផ្ទុករូបថតឡើង');
   }
 
   // 1. Upload the image file to Google Drive folder
