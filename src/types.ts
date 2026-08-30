@@ -1931,4 +1931,93 @@ export interface SchoolGroup {
   updatedAt?: string;
 }
 
+// ----------------------------------------------------
+// 8. SCHOOL LIBRARY & READING TRACKING SYSTEM (ប្រព័ន្ធគ្រប់គ្រងបណ្ណាល័យ និងសកម្មភាពអាន)
+// ----------------------------------------------------
+export type BookCategory =
+  | 'storybook'          // សៀវភៅរឿងនិទាន & រឿងព្រេង (Storybook & Fairy Tales)
+  | 'textbook'           // សៀវភៅពុម្ពសិក្សាគោល (MoEYS Textbooks)
+  | 'reference'          // សៀវភៅឯកសារយោង & វចនានុក្រម (Reference & Dictionary)
+  | 'general_knowledge'  // ចំណេះដឹងទូទៅ & ប្រវត្តិសាស្ត្រ (General Knowledge & History)
+  | 'comic_science'      // វិទ្យាសាស្ត្រកុមារ & រូបភាព (Children Science & Comics)
+  | 'morality_civics'    // សីលធម៌ អប់រំចិត្ត & ចិត្តវិទ្យា (Morality, Civics & Life Skills)
+  | 'foreign_language'   // ភាសាបរទេស (English & Foreign Languages)
+  | 'stem_technology'    // បច្ចេកវិទ្យា STEM & គណិតវិទ្យា (STEM & Math)
+  | 'other';
+
+export interface LibraryBook {
+  id: string;
+  code: string; // ឧ. BK-KH-001, MoEYS-G5-02
+  isbn?: string;
+  title: string; // ចំណងជើងសៀវភៅ
+  author: string; // អ្នកនិពន្ធ
+  publisher?: string; // រោងពុម្ព/អង្គការឧបត្ថម្ភ (ឧ. SIPAR, Room to Read, MoEYS)
+  publishYear?: string;
+  category: BookCategory;
+  gradeLevel: number; // 0=គ្រប់កម្រិត, 1-6 (ថ្នាក់ទី១ ដល់ ទី៦)
+  totalCopies: number; // ចំនួនក្បាលសរុប
+  availableCopies: number; // ចំនួនដែលអាចខ្ចីបាន
+  shelfLocation: string; // ទីតាំងធ្នើ/ទូ ឧ. ធ្នើ A-1, ទូ ក-២
+  coverUrl?: string;
+  language: 'khmer' | 'english' | 'bilingual' | 'other';
+  condition: 'good' | 'fair' | 'damaged';
+  description?: string;
+  addedDate: string; // YYYY-MM-DD
+  academicYear: string;
+}
+
+export type BookBorrowStatus = 'borrowing' | 'returned' | 'overdue' | 'lost';
+
+export interface BookBorrowRecord {
+  id: string;
+  borrowNumber: string; // ឧ. LN-2024-001
+  bookId: string;
+  bookTitle: string;
+  bookCode: string;
+  borrowerType: 'student' | 'teacher';
+  borrowerId: string;
+  borrowerName: string;
+  borrowerCode?: string; // STU-001 or Staff Code
+  gradeSection?: string; // ឧ. ថ្នាក់ទី៥ក
+  phone?: string;
+  borrowDate: string; // YYYY-MM-DD
+  dueDate: string; // YYYY-MM-DD
+  returnDate?: string; // YYYY-MM-DD
+  status: BookBorrowStatus;
+  conditionOnReturn?: 'good' | 'fair' | 'damaged';
+  librarianName: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export type LibraryActivityType =
+  | 'reading'            // អានសៀវភៅក្នុងបណ្ណាល័យ
+  | 'borrowing'          // ខ្ចី-សងសៀវភៅ
+  | 'study_group'        // សិក្សាស្រាវជ្រាវជាក្រុម
+  | 'digital_learning'   // ស្រាវជ្រាវកុំព្យូទ័រ/ថេប្លេត
+  | 'storytelling'       // ចូលរួមស្តាប់ការនិទានរឿង
+  | 'reading_challenge'; // ចូលរួមប្រកួតអានសៀវភៅ
+
+export interface StudentLibraryActivity {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentCode: string;
+  grade: number;
+  section: string;
+  date: string; // YYYY-MM-DD
+  timeIn: string; // HH:mm
+  timeOut?: string; // HH:mm
+  activityType: LibraryActivityType;
+  bookReadTitle?: string;
+  bookReadCategory?: BookCategory;
+  pagesRead?: number;
+  readingSummary?: string; // អារម្មណ៍ ឬចំណាប់អារម្មណ៍ក្រោយអាន
+  ratingStars?: number; // 1-5
+  verifiedByLibrarian: boolean;
+  academicYear: string;
+  createdAt: string;
+}
+
+
 

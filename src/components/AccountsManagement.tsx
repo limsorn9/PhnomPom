@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { AppUser, UserRole, ProfileEditRequest, SecurityLoginLog } from '../types';
 import { SecurityAndSessionManager } from './SecurityAndSessionManager';
 import { SecurityLogsTab } from './SecurityLogsTab';
 import { SecurityPatternsDashboard } from './SecurityPatternsDashboard';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
+import { uploadProfilePhotoToDrive } from '../services/googleDrive';
+import { compressImageFile, fileToBase64 } from '../services/firebaseStorage';
 import {
   PasswordStrengthIndicator,
   evaluatePassword,
@@ -53,7 +55,11 @@ import {
   BarChart3,
   RefreshCw,
   AlertOctagon,
-  Sliders
+  Sliders,
+  Camera,
+  Loader2,
+  CloudUpload,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export const AccountsManagement: React.FC = () => {
@@ -102,6 +108,43 @@ export const AccountsManagement: React.FC = () => {
 
   // Edit user state
   const [editPasswordInput, setEditPasswordInput] = useState('');
+  const [isUploadingAccountPhoto, setIsUploadingAccountPhoto] = useState(false);
+  const accountPhotoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAccountPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedUserForEdit) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('ទំហំរូបថតត្រូវតែតូចជាង 10MB!', 'error');
+      return;
+    }
+
+    setIsUploadingAccountPhoto(true);
+    try {
+      const compressedBlob = await compressImageFile(file, 800, 800, 0.88);
+      try {
+        const result = await uploadProfilePhotoToDrive(
+          compressedBlob,
+          `user_avatar_${selectedUserForEdit.id}_${Date.now()}.jpg`
+        );
+        if (result.directPhotoUrl) {
+          setSelectedUserForEdit({ ...selectedUserForEdit, avatarUrl: result.directPhotoUrl });
+          showToast('បានផ្ទុកឡើងរូបថតទៅកាន់ Google Drive ជោគជ័យ!', 'success');
+        }
+      } catch (driveErr: any) {
+        const base64Url = await fileToBase64(compressedBlob);
+        setSelectedUserForEdit({ ...selectedUserForEdit, avatarUrl: base64Url });
+        showToast('បានរក្សាទុករូបថតជា Base64 ជោគជ័យ!', 'info');
+      }
+    } catch (err: any) {
+      console.error('Error processing photo:', err);
+      showToast('បរាជ័យក្នុងការបញ្ចូលរូបថត: ' + (err.message || 'សូមព្យាយាមម្តងទៀត'), 'error');
+    } finally {
+      setIsUploadingAccountPhoto(false);
+      if (accountPhotoInputRef.current) accountPhotoInputRef.current.value = '';
+    }
+  };
 
   // 90-day Password Rotation Calculation
   const calculateDaysSincePasswordChange = (user: AppUser | null): number => {
@@ -1312,7 +1355,7 @@ export const AccountsManagement: React.FC = () => {
 
       {/* Modal: Edit User / Change Password */}
       {selectedUserForEdit && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[99999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
               <div className="flex items-center gap-2">
@@ -1371,7 +1414,8 @@ export const AccountsManagement: React.FC = () => {
                   staffCode: selectedUserForEdit.staffCode,
                   studentCode: selectedUserForEdit.studentCode,
                   assignedGrade: selectedUserForEdit.assignedGrade,
-                  assignedSection: selectedUserForEdit.assignedSection
+                  assignedSection: selectedUserForEdit.assignedSection,
+                  avatarUrl: selectedUserForEdit.avatarUrl
                 };
 
                 if (editPasswordInput.trim()) {
@@ -1399,6 +1443,79 @@ export const AccountsManagement: React.FC = () => {
               }}
               className="space-y-3.5"
             >
+              {/* Photo Upload & Preview */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
+                    <span>រូបថតប្រវត្តិរូប (Profile Photo)</span>
+                  </label>
+                  {selectedUserForEdit.avatarUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedUserForEdit({ ...selectedUserForEdit, avatarUrl: '' })}
+                      className="text-[11px] text-red-600 hover:text-red-800"
+                    >
+                      លុបរូបថតចេញ
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-xl bg-blue-100 border border-blue-200 overflow-hidden flex items-center justify-center shrink-0">
+                    {selectedUserForEdit.avatarUrl ? (
+                      <img
+                        src={selectedUserForEdit.avatarUrl}
+                        alt="Avatar"
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="font-bold text-blue-700 text-lg">
+                        {selectedUserForEdit.nameKhmer.charAt(0)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-1.5">
+                    <input
+                      ref={accountPhotoInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAccountPhotoChange}
+                      className="hidden"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        disabled={isUploadingAccountPhoto}
+                        onClick={() => accountPhotoInputRef.current?.click()}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                      >
+                        {isUploadingAccountPhoto ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <span>កំពុងផ្ទុក...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CloudUpload className="w-3 h-3" />
+                            <span>ប្តូររូបថត</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <input
+                      type="url"
+                      value={selectedUserForEdit.avatarUrl || ''}
+                      onChange={e => setSelectedUserForEdit({ ...selectedUserForEdit, avatarUrl: e.target.value })}
+                      placeholder="ឬបិទភ្ជាប់ URL រូបភាព..."
+                      className="w-full px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-[11px]"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">ឈ្មោះខ្មែរ</label>

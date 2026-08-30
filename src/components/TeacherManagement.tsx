@@ -1,9 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { Teacher, Gender } from '../types';
 import { exportTeachersToGoogleSheets } from '../services/googleSheets';
 import { getAccessToken, googleSignIn } from '../services/googleAuth';
 import { TeacherSearchIndex } from '../utils/searchIndex';
+import { uploadProfilePhotoToDrive } from '../services/googleDrive';
+import { compressImageFile, fileToBase64 } from '../services/firebaseStorage';
 import {
   UserCheck,
   Plus,
@@ -29,7 +31,12 @@ import {
   Users,
   Eye,
   Printer,
-  Sparkles
+  Sparkles,
+  Camera,
+  Upload,
+  Loader2,
+  CloudUpload,
+  Image as ImageIcon
 } from 'lucide-react';
 import {
   MoEYSRoyalHeader,
@@ -63,6 +70,43 @@ export const TeacherManagement: React.FC = () => {
   const [isBatchAttendanceOpen, setIsBatchAttendanceOpen] = useState(false);
   const [batchModalGrade, setBatchModalGrade] = useState<number>(1);
   const [batchModalSection, setBatchModalSection] = useState<string>('ក');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const teacherPhotoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleTeacherPhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('ទំហំរូបថតត្រូវតែតូចជាង 10MB!', 'error');
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const compressedBlob = await compressImageFile(file, 800, 800, 0.88);
+      try {
+        const result = await uploadProfilePhotoToDrive(
+          compressedBlob,
+          `staff_avatar_${Date.now()}.jpg`
+        );
+        if (result.directPhotoUrl) {
+          setFormData(prev => ({ ...prev, avatarUrl: result.directPhotoUrl }));
+          showToast('បានផ្ទុកឡើងរូបថតបុគ្គលិកទៅកាន់ Google Drive ជោគជ័យ!', 'success');
+        }
+      } catch (driveErr: any) {
+        const base64Url = await fileToBase64(compressedBlob);
+        setFormData(prev => ({ ...prev, avatarUrl: base64Url }));
+        showToast('បានរក្សាទុករូបថតបុគ្គលិកជា Base64 ជោគជ័យ!', 'info');
+      }
+    } catch (err: any) {
+      console.error('Error processing staff photo:', err);
+      showToast('បរាជ័យក្នុងការបញ្ចូលរូបថត: ' + (err.message || 'សូមព្យាយាមម្តងទៀត'), 'error');
+    } finally {
+      setIsUploadingPhoto(false);
+      if (teacherPhotoInputRef.current) teacherPhotoInputRef.current.value = '';
+    }
+  };
 
   // Form State with comprehensive fields
   const initialForm = {
@@ -258,7 +302,8 @@ export const TeacherManagement: React.FC = () => {
       spouseName: teacher.spouseName || '',
       spouseOccupation: teacher.spouseOccupation || '',
       childrenCount: teacher.childrenCount || 0,
-      status: teacher.status
+      status: teacher.status,
+      avatarUrl: teacher.avatarUrl || ''
     });
     setIsAddModalOpen(true);
   };
@@ -916,7 +961,7 @@ export const TeacherManagement: React.FC = () => {
 
       {/* Add / Edit Teacher Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900 p-5 text-white flex items-center justify-between rounded-t-2xl sticky top-0 z-10">
@@ -958,6 +1003,104 @@ export const TeacherManagement: React.FC = () => {
                   <Sparkles className="w-4 h-4 text-amber-500" />
                   ១. អត្តសញ្ញាណ និងតួនាទី
                 </h4>
+
+                {/* Profile Photo Uploader for Director / Admin */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                      <ImageIcon className="w-4 h-4 text-indigo-600" />
+                      <span>រូបថតប្រវត្តិរូបគ្រូ / បុគ្គលិក (Profile Photo)</span>
+                    </label>
+                    {formData.avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, avatarUrl: '' })}
+                        className="text-[11px] text-red-600 hover:text-red-800 font-medium cursor-pointer"
+                      >
+                        លុបរូបថតចេញ
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    {/* Avatar Preview */}
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-indigo-100 border-2 border-indigo-200 overflow-hidden shadow-xs shrink-0 flex items-center justify-center">
+                      {formData.avatarUrl ? (
+                        <img
+                          src={formData.avatarUrl}
+                          alt="Teacher Preview"
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <UserCheck className="w-8 h-8 text-indigo-400" />
+                      )}
+                    </div>
+
+                    {/* Action Buttons & Input */}
+                    <div className="flex-1 space-y-2 w-full">
+                      {/* Hidden File Inputs */}
+                      <input
+                        ref={teacherPhotoInputRef}
+                        type="file"
+                        accept="image/png, image/jpeg, image/webp, image/jpg"
+                        onChange={handleTeacherPhotoFileChange}
+                        className="hidden"
+                      />
+                      <input
+                        id="camera-staff-photo-capture"
+                        type="file"
+                        accept="image/*"
+                        capture="user"
+                        onChange={handleTeacherPhotoFileChange}
+                        className="hidden"
+                      />
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          disabled={isUploadingPhoto}
+                          onClick={() => teacherPhotoInputRef.current?.click()}
+                          className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          {isUploadingPhoto ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>កំពុងផ្ទុកឡើង...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CloudUpload className="w-3.5 h-3.5" />
+                              <span>ជ្រើសរូបថត (Gallery/Files)</span>
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={isUploadingPhoto}
+                          onClick={() => {
+                            const cam = document.getElementById('camera-staff-photo-capture') as HTMLInputElement;
+                            cam?.click();
+                          }}
+                          className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          <Camera className="w-3.5 h-3.5" />
+                          <span>ថតរូបផ្ទាល់ (Camera)</span>
+                        </button>
+                      </div>
+
+                      <input
+                        type="url"
+                        value={formData.avatarUrl}
+                        onChange={e => setFormData({ ...formData, avatarUrl: e.target.value })}
+                        placeholder="ឬបញ្ចូលតំណភ្ជាប់រូបភាពផ្ទាល់ (URL / Google Drive Link)..."
+                        className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-800 focus:ring-2 focus:ring-indigo-500 text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -974,7 +1117,8 @@ export const TeacherManagement: React.FC = () => {
                           nameKhmer: selectedName,
                           ...(matchingUser?.nameLatin ? { nameLatin: matchingUser.nameLatin } : {}),
                           ...(matchingUser?.phone ? { phone: matchingUser.phone } : {}),
-                          ...(matchingUser?.email ? { email: matchingUser.email } : {})
+                          ...(matchingUser?.email ? { email: matchingUser.email } : {}),
+                          ...(matchingUser?.avatarUrl ? { avatarUrl: matchingUser.avatarUrl } : {})
                         });
                       }}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"

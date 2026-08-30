@@ -4537,8 +4537,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const isMatch = (existing.staffCode && t.staffCode === existing.staffCode) ||
           (updated.staffCode && t.staffCode === updated.staffCode) ||
           `u-${t.id}` === id ||
+          t.id === id.replace(/^u-/, '') ||
           (existing.email && t.email?.toLowerCase() === existing.email.toLowerCase()) ||
-          (existing.phone && t.phone?.replace(/\s+/g, '') === existing.phone?.replace(/\s+/g, ''));
+          (existing.phone && t.phone?.replace(/\s+/g, '') === existing.phone?.replace(/\s+/g, '')) ||
+          (existing.nameKhmer && t.nameKhmer === existing.nameKhmer);
 
         if (isMatch) {
           const mapRoleToTeacherRole = (r?: UserRole): string => {
@@ -4554,6 +4556,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             ...t,
             nameKhmer: updated.nameKhmer || t.nameKhmer,
             nameLatin: updated.nameLatin !== undefined ? updated.nameLatin : t.nameLatin,
+            avatarUrl: updated.avatarUrl !== undefined ? updated.avatarUrl : t.avatarUrl,
             email: updated.email !== undefined ? updated.email : t.email,
             phone: updated.phone !== undefined ? updated.phone : t.phone,
             role: updated.role ? mapRoleToTeacherRole(updated.role) : t.role,
@@ -4563,6 +4566,31 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           };
         }
         return t;
+      }));
+
+      // Sync with students list if this user corresponds to a student
+      setStudents(prev => prev.map(s => {
+        const isMatch =
+          `u-${s.id}` === id ||
+          `usr-stu-${s.id}` === id ||
+          s.id === id.replace(/^u-/, '').replace(/^usr-stu-/, '') ||
+          (existing.studentId && s.id === existing.studentId) ||
+          (existing.studentCode && s.code === existing.studentCode) ||
+          (existing.username && s.code === existing.username) ||
+          (existing.nameKhmer && s.nameKhmer === existing.nameKhmer);
+
+        if (isMatch) {
+          return {
+            ...s,
+            nameKhmer: updated.nameKhmer || s.nameKhmer,
+            nameLatin: updated.nameLatin !== undefined ? updated.nameLatin : s.nameLatin,
+            avatarUrl: updated.avatarUrl !== undefined ? updated.avatarUrl : s.avatarUrl,
+            phone: updated.phone !== undefined ? updated.phone : s.phone,
+            grade: updated.assignedGrade !== undefined ? updated.assignedGrade : s.grade,
+            section: updated.assignedSection !== undefined ? updated.assignedSection : s.section
+          };
+        }
+        return s;
       }));
     }
 
@@ -5257,6 +5285,53 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setCurrentUser(updatedUser);
     setAppUsers(prev => prev.map(u => (u.id === currentUser.id ? updatedUser : u)));
     localStorage.setItem(`${LOCAL_STORAGE_KEY}_current_user`, JSON.stringify(updatedUser));
+
+    // Synchronize updates across teachers array if not a student
+    if (currentUser.role !== 'student') {
+      setTeachers(prev =>
+        prev.map(t => {
+          const match =
+            t.id === currentUser.id.replace(/^u-/, '') ||
+            (currentUser.staffCode && t.staffCode === currentUser.staffCode) ||
+            (currentUser.email && t.email?.toLowerCase() === currentUser.email.toLowerCase()) ||
+            (currentUser.phone && t.phone?.replace(/\s+/g, '') === currentUser.phone.replace(/\s+/g, '')) ||
+            t.nameKhmer === currentUser.nameKhmer;
+          if (match) {
+            return {
+              ...t,
+              avatarUrl: finalUpdates.avatarUrl !== undefined ? finalUpdates.avatarUrl : t.avatarUrl,
+              nameKhmer: finalUpdates.nameKhmer || t.nameKhmer,
+              nameLatin: finalUpdates.nameLatin || t.nameLatin,
+              phone: finalUpdates.phone || t.phone,
+              email: finalUpdates.email || t.email
+            };
+          }
+          return t;
+        })
+      );
+    } else {
+      // Synchronize student profile
+      setStudents(prev =>
+        prev.map(s => {
+          const match =
+            s.id === currentUser.id.replace(/^u-/, '').replace(/^usr-stu-/, '') ||
+            (currentUser.studentId && s.id === currentUser.studentId) ||
+            (currentUser.studentCode && s.code === currentUser.studentCode) ||
+            s.code === currentUser.username ||
+            s.nameKhmer === currentUser.nameKhmer;
+          if (match) {
+            return {
+              ...s,
+              nameKhmer: finalUpdates.nameKhmer || s.nameKhmer,
+              nameLatin: finalUpdates.nameLatin || s.nameLatin,
+              phone: finalUpdates.phone || s.phone
+            };
+          }
+          return s;
+        })
+      );
+    }
+
     return { success: true, message: 'បានកែប្រែប្រវត្តិរូបផ្ទាល់ខ្លួនជោគជ័យ!' };
   };
 
@@ -5503,6 +5578,9 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       role: 'student',
       studentId: newStudent.id,
       studentCode: code,
+      assignedGrade: newStudent.grade,
+      assignedSection: newStudent.section,
+      avatarUrl: newStudent.avatarUrl || '',
       status: 'active',
       createdAt: new Date().toISOString().split('T')[0]
     };
@@ -5594,6 +5672,53 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     setStudents(prev => prev.map(s => (s.id === id ? { ...s, ...updated } : s)));
+
+    // Synchronize updates with AppUser account (and currentUser if applicable)
+    setAppUsers(prev =>
+      prev.map(u => {
+        const isMatch =
+          u.id === `u-${id}` ||
+          u.id === `usr-stu-${id}` ||
+          u.studentId === id ||
+          (existing.code && (u.studentCode === existing.code || u.username === existing.code)) ||
+          u.nameKhmer === existing.nameKhmer;
+
+        if (isMatch) {
+          return {
+            ...u,
+            nameKhmer: updated.nameKhmer || u.nameKhmer,
+            nameLatin: updated.nameLatin !== undefined ? updated.nameLatin : u.nameLatin,
+            avatarUrl: updated.avatarUrl !== undefined ? updated.avatarUrl : u.avatarUrl,
+            phone: updated.guardianPhone !== undefined ? updated.guardianPhone : (updated.phone !== undefined ? updated.phone : u.phone),
+            assignedGrade: updated.grade !== undefined ? updated.grade : u.assignedGrade,
+            assignedSection: updated.section !== undefined ? updated.section : u.assignedSection
+          };
+        }
+        return u;
+      })
+    );
+
+    if (currentUser && (
+      currentUser.id === `u-${id}` ||
+      currentUser.id === `usr-stu-${id}` ||
+      currentUser.studentId === id ||
+      currentUser.studentCode === existing.code ||
+      currentUser.username === existing.code ||
+      currentUser.nameKhmer === existing.nameKhmer
+    )) {
+      const nextUser: AppUser = {
+        ...currentUser,
+        nameKhmer: updated.nameKhmer || currentUser.nameKhmer,
+        nameLatin: updated.nameLatin !== undefined ? updated.nameLatin : currentUser.nameLatin,
+        avatarUrl: updated.avatarUrl !== undefined ? updated.avatarUrl : currentUser.avatarUrl,
+        phone: updated.guardianPhone !== undefined ? updated.guardianPhone : (updated.phone !== undefined ? updated.phone : currentUser.phone),
+        assignedGrade: updated.grade !== undefined ? updated.grade : currentUser.assignedGrade,
+        assignedSection: updated.section !== undefined ? updated.section : currentUser.assignedSection
+      };
+      setCurrentUser(nextUser);
+      localStorage.setItem(`${LOCAL_STORAGE_KEY}_current_user`, JSON.stringify(nextUser));
+    }
+
     showToast('បានកែប្រែព័ត៌មានសិស្សជោគជ័យ!');
 
     // Audit log
@@ -5894,7 +6019,16 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Synchronize updates with AppUser account
     setAppUsers(prev =>
       prev.map(u => {
-        if (u.id === `u-${id}` || (existing && (u.email === existing.email || (existing.phone && u.phone === existing.phone)))) {
+        const isMatch =
+          u.id === `u-${id}` ||
+          (existing && (
+            (existing.staffCode && u.staffCode === existing.staffCode) ||
+            (existing.email && u.email?.toLowerCase() === existing.email.toLowerCase()) ||
+            (existing.phone && u.phone?.replace(/\s+/g, '') === existing.phone?.replace(/\s+/g, '')) ||
+            u.nameKhmer === existing.nameKhmer
+          ));
+
+        if (isMatch) {
           const mapTeacherRoleToUserRole = (tRole?: string): UserRole => {
             if (!tRole) return 'teacher';
             if (tRole.includes('នាយក')) return 'director';
@@ -5906,18 +6040,52 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           return {
             ...u,
             nameKhmer: updated.nameKhmer || u.nameKhmer,
-            nameLatin: updated.nameLatin || u.nameLatin,
-            email: updated.email || u.email,
-            phone: updated.phone || u.phone,
+            nameLatin: updated.nameLatin !== undefined ? updated.nameLatin : u.nameLatin,
+            email: updated.email !== undefined ? updated.email : u.email,
+            phone: updated.phone !== undefined ? updated.phone : u.phone,
             role: updated.role ? mapTeacherRoleToUserRole(updated.role) : u.role,
             assignedGrade: updated.assignedGrade !== undefined ? updated.assignedGrade : u.assignedGrade,
             assignedSection: updated.assignedSection !== undefined ? updated.assignedSection : u.assignedSection,
-            avatarUrl: updated.avatarUrl || u.avatarUrl
+            staffCode: updated.staffCode !== undefined ? updated.staffCode : u.staffCode,
+            avatarUrl: updated.avatarUrl !== undefined ? updated.avatarUrl : u.avatarUrl
           };
         }
         return u;
       })
     );
+
+    if (currentUser && (
+      currentUser.id === `u-${id}` ||
+      (existing && (
+        (existing.staffCode && currentUser.staffCode === existing.staffCode) ||
+        (existing.email && currentUser.email?.toLowerCase() === existing.email.toLowerCase()) ||
+        (existing.phone && currentUser.phone?.replace(/\s+/g, '') === existing.phone?.replace(/\s+/g, '')) ||
+        currentUser.nameKhmer === existing.nameKhmer
+      ))
+    )) {
+      const mapTeacherRoleToUserRole = (tRole?: string): UserRole => {
+        if (!tRole) return currentUser.role;
+        if (tRole.includes('នាយក')) return 'director';
+        if (tRole.includes('លេខាធិការ') || tRole.includes('រដ្ឋបាល') || tRole.includes('ទីចាត់ការ')) return 'secretary';
+        if (tRole.includes('បណ្ណារក្ស')) return 'librarian';
+        return 'teacher';
+      };
+
+      const nextUser: AppUser = {
+        ...currentUser,
+        nameKhmer: updated.nameKhmer || currentUser.nameKhmer,
+        nameLatin: updated.nameLatin !== undefined ? updated.nameLatin : currentUser.nameLatin,
+        email: updated.email !== undefined ? updated.email : currentUser.email,
+        phone: updated.phone !== undefined ? updated.phone : currentUser.phone,
+        role: updated.role ? mapTeacherRoleToUserRole(updated.role) : currentUser.role,
+        assignedGrade: updated.assignedGrade !== undefined ? updated.assignedGrade : currentUser.assignedGrade,
+        assignedSection: updated.assignedSection !== undefined ? updated.assignedSection : currentUser.assignedSection,
+        staffCode: updated.staffCode !== undefined ? updated.staffCode : currentUser.staffCode,
+        avatarUrl: updated.avatarUrl !== undefined ? updated.avatarUrl : currentUser.avatarUrl
+      };
+      setCurrentUser(nextUser);
+      localStorage.setItem(`${LOCAL_STORAGE_KEY}_current_user`, JSON.stringify(nextUser));
+    }
 
     showToast('បានធ្វើបច្ចុប្បន្នភាពព័ត៌មានគ្រូបង្រៀនជោគជ័យ!');
 
