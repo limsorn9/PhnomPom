@@ -24,3 +24,4 @@ try {
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 export default app;
+// trigger render deploy Sun Aug 30 02:37:12 AM UTC 2026
