@@ -1712,16 +1712,19 @@ export const StudentManagement: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  id="btn-print-student-profile-header"
                   onClick={() => setSelectedStudentForPdfPrint(selectedStudentForView)}
-                  className="px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="បោះពុម្ពប្រវត្តិរូបសិស្សជាទម្រង់ A4 PDF ស្តង់ដារ"
+                  className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer hover:scale-102 active:scale-98"
+                  title="បោះពុម្ពប្រវត្តិរូបសិស្សជាទម្រង់ A4 PDF ស្តង់ដារ (Print Full Student Profile)"
                 >
-                  <Printer className="w-4 h-4" />
-                  <span className="hidden sm:inline">បោះពុម្ព A4 PDF</span>
+                  <Printer className="w-4 h-4 text-white" />
+                  <span>បោះពុម្ពប្រវត្តិរូប (Print Profile)</span>
                 </button>
                 <button
+                  id="btn-close-student-profile-header"
                   onClick={() => setSelectedStudentForView(null)}
                   className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  title="បិទ"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -2079,6 +2082,36 @@ export const StudentManagement: React.FC = () => {
                     </div>
                   );
                 })()}
+              </div>
+            </div>
+
+            {/* Modal Sticky Footer Action Bar */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-b-2xl">
+              <div className="text-xs text-slate-500 flex items-center gap-2">
+                <span className="font-moul text-slate-700">{selectedStudentForView.nameKhmer}</span>
+                <span>•</span>
+                <span>អត្តលេខ៖ <strong className="font-times text-slate-800">{selectedStudentForView.code}</strong></span>
+                <span>•</span>
+                <span>ថ្នាក់ទី {selectedStudentForView.grade}{selectedStudentForView.section}</span>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  id="btn-close-student-profile-footer"
+                  onClick={() => setSelectedStudentForView(null)}
+                  className="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  បិទ (Close)
+                </button>
+                <button
+                  type="button"
+                  id="btn-print-student-profile-footer"
+                  onClick={() => setSelectedStudentForPdfPrint(selectedStudentForView)}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-2 shadow-md transition-all cursor-pointer hover:scale-102 active:scale-98"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>បោះពុម្ពប្រវត្តិរូបសិស្ស A4 (Print Profile)</span>
+                </button>
               </div>
             </div>
           </div>

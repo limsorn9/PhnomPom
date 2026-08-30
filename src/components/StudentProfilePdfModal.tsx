@@ -25,23 +25,27 @@ import { MoEYSRoyalHeader, AngkorPageWatermark } from './AngkorMotif';
 
 interface StudentProfilePdfModalProps {
   student: Student;
-  scores: StudentScore[];
-  dailyAttendance: DailyAttendanceRecord[];
+  scores?: StudentScore[];
+  dailyAttendance?: DailyAttendanceRecord[];
   schoolProfile: SchoolProfile;
-  badges: any[];
-  totalBadgePoints: number;
+  badges?: any[];
+  totalBadgePoints?: number;
+  isOpen?: boolean;
   onClose: () => void;
 }
 
 export const StudentProfilePdfModal: React.FC<StudentProfilePdfModalProps> = ({
   student,
-  scores,
-  dailyAttendance,
+  scores = [],
+  dailyAttendance = [],
   schoolProfile,
-  badges,
-  totalBadgePoints,
+  badges = [],
+  totalBadgePoints = 0,
+  isOpen = true,
   onClose
 }) => {
+  if (!isOpen && isOpen !== undefined) return null;
+
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const printContainerRef = useRef<HTMLDivElement>(null);
