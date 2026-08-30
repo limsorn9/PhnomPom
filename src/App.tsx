@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { Dashboard } from './components/Dashboard';
+import { MobileAppCenter } from './components/MobileAppCenter';
 import { StudentManagement } from './components/StudentManagement';
 import { TeacherManagement } from './components/TeacherManagement';
 import { ClassroomScores } from './components/ClassroomScores';
@@ -139,6 +140,7 @@ const MainLayout: React.FC = () => {
       {/* Main Content Body (Right Side) */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
         {/* Sticky Top Header */}
+        <div className={activeTab === 'dashboard' ? 'hidden lg:block' : 'block'}>
         <Header
           onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)}
           onOpenSettings={handleOpenSettings}
@@ -150,13 +152,23 @@ const MainLayout: React.FC = () => {
           onOpenDriveSync={() => setIsDriveSyncOpen(true)}
           onOpenSpotlightSearch={() => setIsSpotlightOpen(true)}
         />
+        </div>
 
         {/* Dynamic Main Workspace Container */}
-        <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 lg:p-6 pb-20 lg:pb-8 space-y-6">
+        <main className={`flex-1 w-full mx-auto pb-20 lg:pb-8 ${activeTab === 'dashboard' ? 'p-0 lg:p-6 lg:max-w-7xl lg:space-y-6' : 'max-w-7xl p-3 sm:p-5 lg:p-6 space-y-6'}`}>
           {/* Render based on RBAC & Active Tab */}
           {activeTab === 'super_admin_hub' && canAccessTab('super_admin_hub') && <SuperAdminHub />}
           {activeTab === 'telegram_bot' && canAccessTab('telegram_bot') && <TelegramBotStudio />}
-          {activeTab === 'dashboard' && canAccessTab('dashboard') && <Dashboard />}
+          {activeTab === 'dashboard' && canAccessTab('dashboard') && (
+            <>
+              <div className="hidden lg:block">
+                <Dashboard />
+              </div>
+              <div className="block lg:hidden">
+                <MobileAppCenter onOpenMenu={() => setIsMobileSidebarOpen(true)} />
+              </div>
+            </>
+          )}
           {activeTab === 'ai_teacher' && canAccessTab('ai_teacher') && <AITeacherHub />}
           {activeTab === 'activity_logs' && canAccessTab('activity_logs') && <RecentActivityDashboard />}
           {activeTab === 'homeroom_dashboard' && canAccessTab('homeroom_dashboard') && <HomeroomTeacherDashboard />}
