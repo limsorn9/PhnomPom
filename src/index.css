@@ -19,16 +19,23 @@
 
 @layer base {
   html {
-    font-size: 18px;
+    font-size: 20px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
 
+  @media (min-width: 1280px) {
+    html {
+      font-size: 21px;
+    }
+  }
+
   body {
     font-family: 'Kantumruy Pro', 'Khmer OS Battambang', 'Battambang', 'Siemreap', 'Noto Serif Khmer', system-ui, sans-serif;
-    line-height: 1.65;
-    letter-spacing: 0.01em;
+    font-size: 1rem;
+    line-height: 1.7;
+    letter-spacing: 0.015em;
   }
 
   /* Dark Theme Default Overrides */
@@ -49,17 +56,17 @@
     line-height: 2.2;
     padding-top: 0.25rem;
     padding-bottom: 0.25rem;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.025em;
   }
 
   .font-battambang {
     font-family: 'Kantumruy Pro', 'Khmer OS Battambang', 'Battambang', 'Siemreap', sans-serif;
-    line-height: 1.65;
+    line-height: 1.7;
   }
 
   .font-kantumruy {
     font-family: 'Kantumruy Pro', 'Khmer OS Battambang', 'Battambang', 'Siemreap', sans-serif;
-    line-height: 1.65;
+    line-height: 1.7;
   }
 
   .font-times {
@@ -73,7 +80,14 @@
 
   input, select, textarea {
     font-family: 'Kantumruy Pro', 'Khmer OS Battambang', 'Battambang', sans-serif;
-    line-height: 1.6;
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+
+  /* Enhance small text badges and labels in Khmer */
+  .text-xs {
+    font-size: 0.8rem;
+    line-height: 1.45;
   }
 }
 

@@ -57,6 +57,7 @@ import { NotificationsModal } from './NotificationsModal';
 import { OfflineSyncStatusBadge } from './OfflineSyncStatusBadge';
 import { InactivityTimeoutCountdown } from './InactivityTimeoutCountdown';
 import { ThemeToggleSwitch } from './common/ThemeToggleSwitch';
+import { FontSizeAdjuster } from './common/FontSizeAdjuster';
 
 interface HeaderProps {
   onToggleMobileSidebar: () => void;
@@ -510,6 +511,11 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Dark / Light Mode Theme Toggle Switch */}
           <div className="flex items-center px-0.5">
             <ThemeToggleSwitch showLabel={false} size="sm" />
+          </div>
+
+          {/* Quick Font Size Adjuster (A+) */}
+          <div className="flex items-center px-0.5">
+            <FontSizeAdjuster />
           </div>
 
           {/* Notifications Bell */}
