@@ -488,11 +488,17 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   type="button"
                   onClick={onOpenDriveSync}
-                  className="hidden 2xl:flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold rounded-xl transition-all"
-                  title="Google Drive Cloud Sync"
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 border text-xs font-bold rounded-xl transition-all shadow-2xs cursor-pointer ${
+                    googleUser
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300'
+                      : 'bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300'
+                  }`}
+                  title={googleUser ? `Google Drive ភ្ជាប់រួច (${googleUser.email}) - ចុចដើម្បី Sync/Backup/Restore` : 'ភ្ជាប់ជាមួយ Google Drive API ដើម្បី Backup/Sync ទិន្នន័យអនឡាញ'}
                 >
-                  <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>Drive</span>
+                  <HardDrive className={`w-3.5 h-3.5 ${googleUser ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`} />
+                  <span className="hidden sm:inline">Drive Sync</span>
+                  <span className="sm:hidden">Drive</span>
+                  {googleUser && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
                 </button>
               )}
 
