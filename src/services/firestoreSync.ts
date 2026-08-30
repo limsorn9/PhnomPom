@@ -87,6 +87,22 @@ export interface CloudSchoolData {
 let isWriting = false;
 let pendingPayload: Partial<CloudSchoolData> | null = null;
 let lastSyncedDataHash = '';
+let quotaExhaustedUntil = 0;
+
+/**
+ * Check whether Firestore is currently in a quota exhaustion cooldown
+ */
+export const isFirestoreQuotaExhausted = (): boolean => {
+  return Date.now() < quotaExhaustedUntil;
+};
+
+/**
+ * Mark Firestore quota as exhausted to circuit-break further requests
+ */
+export const markFirestoreQuotaExhausted = (cooldownMinutes = 15) => {
+  quotaExhaustedUntil = Date.now() + cooldownMinutes * 60 * 1000;
+  pendingPayload = null; // Clear pending queue to prevent memory leak and retry cascades
+};
 
 /**
  * Clean & prune payload to keep document size light, fast, and prevent invalid/oversized values
@@ -236,9 +252,14 @@ const getQuickHash = (obj: any): string => {
 };
 
 /**
- * Save school data to Firestore with write serialization, timeout protection, partition safety, and loop prevention
+ * Save school data to Firestore with write serialization, timeout protection, partition safety, circuit breaker and loop prevention
  */
 export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, force = false): Promise<{success: boolean, error?: string}> => {
+  // If Firestore quota is currently exhausted, avoid flooding requests
+  if (isFirestoreQuotaExhausted()) {
+    return { success: false, error: 'Firestore Free Tier write quota temporarily exhausted. Local storage and Google Drive are active.' };
+  }
+
   const currentHash = getQuickHash(data);
   if (!force && currentHash === lastSyncedDataHash) {
     // Data has not changed since last successful sync
@@ -257,23 +278,43 @@ export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, 
     const nowIso = new Date().toISOString();
     const partitions = partitionPayload(sanitized, nowIso, CURRENT_CLIENT_ID, sanitized.updatedBy);
 
+    // Safe single document writer with quota detection
+    const writeDocSafely = async (docKey: string, partitionData: any) => {
+      try {
+        await setDoc(doc(db, 'schools', docKey), partitionData, { merge: true });
+        return { success: true };
+      } catch (err: any) {
+        if (err?.code === 'resource-exhausted' || err?.message?.toLowerCase().includes('quota')) {
+          markFirestoreQuotaExhausted(30);
+        }
+        throw err;
+      }
+    };
+
     // Write all partition documents in parallel with merge: true
-        const writePromises = [
-      setDoc(doc(db, 'schools', CLOUD_DOCS.MAIN), partitions.main, { merge: true }).then(() => console.log('MAIN synced')).catch(e => { console.error('MAIN error', e); throw e; }),
-      setDoc(doc(db, 'schools', CLOUD_DOCS.STUDENTS), partitions.students, { merge: true }).then(() => console.log('STUDENTS synced')).catch(e => { console.error('STUDENTS error', e); throw e; }),
-      setDoc(doc(db, 'schools', CLOUD_DOCS.ACADEMICS), partitions.academics, { merge: true }).then(() => console.log('ACADEMICS synced')).catch(e => { console.error('ACADEMICS error', e); throw e; }),
-      setDoc(doc(db, 'schools', CLOUD_DOCS.RESOURCES), partitions.resources, { merge: true }).then(() => console.log('RESOURCES synced')).catch(e => { console.error('RESOURCES error', e); throw e; }),
-      setDoc(doc(db, 'schools', CLOUD_DOCS.STAFF_USERS), partitions.staffUsers, { merge: true }).then(() => console.log('STAFF_USERS synced')).catch(e => { console.error('STAFF_USERS error', e); throw e; })
+    const writePromises = [
+      writeDocSafely(CLOUD_DOCS.MAIN, partitions.main),
+      writeDocSafely(CLOUD_DOCS.STUDENTS, partitions.students),
+      writeDocSafely(CLOUD_DOCS.ACADEMICS, partitions.academics),
+      writeDocSafely(CLOUD_DOCS.RESOURCES, partitions.resources),
+      writeDocSafely(CLOUD_DOCS.STAFF_USERS, partitions.staffUsers)
     ];
 
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Firestore write timeout')), 60000)
+      setTimeout(() => reject(new Error('Firestore write timeout')), 30000)
     );
 
     const results = await Promise.race([Promise.allSettled(writePromises), timeoutPromise]) as PromiseSettledResult<any>[];
     const errors = results.filter(r => r.status === 'rejected');
     if (errors.length > 0) {
-      console.error('Some partitions failed to sync:', errors);
+      const isQuotaError = errors.some((e: any) => 
+        e.reason?.code === 'resource-exhausted' || e.reason?.message?.toLowerCase().includes('quota')
+      );
+      if (isQuotaError) {
+        markFirestoreQuotaExhausted(30);
+        console.warn('[Firestore] Spark Free Tier daily write quota reached. System switched seamlessly to Local Storage & Google Drive mode.');
+        return { success: false, error: 'Firestore Free Tier daily write quota reached. Using Local/Drive storage.' };
+      }
       throw new Error('Partition write failed: ' + errors.map((e: any) => e.reason?.message || 'Unknown').join(', '));
     }
 
@@ -281,22 +322,23 @@ export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, 
     isWriting = false;
 
     // If another mutation occurred while writing, trigger next write cleanly
-    if (pendingPayload) {
+    if (pendingPayload && !isFirestoreQuotaExhausted()) {
       const next = pendingPayload;
       pendingPayload = null;
       setTimeout(() => {
-        syncSchoolDataToFirestore(next).catch(console.warn);
+        syncSchoolDataToFirestore(next).catch(() => {});
       }, 500);
     }
     return { success: true };
   } catch (error: any) {
     isWriting = false;
-    if (error?.code === 'resource-exhausted') {
-      console.warn('Firestore write throttled, queued for next sync window.');
+    if (error?.code === 'resource-exhausted' || error?.message?.toLowerCase().includes('quota')) {
+      markFirestoreQuotaExhausted(30);
+      console.warn('[Firestore] Spark Free Tier daily write quota reached. System switched seamlessly to Local Storage & Google Drive mode.');
     } else if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
       console.warn('Firestore cloud sync notice (requires authorized authentication):', error?.message || error);
     } else {
-      console.warn('Firestore sync failed, will retry on next state change:', error?.message || error);
+      console.warn('Firestore sync status notice:', error?.message || error);
     }
     return { success: false, error: error?.message || String(error) };
   }
@@ -306,6 +348,10 @@ export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, 
  * Fetch complete school data from all Firestore partitions and merge seamlessly
  */
 export const fetchSchoolDataFromFirestore = async (): Promise<CloudSchoolData | null> => {
+  if (isFirestoreQuotaExhausted()) {
+    return null;
+  }
+
   try {
     const docRefs = [
       getDoc(doc(db, 'schools', CLOUD_DOCS.MAIN)),
@@ -331,6 +377,11 @@ export const fetchSchoolDataFromFirestore = async (): Promise<CloudSchoolData | 
             latestTimestamp = snapData.lastUpdated;
           }
         }
+      } else if (result.status === 'rejected') {
+        const reason: any = result.reason;
+        if (reason?.code === 'resource-exhausted' || reason?.message?.toLowerCase().includes('quota')) {
+          markFirestoreQuotaExhausted(30);
+        }
       }
     }
 
@@ -343,8 +394,11 @@ export const fetchSchoolDataFromFirestore = async (): Promise<CloudSchoolData | 
     }
 
     return combinedData;
-  } catch (error) {
-    console.error('Failed to fetch school data from Firestore:', error);
+  } catch (error: any) {
+    if (error?.code === 'resource-exhausted' || error?.message?.toLowerCase().includes('quota')) {
+      markFirestoreQuotaExhausted(30);
+    }
+    console.warn('Firestore data fetch notice:', error?.message || error);
     return null;
   }
 };
@@ -356,6 +410,10 @@ export const subscribeToSchoolData = (
   callback: (data: CloudSchoolData) => void,
   onError?: (err: Error) => void
 ): Unsubscribe => {
+  if (isFirestoreQuotaExhausted()) {
+    return () => {};
+  }
+
   const unsubscribers: Unsubscribe[] = [];
 
   const handleSnapshot = (snap: any) => {
@@ -377,24 +435,30 @@ export const subscribeToSchoolData = (
     });
   };
 
+  const handleSnapshotError = (err: any) => {
+    if (err?.code === 'resource-exhausted' || err?.message?.toLowerCase().includes('quota')) {
+      markFirestoreQuotaExhausted(30);
+      console.warn('[Firestore] Real-time listener detected quota exhaustion, silencing listener.');
+      return;
+    }
+    console.warn('Real-time listener notice:', err?.message || err);
+    if (onError) onError(err);
+  };
+
   try {
-    const unsubMain = onSnapshot(doc(db, 'schools', CLOUD_DOCS.MAIN), handleSnapshot, (err) => {
-      console.warn('Real-time listener main notice:', err.message);
-      if (onError) onError(err);
-    });
+    const unsubMain = onSnapshot(doc(db, 'schools', CLOUD_DOCS.MAIN), handleSnapshot, handleSnapshotError);
     unsubscribers.push(unsubMain);
 
-    const unsubStudents = onSnapshot(doc(db, 'schools', CLOUD_DOCS.STUDENTS), handleSnapshot, (err) => {
-      console.warn('Real-time listener students notice:', err.message);
-    });
+    const unsubStudents = onSnapshot(doc(db, 'schools', CLOUD_DOCS.STUDENTS), handleSnapshot, handleSnapshotError);
     unsubscribers.push(unsubStudents);
 
-    const unsubStaff = onSnapshot(doc(db, 'schools', CLOUD_DOCS.STAFF_USERS), handleSnapshot, (err) => {
-      console.warn('Real-time listener staff notice:', err.message);
-    });
+    const unsubStaff = onSnapshot(doc(db, 'schools', CLOUD_DOCS.STAFF_USERS), handleSnapshot, handleSnapshotError);
     unsubscribers.push(unsubStaff);
   } catch (e: any) {
-    console.warn('Could not establish real-time snapshot listener:', e);
+    if (e?.code === 'resource-exhausted' || e?.message?.toLowerCase().includes('quota')) {
+      markFirestoreQuotaExhausted(30);
+    }
+    console.warn('Could not establish real-time snapshot listener:', e?.message || e);
   }
 
   return () => {

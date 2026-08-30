@@ -1,6 +1,7 @@
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { StudentProgressReport, OfflineSyncQueueItem } from '../types';
+import { isFirestoreQuotaExhausted, markFirestoreQuotaExhausted } from './firestoreSync';
 
 const DB_NAME = 'PhnomPomOfflineDB';
 const DB_VERSION = 1;
@@ -181,7 +182,7 @@ export async function syncPendingReportsToFirestore(): Promise<{
   syncedCount: number;
   errorCount: number;
 }> {
-  if (isSyncingInProgress) {
+  if (isSyncingInProgress || isFirestoreQuotaExhausted()) {
     return { syncedCount: 0, errorCount: 0 };
   }
 
@@ -199,6 +200,9 @@ export async function syncPendingReportsToFirestore(): Promise<{
     const pendingReports = allReports.filter(r => r.syncStatus === 'pending_sync');
 
     for (const report of pendingReports) {
+      if (isFirestoreQuotaExhausted()) {
+        break;
+      }
       try {
         await syncSingleReportToFirestore(report);
         
@@ -217,8 +221,13 @@ export async function syncPendingReportsToFirestore(): Promise<{
         });
 
         syncedCount++;
-      } catch (err) {
-        console.error(`Failed to sync report ${report.id}:`, err);
+      } catch (err: any) {
+        if (err?.code === 'resource-exhausted' || err?.message?.toLowerCase().includes('quota')) {
+          markFirestoreQuotaExhausted(30);
+          console.warn('[OfflineSync] Daily Firestore write quota reached. Keeping reports safely in IndexedDB.');
+          break;
+        }
+        console.warn(`[OfflineSync] Notice syncing report ${report.id}:`, err?.message || err);
         errorCount++;
       }
     }
