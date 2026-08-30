@@ -4506,7 +4506,48 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const existing = appUsers.find(u => u.id === id);
     setAppUsers(prev => prev.map(u => (u.id === id ? { ...u, ...updated } : u)));
     if (currentUser && currentUser.id === id) {
-      setCurrentUser(prev => (prev ? { ...prev, ...updated } : null));
+      setCurrentUser(prev => {
+        const next = prev ? { ...prev, ...updated } : null;
+        if (next) {
+          localStorage.setItem(`${LOCAL_STORAGE_KEY}_current_user`, JSON.stringify(next));
+        }
+        return next;
+      });
+    }
+
+    // Sync with teachers list if this user corresponds to a teacher or staff member
+    if (existing) {
+      setTeachers(prev => prev.map(t => {
+        const isMatch = (existing.staffCode && t.staffCode === existing.staffCode) ||
+          (updated.staffCode && t.staffCode === updated.staffCode) ||
+          `u-${t.id}` === id ||
+          (existing.email && t.email?.toLowerCase() === existing.email.toLowerCase()) ||
+          (existing.phone && t.phone?.replace(/\s+/g, '') === existing.phone?.replace(/\s+/g, ''));
+
+        if (isMatch) {
+          const mapRoleToTeacherRole = (r?: UserRole): string => {
+            if (!r) return t.role;
+            if (r === 'director') return 'នាយកសាលា';
+            if (r === 'secretary') return 'លេខាធិការ';
+            if (r === 'librarian') return 'បណ្ណារក្ស';
+            if (r === 'teacher') return 'គ្រូបង្រៀន';
+            return t.role;
+          };
+
+          return {
+            ...t,
+            nameKhmer: updated.nameKhmer || t.nameKhmer,
+            nameLatin: updated.nameLatin !== undefined ? updated.nameLatin : t.nameLatin,
+            email: updated.email !== undefined ? updated.email : t.email,
+            phone: updated.phone !== undefined ? updated.phone : t.phone,
+            role: updated.role ? mapRoleToTeacherRole(updated.role) : t.role,
+            assignedGrade: updated.assignedGrade !== undefined ? updated.assignedGrade : t.assignedGrade,
+            assignedSection: updated.assignedSection !== undefined ? updated.assignedSection : t.assignedSection,
+            staffCode: updated.staffCode !== undefined ? updated.staffCode : t.staffCode
+          };
+        }
+        return t;
+      }));
     }
 
     if (existing) {

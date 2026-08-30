@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useSchool } from '../context/SchoolContext';
-import { AppUser } from '../types';
+import { AppUser, UserRole } from '../types';
 import { uploadProfilePhotoToDrive } from '../services/googleDrive';
 import { compressImageFile, fileToBase64 } from '../services/firebaseStorage';
 import { User, KeyRound, Shield, CheckCircle2, AlertTriangle, Eye, EyeOff, Camera, Mail, Phone, Send, X, Upload, Loader2, CloudUpload, Image as ImageIcon } from 'lucide-react';
@@ -30,6 +30,7 @@ export const UserProfileSettingsModal: React.FC<UserProfileSettingsModalProps> =
   const [email, setEmail] = useState(currentUser?.email || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl || '');
+  const [role, setRole] = useState<UserRole>(currentUser?.role || 'teacher');
 
   // Password Form state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -97,6 +98,9 @@ export const UserProfileSettingsModal: React.FC<UserProfileSettingsModalProps> =
       email,
       phone
     };
+    if (currentUser.role === 'director' || currentUser.role === 'super_admin') {
+      updated.role = role;
+    }
     if (!isStudent) {
       updated.avatarUrl = avatarUrl;
     }
@@ -353,6 +357,27 @@ export const UserProfileSettingsModal: React.FC<UserProfileSettingsModalProps> =
                   />
                 </div>
               </div>
+
+              {(currentUser.role === 'director' || currentUser.role === 'super_admin') && (
+                <div className="p-3.5 bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-2xl">
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    តួនាទីក្នុងគណនី (Account Role)
+                  </label>
+                  <select
+                    value={role}
+                    onChange={e => setRole(e.target.value as UserRole)}
+                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-700 rounded-xl text-slate-800 dark:text-slate-100 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
+                    {currentUser.role === 'super_admin' && (
+                      <option value="super_admin">👑 Super Administrator</option>
+                    )}
+                    <option value="director">🏛️ នាយកសាលា (Director)</option>
+                    <option value="secretary">📑 លេខាធិការ (Secretary)</option>
+                    <option value="librarian">📚 បណ្ណារក្ស (Librarian)</option>
+                    <option value="teacher">👨‍🏫 គ្រូបង្រៀន (Teacher)</option>
+                  </select>
+                </div>
+              )}
 
               <div className="flex justify-end gap-3 pt-3">
                 <button

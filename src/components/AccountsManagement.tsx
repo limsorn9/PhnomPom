@@ -337,7 +337,8 @@ export const AccountsManagement: React.FC = () => {
   };
 
   // Filter allowed roles for creation based on hierarchical RBAC
-  const isDirector = currentUser?.role === 'director';
+  const isSuperAdmin = currentUser?.role === 'super_admin';
+  const isDirector = currentUser?.role === 'director' || isSuperAdmin;
   const isSecretary = currentUser?.role === 'secretary';
   const isLibrarian = currentUser?.role === 'librarian';
   const isTeacher = currentUser?.role === 'teacher';
@@ -1362,9 +1363,15 @@ export const AccountsManagement: React.FC = () => {
 
                 const updatedData: Partial<AppUser> = {
                   nameKhmer: selectedUserForEdit.nameKhmer,
+                  nameLatin: selectedUserForEdit.nameLatin,
                   email: selectedUserForEdit.email,
                   phone: selectedUserForEdit.phone,
-                  status: selectedUserForEdit.status
+                  role: selectedUserForEdit.role,
+                  status: selectedUserForEdit.status,
+                  staffCode: selectedUserForEdit.staffCode,
+                  studentCode: selectedUserForEdit.studentCode,
+                  assignedGrade: selectedUserForEdit.assignedGrade,
+                  assignedSection: selectedUserForEdit.assignedSection
                 };
 
                 if (editPasswordInput.trim()) {
@@ -1392,17 +1399,197 @@ export const AccountsManagement: React.FC = () => {
               }}
               className="space-y-3.5"
             >
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">ឈ្មោះខ្មែរ</label>
-                <input
-                  type="text"
-                  value={selectedUserForEdit.nameKhmer}
-                  onChange={e =>
-                    setSelectedUserForEdit({ ...selectedUserForEdit, nameKhmer: e.target.value })
-                  }
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
-                  required
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">ឈ្មោះខ្មែរ</label>
+                  <input
+                    type="text"
+                    value={selectedUserForEdit.nameKhmer}
+                    onChange={e =>
+                      setSelectedUserForEdit({ ...selectedUserForEdit, nameKhmer: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">ឈ្មោះឡាតាំង</label>
+                  <input
+                    type="text"
+                    value={selectedUserForEdit.nameLatin || ''}
+                    onChange={e =>
+                      setSelectedUserForEdit({ ...selectedUserForEdit, nameLatin: e.target.value })
+                    }
+                    placeholder="Latin Name"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-sans focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Role Selection */}
+              <div className="p-3.5 bg-blue-50/60 border border-blue-200/80 rounded-2xl space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-blue-900 mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Shield className="w-3.5 h-3.5 text-blue-700" />
+                      <span>តួនាទីក្នុងប្រព័ន្ធ (User Role & Permissions)</span>
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 font-bold text-blue-800 uppercase">
+                      {selectedUserForEdit.role}
+                    </span>
+                  </label>
+                  <select
+                    value={selectedUserForEdit.role}
+                    disabled={
+                      // Disallow non-directors from modifying directors or super admins
+                      (!isDirector && !isSuperAdmin && (selectedUserForEdit.role === 'director' || selectedUserForEdit.role === 'super_admin'))
+                    }
+                    onChange={e => {
+                      const newR = e.target.value as UserRole;
+                      setSelectedUserForEdit({
+                        ...selectedUserForEdit,
+                        role: newR
+                      });
+                    }}
+                    className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-600 focus:outline-none text-slate-800"
+                  >
+                    {isSuperAdmin && <option value="super_admin">👑 Super Administrator (គ្រប់គ្រងប្រព័ន្ធខ្ពស់បំផុត)</option>}
+                    {(isDirector || isSuperAdmin) && <option value="director">🏛️ នាយកសាលា (School Director / Admin)</option>}
+                    <option value="secretary">📑 លេខាធិការ (Secretary / រដ្ឋបាល)</option>
+                    <option value="librarian">📚 បណ្ណារក្ស (Librarian)</option>
+                    <option value="teacher">👨‍🏫 គ្រូបង្រៀន / គ្រូបន្ទុកថ្នាក់ (Teacher)</option>
+                    <option value="student">🎓 សិស្សានុសិស្ស (Student)</option>
+                    <option value="parent">👨‍👩‍👧 អាណាព្យាបាលសិស្ស (Parent)</option>
+                  </select>
+                </div>
+
+                {/* Role Specific Assignments */}
+                {selectedUserForEdit.role === 'teacher' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-blue-200/60">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">ថ្នាក់ទទួលបន្ទុក</label>
+                      <select
+                        value={selectedUserForEdit.assignedGrade || 0}
+                        onChange={e =>
+                          setSelectedUserForEdit({
+                            ...selectedUserForEdit,
+                            assignedGrade: Number(e.target.value) || undefined
+                          })
+                        }
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
+                      >
+                        <option value="0">គ្មាន (បង្រៀនទូទៅ)</option>
+                        {[1, 2, 3, 4, 5, 6].map(g => (
+                          <option key={g} value={g}>ថ្នាក់ទី {g}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">បន្ទប់/កន្ទុយ</label>
+                      <select
+                        value={selectedUserForEdit.assignedSection || 'ក'}
+                        onChange={e =>
+                          setSelectedUserForEdit({
+                            ...selectedUserForEdit,
+                            assignedSection: e.target.value
+                          })
+                        }
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
+                      >
+                        <option value="ក">ក</option>
+                        <option value="ខ">ខ</option>
+                        <option value="គ">គ</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">អត្តលេខមន្ត្រី</label>
+                      <input
+                        type="text"
+                        value={selectedUserForEdit.staffCode || ''}
+                        onChange={e =>
+                          setSelectedUserForEdit({
+                            ...selectedUserForEdit,
+                            staffCode: e.target.value
+                          })
+                        }
+                        placeholder="MOEYS-..."
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {selectedUserForEdit.role === 'student' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-blue-200/60">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">អត្តលេខសិស្ស</label>
+                      <input
+                        type="text"
+                        value={selectedUserForEdit.studentCode || ''}
+                        onChange={e =>
+                          setSelectedUserForEdit({
+                            ...selectedUserForEdit,
+                            studentCode: e.target.value
+                          })
+                        }
+                        placeholder="STU-..."
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">កម្រិតថ្នាក់</label>
+                      <select
+                        value={selectedUserForEdit.assignedGrade || 1}
+                        onChange={e =>
+                          setSelectedUserForEdit({
+                            ...selectedUserForEdit,
+                            assignedGrade: Number(e.target.value)
+                          })
+                        }
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
+                      >
+                        {[1, 2, 3, 4, 5, 6].map(g => (
+                          <option key={g} value={g}>ថ្នាក់ទី {g}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">បន្ទប់/កន្ទុយ</label>
+                      <select
+                        value={selectedUserForEdit.assignedSection || 'ក'}
+                        onChange={e =>
+                          setSelectedUserForEdit({
+                            ...selectedUserForEdit,
+                            assignedSection: e.target.value
+                          })
+                        }
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
+                      >
+                        <option value="ក">ក</option>
+                        <option value="ខ">ខ</option>
+                        <option value="គ">គ</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {(selectedUserForEdit.role === 'director' || selectedUserForEdit.role === 'secretary' || selectedUserForEdit.role === 'librarian') && (
+                  <div className="pt-2 border-t border-blue-200/60">
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">អត្តលេខមន្ត្រី (Staff Code)</label>
+                    <input
+                      type="text"
+                      value={selectedUserForEdit.staffCode || ''}
+                      onChange={e =>
+                        setSelectedUserForEdit({
+                          ...selectedUserForEdit,
+                          staffCode: e.target.value
+                        })
+                      }
+                      placeholder="MOEYS-..."
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
