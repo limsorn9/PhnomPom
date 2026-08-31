@@ -14,10 +14,15 @@ export default defineConfig(({ command }) => {
       dedupe: ['react', 'react-dom', 'use-sync-external-store'],
     },
     build: {
+      outDir: 'dist',
+      emptyOutDir: true,
       chunkSizeWarningLimit: 3000,
       rollupOptions: {
         output: {
           manualChunks(id) {
+            if (id.includes('cambodiaLocations')) {
+              return 'data-cambodia-locations';
+            }
             if (id.includes('node_modules')) {
               if (
                 id.includes('/react/') ||
@@ -26,6 +31,9 @@ export default defineConfig(({ command }) => {
                 id.includes('use-sync-external-store')
               ) {
                 return 'vendor-react';
+              }
+              if (id.includes('motion')) {
+                return 'vendor-motion';
               }
               if (id.includes('firebase')) {
                 return 'vendor-firebase';

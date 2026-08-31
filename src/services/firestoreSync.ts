@@ -111,7 +111,7 @@ export const isFirestoreQuotaExhausted = (): boolean => {
 /**
  * Mark Firestore quota as exhausted to circuit-break further requests
  */
-export const markFirestoreQuotaExhausted = (cooldownMinutes = 60) => {
+export const markFirestoreQuotaExhausted = (cooldownMinutes = 720) => {
   const until = Date.now() + cooldownMinutes * 60 * 1000;
   quotaExhaustedUntil = until;
   try {
