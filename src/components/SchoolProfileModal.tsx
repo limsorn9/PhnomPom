@@ -382,43 +382,49 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
   return (
     <div
       id="school-profile-modal-overlay"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150 font-battambang"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150 font-battambang"
     >
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl max-w-2xl w-full h-[90dvh] sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
         {/* Modal Header */}
-        <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 p-4 sm:p-5 text-white flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-white/10 rounded-xl border border-white/20">
-              <Building2 className="w-6 h-6 text-yellow-400" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-bold font-moul">កែប្រែ និងផ្ទៀងផ្ទាត់ព័ត៌មានសាលា</h3>
-                <span className="px-2 py-0.5 bg-emerald-500/30 text-emerald-300 border border-emerald-400/30 rounded-full text-[10px] font-bold">
-                  Validation Active
-                </span>
+        <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 p-3 sm:p-5 text-white shrink-0">
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="p-2 sm:p-2.5 bg-white/10 rounded-xl border border-white/20 shrink-0">
+                <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400" />
               </div>
-              <p className="text-xs text-blue-100/90 mt-0.5">
-                ប្រព័ន្ធត្រួតពិនិត្យភាពត្រឹមត្រូវនៃលេខទូរស័ព្ទ អ៊ីម៉ែល Google Maps និង Facebook URL
-              </p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  <h3 className="text-sm sm:text-base font-bold font-moul leading-snug truncate sm:whitespace-normal">
+                    កែប្រែ & ផ្ទៀងផ្ទាត់ព័ត៌មានសាលា
+                  </h3>
+                  <span className="hidden sm:inline-flex px-2 py-0.5 bg-emerald-500/30 text-emerald-300 border border-emerald-400/30 rounded-full text-[10px] font-bold shrink-0">
+                    Validation Active
+                  </span>
+                </div>
+                <p className="text-[11px] sm:text-xs text-blue-100/80 mt-0.5 truncate sm:whitespace-normal">
+                  ប្រព័ន្ធត្រួតពិនិត្យភាពត្រឹមត្រូវនៃទិន្នន័យសាលា និងតំណភ្ជាប់
+                </p>
+              </div>
             </div>
+
+            <button
+              id="close-school-profile-modal-btn"
+              onClick={onClose}
+              className="p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/15 active:bg-white/25 transition-colors cursor-pointer shrink-0 min-w-[38px] min-h-[38px] flex items-center justify-center"
+              title="បិទ"
+              aria-label="បិទ"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            id="close-school-profile-modal-btn"
-            onClick={onClose}
-            className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-            title="បិទ"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-slate-100 border-b border-slate-200 px-4 pt-2 flex gap-1 overflow-x-auto shrink-0 scrollbar-none text-xs">
+        <div className="bg-slate-100 border-b border-slate-200 px-3 sm:px-4 pt-1.5 sm:pt-2 flex gap-1 overflow-x-auto shrink-0 scrollbar-none overscroll-x-contain text-xs">
           <button
             type="button"
             onClick={() => setActiveTab('general')}
-            className={`px-3.5 py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === 'general'
                 ? 'bg-white text-blue-900 border-t-2 border-t-blue-600 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -434,7 +440,7 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('location')}
-            className={`px-3.5 py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === 'location'
                 ? 'bg-white text-blue-900 border-t-2 border-t-blue-600 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -447,14 +453,14 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('contact')}
-            className={`px-3.5 py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === 'contact'
                 ? 'bg-white text-blue-900 border-t-2 border-t-blue-600 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
             <Phone className="w-3.5 h-3.5 text-indigo-600" />
-            <span>គណៈគ្រប់គ្រង & ទំនាក់ទំនង</span>
+            <span>ទំនាក់ទំនង</span>
             {(errors.principalPhone || errors.email) && (
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
             )}
@@ -463,14 +469,14 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('links')}
-            className={`px-3.5 py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === 'links'
                 ? 'bg-white text-blue-900 border-t-2 border-t-blue-600 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
             <Globe className="w-3.5 h-3.5 text-blue-600" />
-            <span>ផែនទី & Facebook</span>
+            <span>ផែនទី & FB</span>
             {(errors.mapUrl || errors.facebookPage) && (
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
             )}
@@ -479,20 +485,20 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('settings')}
-            className={`px-3.5 py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === 'settings'
                 ? 'bg-white text-blue-900 border-t-2 border-t-blue-600 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
             <Sliders className="w-3.5 h-3.5 text-amber-600" />
-            <span>ស្តង់ដារពិន្ទុ & Logo</span>
+            <span>ស្តង់ដារពិន្ទុ</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('security')}
-            className={`px-3.5 py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === 'security'
                 ? 'bg-white text-blue-900 border-t-2 border-t-blue-600 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -1222,15 +1228,15 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
           )}
 
           {/* Live Preview Card */}
-          <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+          <div className="bg-slate-50 p-3 sm:p-3.5 rounded-xl border border-slate-200">
             <p className="font-bold text-[11px] text-slate-600 mb-1.5 flex items-center gap-1">
               <Info className="w-3.5 h-3.5 text-blue-600" />
               ទិដ្ឋភាពសង្ខេបបឋមកថាសាលា (Live Header Preview)
             </p>
             <div className="bg-white p-3 rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-              <div>
-                <p className="font-moul text-blue-900 text-sm">{formData.nameKhmer || 'ឈ្មោះសាលារៀន'}</p>
-                <p className="font-times text-slate-500 text-[11px]">{formData.nameLatin || 'School Latin Name'}</p>
+              <div className="min-w-0">
+                <p className="font-moul text-blue-900 text-xs sm:text-sm truncate">{formData.nameKhmer || 'ឈ្មោះសាលារៀន'}</p>
+                <p className="font-times text-slate-500 text-[11px] truncate">{formData.nameLatin || 'School Latin Name'}</p>
                 <p className="text-[11px] text-slate-600 mt-0.5">
                   {formData.village && `${formData.village}, `}
                   {formData.commune && `${formData.commune}, `}
@@ -1238,14 +1244,14 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
                   {formData.province}
                 </p>
               </div>
-              <div className="text-right text-[11px] text-slate-600 space-y-0.5 border-t sm:border-t-0 pt-1 sm:pt-0">
+              <div className="text-left sm:text-right text-[11px] text-slate-600 space-y-0.5 border-t sm:border-t-0 pt-1.5 sm:pt-0 shrink-0">
                 <p>
                   <span className="font-bold">នាយក៖</span> {formData.principalName || '...'}
                 </p>
                 <p className="font-times font-bold text-slate-800">
                   {formData.principalPhone || '...'}
                 </p>
-                <div className="flex items-center justify-end gap-2 text-[10px] text-blue-600">
+                <div className="flex items-center sm:justify-end gap-2 text-[10px] text-blue-600">
                   {formData.mapUrl && <span className="flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5 text-red-500" /> Maps</span>}
                   {formData.facebookPage && <span className="flex items-center gap-0.5"><Facebook className="w-2.5 h-2.5" /> Facebook</span>}
                 </div>
@@ -1255,7 +1261,7 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
         </form>
 
         {/* Modal Footer Actions */}
-        <div className="p-4 bg-slate-100 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+        <div className="p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2 shrink-0">
           <button
             type="button"
             onClick={() => {
@@ -1264,18 +1270,19 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
               setTouched({});
               showToast('បានកំណត់ទិន្នន័យដើមឡើងវិញ', 'info');
             }}
-            className="text-xs text-slate-600 hover:text-slate-900 flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1 transition-colors cursor-pointer py-2 px-2 rounded-lg hover:bg-slate-200/60 shrink-0"
+            title="កំណត់ទិន្នន័យដើមឡើងវិញ"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>កំណត់ទិន្នន័យដើម</span>
+            <span className="hidden sm:inline">កំណត់ដើម</span>
           </button>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2 flex-1 sm:flex-none justify-end">
             <button
               type="button"
               id="cancel-school-profile-btn"
               onClick={onClose}
-              className="px-4 py-2 bg-white hover:bg-slate-200 text-slate-700 font-bold rounded-xl border border-slate-300 transition-colors text-xs cursor-pointer"
+              className="flex-1 sm:flex-none px-3.5 py-2 sm:px-4 sm:py-2 bg-white hover:bg-slate-100 text-slate-700 font-bold rounded-xl border border-slate-300 transition-colors text-xs cursor-pointer text-center"
             >
               បោះបង់
             </button>
@@ -1283,10 +1290,10 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
               type="button"
               id="save-school-profile-btn"
               onClick={handleSubmit}
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow flex items-center gap-2 transition-transform active:scale-95 text-xs cursor-pointer"
+              className="flex-1 sm:flex-none px-4 py-2 sm:px-5 sm:py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-xs cursor-pointer text-center"
             >
-              <Save className="w-4 h-4" />
-              <span>រក្សាទុកព័ត៌មាន</span>
+              <Save className="w-4 h-4 shrink-0" />
+              <span>រក្សាទុក</span>
             </button>
           </div>
         </div>

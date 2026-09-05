@@ -24,7 +24,8 @@ import {
   FileCheck,
   AlertTriangle,
   QrCode,
-  Laptop
+  Laptop,
+  Upload
 } from 'lucide-react';
 
 interface WebcamQRScannerModalProps {
@@ -58,10 +59,12 @@ export const WebcamQRScannerModal: React.FC<WebcamQRScannerModalProps> = ({
   // Video & Stream State
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const animationFrameRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [cameraStarted, setCameraStarted] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [isMuted, setIsMuted] = useState(false);
@@ -213,6 +216,116 @@ export const WebcamQRScannerModal: React.FC<WebcamQRScannerModalProps> = ({
     }, 1800);
   }, [autoTakeAttendance, markDailyAttendance, addActivityLog, currentUser, playBeep, showToast]);
 
+  // Process decoded QR code string (from camera or image file)
+  const processDecodedQRData = useCallback((rawCode: string) => {
+    const raw = rawCode.trim();
+    if (!raw) return;
+
+    // Check if raw is a Principal Digital Signature QR
+    const isSigPayload =
+      raw.includes('MOEYS-SIG-') ||
+      raw.includes('report_card_signature') ||
+      raw.includes('principalSignature') ||
+      raw.includes('sigRef') ||
+      raw.includes('moeys_sig');
+
+    if (isSigPayload) {
+      const verification = parseAndVerifyPrincipalSignatureQR(raw, students, schoolProfile);
+      addQRScanVerificationLog({
+        ...verification.logEntry,
+        verifierName: currentUser?.nameKhmer || 'អ្នកប្រើប្រាស់បច្ចុប្បន្ន',
+        verifierRole: currentUser?.role === 'director' ? 'នាយកសាលា' : 'គ្រូបង្រៀន/បុគ្គលិក',
+        scanMethod: 'webcam_scanner'
+      });
+
+      setSignatureVerificationResult({
+        log: verification.logEntry,
+        isExpired: verification.isExpired,
+        isValid: verification.isValid,
+        rawPayload: verification.payload
+      });
+
+      if (verification.student) {
+        setCurrentScannedStudent(verification.student);
+      }
+
+      if (verification.isValid) {
+        playBeep(true);
+        showToast(`QR ហត្ថលេខានាយកមានសុពលភាពត្រឹមត្រូវ (${verification.logEntry.studentNameKhmer})`, 'success');
+      } else if (verification.isExpired) {
+        playBeep(false);
+        showToast(`ការព្រមាន៖ QR ហត្ថលេខានេះបានផុតកំណត់សុពលភាពហើយ!`, 'error');
+      } else {
+        playBeep(false);
+        showToast(`ការព្រមាន៖ QR ហត្ថលេខាមិនត្រឹមត្រូវ ឬមានការកែប្រែទិន្នន័យ!`, 'error');
+      }
+
+      setScanCooldown(true);
+      setTimeout(() => setScanCooldown(false), 2500);
+      return;
+    }
+
+    // 1. Try to find student by direct code (e.g. STU-2024-001 or 101)
+    let found = students.find(
+      s => s.code.toLowerCase() === raw.toLowerCase() || s.id === raw
+    );
+
+    // 2. If raw data is JSON, parse and match
+    if (!found && (raw.startsWith('{') || raw.startsWith('['))) {
+      try {
+        const parsed = JSON.parse(raw);
+        const targetCode = parsed.code || parsed.studentCode || parsed.id;
+        if (targetCode) {
+          found = students.find(
+            s => s.code.toLowerCase() === String(targetCode).toLowerCase() || s.id === targetCode
+          );
+        }
+      } catch (e) {
+        // Not json, ignore
+      }
+    }
+
+    if (found) {
+      handleStudentFound(found, raw);
+    } else {
+      // Unrecognized code
+      playBeep(false);
+      setScanCooldown(true);
+      showToast(`QR Code «${raw}» មិនត្រូវគ្នានឹងទិន្នន័យសិស្សណាម្នាក់ក្នុងសាលាទេ!`, 'error');
+      setTimeout(() => setScanCooldown(false), 2000);
+    }
+  }, [students, schoolProfile, currentUser, addQRScanVerificationLog, handleStudentFound, playBeep, showToast]);
+
+  // Handle uploaded QR image file
+  const handleUploadImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
+          if (qrCode && qrCode.data) {
+            processDecodedQRData(qrCode.data);
+          } else {
+            showToast('⚠️ រកមិនឃើញ QR Code នៅក្នុងរូបភាពនេះឡើយ!', 'error');
+          }
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Scan frame loop using jsQR
   const scanLoop = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !isScanning) {
@@ -234,94 +347,22 @@ export const WebcamQRScannerModal: React.FC<WebcamQRScannerModalProps> = ({
       });
 
       if (code && code.data && !scanCooldown) {
-        const raw = code.data.trim();
-
-        // Check if raw is a Principal Digital Signature QR
-        const isSigPayload =
-          raw.includes('MOEYS-SIG-') ||
-          raw.includes('report_card_signature') ||
-          raw.includes('principalSignature') ||
-          raw.includes('sigRef') ||
-          raw.includes('moeys_sig');
-
-        if (isSigPayload) {
-          const verification = parseAndVerifyPrincipalSignatureQR(raw, students, schoolProfile);
-          addQRScanVerificationLog({
-            ...verification.logEntry,
-            verifierName: currentUser?.nameKhmer || 'អ្នកប្រើប្រាស់បច្ចុប្បន្ន',
-            verifierRole: currentUser?.role === 'director' ? 'នាយកសាលា' : 'គ្រូបង្រៀន/បុគ្គលិក',
-            scanMethod: 'webcam_scanner'
-          });
-
-          setSignatureVerificationResult({
-            log: verification.logEntry,
-            isExpired: verification.isExpired,
-            isValid: verification.isValid,
-            rawPayload: verification.payload
-          });
-
-          if (verification.student) {
-            setCurrentScannedStudent(verification.student);
-          }
-
-          if (verification.isValid) {
-            playBeep(true);
-            showToast(`QR ហត្ថលេខានាយកមានសុពលភាពត្រឹមត្រូវ (${verification.logEntry.studentNameKhmer})`, 'success');
-          } else if (verification.isExpired) {
-            playBeep(false);
-            showToast(`ការព្រមាន៖ QR ហត្ថលេខានេះបានផុតកំណត់សុពលភាពហើយ!`, 'error');
-          } else {
-            playBeep(false);
-            showToast(`ការព្រមាន៖ QR ហត្ថលេខាមិនត្រឹមត្រូវ ឬមានការកែប្រែទិន្នន័យ!`, 'error');
-          }
-
-          setScanCooldown(true);
-          setTimeout(() => setScanCooldown(false), 2500);
-          return;
-        }
-
-        // 1. Try to find student by direct code (e.g. STU-2024-001 or 101)
-        let found = students.find(
-          s => s.code.toLowerCase() === raw.toLowerCase() || s.id === raw
-        );
-
-        // 2. If raw data is JSON, parse and match
-        if (!found && (raw.startsWith('{') || raw.startsWith('['))) {
-          try {
-            const parsed = JSON.parse(raw);
-            const targetCode = parsed.code || parsed.studentCode || parsed.id;
-            if (targetCode) {
-              found = students.find(
-                s => s.code.toLowerCase() === String(targetCode).toLowerCase() || s.id === targetCode
-              );
-            }
-          } catch (e) {
-            // Not json, ignore
-          }
-        }
-
-        if (found) {
-          handleStudentFound(found, raw);
-        } else {
-          // Unrecognized code
-          playBeep(false);
-          setScanCooldown(true);
-          showToast(`QR Code «${raw}» មិនត្រូវគ្នានឹងទិន្នន័យសិស្សណាម្នាក់ក្នុងសាលាទេ!`, 'error');
-          setTimeout(() => setScanCooldown(false), 2000);
-        }
+        processDecodedQRData(code.data);
       }
     }
 
     animationFrameRef.current = requestAnimationFrame(scanLoop);
-  }, [isScanning, scanCooldown, students, schoolProfile, currentUser, addQRScanVerificationLog, handleStudentFound, playBeep, showToast]);
+  }, [isScanning, scanCooldown, processDecodedQRData]);
 
   // Lifecycle
   useEffect(() => {
-    startCamera();
+    if (cameraStarted) {
+      startCamera();
+    }
     return () => {
       stopCamera();
     };
-  }, [startCamera, stopCamera]);
+  }, [cameraStarted, startCamera, stopCamera]);
 
   useEffect(() => {
     if (hasCameraPermission && isScanning) {
@@ -417,90 +458,162 @@ export const WebcamQRScannerModal: React.FC<WebcamQRScannerModalProps> = ({
           {/* Left Column: Camera Viewfinder */}
           <div className="lg:col-span-7 space-y-4">
             {/* Camera Box */}
-            <div className="relative bg-black rounded-3xl overflow-hidden shadow-xl aspect-4/3 flex items-center justify-center border-4 border-slate-900">
-              <video
-                ref={videoRef}
-                className="w-full h-full object-cover"
-                playsInline
-                muted
-              />
-              <canvas ref={canvasRef} className="hidden" />
-
-              {/* Scanning Target Overlay */}
-              <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
-                {/* Target Frame */}
-                <div
-                  className={`w-64 h-64 sm:w-72 sm:h-72 border-2 rounded-3xl relative transition-all duration-300 ${
-                    scanCooldown
-                      ? 'border-emerald-400 scale-105 shadow-[0_0_30px_rgba(52,211,153,0.5)]'
-                      : 'border-blue-400/80'
-                  }`}
-                >
-                  {/* Corner brackets */}
-                  <div className="absolute -top-1 -left-1 w-7 h-7 border-t-4 border-l-4 border-blue-500 rounded-tl-xl" />
-                  <div className="absolute -top-1 -right-1 w-7 h-7 border-t-4 border-r-4 border-blue-500 rounded-tr-xl" />
-                  <div className="absolute -bottom-1 -left-1 w-7 h-7 border-b-4 border-l-4 border-blue-500 rounded-bl-xl" />
-                  <div className="absolute -bottom-1 -right-1 w-7 h-7 border-b-4 border-r-4 border-blue-500 rounded-br-xl" />
-
-                  {/* Laser Sweeper Animation */}
-                  <div className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse shadow-[0_0_12px_#38bdf8] top-1/2 -translate-y-1/2" />
-                </div>
-
-                <p className="mt-4 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-medium border border-white/10">
-                  ដាក់ QR Code កាតសិស្សក្នុងប្រអប់ដើម្បីស្កេន
-                </p>
-              </div>
-
-              {/* Permission / Error Banner */}
-              {hasCameraPermission === false && (
-                <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md p-6 flex flex-col items-center justify-center text-center text-white space-y-3 z-20">
-                  <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center">
-                    <AlertCircle className="w-6 h-6" />
+            <div className="relative bg-slate-950 rounded-3xl overflow-hidden shadow-xl aspect-4/3 flex items-center justify-center border-4 border-slate-900">
+              {!cameraStarted ? (
+                <div className="p-6 sm:p-8 flex flex-col items-center justify-center text-center space-y-4 max-w-md">
+                  <div className="w-16 h-16 rounded-2xl bg-blue-500/20 border border-blue-400/40 text-blue-400 flex items-center justify-center shadow-inner">
+                    <Camera className="w-8 h-8" />
                   </div>
-                  <h4 className="font-bold font-moul text-sm">មិនអាចភ្ជាប់ Camera បានទេ</h4>
-                  <p className="text-xs text-slate-300 max-w-sm leading-relaxed">
-                    {cameraError || 'សូមពិនិត្យមើលសិទ្ធិប្រើប្រាស់ Camera ក្នុងកម្មវិធីរុករក Browser'}
-                  </p>
-                  <button
-                    onClick={startCamera}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-md transition-all"
-                  >
-                    ព្យាយាមភ្ជាប់ម្តងទៀត
-                  </button>
+                  <div className="space-y-1.5">
+                    <h4 className="text-base font-bold font-moul text-white">
+                      បញ្ជាក់ការបើកកាមេរ៉ាស្កេន QR
+                    </h4>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      ប្រព័ន្ធនឹងស្នើសុំការអនុញ្ញាតប្រើកាមេរ៉ាតែនៅពេលលោកអ្នកចុចយល់ព្រមប៉ុណ្ណោះ។ លោកអ្នកក៏អាចជ្រើសរើសស្កេនពីរូបភាពកាត QR ដោយមិនបាច់បើកកាមេរ៉ាបានផងដែរ។
+                    </p>
+                  </div>
+
+                  <div className="w-full space-y-2.5 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setCameraStarted(true)}
+                      className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 cursor-pointer transition-transform active:scale-98"
+                    >
+                      <Camera className="w-4 h-4" />
+                      <span>បើកកាមេរ៉ាស្កេនផ្ទាល់ (Allow & Start Camera)</span>
+                    </button>
+
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleUploadImageFile}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full py-2.5 px-4 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white border border-white/20 rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                    >
+                      <Upload className="w-4 h-4 text-purple-300" />
+                      <span>ស្កេនរូបភាព QR ពីម៉ាស៊ីន (Upload QR Image)</span>
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <video
+                    ref={videoRef}
+                    className="w-full h-full object-cover"
+                    playsInline
+                    muted
+                  />
+                  <canvas ref={canvasRef} className="hidden" />
+
+                  {/* Scanning Target Overlay */}
+                  <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+                    {/* Target Frame */}
+                    <div
+                      className={`w-64 h-64 sm:w-72 sm:h-72 border-2 rounded-3xl relative transition-all duration-300 ${
+                        scanCooldown
+                          ? 'border-emerald-400 scale-105 shadow-[0_0_30px_rgba(52,211,153,0.5)]'
+                          : 'border-blue-400/80'
+                      }`}
+                    >
+                      {/* Corner brackets */}
+                      <div className="absolute -top-1 -left-1 w-7 h-7 border-t-4 border-l-4 border-blue-500 rounded-tl-xl" />
+                      <div className="absolute -top-1 -right-1 w-7 h-7 border-t-4 border-r-4 border-blue-500 rounded-tr-xl" />
+                      <div className="absolute -bottom-1 -left-1 w-7 h-7 border-b-4 border-l-4 border-blue-500 rounded-bl-xl" />
+                      <div className="absolute -bottom-1 -right-1 w-7 h-7 border-b-4 border-r-4 border-blue-500 rounded-br-xl" />
+
+                      {/* Laser Sweeper Animation */}
+                      <div className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse shadow-[0_0_12px_#38bdf8] top-1/2 -translate-y-1/2" />
+                    </div>
+
+                    <p className="mt-4 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-medium border border-white/10">
+                      ដាក់ QR Code កាតសិស្សក្នុងប្រអប់ដើម្បីស្កេន
+                    </p>
+                  </div>
+
+                  {/* Permission / Error Banner */}
+                  {hasCameraPermission === false && (
+                    <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md p-6 flex flex-col items-center justify-center text-center text-white space-y-3 z-20">
+                      <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                        <AlertCircle className="w-6 h-6" />
+                      </div>
+                      <h4 className="font-bold font-moul text-sm">មិនអាចភ្ជាប់ Camera បានទេ</h4>
+                      <p className="text-xs text-slate-300 max-w-sm leading-relaxed">
+                        {cameraError || 'សូមពិនិត្យមើលសិទ្ធិប្រើប្រាស់ Camera ក្នុងកម្មវិធីរុករក Browser'}
+                      </p>
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          onClick={startCamera}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer"
+                        >
+                          ព្យាយាមភ្ជាប់ម្តងទៀត
+                        </button>
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        >
+                          ស្កេនពីរូបភាពជំនួសវិញ
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
-            {/* Quick Mode Toggles */}
-            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-amber-500" />
-                <span className="font-bold text-slate-900">របៀប Check-in ស្វ័យប្រវត្តិកំពូលលឿន៖</span>
+            {/* Quick Mode Toggles & File Upload */}
+            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex flex-col gap-3 text-xs">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-amber-500" />
+                  <span className="font-bold text-slate-900">របៀប Check-in ស្វ័យប្រវត្តិកំពូលលឿន៖</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAutoTakeAttendance(true)}
+                    className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
+                      autoTakeAttendance
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    បើកស្វ័យប្រវត្តិ (Auto-Take)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAutoTakeAttendance(false)}
+                    className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
+                      !autoTakeAttendance
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    ផ្ទៀងផ្ទាត់ដោយដៃ (Manual)
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setAutoTakeAttendance(true)}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                    autoTakeAttendance
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  បើកស្វ័យប្រវត្តិ (Auto-Take)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAutoTakeAttendance(false)}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                    !autoTakeAttendance
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  ផ្ទៀងផ្ទាត់ដោយដៃ (Manual)
-                </button>
-              </div>
+
+              {cameraStarted && (
+                <div className="border-t border-slate-100 pt-2 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500">
+                    ឬលោកអ្នកអាចជ្រើសរើសស្កេនរូបភាព QR ពីឯកសារ៖
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold rounded-xl transition-colors cursor-pointer text-xs"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-purple-600" />
+                    <span>ស្កេនរូបភាព QR ពីម៉ាស៊ីន</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

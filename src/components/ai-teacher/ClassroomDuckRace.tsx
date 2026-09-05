@@ -186,6 +186,30 @@ export const ClassroomDuckRace: React.FC<Props> = ({
   const [winner, setWinner] = useState<PickerCandidate | null>(null);
   const [removeWinnerOnNext, setRemoveWinnerOnNext] = useState<boolean>(true);
 
+  // Dynamic Camera Tracking (ដូច Duck Racing ពិតៗ)
+  // Track world is 300% width of the visible screen.
+  // Finish line is at ~94.8%, initially offscreen (hidden).
+  // Camera smoothly glides forward following the leading duck!
+  const currentLeadProgress = useMemo(() => {
+    if (!isRacing && !raceFinished) return 0;
+    if (raceFinished) return 100;
+    const vals = Object.values(duckPositions) as number[];
+    if (vals.length === 0) return 0;
+    return Math.max(...vals, 0);
+  }, [isRacing, raceFinished, duckPositions]);
+
+  const cameraWorldX = useMemo(() => {
+    if (!isRacing && !raceFinished) return 0;
+    // Lead duck position in world coordinates (from 2.2% to 94.8%)
+    const leadDuckWorldX = 2.2 + (currentLeadProgress / 100) * 92.6;
+    
+    // Position lead duck at ~42% of the viewport (viewport width = 33.333% of world)
+    const targetCameraX = leadDuckWorldX - 14.0;
+    
+    // Clamp camera between 0% (at start) and 66.667% (at finish, showing finish line)
+    return Math.max(0, Math.min(66.667, targetCameraX));
+  }, [isRacing, raceFinished, currentLeadProgress]);
+
   // Joyful winner duck quack phrase rotation ("យំកាប កាប យ៉ាងសប្បាយរីករាយ")
   const WINNER_QUACK_PHRASES = [
     '🦆 កាប! កាប! (Quack! Quack!)',
@@ -1445,17 +1469,35 @@ export const ClassroomDuckRace: React.FC<Props> = ({
                 })}
               </div>
 
-              {/* Leader stats badge */}
+              {/* Leader stats badge & Goal Visibility Indicator */}
               {(() => {
                 const leadDuck = [...activeCandidates].sort((a, b) => (duckPositions[b.id] || 0) - (duckPositions[a.id] || 0))[0];
                 const leadProgress = Math.round(duckPositions[leadDuck?.id] || 0);
                 const distanceRemaining = Math.max(0, 100 - leadProgress);
+                const isGoalInSight = leadProgress >= 78;
                 return (
-                  <div className="flex items-center gap-1 text-[10px] sm:text-xs font-black text-cyan-200 bg-cyan-950/90 px-2 py-0.5 rounded-lg border border-cyan-400/50 whitespace-nowrap shrink-0">
-                    <span>🏁 នៅសល់ {distanceRemaining}%</span>
+                  <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-black whitespace-nowrap shrink-0">
+                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border transition-all ${
+                      isGoalInSight 
+                        ? 'bg-amber-400 text-slate-950 border-amber-300 font-black animate-pulse shadow-xs' 
+                        : 'bg-cyan-950/90 text-cyan-200 border-cyan-400/50'
+                    }`}>
+                      {isGoalInSight ? (
+                        <>
+                          <span>🏁 ឃើញគោលដៅហើយ!</span>
+                          <span className="text-[9px] opacity-90">({distanceRemaining}%)</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-amber-300">🎥 កាមេរ៉ារត់តាម៖</span>
+                          <span>នៅសល់ {distanceRemaining}%</span>
+                          <span className="text-[9px] opacity-60 hidden sm:inline">(លាក់គោលដៅ)</span>
+                        </>
+                      )}
+                    </div>
                     {leadDuck && (
-                      <span className="hidden lg:inline text-amber-300 font-bold ml-1">
-                        («{leadDuck.name}» នាំមុខ)
+                      <span className="hidden lg:inline text-amber-300 font-bold bg-slate-950/60 px-2 py-0.5 rounded-lg border border-white/10">
+                        👑 «{leadDuck.name}»
                       </span>
                     )}
                   </div>
@@ -1540,13 +1582,13 @@ export const ClassroomDuckRace: React.FC<Props> = ({
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* 2. THE MAIN ARENA CANVAS (SKY, RIVERBANK, FLOWING RIVER & FINISH LINE) */}
+      {/* 2. THE MAIN ARENA CANVAS WITH DYNAMIC CAMERA TRACKING */}
       {/* ------------------------------------------------------------- */}
       <div className="relative w-full overflow-hidden bg-sky-300 min-h-[480px] sm:min-h-[540px] flex flex-col justify-between">
         
-        {/* --- A. SKY, SUN & CLOUDS --- */}
-        <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-sky-300 via-sky-200 to-emerald-200 pointer-events-none">
-          {/* Golden Sun in top left corner */}
+        {/* --- A. STATIC SKY, SUN & CLOUDS (PARALLAX DEPTH) --- */}
+        <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-sky-300 via-sky-200 to-emerald-200 pointer-events-none z-0">
+          {/* Golden Sun */}
           <div className="absolute -top-8 -left-8 w-28 h-28 rounded-full bg-yellow-300 border-4 border-yellow-400 shadow-[0_0_40px_rgba(250,204,21,0.8)]">
             <div className="absolute inset-0 rounded-full bg-yellow-200 animate-ping opacity-25"></div>
           </div>
@@ -1565,148 +1607,218 @@ export const ClassroomDuckRace: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* --- B. GREEN GRASSY RIVERBANK & MUD SHORELINE --- */}
-        <div className="relative z-10 w-full pt-1 sm:pt-2">
-          {/* Green Grass Bank */}
-          <div className="w-full h-12 sm:h-14 bg-gradient-to-b from-emerald-500 to-green-600 relative border-b-4 border-amber-900 shadow-inner flex items-center justify-between px-6">
-            {/* Bushes on Riverbank */}
-            <div className="flex items-center gap-10 opacity-70">
-              <span className="text-xl">🌳</span>
-              <span className="text-lg">🌿</span>
-              <span className="text-xl">🌳</span>
-            </div>
-            <div className="flex items-center gap-8 opacity-70">
-              <span className="text-lg">🌿</span>
-              <span className="text-xl">🌳</span>
-              <span className="text-lg">🌿</span>
-            </div>
-          </div>
-          {/* Muddy Shore Edge */}
-          <div className="w-full h-2.5 bg-amber-900 border-b border-amber-950"></div>
-        </div>
-
-        {/* --- D. BLUE WATER RIVER RACETRACK (SWIMMING FROM LEFT START TO RIGHT FINISH GOAL) --- */}
-        <div className="relative flex-1 w-full bg-gradient-to-b from-cyan-600 via-blue-600 to-sky-700 min-h-[310px] overflow-hidden flex flex-col justify-around py-3 px-2">
-          
-          {/* Ambient River Wave Lines */}
-          <div className="absolute inset-0 opacity-20 pointer-events-none flex flex-col justify-around">
-            <div className="w-full h-3 border-b-2 border-white/40"></div>
-            <div className="w-full h-3 border-b-2 border-white/40"></div>
-            <div className="w-full h-3 border-b-2 border-white/40"></div>
-            <div className="w-full h-3 border-b-2 border-white/40"></div>
-          </div>
-
-          {/* 1. STARTING DOCK & BUOY POST ON THE FAR LEFT (ចំណុចចេញដំណើរ) */}
-          <div className="absolute left-1 top-0 bottom-0 w-4 bg-amber-800/80 border-r-2 border-amber-950 z-10 flex flex-col justify-around items-center">
-            <div className="absolute -top-1 left-0 bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-br-md shadow-xs border border-emerald-400">
-              START
-            </div>
-            {activeCandidates.slice(0, 8).map((_, idx) => (
-              <span key={idx} className="text-[10px] font-bold text-amber-200 opacity-60">
-                •
-              </span>
-            ))}
-          </div>
-
-          {/* 2. SLANTED CHECKERED FINISH LINE ON THE FAR RIGHT (គោលដៅនៅខាងស្តាំ) */}
+        {/* --- CAMERA TRACKING SCROLLING WORLD (300% WIDTH CONTAINER) --- */}
+        <div className="relative z-10 flex-1 w-full overflow-hidden flex flex-col justify-between">
           <div 
-            className="absolute right-12 sm:right-20 top-0 bottom-0 w-8 z-10 pointer-events-none transform -skew-x-12 flex flex-col justify-around border-r-2 border-l-2 border-black shadow-xl"
-            style={{
-              backgroundImage: `repeating-linear-gradient(0deg, #000, #000 14px, #fff 14px, #fff 28px)`
-            }}
+            className="w-[300%] flex flex-col flex-1 transition-transform duration-200 ease-out will-change-transform select-none"
+            style={{ transform: `translateX(-${cameraWorldX}%)` }}
           >
-            {/* Top Finish Flag Marker */}
-            <div className="absolute -top-4 -left-3 bg-amber-400 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded-md border border-black shadow-md whitespace-nowrap transform skew-x-12 flex items-center gap-1">
-              <span>🏁</span>
-              <span>FINISH / គោលដៅ</span>
+            {/* --- B. SCROLLING GREEN GRASSY RIVERBANK & MILESTONES (300% WIDTH) --- */}
+            <div className="relative z-10 w-full pt-1 sm:pt-2">
+              <div className="w-full h-12 sm:h-14 bg-gradient-to-b from-emerald-500 to-green-600 relative border-b-4 border-amber-900 shadow-inner flex items-center justify-between px-4">
+                
+                {/* 0m Start Dock Bank */}
+                <div className="absolute left-[1.5%] flex items-center gap-2">
+                  <span className="text-xl">🏁</span>
+                  <div className="bg-emerald-700 text-white font-black text-[10px] px-2 py-0.5 rounded-md border border-emerald-400 shadow-xs whitespace-nowrap">
+                    🚩 ចំណុចចេញដំណើរ (0m START)
+                  </div>
+                  <span className="text-lg">🌳</span>
+                </div>
+
+                {/* 25m Lily Pond Bank */}
+                <div className="absolute left-[25%] flex items-center gap-2 opacity-90">
+                  <span className="text-lg">🌿</span>
+                  <div className="bg-emerald-800/80 text-emerald-100 font-bold text-[9px] px-2 py-0.5 rounded-md border border-emerald-600/60 whitespace-nowrap">
+                    🪷 ២៥ ម៉ែត្រ (25m Pond)
+                  </div>
+                  <span className="text-xl">🌳</span>
+                </div>
+
+                {/* 50m Midpoint Island Bank */}
+                <div className="absolute left-[50%] flex items-center gap-2 opacity-95">
+                  <span className="text-xl">🌴</span>
+                  <div className="bg-amber-600 text-white font-black text-[10px] px-2.5 py-0.5 rounded-md border border-amber-300 shadow-xs whitespace-nowrap flex items-center gap-1">
+                    <span>⚡ ៥០ ម៉ែត្រ (50m Midpoint)</span>
+                  </div>
+                  <span className="text-xl">🌴</span>
+                  <span className="text-sm">🐸</span>
+                </div>
+
+                {/* 75m Sprint Zone Bank */}
+                <div className="absolute left-[73%] flex items-center gap-2">
+                  <span className="text-xl">🔥</span>
+                  <div className="bg-rose-600 text-white font-black text-[10px] px-2.5 py-0.5 rounded-md border border-rose-300 shadow-md whitespace-nowrap animate-pulse flex items-center gap-1">
+                    <span>⚡ ៧៥ ម៉ែត្រ • ជិតដល់គោលដៅ! (Sprint!)</span>
+                  </div>
+                  <span className="text-xl">🌳</span>
+                </div>
+
+                {/* 95% - 100% Finish Stadium Grandstand Bank */}
+                <div className="absolute left-[92%] right-2 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-black text-[11px] px-3 py-1 rounded-lg border-2 border-slate-900 shadow-xl whitespace-nowrap animate-bounce">
+                    <span>🏆</span>
+                    <span className="font-moul">វេទិកាជ័យលាភី (FINISH STADIUM)</span>
+                    <span>🏁</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-base select-none">
+                    <span>🎈</span>
+                    <span>👏</span>
+                    <span>🇰🇭</span>
+                    <span>🎉</span>
+                  </div>
+                </div>
+
+              </div>
+              {/* Muddy Shore Edge */}
+              <div className="w-full h-2.5 bg-amber-900 border-b border-amber-950"></div>
             </div>
 
-            {/* Lane Numbers marked in bold black italics on the goal line */}
-            {activeCandidates.slice(0, 8).map((_, idx) => (
+            {/* --- C. BLUE WATER RIVER RACETRACK (300% WIDTH WORLD) --- */}
+            <div className="relative flex-1 w-full bg-gradient-to-b from-cyan-600 via-blue-600 to-sky-700 min-h-[310px] overflow-hidden flex flex-col justify-around py-3 px-2">
+              
+              {/* Ambient Flowing River Wave Lines */}
+              <div className="absolute inset-0 opacity-20 pointer-events-none flex flex-col justify-around">
+                <div className="w-full h-3 border-b-2 border-white/40"></div>
+                <div className="w-full h-3 border-b-2 border-white/40"></div>
+                <div className="w-full h-3 border-b-2 border-white/40"></div>
+                <div className="w-full h-3 border-b-2 border-white/40"></div>
+              </div>
+
+              {/* 1. STARTING DOCK ON THE FAR LEFT (1.2% of world) */}
+              <div className="absolute left-[1.2%] top-0 bottom-0 w-6 bg-amber-800/90 border-r-3 border-amber-950 z-10 flex flex-col justify-around items-center shadow-lg">
+                <div className="absolute -top-1 left-0 bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-br-md shadow-xs border border-emerald-400 whitespace-nowrap">
+                  START
+                </div>
+                {activeCandidates.slice(0, 8).map((_, idx) => (
+                  <span key={idx} className="text-[10px] font-bold text-amber-200 opacity-80">
+                    ⚓
+                  </span>
+                ))}
+              </div>
+
+              {/* 2. DISTANCE BUOYS IN RIVER WATER (25m, 50m, 75m) */}
+              <div className="absolute left-[25.35%] top-0 bottom-0 w-[2px] bg-white/15 pointer-events-none z-0 flex flex-col justify-around items-center">
+                <span className="text-[10px] bg-slate-900/60 text-cyan-200 px-1 py-0.5 rounded-sm font-bold opacity-75">🛟 25m</span>
+              </div>
+              <div className="absolute left-[48.5%] top-0 bottom-0 w-[2px] bg-white/20 pointer-events-none z-0 flex flex-col justify-around items-center">
+                <span className="text-[10px] bg-slate-900/70 text-amber-300 px-1 py-0.5 rounded-sm font-bold opacity-80">🛟 50m</span>
+              </div>
+              <div className="absolute left-[71.65%] top-0 bottom-0 w-[2px] bg-white/25 pointer-events-none z-0 flex flex-col justify-around items-center">
+                <span className="text-[10px] bg-rose-950/80 text-rose-300 px-1 py-0.5 rounded-bold border border-rose-500/40 opacity-90">⚠️ 75m</span>
+              </div>
+
+              {/* 3. SLANTED CHECKERED FINISH LINE (AT 94.8% OF WORLD - INITIALLY HIDDEN OFFSCREEN) */}
               <div 
-                key={idx} 
-                className="absolute text-slate-950 font-black text-2xl sm:text-3xl italic drop-shadow-md select-none transform skew-x-12"
+                className="absolute left-[94.8%] top-0 bottom-0 w-12 z-20 pointer-events-none transform -skew-x-12 flex flex-col justify-around border-r-4 border-l-4 border-black shadow-2xl"
                 style={{
-                  right: '-32px',
-                  top: `${(idx / Math.max(1, activeCandidates.length - 1)) * 75 + 5}%`
+                  backgroundImage: `repeating-linear-gradient(0deg, #000, #000 16px, #fff 16px, #fff 32px)`
                 }}
               >
-                {idx + 1}
-              </div>
-            ))}
-          </div>
+                {/* Giant Top Finish Arch / Marker */}
+                <div className="absolute -top-7 -left-12 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-slate-950 font-black text-xs sm:text-sm px-3 py-1 rounded-xl border-2 border-black shadow-2xl whitespace-nowrap transform skew-x-12 flex items-center gap-1.5 animate-bounce">
+                  <span className="text-base">🏁</span>
+                  <span className="font-moul text-[11px] sm:text-xs">គោលដៅ • FINISH</span>
+                  <span className="text-base">🏆</span>
+                </div>
 
-          {/* 3. DUCK LANES (Swimming Ducks on Water from Left to Right) */}
-          {activeCandidates.slice(0, 10).map((cand, idx) => {
-            const laneNumber = idx + 1;
-            const progress = isRacing ? (duckPositions[cand.id] || 0) : (raceFinished && winner?.id === cand.id ? 100 : 0);
-            const clampedProgress = Math.max(0, Math.min(100, Math.round(progress)));
-            const remainingToFinish = Math.max(0, 100 - clampedProgress);
-            const costume = gameMode === 'duel_2p'
-              ? (cand.id === 'p1' ? player1.costume : player2.costume)
-              : (candidateCostumes[cand.id] || DUCK_COSTUMES[idx % DUCK_COSTUMES.length].id);
-            const isWinnerDuck = winner?.id === cand.id;
-            const isDuel = gameMode === 'duel_2p';
-
-            return (
-              <div 
-                key={cand.id}
-                className={`relative w-full flex items-center border-b border-cyan-400/20 ${
-                  isDuel ? 'h-20 sm:h-24 bg-cyan-900/10' : 'h-14 sm:h-16'
-                }`}
-              >
-                {/* Lane Marker on Left */}
-                {isDuel && (
-                  <div className="absolute left-6 top-2 z-0 flex items-center gap-1.5 opacity-80 pointer-events-none">
-                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-md border ${
-                      cand.id === 'p1' ? 'bg-blue-600/80 text-white border-blue-400' : 'bg-purple-600/80 text-white border-purple-400'
-                    }`}>
-                      {cand.id === 'p1' ? '🔵 LANE 1 (P1)' : '🟣 LANE 2 (P2)'}
+                {/* Red Finish Tape Ribbon across the goal (breaks when race ends) */}
+                <div className={`absolute -left-1.5 inset-y-0 w-1.5 transition-all duration-300 ${
+                  raceFinished ? 'opacity-30 border-dashed border-red-500 bg-transparent' : 'bg-red-600 shadow-md ring-1 ring-red-400'
+                }`}>
+                  {!raceFinished && (
+                    <span className="absolute top-1/2 -left-3 transform -translate-y-1/2 -rotate-90 text-[8px] font-black text-white bg-red-700 px-1 py-0.5 rounded-sm uppercase tracking-widest whitespace-nowrap shadow-sm">
+                      FINISH TAPE
                     </span>
-                    <span className="text-xs font-bold text-white/70 truncate hidden sm:inline">
-                      {cand.id === 'p1' ? `"${player1.motto}"` : `"${player2.motto}"`}
-                    </span>
-                  </div>
-                )}
+                  )}
+                </div>
 
-                {/* Subdued Lane Progress Track Bar (Shows exact path from start to finish line) */}
-                <div className="absolute left-6 right-20 sm:right-28 bottom-1.5 h-1.5 bg-black/25 rounded-full overflow-hidden pointer-events-none z-0 border border-white/15">
+                {/* Lane Numbers marked in bold black italics on the goal line */}
+                {activeCandidates.slice(0, 8).map((_, idx) => (
                   <div 
-                    className={`h-full transition-all duration-150 ease-out rounded-full ${
-                      isWinnerDuck && raceFinished 
-                        ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 shadow-sm' 
-                        : cand.id === 'p1'
-                        ? 'bg-gradient-to-r from-blue-400 to-cyan-300'
-                        : cand.id === 'p2'
-                        ? 'bg-gradient-to-r from-purple-400 to-pink-300'
-                        : 'bg-gradient-to-r from-cyan-400 to-emerald-300'
-                    }`}
-                    style={{ width: `${clampedProgress}%` }}
-                  />
-                </div>
-
-                {/* Animated Duck Position swimming along the River from Left to Right */}
-                <div 
-                  className={`absolute transition-all duration-150 ease-linear z-20 ${
-                    isWinnerDuck && raceFinished ? 'animate-winner-cruise z-40' : ''
-                  }`}
-                  style={
-                    isWinnerDuck && raceFinished
-                      ? undefined
-                      : {
-                          left: isRacing 
-                            ? `calc(${progress * 0.84}% + 14px)` 
-                            : raceFinished 
-                            ? `calc(${Math.min(72, (duckPositions[cand.id] || (45 + (idx % 4) * 6)) * 0.78)}% + 14px)`
-                            : `${12 + (idx % 3) * 10}px` // starting dock line on left
-                        }
-                  }
-                >
-                  {renderDuckCharacter(cand, laneNumber, costume, false, progress)}
-                </div>
+                    key={idx} 
+                    className="absolute text-slate-950 font-black text-2xl sm:text-3xl italic drop-shadow-md select-none transform skew-x-12"
+                    style={{
+                      right: '-34px',
+                      top: `${(idx / Math.max(1, activeCandidates.length - 1)) * 75 + 5}%`
+                    }}
+                  >
+                    {idx + 1}
+                  </div>
+                ))}
               </div>
-            );
-          })}
+
+              {/* 4. DUCK LANES (Swimming Ducks across the 300% World Track) */}
+              {activeCandidates.slice(0, 10).map((cand, idx) => {
+                const laneNumber = idx + 1;
+                const progress = isRacing ? (duckPositions[cand.id] || 0) : (raceFinished && winner?.id === cand.id ? 100 : 0);
+                const clampedProgress = Math.max(0, Math.min(100, Math.round(progress)));
+                const costume = gameMode === 'duel_2p'
+                  ? (cand.id === 'p1' ? player1.costume : player2.costume)
+                  : (candidateCostumes[cand.id] || DUCK_COSTUMES[idx % DUCK_COSTUMES.length].id);
+                const isWinnerDuck = winner?.id === cand.id;
+                const isDuel = gameMode === 'duel_2p';
+
+                // Duck position in 300% world (from 2.2% at start to 94.8% at finish)
+                const duckWorldX = 2.2 + (clampedProgress / 100) * 92.6;
+
+                return (
+                  <div 
+                    key={cand.id}
+                    className={`relative w-full flex items-center border-b border-cyan-400/20 ${
+                      isDuel ? 'h-20 sm:h-24 bg-cyan-900/10' : 'h-14 sm:h-16'
+                    }`}
+                  >
+                    {/* Lane Marker on Left */}
+                    {isDuel && (
+                      <div className="absolute left-[2%] top-2 z-0 flex items-center gap-1.5 opacity-80 pointer-events-none">
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-md border ${
+                          cand.id === 'p1' ? 'bg-blue-600/80 text-white border-blue-400' : 'bg-purple-600/80 text-white border-purple-400'
+                        }`}>
+                          {cand.id === 'p1' ? '🔵 LANE 1 (P1)' : '🟣 LANE 2 (P2)'}
+                        </span>
+                        <span className="text-xs font-bold text-white/70 truncate hidden sm:inline">
+                          {cand.id === 'p1' ? `"${player1.motto}"` : `"${player2.motto}"`}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Subdued Lane Progress Track Bar across the full world course */}
+                    <div className="absolute left-[2.2%] w-[92.6%] bottom-1.5 h-1.5 bg-black/25 rounded-full overflow-hidden pointer-events-none z-0 border border-white/15">
+                      <div 
+                        className={`h-full transition-all duration-150 ease-out rounded-full ${
+                          isWinnerDuck && raceFinished 
+                            ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 shadow-sm' 
+                            : cand.id === 'p1'
+                            ? 'bg-gradient-to-r from-blue-400 to-cyan-300'
+                            : cand.id === 'p2'
+                            ? 'bg-gradient-to-r from-purple-400 to-pink-300'
+                            : 'bg-gradient-to-r from-cyan-400 to-emerald-300'
+                        }`}
+                        style={{ width: `${clampedProgress}%` }}
+                      />
+                    </div>
+
+                    {/* Animated Duck Position swimming along the World River */}
+                    <div 
+                      className={`absolute transition-all duration-150 ease-linear z-20 ${
+                        isWinnerDuck && raceFinished ? 'animate-winner-duck z-40' : ''
+                      }`}
+                      style={{
+                        left: isRacing 
+                          ? `${duckWorldX}%` 
+                          : raceFinished 
+                          ? `${isWinnerDuck ? 95.3 : Math.min(94.0, duckWorldX)}%`
+                          : `${2.0 + (idx % 3) * 0.3}%` // starting dock line
+                      }}
+                    >
+                      {renderDuckCharacter(cand, laneNumber, costume, false, progress)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* --- E. BOTTOM LEFT COSTUME SELECTOR CARD (From Image 1) --- */}

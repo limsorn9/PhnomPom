@@ -12,7 +12,8 @@ import {
   Timer,
   Zap,
   CheckCircle2,
-  VideoOff
+  VideoOff,
+  Upload
 } from 'lucide-react';
 
 interface DirectCameraCaptureModalProps {
@@ -36,6 +37,7 @@ export const DirectCameraCaptureModal: React.FC<DirectCameraCaptureModalProps> =
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
@@ -43,11 +45,12 @@ export const DirectCameraCaptureModal: React.FC<DirectCameraCaptureModalProps> =
   const [isMirror, setIsMirror] = useState<boolean>(true);
   const [capturedPhotoUrl, setCapturedPhotoUrl] = useState<string | null>(null);
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
+  const [cameraStarted, setCameraStarted] = useState<boolean>(false);
   const [hasPermissionError, setHasPermissionError] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [countdown, setCountdown] = useState<number | null>(null);
   const [useCountdownTimer, setUseCountdownTimer] = useState<boolean>(false);
-  const [isInitializing, setIsInitializing] = useState<boolean>(true);
+  const [isInitializing, setIsInitializing] = useState<boolean>(false);
 
   // Stop camera stream cleanly
   const stopStream = useCallback(() => {
@@ -113,20 +116,40 @@ export const DirectCameraCaptureModal: React.FC<DirectCameraCaptureModalProps> =
     }
   }, [stopStream]);
 
-  // Initialize camera on modal open
+  // Initialize camera only on explicit action
   useEffect(() => {
     if (isOpen) {
       setCapturedPhotoUrl(null);
       setCapturedBlob(null);
-      startCamera();
+      setCameraStarted(false);
     } else {
       stopStream();
+      setCameraStarted(false);
     }
 
     return () => {
       stopStream();
     };
   }, [isOpen]);
+
+  const handleStartCamera = () => {
+    setCameraStarted(true);
+    startCamera();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setCapturedPhotoUrl(dataUrl);
+      setCapturedBlob(file);
+      stopStream();
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Switch camera device
   const handleDeviceChange = (devId: string) => {
@@ -259,7 +282,61 @@ export const DirectCameraCaptureModal: React.FC<DirectCameraCaptureModalProps> =
 
         {/* Content Body */}
         <div className="p-4 sm:p-5 flex-1 overflow-y-auto flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-950/60">
-          {hasPermissionError ? (
+          {!cameraStarted && !capturedPhotoUrl ? (
+            /* Confirmation & Selection Screen */
+            <div className="max-w-md w-full p-6 sm:p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 text-center shadow-xl space-y-5 my-auto">
+              <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 flex items-center justify-center mx-auto shadow-xs">
+                <Camera className="w-8 h-8" />
+              </div>
+              <div className="space-y-1.5">
+                <h4 className="font-bold font-moul text-slate-800 dark:text-white text-base">
+                  ជ្រើសរើសវិធីសាស្ត្របញ្ចូលរូបថត
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
+                  សូមជ្រើសរើសថាតើលោកអ្នកចង់បើកកាមេរ៉ាដើម្បីថតផ្ទាល់ ឬជ្រើសរើសរូបថតដែលមានស្រាប់ពីឧបករណ៍។
+                </p>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleStartCamera}
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>បើកកាមេរ៉ាថតផ្ទាល់ (Turn on Camera)</span>
+                </button>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full py-3.5 px-4 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Upload className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <span>ជ្រើសរើសរូបថតពីឧបករណ៍ (Choose File / Photo)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    stopStream();
+                    onClose();
+                  }}
+                  className="w-full py-2 text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                >
+                  បោះបង់ / ត្រឡប់ក្រោយ
+                </button>
+              </div>
+            </div>
+          ) : hasPermissionError ? (
             <div className="max-w-md p-6 bg-white dark:bg-slate-900 rounded-2xl border border-rose-200 dark:border-rose-900/60 text-center shadow-lg space-y-4">
               <div className="w-14 h-14 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center mx-auto">
                 <VideoOff className="w-7 h-7" />
@@ -399,65 +476,67 @@ export const DirectCameraCaptureModal: React.FC<DirectCameraCaptureModalProps> =
         </div>
 
         {/* Footer Action Buttons */}
-        <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
-          {capturedPhotoUrl ? (
-            <>
-              <button
-                type="button"
-                onClick={handleRetake}
-                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>ថតឡើងវិញ (Retake)</span>
-              </button>
+        {(cameraStarted || capturedPhotoUrl) && (
+          <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
+            {capturedPhotoUrl ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleRetake}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>ថតឡើងវិញ (Retake)</span>
+                </button>
 
-              <div className="flex items-center gap-2">
-                {onOpenCropEditor && (
+                <div className="flex items-center gap-2">
+                  {onOpenCropEditor && (
+                    <button
+                      type="button"
+                      onClick={handleOpenCrop}
+                      className="px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-indigo-200 dark:border-indigo-800 cursor-pointer"
+                    >
+                      <Crop className="w-4 h-4" />
+                      <span className="hidden sm:inline">ច្រឹប/តម្រឹម</span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
-                    onClick={handleOpenCrop}
-                    className="px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-indigo-200 dark:border-indigo-800 cursor-pointer"
+                    onClick={handleConfirm}
+                    className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Crop className="w-4 h-4" />
-                    <span className="hidden sm:inline">ច្រឹប/តម្រឹម</span>
+                    <Check className="w-4 h-4" />
+                    <span>យល់ព្រមប្រើប្រាស់រូបនេះ</span>
                   </button>
-                )}
+                </div>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    stopStream();
+                    onClose();
+                  }}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  បោះបង់
+                </button>
 
                 <button
                   type="button"
-                  onClick={handleConfirm}
-                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                  disabled={hasPermissionError || isInitializing || countdown !== null}
+                  onClick={triggerCapture}
+                  className="flex-1 max-w-xs mx-auto py-3 px-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-2xl font-bold text-sm shadow-xl shadow-blue-600/30 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
                 >
-                  <Check className="w-4 h-4" />
-                  <span>យល់ព្រមប្រើប្រាស់រូបនេះ</span>
+                  <Camera className="w-5 h-5" />
+                  <span>{useCountdownTimer ? 'ចាប់ផ្ដើមរាប់ថត (Snap in 3s)' : 'ចុចថតរូបភ្លាមៗ (Capture)'}</span>
                 </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  stopStream();
-                  onClose();
-                }}
-                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
-              >
-                បោះបង់
-              </button>
-
-              <button
-                type="button"
-                disabled={hasPermissionError || isInitializing || countdown !== null}
-                onClick={triggerCapture}
-                className="flex-1 max-w-xs mx-auto py-3 px-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-2xl font-bold text-sm shadow-xl shadow-blue-600/30 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
-              >
-                <Camera className="w-5 h-5" />
-                <span>{useCountdownTimer ? 'ចាប់ផ្ដើមរាប់ថត (Snap in 3s)' : 'ចុចថតរូបភ្លាមៗ (Capture)'}</span>
-              </button>
-            </>
-          )}
-        </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

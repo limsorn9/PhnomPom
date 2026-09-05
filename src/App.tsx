@@ -146,7 +146,6 @@ const MainLayout: React.FC = () => {
       {/* Main Content Body (Right Side) */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
         {/* Sticky Top Header */}
-        <div className={activeTab === 'dashboard' ? 'hidden lg:block' : 'block'}>
         <Header
           onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)}
           onOpenSettings={handleOpenSettings}
@@ -158,24 +157,16 @@ const MainLayout: React.FC = () => {
           onOpenDriveSync={() => setIsDriveSyncOpen(true)}
           onOpenSpotlightSearch={() => setIsSpotlightOpen(true)}
         />
-        </div>
 
         {/* Dynamic Main Workspace Container */}
-        <main className={`flex-1 w-full mx-auto pb-20 lg:pb-8 ${activeTab === 'dashboard' ? 'p-0 lg:p-6 lg:max-w-7xl lg:space-y-6' : 'max-w-7xl p-3 sm:p-5 lg:p-6 space-y-6'}`}>
+        <main className="flex-1 w-full mx-auto pb-20 lg:pb-8 max-w-7xl p-3 sm:p-5 lg:p-6 space-y-6">
           {/* Render based on RBAC & Active Tab */}
           {activeTab === 'super_admin_hub' && canAccessTab('super_admin_hub') && <SuperAdminHub />}
           {activeTab === 'telegram_bot' && canAccessTab('telegram_bot') && <TelegramBotStudio />}
           {activeTab === 'secretary_dashboard' && canAccessTab('secretary_dashboard') && <SecretaryDashboard />}
           {activeTab === 'librarian_dashboard' && canAccessTab('librarian_dashboard') && <LibraryManagement />}
           {activeTab === 'dashboard' && canAccessTab('dashboard') && (
-            <>
-              <div className="hidden lg:block">
-                <Dashboard />
-              </div>
-              <div className="block lg:hidden">
-                <MobileAppCenter onOpenMenu={() => setIsMobileSidebarOpen(true)} />
-              </div>
-            </>
+            <Dashboard onOpenMobileMenu={() => setIsMobileSidebarOpen(true)} />
           )}
           {activeTab === 'ai_teacher' && canAccessTab('ai_teacher') && <AITeacherHub />}
           {activeTab === 'activity_logs' && canAccessTab('activity_logs') && <RecentActivityDashboard />}
@@ -209,10 +200,12 @@ const MainLayout: React.FC = () => {
         </main>
 
         {/* Mobile Quick Bottom Navigation */}
-        <MobileBottomNav
-          onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
-          onOpenSettings={handleOpenSettings}
-        />
+        {!isMobileSidebarOpen && (
+          <MobileBottomNav
+            onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
+            onOpenSettings={handleOpenSettings}
+          />
+        )}
 
         {/* Global Desktop & Tablet Footer */}
         <footer className="bg-white border-t border-slate-200 py-3.5 px-6 text-center text-xs text-slate-500 no-print hidden sm:block">
