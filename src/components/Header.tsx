@@ -282,7 +282,7 @@ export const Header: React.FC<HeaderProps> = ({
     },
     super_admin_hub: {
       title: 'Super Admin Hub',
-      subtitle: 'ការគ្រប់គ្រងស្ថាប័ន និងនាយកសាលាទូទាំងប្រទេស (@limsorn - 240224709)',
+      subtitle: 'ការគ្រប់គ្រងស្ថាប័ន និងគណៈគ្រប់គ្រង សាលាបឋមសិក្សាភ្នំពុំ (@limsorn - 240224709)',
       icon: ShieldCheck
     },
     telegram_bot: {

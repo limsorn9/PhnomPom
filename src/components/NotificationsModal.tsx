@@ -40,6 +40,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({ isOpen, 
     markNotificationRead,
     markAllNotificationsRead,
     clearNotification,
+    clearAllNotifications,
     setActiveTab,
     dispatchNotification,
     dispatchScoreDeadlineAlert,
@@ -651,31 +652,35 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({ isOpen, 
                 <CheckCircle2 className="w-7 h-7" />
               </div>
               <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">
-                ពុំមានសារដំណឹងក្នុងផ្នែកនេះឡើយ
+                ពុំមានសារដំណឹងឡើយ
               </p>
               <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs">
-                រាល់សារដំណឹងសាលា និងកាលបរិច្ឆេទសំខាន់ៗត្រូវបានអាន ឬដោះស្រាយរួចរាល់។
+                រាល់សារដំណឹងសាលាទាំងអស់ត្រូវបានសម្អាតរួចរាល់។
               </p>
-              <button
-                type="button"
-                onClick={handleManualRefresh}
-                className="mt-2 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>ទាញយកទិន្នន័យដំណឹងថ្មីៗឡើងវិញ</span>
-              </button>
             </div>
           )}
         </div>
 
         {/* Modal Footer */}
         <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 shrink-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {userNotifications.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  clearAllNotifications();
+                }}
+                className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>លុបការជូនដំណឹងទាំងអស់</span>
+              </button>
+            )}
             {userNotifications.some(n => n.read) && (
               <button
                 type="button"
                 onClick={handleClearAllRead}
-                className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <Trash2 className="w-3 h-3" />
                 <span>សម្អាតដែលបានអាន</span>

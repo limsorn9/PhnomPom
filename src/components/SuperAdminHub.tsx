@@ -56,9 +56,9 @@ export const SuperAdminHub: React.FC = () => {
     email: '',
     password: '',
     phone: '',
-    schoolName: '',
-    province: 'ខេត្តបាត់ដំបង',
-    district: 'ស្រុកភ្នំព្រឹក'
+    schoolName: schoolProfile.nameKhmer || 'សាលាបឋមសិក្សាភ្នំពុំ',
+    province: schoolProfile.province || 'ខេត្តបាត់ដំបង',
+    district: schoolProfile.district || 'ស្រុកភ្នំព្រឹក'
   });
 
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -100,9 +100,9 @@ export const SuperAdminHub: React.FC = () => {
       email: '',
       password: '',
       phone: '',
-      schoolName: '',
-      province: 'ខេត្តបាត់ដំបង',
-      district: 'ស្រុកភ្នំព្រឹក'
+      schoolName: schoolProfile.nameKhmer || 'សាលាបឋមសិក្សាភ្នំពុំ',
+      province: schoolProfile.province || 'ខេត្តបាត់ដំបង',
+      district: schoolProfile.district || 'ស្រុកភ្នំព្រឹក'
     });
   };
 
@@ -129,20 +129,20 @@ export const SuperAdminHub: React.FC = () => {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full text-xs font-semibold border border-indigo-400/30">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              ប្រព័ន្ធគ្រប់គ្រងកម្រិតខ្ពស់สุด (Super Administrator Hub)
+              ប្រព័ន្ធគ្រប់គ្រងកម្រិតខ្ពស់ (Super Administrator Hub)
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold font-moul tracking-wide text-white">
-              ការគ្រប់គ្រងស្ថាប័ន និងនាយកសាលាទូទាំងប្រទេស
+              ការគ្រប់គ្រងស្ថាប័ន និងគណៈគ្រប់គ្រង សាលាបឋមសិក្សាភ្នំពុំ
             </h1>
             <p className="text-indigo-200 text-sm max-w-2xl leading-relaxed">
-              ស្វាគមន៍មកកាន់ផ្ទាំងគ្រប់គ្រងកម្រិតខ្ពស់របស់ <span className="font-bold text-white">{currentUser?.nameKhmer || 'លោក លីម សន'}</span> (Telegram ID: <span className="text-amber-300 font-mono">240224709</span> / @limsorn)។ លោកអ្នកមានសិទ្ធិគ្រប់គ្រងលើគ្រប់នាយកសាលា ស្តង់ដាប្រព័ន្ធ និងសវនកម្មសុវត្ថិភាព។
+              ស្វាគមន៍មកកាន់ផ្ទាំងគ្រប់គ្រងកម្រិតខ្ពស់របស់ <span className="font-bold text-white">{currentUser?.nameKhmer || 'លោក លីម សន'}</span> (Telegram ID: <span className="text-amber-300 font-mono">240224709</span> / @limsorn)។ លោកអ្នកមានសិទ្ធិគ្រប់គ្រងលើគណៈគ្រប់គ្រងសាលា ស្តង់ដាប្រព័ន្ធ និងសវនកម្មសុវត្ថិភាព សាលាបឋមសិក្សាភ្នំពុំ។
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="bg-white/10 backdrop-blur-md px-4 py-3 rounded-xl border border-white/10 text-center">
-              <div className="text-xs text-indigo-200">សាលាគំរូសរុប</div>
-              <div className="text-xl font-bold text-white">5 ស្ថាប័ន</div>
+              <div className="text-xs text-indigo-200">សាលាគំរូ</div>
+              <div className="text-xl font-bold text-white">១ ស្ថាប័ន (ភ្នំពុំ)</div>
             </div>
             <div className="bg-white/10 backdrop-blur-md px-4 py-3 rounded-xl border border-white/10 text-center">
               <div className="text-xs text-indigo-200">នាយកសាលា</div>
@@ -181,7 +181,7 @@ export const SuperAdminHub: React.FC = () => {
           }`}
         >
           <Building2 className="w-4 h-4" />
-          គ្រប់គ្រងនាយកសាលា & ស្ថាប័ន ({directorsList.length})
+          គ្រប់គ្រងគណៈគ្រប់គ្រង & នាយកសាលា ({directorsList.length})
         </button>
         <button
           onClick={() => setActiveSubTab('groups')}
@@ -224,10 +224,10 @@ export const SuperAdminHub: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase">សាលារៀនពាក់ព័ន្ធ</p>
-                <h3 className="text-2xl font-bold text-slate-800 mt-1">៥ សាលា</h3>
+                <p className="text-xs font-semibold text-slate-500 uppercase">ស្ថាប័នគោល</p>
+                <h3 className="text-xl font-bold text-slate-800 mt-1">{schoolProfile.nameKhmer || 'សាលាបឋមសិក្សាភ្នំពុំ'}</h3>
                 <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> ធ្វើសមកាលកម្មរួចរាល់
+                  <CheckCircle2 className="w-3.5 h-3.5" /> ស្ថាប័នស្នូល (MoEYS: {schoolProfile.schoolCode || '02100108027'})
                 </p>
               </div>
               <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
@@ -237,7 +237,7 @@ export const SuperAdminHub: React.FC = () => {
 
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase">នាយកសាលាសរុប</p>
+                <p className="text-xs font-semibold text-slate-500 uppercase">គណៈគ្រប់គ្រងសាលា</p>
                 <h3 className="text-2xl font-bold text-slate-800 mt-1">{directorsList.length} នាក់</h3>
                 <p className="text-xs text-indigo-600 mt-1">គ្រប់គ្រងស្ថាប័នផ្ទាល់</p>
               </div>
@@ -271,41 +271,56 @@ export const SuperAdminHub: React.FC = () => {
 
           {/* School Instances Overview Card */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <Globe className="w-5 h-5 text-indigo-600" />
-              ស្ថានភាពស្ថាប័ន និងសាលារៀនក្រោមការគ្រប់គ្រង
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Globe className="w-5 h-5 text-indigo-600" />
+                ស្ថានភាពស្ថាប័ន និងរចនាសម្ព័ន្ធ {schoolProfile.nameKhmer || 'សាលាបឋមសិក្សាភ្នំពុំ'}
+              </h3>
+              <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-3 py-1 rounded-full font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                ស្ថាប័នគោលតែមួយគត់ (Active Node)
+              </span>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-800">សាលាបឋមសិក្សាភ្នំព្រឹក</span>
-                  <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded font-bold">ដំណើរការ</span>
+                  <span className="font-bold text-slate-800">{schoolProfile.nameKhmer || 'សាលាបឋមសិក្សាភ្នំពុំ'}</span>
+                  <span className="bg-blue-100 text-blue-800 text-[11px] px-2 py-0.5 rounded font-bold font-mono">
+                    {schoolProfile.schoolCode || '02100108027'}
+                  </span>
                 </div>
-                <p className="text-xs text-slate-500">ខេត្តបាត់ដំបង ស្រុកភ្នំព្រឹក ឃុំភ្នំព្រឹក</p>
-                <div className="text-xs font-semibold text-indigo-600 pt-2 border-t border-slate-200">
-                  នាយក៖ លោក លីម សន (Super Admin)
-                </div>
-              </div>
-
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-800">សាលាបឋមសិក្សាសៀមរាប</span>
-                  <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded font-bold">ដំណើរការ</span>
-                </div>
-                <p className="text-xs text-slate-500">ខេត្តសៀមរាប ក្រុងសៀមរាប</p>
-                <div className="text-xs font-semibold text-indigo-600 pt-2 border-t border-slate-200">
-                  នាយក៖ លោក នួន សុខា (Director)
+                <p className="text-xs text-slate-600">
+                  {schoolProfile.village || 'ភូមិអូរគល់សំយ៉ុង'} {schoolProfile.commune || 'ឃុំបារាំងធ្លាក់'} {schoolProfile.district || 'ស្រុកភ្នំព្រឹក'} {schoolProfile.province || 'ខេត្តបាត់ដំបង'}
+                </p>
+                <div className="text-xs font-semibold text-indigo-600 pt-2 border-t border-slate-200 flex items-center justify-between">
+                  <span>នាយក៖ {schoolProfile.principalName || 'លោក លីម សន'}</span>
+                  <span className="text-slate-500 font-mono text-[11px]">{schoolProfile.principalPhone || '087 99 19 77'}</span>
                 </div>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-800">សាលាបឋមសិក្សាចតុមុខ</span>
-                  <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded font-bold">ដំណើរការ</span>
+                  <span className="font-bold text-slate-800">កម្រងសាលា និងរដ្ឋបាល</span>
+                  <span className="bg-purple-100 text-purple-800 text-[11px] px-2 py-0.5 rounded font-bold">កម្រងភ្នំពុំ</span>
                 </div>
-                <p className="text-xs text-slate-500">រាជធានីភ្នំពេញ ខណ្ឌដូនពេញ</p>
-                <div className="text-xs font-semibold text-indigo-600 pt-2 border-t border-slate-200">
-                  នាយក៖ លោកស្រី កែវ មុន្នី (Director)
+                <p className="text-xs text-slate-600">
+                  {schoolProfile.cluster || 'កម្រងសាលាបឋមសិក្សាភ្នំពុំ'} • បង្កើតឆ្នាំ {schoolProfile.establishedYear || '២០០៥'}
+                </p>
+                <div className="text-xs font-semibold text-purple-700 pt-2 border-t border-slate-200">
+                  នាយករង៖ {schoolProfile.deputyPrincipalName || 'លោក ឈិន សុផល'}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-slate-800">ការតភ្ជាប់ប្រព័ន្ធ & បច្ចេកវិទ្យា</span>
+                  <span className="bg-emerald-100 text-emerald-800 text-[11px] px-2 py-0.5 rounded font-bold">អនឡាញ</span>
+                </div>
+                <p className="text-xs text-slate-600">
+                  Telegram Bot ID: <span className="font-mono font-bold text-indigo-600">240224709</span> (@limsorn)
+                </p>
+                <div className="text-xs font-semibold text-emerald-700 pt-2 border-t border-slate-200">
+                  Cloud Firestore: ដំណើរការល្អ (99.9%)
                 </div>
               </div>
             </div>
@@ -378,7 +393,7 @@ export const SuperAdminHub: React.FC = () => {
                     required
                     value={newDirForm.username}
                     onChange={e => setNewDirForm({ ...newDirForm, username: e.target.value })}
-                    placeholder="director_siemreap"
+                    placeholder="director_phnompom"
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"
                   />
                 </div>

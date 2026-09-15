@@ -1043,7 +1043,8 @@ export const ClassroomScores: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-100 text-[11px] font-bold text-slate-700 border-b border-slate-200 text-center">
@@ -1212,6 +1213,159 @@ export const ClassroomScores: React.FC = () => {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View (md:hidden) */}
+          <div className="md:hidden divide-y divide-slate-200">
+            {classStudents.length > 0 ? (
+              classStudents.map((student, idx) => {
+                const scoreRec = getStudentScore(student.id);
+                return (
+                  <div key={`mobile-score-${student.id}`} className="p-4 bg-white hover:bg-slate-50/80 transition-colors">
+                    {/* Header of Scorecard */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 font-bold text-xs text-slate-700 flex-shrink-0">
+                          {idx + 1}
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900 text-sm">{student.nameKhmer}</div>
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                            <span className="font-times font-semibold text-blue-600">{student.code}</span>
+                            <span>•</span>
+                            <span
+                              className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                                student.gender === 'F' ? 'bg-rose-50 text-rose-700' : 'bg-blue-50 text-blue-700'
+                              }`}
+                            >
+                              {student.gender === 'F' ? 'ស្រី' : 'ប្រុស'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Rank and Grade Letter Badge */}
+                      <div className="flex items-center gap-1.5">
+                        {scoreRec && (
+                          <span
+                            className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full font-bold text-xs shadow-2xs ${
+                              scoreRec.rank === 1
+                                ? 'bg-amber-400 text-amber-950 font-black ring-2 ring-amber-300'
+                                : scoreRec.rank === 2
+                                ? 'bg-slate-300 text-slate-800'
+                                : scoreRec.rank === 3
+                                ? 'bg-amber-700 text-amber-100'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            ចំណាត់ថ្នាក់ {scoreRec.rank}
+                          </span>
+                        )}
+                        {scoreRec && (
+                          <span
+                            className={`px-2 py-0.5 rounded-md font-bold text-xs ${
+                              scoreRec.gradeLetter === 'A'
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                : scoreRec.gradeLetter === 'B'
+                                ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                                : scoreRec.gradeLetter === 'C'
+                                ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                : 'bg-rose-100 text-rose-800 border border-rose-200'
+                            }`}
+                          >
+                            {scoreRec.gradeLetter}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Subject Scores Grid */}
+                    <div className="grid grid-cols-3 gap-1.5 mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 text-xs">
+                      <div className="p-1.5 bg-white rounded-lg border border-slate-200/60 text-center">
+                        <span className="text-[10px] text-slate-500 block">ខ្មែរ (អាន)</span>
+                        <span className="font-bold text-slate-800 font-mono">{scoreRec?.scores?.khmerReading ?? '-'}</span>
+                      </div>
+                      <div className="p-1.5 bg-white rounded-lg border border-slate-200/60 text-center">
+                        <span className="text-[10px] text-slate-500 block">ខ្មែរ (សរសេរ)</span>
+                        <span className="font-bold text-slate-800 font-mono">{scoreRec?.scores?.khmerWriting ?? '-'}</span>
+                      </div>
+                      <div className="p-1.5 bg-indigo-50/70 rounded-lg border border-indigo-200/60 text-center">
+                        <span className="text-[10px] text-indigo-700 block font-semibold">គណិតវិទ្យា</span>
+                        <span className="font-bold text-indigo-900 font-mono">{scoreRec?.scores?.mathematics ?? '-'}</span>
+                      </div>
+                      <div className="p-1.5 bg-white rounded-lg border border-slate-200/60 text-center">
+                        <span className="text-[10px] text-slate-500 block">វិទ្យាសាស្ត្រ-សង្គម</span>
+                        <span className="font-bold text-slate-800 font-mono">{scoreRec?.scores?.scienceSocial ?? '-'}</span>
+                      </div>
+                      <div className="p-1.5 bg-white rounded-lg border border-slate-200/60 text-center">
+                        <span className="text-[10px] text-slate-500 block">សីលធម៌-ពលរដ្ឋ</span>
+                        <span className="font-bold text-slate-800 font-mono">{scoreRec?.scores?.moralCivics ?? '-'}</span>
+                      </div>
+                      <div className="p-1.5 bg-white rounded-lg border border-slate-200/60 text-center">
+                        <span className="text-[10px] text-slate-500 block">សិល្បៈ-កាយវិការ</span>
+                        <span className="font-bold text-slate-800 font-mono">{scoreRec?.scores?.artsPhysical ?? '-'}</span>
+                      </div>
+                      {scoringMode === 'matrix' && examSubjects.filter(sub => !['khmerReading', 'khmerWriting', 'mathematics', 'scienceSocial', 'moralCivics', 'artsPhysical'].includes(sub.code)).map(sub => (
+                        <div key={`m-sub-${sub.code}`} className="p-1.5 bg-white rounded-lg border border-slate-200/60 text-center">
+                          <span className="text-[10px] text-slate-500 block truncate">{sub.nameKhmer}</span>
+                          <span className="font-bold text-slate-800 font-mono">{scoreRec?.scores?.[sub.code] ?? '-'}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Overall Score Summary */}
+                    <div className="flex items-center justify-between mt-2.5 px-3 py-2 bg-blue-50/60 border border-blue-100 rounded-xl text-xs">
+                      <div>
+                        <span className="text-[10px] text-blue-700 block">ពិន្ទុសរុប</span>
+                        <span className="font-bold text-slate-900 text-sm font-mono">{scoreRec?.totalScore ?? '-'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-blue-700 block">មធ្យមភាគ</span>
+                        <span className="font-bold text-blue-800 text-sm font-mono">{scoreRec?.averageScore ?? '-'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-blue-700 block">និទ្ទេសទូទៅ</span>
+                        <span className="font-bold text-slate-800">{scoreRec ? getFormattedGrade(scoreRec.averageScore, scoreRec.gradeLetter) : '-'}</span>
+                      </div>
+                    </div>
+
+                    {/* Actions Bar */}
+                    <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t border-slate-100">
+                      <button
+                        onClick={() => handleOpenScoreEdit(student)}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors flex items-center gap-1.5 text-xs shadow-xs"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        <span>{scoreRec ? 'កែពិន្ទុ' : 'បញ្ចូលពិន្ទុ'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => setSelectedStudentForReportCard(student)}
+                        className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl transition-colors flex items-center gap-1.5 text-xs border border-blue-200"
+                        title="ព្រឹត្តិបត្រពិន្ទុ"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>ព្រឹត្តិបត្រ</span>
+                      </button>
+
+                      {scoreRec && (
+                        <button
+                          onClick={() => triggerCelebrateConfetti(scoreRec)}
+                          className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl border border-amber-200 transition-colors"
+                          title="ប័ណ្ណសរសើរ"
+                        >
+                          <Award className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="py-8 text-center text-slate-500 text-xs">
+                មិនមានទិន្នន័យសិស្សក្នុងថ្នាក់ទី {selectedGrade}{selectedSection} ទេ
+              </div>
+            )}
           </div>
 
           {/* Official Signatures on Print */}

@@ -1335,338 +1335,576 @@ export const StudentManagement: React.FC = () => {
             </div>
           )}
 
-          <table className="w-full text-left text-xs sm:text-sm">
-            <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
-              <tr>
-                <th className="py-3.5 px-3 text-center no-print w-10">
-                  <input
-                    type="checkbox"
-                    checked={filteredStudents.length > 0 && selectedStudentIds.length === filteredStudents.length}
-                    onChange={() => {
-                      if (selectedStudentIds.length === filteredStudents.length && filteredStudents.length > 0) {
-                        setSelectedStudentIds([]);
-                      } else {
-                        setSelectedStudentIds(filteredStudents.map(s => s.id));
-                      }
-                    }}
-                    className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
-                    title="ជ្រើសរើសទាំងអស់"
-                  />
-                </th>
-                <th className="py-3.5 px-4">អត្តលេខ & ឈ្មោះសិស្ស</th>
-                <th className="py-3.5 px-4 text-center">ភេទ</th>
-                <th className="py-3.5 px-4">ថ្ងៃកំណើត</th>
-                <th className="py-3.5 px-4">ថ្នាក់/បន្ទប់</th>
-                <th className="py-3.5 px-4">ស្ថានភាព & ជីវភាព</th>
-                <th className="py-3.5 px-4">អាណាព្យាបាល & ទំនាក់ទំនង</th>
-                <th className="py-3.5 px-4">សុខភាព (BMI)</th>
-                <th className="py-3.5 px-4 text-center">ផ្លាកសញ្ញា & ពិន្ទុ</th>
-                <th className="py-3.5 px-4 text-center no-print">សកម្មភាព</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredStudents.length > 0 ? (
-                filteredStudents.map(student => {
-                  const studentBadges = getStudentBadges(student.id);
-                  const totalPoints = getStudentTotalPoints(student.id);
-                  const isSelected = selectedStudentIds.includes(student.id);
-                  const riskAlert = studentAlertsMap.get(student.id);
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+                <tr>
+                  <th className="py-3.5 px-3 text-center no-print w-10">
+                    <input
+                      type="checkbox"
+                      checked={filteredStudents.length > 0 && selectedStudentIds.length === filteredStudents.length}
+                      onChange={() => {
+                        if (selectedStudentIds.length === filteredStudents.length && filteredStudents.length > 0) {
+                          setSelectedStudentIds([]);
+                        } else {
+                          setSelectedStudentIds(filteredStudents.map(s => s.id));
+                        }
+                      }}
+                      className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                      title="ជ្រើសរើសទាំងអស់"
+                    />
+                  </th>
+                  <th className="py-3.5 px-4">អត្តលេខ & ឈ្មោះសិស្ស</th>
+                  <th className="py-3.5 px-4 text-center">ភេទ</th>
+                  <th className="py-3.5 px-4">ថ្ងៃកំណើត</th>
+                  <th className="py-3.5 px-4">ថ្នាក់/បន្ទប់</th>
+                  <th className="py-3.5 px-4">ស្ថានភាព & ជីវភាព</th>
+                  <th className="py-3.5 px-4">អាណាព្យាបាល & ទំនាក់ទំនង</th>
+                  <th className="py-3.5 px-4">សុខភាព (BMI)</th>
+                  <th className="py-3.5 px-4 text-center">ផ្លាកសញ្ញា & ពិន្ទុ</th>
+                  <th className="py-3.5 px-4 text-center no-print">សកម្មភាព</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredStudents.length > 0 ? (
+                  filteredStudents.map(student => {
+                    const studentBadges = getStudentBadges(student.id);
+                    const totalPoints = getStudentTotalPoints(student.id);
+                    const isSelected = selectedStudentIds.includes(student.id);
+                    const riskAlert = studentAlertsMap.get(student.id);
 
-                  return (
-                    <tr
-                      key={student.id}
-                      className={`hover:bg-slate-50/80 transition-colors ${
-                        isSelected ? 'bg-blue-50/50' : ''
-                      }`}
-                    >
-                      <td className="py-3 px-3 text-center no-print" onClick={e => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => {
-                            setSelectedStudentIds(prev =>
-                              prev.includes(student.id)
-                                ? prev.filter(id => id !== student.id)
-                                : [...prev, student.id]
-                            );
-                          }}
-                          className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
-                        />
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={student.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'}
-                            alt={student.nameKhmer}
-                            referrerPolicy="no-referrer"
-                            className="w-9 h-9 rounded-full object-cover border border-slate-200 flex-shrink-0"
+                    return (
+                      <tr
+                        key={student.id}
+                        className={`hover:bg-slate-50/80 transition-colors ${
+                          isSelected ? 'bg-blue-50/50' : ''
+                        }`}
+                      >
+                        <td className="py-3 px-3 text-center no-print" onClick={e => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              setSelectedStudentIds(prev =>
+                                prev.includes(student.id)
+                                  ? prev.filter(id => id !== student.id)
+                                  : [...prev, student.id]
+                              );
+                            }}
+                            className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
                           />
-                          <div>
-                            <div className="font-bold text-slate-900">{student.nameKhmer}</div>
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-                              {student.nameLatin && <span className="font-times">{student.nameLatin}</span>}
-                              <span>•</span>
-                              <span className="font-times text-blue-600 font-semibold">{student.code}</span>
-                              <span>•</span>
-                              {isStudentRegisteredInAccounts(student) ? (
-                                <span className="inline-flex items-center text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md">
-                                  ✓ មានគណនី
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-md">
-                                  ✕ គ្មានគណនី
-                                </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={student.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'}
+                              alt={student.nameKhmer}
+                              referrerPolicy="no-referrer"
+                              className="w-9 h-9 rounded-full object-cover border border-slate-200 flex-shrink-0"
+                            />
+                            <div>
+                              <div className="font-bold text-slate-900">{student.nameKhmer}</div>
+                              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+                                {student.nameLatin && <span className="font-times">{student.nameLatin}</span>}
+                                <span>•</span>
+                                <span className="font-times text-blue-600 font-semibold">{student.code}</span>
+                                <span>•</span>
+                                {isStudentRegisteredInAccounts(student) ? (
+                                  <span className="inline-flex items-center text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md">
+                                    ✓ មានគណនី
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-md">
+                                    ✕ គ្មានគណនី
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Risk Alert Badges */}
+                              {riskAlert && (riskAlert.hasConsecutiveAbsenceAlert || riskAlert.hasScoreDropAlert) && (
+                                <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                  {riskAlert.hasConsecutiveAbsenceAlert && (
+                                    <span
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200 text-[10px] font-bold"
+                                      title={`អវត្តមាន ${riskAlert.consecutiveAbsenceCount} ថ្ងៃជាប់គ្នា៖ ${riskAlert.consecutiveAbsenceDates.join(', ')}`}
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
+                                      <span>🚫 អវត្តមាន {riskAlert.consecutiveAbsenceCount} ថ្ងៃជាប់គ្នា</span>
+                                    </span>
+                                  )}
+                                  {riskAlert.hasScoreDropAlert && (
+                                    <span
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-bold"
+                                      title={`ពិន្ទុធ្លាក់ចុះ -${riskAlert.scoreDropAmount} (ពី ${riskAlert.previousPeriodScore?.period} ${riskAlert.previousPeriodScore?.average} មក ${riskAlert.latestPeriodScore?.period} ${riskAlert.latestPeriodScore?.average})`}
+                                    >
+                                      <span>📉 ធ្លាក់ពិន្ទុ (-{riskAlert.scoreDropAmount})</span>
+                                    </span>
+                                  )}
+                                </div>
                               )}
                             </div>
-
-                            {/* Risk Alert Badges */}
-                            {riskAlert && (riskAlert.hasConsecutiveAbsenceAlert || riskAlert.hasScoreDropAlert) && (
-                              <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                                {riskAlert.hasConsecutiveAbsenceAlert && (
-                                  <span
-                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200 text-[10px] font-bold"
-                                    title={`អវត្តមាន ${riskAlert.consecutiveAbsenceCount} ថ្ងៃជាប់គ្នា៖ ${riskAlert.consecutiveAbsenceDates.join(', ')}`}
-                                  >
-                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
-                                    <span>🚫 អវត្តមាន {riskAlert.consecutiveAbsenceCount} ថ្ងៃជាប់គ្នា</span>
-                                  </span>
-                                )}
-                                {riskAlert.hasScoreDropAlert && (
-                                  <span
-                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-bold"
-                                    title={`ពិន្ទុធ្លាក់ចុះ -${riskAlert.scoreDropAmount} (ពី ${riskAlert.previousPeriodScore?.period} ${riskAlert.previousPeriodScore?.average} មក ${riskAlert.latestPeriodScore?.period} ${riskAlert.latestPeriodScore?.average})`}
-                                  >
-                                    <span>📉 ធ្លាក់ពិន្ទុ (-{riskAlert.scoreDropAmount})</span>
-                                  </span>
-                                )}
-                              </div>
-                            )}
                           </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                            student.gender === 'F'
-                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                              : 'bg-blue-50 text-blue-700 border border-blue-200'
-                          }`}
-                        >
-                          {student.gender === 'F' ? 'ស្រី' : 'ប្រុស'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600 whitespace-nowrap font-times">
-                        {student.dob}
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <div className="flex flex-col gap-1 items-start">
-                          <span className="font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md text-xs">
-                            ថ្នាក់ទី {student.grade}{student.section}
-                          </span>
-                          {(selectedAcademicYearFilter === 'all' || student.academicYear !== schoolProfile.academicYear) && (
-                            <span className="text-[10px] font-medium text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded">
-                              {student.academicYear || schoolProfile.academicYear}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex flex-wrap gap-1 items-center">
-                          {student.livingCondition === 'ក្រ១' && (
-                            <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">ក្រ១</span>
-                          )}
-                          {student.livingCondition === 'ក្រ២' && (
-                            <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">ក្រ២</span>
-                          )}
-                          {student.scholarship && student.scholarship !== 'មិនមាន' && (
-                            <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 text-[10px] font-bold">អាហារូបករណ៍</span>
-                          )}
-                          {student.orphanStatus && student.orphanStatus !== 'មិនកំព្រា' && (
-                            <span className="px-1.5 py-0.5 rounded bg-orange-100 text-orange-800 text-[10px] font-bold">{student.orphanStatus}</span>
-                          )}
-                          {student.academicHistory === 'ត្រួតថ្នាក់' && (
-                            <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 text-[10px] font-bold">ត្រួតថ្នាក់</span>
-                          )}
-                          {(!student.livingCondition || student.livingCondition === 'ទូទៅ') && (!student.scholarship || student.scholarship === 'មិនមាន') && (
-                            <span className="text-[11px] text-slate-500">ទូទៅ</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-slate-800">{student.guardianName || student.fatherName || student.motherName || 'អាណាព្យាបាល'}</div>
-                        <div className="text-[11px] text-slate-500 flex items-center gap-1 font-times">
-                          <Phone className="w-3 h-3 text-slate-400" />
-                          {student.guardianPhone || student.phone || 'N/A'}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
+                        </td>
+                        <td className="py-3 px-4 text-center whitespace-nowrap">
                           <span
-                            className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
-                              student.health.nutritionStatus === 'normal'
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                              student.gender === 'F'
+                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                : 'bg-blue-50 text-blue-700 border border-blue-200'
                             }`}
                           >
-                            BMI: {student.health.bmi} ({student.health.nutritionStatus === 'normal' ? 'ធម្មតា' : 'ស្គម'})
+                            {student.gender === 'F' ? 'ស្រី' : 'ប្រុស'}
                           </span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedStudentForBadgeShowcase(student)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50/90 hover:bg-amber-100 border border-amber-200 text-slate-800 transition-all group cursor-pointer active:scale-95 shadow-2xs"
-                          title="ចុចដើម្បីមើលលិខិតសរសើរ និងផ្លាកសញ្ញាទាំងអស់"
-                        >
-                          <div className="flex -space-x-1 items-center">
-                            {studentBadges.slice(0, 3).map((b, idx) => (
-                              <div key={idx} className="scale-75 origin-center -mr-1">
-                                <BadgeIcon iconName={b.badge.iconName} tier={b.badge.tier} size="sm" showGlow={false} />
-                              </div>
-                            ))}
-                            {studentBadges.length === 0 && (
-                              <Award className="w-3.5 h-3.5 text-amber-500" />
+                        </td>
+                        <td className="py-3 px-4 text-slate-600 whitespace-nowrap font-times">
+                          {student.dob}
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <div className="flex flex-col gap-1 items-start">
+                            <span className="font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md text-xs">
+                              ថ្នាក់ទី {student.grade}{student.section}
+                            </span>
+                            {(selectedAcademicYearFilter === 'all' || student.academicYear !== schoolProfile.academicYear) && (
+                              <span className="text-[10px] font-medium text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded">
+                                {student.academicYear || schoolProfile.academicYear}
+                              </span>
                             )}
                           </div>
-                          <span className="font-bold text-xs text-amber-950">
-                            {studentBadges.length > 0 ? `${studentBadges.length}` : '0'}
-                          </span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-200/80 text-amber-950 font-times">
-                            {totalPoints} pts
-                          </span>
-                        </button>
-                      </td>
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-1">
-                          {canAccessStudentDashboard(student).allowed && (
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex flex-wrap gap-1 items-center">
+                            {student.livingCondition === 'ក្រ១' && (
+                              <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">ក្រ១</span>
+                            )}
+                            {student.livingCondition === 'ក្រ២' && (
+                              <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">ក្រ២</span>
+                            )}
+                            {student.scholarship && student.scholarship !== 'មិនមាន' && (
+                              <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 text-[10px] font-bold">អាហារូបករណ៍</span>
+                            )}
+                            {student.orphanStatus && student.orphanStatus !== 'មិនកំព្រា' && (
+                              <span className="px-1.5 py-0.5 rounded bg-orange-100 text-orange-800 text-[10px] font-bold">{student.orphanStatus}</span>
+                            )}
+                            {student.academicHistory === 'ត្រួតថ្នាក់' && (
+                              <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 text-[10px] font-bold">ត្រួតថ្នាក់</span>
+                            )}
+                            {(!student.livingCondition || student.livingCondition === 'ទូទៅ') && (!student.scholarship || student.scholarship === 'មិនមាន') && (
+                              <span className="text-[11px] text-slate-500">ទូទៅ</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="font-medium text-slate-800">{student.guardianName || student.fatherName || student.motherName || 'អាណាព្យាបាល'}</div>
+                          <div className="text-[11px] text-slate-500 flex items-center gap-1 font-times">
+                            <Phone className="w-3 h-3 text-slate-400" />
+                            {student.guardianPhone || student.phone || 'N/A'}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                                student.health.nutritionStatus === 'normal'
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+                              }`}
+                            >
+                              BMI: {student.health.bmi} ({student.health.nutritionStatus === 'normal' ? 'ធម្មតា' : 'ស្គម'})
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-center whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedStudentForBadgeShowcase(student)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50/90 hover:bg-amber-100 border border-amber-200 text-slate-800 transition-all group cursor-pointer active:scale-95 shadow-2xs"
+                            title="ចុចដើម្បីមើលលិខិតសរសើរ និងផ្លាកសញ្ញាទាំងអស់"
+                          >
+                            <div className="flex -space-x-1 items-center">
+                              {studentBadges.slice(0, 3).map((b, idx) => (
+                                <div key={idx} className="scale-75 origin-center -mr-1">
+                                  <BadgeIcon iconName={b.badge.iconName} tier={b.badge.tier} size="sm" showGlow={false} />
+                                </div>
+                              ))}
+                              {studentBadges.length === 0 && (
+                                <Award className="w-3.5 h-3.5 text-amber-500" />
+                              )}
+                            </div>
+                            <span className="font-bold text-xs text-amber-950">
+                              {studentBadges.length > 0 ? `${studentBadges.length}` : '0'}
+                            </span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-200/80 text-amber-950 font-times">
+                              {totalPoints} pts
+                            </span>
+                          </button>
+                        </td>
+                        <td className="py-3 px-4 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1">
+                            {canAccessStudentDashboard(student).allowed && (
+                              <button
+                                id={`analytics-student-${student.id}`}
+                                onClick={() => {
+                                  setSelectedStudentForAnalyticsId(student.id);
+                                  setViewMode('analytics');
+                                }}
+                                title="មើលផ្ទាំងវិភាគសមិទ្ធផល & ក្រាហ្វិកពិន្ទុ"
+                                className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <TrendingUp className="w-4 h-4 text-indigo-600" />
+                              </button>
+                            )}
                             <button
-                              id={`analytics-student-${student.id}`}
-                              onClick={() => {
-                                setSelectedStudentForAnalyticsId(student.id);
-                                setViewMode('analytics');
-                              }}
-                              title="មើលផ្ទាំងវិភាគសមិទ្ធផល & ក្រាហ្វិកពិន្ទុ"
+                              id={`award-badge-${student.id}`}
+                              onClick={() => setSelectedStudentForAwardBadge(student)}
+                              title="ប្រគល់ផ្លាកសញ្ញា ឬមេដាយ"
+                              className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                            >
+                              <Award className="w-4 h-4" />
+                            </button>
+                            {isTeacher && (student.grade !== teacherGrade || student.section !== teacherSection) && (
+                              <button
+                                id={`pull-row-student-${student.id}`}
+                                onClick={() => {
+                                  pullStudentsToClass([student.id], teacherGrade, teacherSection);
+                                }}
+                                title={`ទាញសិស្ស «${student.nameKhmer}» ចូលថ្នាក់ទី ${teacherGrade}«${teacherSection}» របស់ខ្ញុំ`}
+                                className="flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-bold rounded-lg border border-blue-200 transition-colors whitespace-nowrap"
+                              >
+                                <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                                <span>ទាញចូលថ្នាក់ {teacherGrade}{teacherSection}</span>
+                              </button>
+                            )}
+                            <button
+                              id={`print-student-${student.id}`}
+                              onClick={() => setSelectedStudentForPdfPrint(student)}
+                              title="បោះពុម្ពប្រវត្តិរូបសិស្សជាទម្រង់ A4 PDF ស្តង់ដារ"
                               className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
                             >
-                              <TrendingUp className="w-4 h-4 text-indigo-600" />
+                              <Printer className="w-4 h-4" />
                             </button>
-                          )}
-                          <button
-                            id={`award-badge-${student.id}`}
-                            onClick={() => setSelectedStudentForAwardBadge(student)}
-                            title="ប្រគល់ផ្លាកសញ្ញា ឬមេដាយ"
-                            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                          >
-                            <Award className="w-4 h-4" />
-                          </button>
-                          {isTeacher && (student.grade !== teacherGrade || student.section !== teacherSection) && (
                             <button
-                              id={`pull-row-student-${student.id}`}
-                              onClick={() => {
-                                pullStudentsToClass([student.id], teacherGrade, teacherSection);
-                              }}
-                              title={`ទាញសិស្ស «${student.nameKhmer}» ចូលថ្នាក់ទី ${teacherGrade}«${teacherSection}» របស់ខ្ញុំ`}
-                              className="flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-bold rounded-lg border border-blue-200 transition-colors whitespace-nowrap"
+                              id={`view-student-${student.id}`}
+                              onClick={() => setSelectedStudentForView(student)}
+                              title="មើលប្រវត្តិរូបលម្អិត"
+                              className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             >
-                              <UserCheck className="w-3.5 h-3.5 text-blue-600" />
-                              <span>ទាញចូលថ្នាក់ {teacherGrade}{teacherSection}</span>
+                              <Eye className="w-4 h-4" />
                             </button>
-                          )}
-                          <button
-                            id={`print-student-${student.id}`}
-                            onClick={() => setSelectedStudentForPdfPrint(student)}
-                            title="បោះពុម្ពប្រវត្តិរូបសិស្សជាទម្រង់ A4 PDF ស្តង់ដារ"
-                            className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Printer className="w-4 h-4" />
-                          </button>
-                          <button
-                            id={`view-student-${student.id}`}
-                            onClick={() => setSelectedStudentForView(student)}
-                            title="មើលប្រវត្តិរូបលម្អិត"
-                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            id={`edit-student-${student.id}`}
-                            onClick={() => handleEditClick(student)}
-                            title="កែប្រែព័ត៌មាន (លោកគ្រូ-អ្នកគ្រូ និងនាយកអាចកែសម្រួលបាន)"
-                            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              const newPass = prompt(`សូមបញ្ចូលពាក្យសម្ងាត់ថ្មីសម្រាប់សិស្ស «${student.nameKhmer}» (អត្តលេខ ${student.code}):`, student.code);
-                              if (newPass) {
-                                const res = verifyAndResetStudentPassword(student.nameKhmer, student.code, newPass);
-                                if (res.success) {
-                                  showToast('ពាក្យសម្ងាត់ត្រូវបានផ្លាស់ប្តូរដោយជោគជ័យ!', 'success');
-                                } else {
-                                  showToast(res.message, 'error');
+                            <button
+                              id={`edit-student-${student.id}`}
+                              onClick={() => handleEditClick(student)}
+                              title="កែប្រែព័ត៌មាន (លោកគ្រូ-អ្នកគ្រូ និងនាយកអាចកែសម្រួលបាន)"
+                              className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                const newPass = prompt(`សូមបញ្ចូលពាក្យសម្ងាត់ថ្មីសម្រាប់សិស្ស «${student.nameKhmer}» (អត្តលេខ ${student.code}):`, student.code);
+                                if (newPass) {
+                                  const res = verifyAndResetStudentPassword(student.nameKhmer, student.code, newPass);
+                                  if (res.success) {
+                                    showToast('ពាក្យសម្ងាត់ត្រូវបានផ្លាស់ប្តូរដោយជោគជ័យ!', 'success');
+                                  } else {
+                                    showToast(res.message, 'error');
+                                  }
                                 }
-                              }
-                            }}
-                            title="ប្តូរពាក្យសម្ងាត់សិស្ស"
-                            className="p-1.5 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                          >
-                            <Key className="w-4 h-4" />
-                          </button>
-                          {(isDirector || isSecretary) && (
-                            <button
-                              id={`delete-student-${student.id}`}
-                              onClick={() => {
-                                setStudentToDelete(student);
-                                setIsSingleDeleteDialogOpen(true);
                               }}
-                              title="លុបទិន្នន័យ (មានការបញ្ជាក់សុវត្ថិភាព)"
-                              className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              title="ប្តូរពាក្យសម្ងាត់សិស្ស"
+                              className="p-1.5 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Key className="w-4 h-4" />
                             </button>
-                          )}
+                            {(isDirector || isSecretary) && (
+                              <button
+                                id={`delete-student-${student.id}`}
+                                onClick={() => {
+                                  setStudentToDelete(student);
+                                  setIsSingleDeleteDialogOpen(true);
+                                }}
+                                title="លុបទិន្នន័យ (មានការបញ្ជាក់សុវត្ថិភាព)"
+                                className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={9} className="text-center py-16 px-4">
+                      <div className="max-w-md mx-auto flex flex-col items-center justify-center text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-3.5 shadow-xs">
+                          <GraduationCap className="w-8 h-8 text-blue-600" />
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={9} className="text-center py-16 px-4">
-                    <div className="max-w-md mx-auto flex flex-col items-center justify-center text-center">
-                      <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-3.5 shadow-xs">
-                        <GraduationCap className="w-8 h-8 text-blue-600" />
+                        <h4 className="text-base font-bold text-slate-800 mb-1">
+                          {students.length === 0 ? 'មិនទាន់មានទិន្នន័យសិស្សក្នុងប្រព័ន្ធនៅឡើយទេ' : 'មិនមានទិន្នន័យសិស្សត្រូវនឹងលក្ខខណ្ឌស្វែងរកនេះទេ'}
+                        </h4>
+                        <p className="text-xs text-slate-500 max-w-sm mb-4 leading-relaxed">
+                          {students.length === 0
+                            ? 'លោកអ្នកអាចចុះឈ្មោះសិស្សថ្មីម្តងម្នាក់តាមស្តង់ដារក្រសួង MoEYS ឬនាំចូលទិន្នន័យសិស្សពី Excel/CSV'
+                            : 'សូមសាកល្បងផ្លាស់ប្តូរពាក្យគន្លឹះស្វែងរក ឬជម្រើសចម្រោះកម្រិតថ្នាក់'}
+                        </p>
+                        {students.length === 0 && isDirector && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingStudent(null);
+                              setFormData(initialFormState);
+                              setIsAddModalOpen(true);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
+                          >
+                            <UserPlus className="w-4 h-4" />
+                            <span>+ ចុះឈ្មោះសិស្សដំបូង (MoEYS)</span>
+                          </button>
+                        )}
                       </div>
-                      <h4 className="text-base font-bold text-slate-800 mb-1">
-                        {students.length === 0 ? 'មិនទាន់មានទិន្នន័យសិស្សក្នុងប្រព័ន្ធនៅឡើយទេ' : 'មិនមានទិន្នន័យសិស្សត្រូវនឹងលក្ខខណ្ឌស្វែងរកនេះទេ'}
-                      </h4>
-                      <p className="text-xs text-slate-500 max-w-sm mb-4 leading-relaxed">
-                        {students.length === 0
-                          ? 'លោកអ្នកអាចចុះឈ្មោះសិស្សថ្មីម្តងម្នាក់តាមស្តង់ដារក្រសួង MoEYS ឬនាំចូលទិន្នន័យសិស្សពី Excel/CSV'
-                          : 'សូមសាកល្បងផ្លាស់ប្តូរពាក្យគន្លឹះស្វែងរក ឬជម្រើសចម្រោះកម្រិតថ្នាក់'}
-                      </p>
-                      {students.length === 0 && isDirector && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingStudent(null);
-                            setFormData(initialFormState);
-                            setIsAddModalOpen(true);
-                          }}
-                          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
-                        >
-                          <UserPlus className="w-4 h-4" />
-                          <span>+ ចុះឈ្មោះសិស្សដំបូង (MoEYS)</span>
-                        </button>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View (md:hidden) - Display each student as a touch-friendly, legible card */}
+          <div className="md:hidden divide-y divide-slate-200">
+            {filteredStudents.length > 0 ? (
+              filteredStudents.map((student) => {
+                const studentBadges = getStudentBadges(student.id);
+                const totalPoints = getStudentTotalPoints(student.id);
+                const isSelected = selectedStudentIds.includes(student.id);
+                const riskAlert = studentAlertsMap.get(student.id);
+
+                return (
+                  <div
+                    key={`mobile-student-${student.id}`}
+                    className={`p-4 transition-colors ${isSelected ? 'bg-blue-50/70' : 'bg-white hover:bg-slate-50/80'}`}
+                  >
+                    {/* Top Row: Checkbox, Avatar, Name, Code, Grade & Gender */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="pt-1 no-print">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              setSelectedStudentIds(prev =>
+                                prev.includes(student.id)
+                                  ? prev.filter(id => id !== student.id)
+                                  : [...prev, student.id]
+                              );
+                            }}
+                            className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </div>
+                        <img
+                          src={student.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'}
+                          alt={student.nameKhmer}
+                          referrerPolicy="no-referrer"
+                          className="w-12 h-12 rounded-full object-cover border-2 border-slate-200 shadow-2xs flex-shrink-0"
+                        />
+                        <div>
+                          <div className="font-bold text-slate-950 text-sm">{student.nameKhmer}</div>
+                          {student.nameLatin && <div className="text-xs font-times text-slate-600 font-medium">{student.nameLatin}</div>}
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            <span className="font-times text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md text-[11px] font-bold">
+                              {student.code}
+                            </span>
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                student.gender === 'F'
+                                  ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                  : 'bg-blue-50 text-blue-700 border border-blue-200'
+                              }`}
+                            >
+                              {student.gender === 'F' ? 'ស្រី' : 'ប្រុស'}
+                            </span>
+                            <span className="font-bold text-slate-800 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md text-[10px]">
+                              ថ្នាក់ទី {student.grade}{student.section}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Account Status Pill */}
+                      <div>
+                        {isStudentRegisteredInAccounts(student) ? (
+                          <span className="inline-flex items-center text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                            ✓ មានគណនី
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                            ✕ គ្មានគណនី
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Risk Alerts */}
+                    {riskAlert && (riskAlert.hasConsecutiveAbsenceAlert || riskAlert.hasScoreDropAlert) && (
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100">
+                        {riskAlert.hasConsecutiveAbsenceAlert && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200 text-[10px] font-bold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
+                            <span>🚫 អវត្តមាន {riskAlert.consecutiveAbsenceCount} ថ្ងៃជាប់គ្នា</span>
+                          </span>
+                        )}
+                        {riskAlert.hasScoreDropAlert && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-bold">
+                            <span>📉 ធ្លាក់ពិន្ទុ (-{riskAlert.scoreDropAmount})</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Metadata Details in 2-column Grid */}
+                    <div className="grid grid-cols-2 gap-2 mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-500 block font-medium">ថ្ងៃខែឆ្នាំកំណើត</span>
+                        <span className="font-times font-semibold text-slate-800">{student.dob}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 block font-medium">សុខភាព (BMI)</span>
+                        <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                          student.health.nutritionStatus === 'normal'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
+                          BMI {student.health.bmi} ({student.health.nutritionStatus === 'normal' ? 'ធម្មតា' : 'ស្គម'})
+                        </span>
+                      </div>
+                      <div className="col-span-2 flex items-center justify-between pt-1.5 border-t border-slate-200/60">
+                        <div>
+                          <span className="text-[10px] text-slate-500 block font-medium">អាណាព្យាបាល</span>
+                          <span className="font-medium text-slate-800">
+                            {student.guardianName || student.fatherName || student.motherName || 'អាណាព្យាបាល'}
+                          </span>
+                        </div>
+                        {(student.guardianPhone || student.phone) && (
+                          <a
+                            href={`tel:${student.guardianPhone || student.phone}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-bold border border-blue-200"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                            <span className="font-times">{student.guardianPhone || student.phone}</span>
+                          </a>
+                        )}
+                      </div>
+                      {(student.livingCondition || student.scholarship || student.orphanStatus || student.academicHistory === 'ត្រួតថ្នាក់') && (
+                        <div className="col-span-2 flex flex-wrap gap-1 items-center pt-1 border-t border-slate-200/60">
+                          <span className="text-[10px] text-slate-500 mr-1">ស្ថានភាព៖</span>
+                          {student.livingCondition === 'ក្រ១' && <span className="px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">ក្រ១</span>}
+                          {student.livingCondition === 'ក្រ២' && <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">ក្រ២</span>}
+                          {student.scholarship && student.scholarship !== 'មិនមាន' && <span className="px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 text-[10px] font-bold">អាហារូបករណ៍</span>}
+                          {student.orphanStatus && student.orphanStatus !== 'មិនកំព្រា' && <span className="px-1.5 py-0.2 rounded bg-orange-100 text-orange-800 text-[10px] font-bold">{student.orphanStatus}</span>}
+                          {student.academicHistory === 'ត្រួតថ្នាក់' && <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-800 text-[10px] font-bold">ត្រួតថ្នាក់</span>}
+                        </div>
                       )}
                     </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+
+                    {/* Bottom Row: Badges & Action Buttons */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-2.5 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStudentForBadgeShowcase(student)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-slate-800 transition-all active:scale-95"
+                      >
+                        <Award className="w-3.5 h-3.5 text-amber-500" />
+                        <span className="text-xs font-bold text-amber-950">
+                          {studentBadges.length} ផ្លាកសញ្ញា
+                        </span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-200/80 text-amber-950 font-times">
+                          {totalPoints} pts
+                        </span>
+                      </button>
+
+                      {/* Touch-Friendly Action Buttons */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setSelectedStudentForView(student)}
+                          className="p-2 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-200 transition-colors"
+                          title="មើលប្រវត្តិរូបលម្អិត"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditClick(student)}
+                          className="p-2 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl border border-amber-200 transition-colors"
+                          title="កែប្រែព័ត៌មាន"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setSelectedStudentForPdfPrint(student)}
+                          className="p-2 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl border border-indigo-200 transition-colors"
+                          title="បោះពុម្ព A4 PDF"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </button>
+                        {canAccessStudentDashboard(student).allowed && (
+                          <button
+                            onClick={() => {
+                              setSelectedStudentForAnalyticsId(student.id);
+                              setViewMode('analytics');
+                            }}
+                            className="p-2 text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-xl border border-purple-200 transition-colors"
+                            title="ក្រាហ្វិកពិន្ទុ"
+                          >
+                            <TrendingUp className="w-4 h-4" />
+                          </button>
+                        )}
+                        {(isDirector || isSecretary) && (
+                          <button
+                            onClick={() => {
+                              setStudentToDelete(student);
+                              setIsSingleDeleteDialogOpen(true);
+                            }}
+                            className="p-2 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition-colors"
+                            title="លុប"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="py-12 px-4 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mx-auto mb-2 shadow-xs">
+                  <GraduationCap className="w-6 h-6 text-blue-600" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-800 mb-1">
+                  {students.length === 0 ? 'មិនទាន់មានទិន្នន័យសិស្សក្នុងប្រព័ន្ធនៅឡើយទេ' : 'មិនមានទិន្នន័យសិស្សត្រូវនឹងលក្ខខណ្ឌស្វែងរកនេះទេ'}
+                </h4>
+                <p className="text-xs text-slate-500 max-w-sm mb-3">
+                  {students.length === 0
+                    ? 'លោកអ្នកអាចចុះឈ្មោះសិស្សថ្មីម្តងម្នាក់តាមស្តង់ដារក្រសួង MoEYS'
+                    : 'សូមសាកល្បងផ្លាស់ប្តូរពាក្យគន្លឹះស្វែងរក'}
+                </p>
+                {students.length === 0 && isDirector && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingStudent(null);
+                      setFormData(initialFormState);
+                      setIsAddModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>+ ចុះឈ្មោះសិស្សដំបូង</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Official Signatures Footer on Print */}
           <div className="hidden print:flex justify-between items-end mt-8 text-xs text-slate-800 pt-6">

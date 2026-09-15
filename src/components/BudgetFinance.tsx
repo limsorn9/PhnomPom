@@ -413,7 +413,8 @@ export const BudgetFinance: React.FC = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-100 text-[11px] font-bold text-slate-700 border-b border-slate-200">
@@ -476,6 +477,71 @@ export const BudgetFinance: React.FC = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Transaction Card View (md:hidden) */}
+        <div className="md:hidden divide-y divide-slate-200">
+          {filteredTransactions.length > 0 ? (
+            filteredTransactions.map((tx) => (
+              <div key={`mob-tx-${tx.id}`} className="p-4 bg-white hover:bg-slate-50 transition-colors">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-mono text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-bold">
+                      {tx.referenceCode}
+                    </span>
+                    <h4 className="font-bold text-slate-900 text-sm mt-1">{tx.title}</h4>
+                    <p className="text-xs text-slate-500">{tx.category}</p>
+                  </div>
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                      tx.type === 'income'
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : 'bg-rose-100 text-rose-800 border border-rose-200'
+                    }`}
+                  >
+                    {tx.type === 'income' ? 'ចំណូល' : 'ចំណាយ'}
+                  </span>
+                </div>
+
+                <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-slate-500 block">ប្រភពថវិកា</span>
+                    <span className="text-xs font-semibold text-slate-800">{tx.source}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-500 block">ទឹកប្រាក់</span>
+                    <span className={`text-sm font-mono font-bold ${tx.type === 'income' ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      {tx.type === 'income' ? '+' : '-'}{tx.amountRiel.toLocaleString()} ៛
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-2.5 pt-2 text-xs text-slate-500">
+                  <div className="flex items-center gap-1.5">
+                    <span>{tx.date}</span>
+                    <span>•</span>
+                    <span>{tx.recordedBy}</span>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`តើអ្នកចង់លុបប្រតិបត្តិការ «${tx.title}» ឬទេ?`)) {
+                        deleteBudgetTransaction(tx.id);
+                      }
+                    }}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                    title="លុបប្រតិបត្តិការ"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="py-8 text-center text-slate-500 text-xs">
+              មិនមានប្រតិបត្តិការត្រូវនឹងលក្ខខណ្ឌស្វែងរកនេះទេ
+            </div>
+          )}
         </div>
 
         {/* Official Signatures on Print */}

@@ -767,7 +767,8 @@ export const HealthAttendance: React.FC = () => {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-slate-50 text-[11px] font-bold text-slate-600 border-b border-slate-200">
@@ -857,6 +858,105 @@ export const HealthAttendance: React.FC = () => {
                   })}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Attendance Card View (md:hidden) */}
+            <div className="md:hidden divide-y divide-slate-200">
+              {classStudents.map((student, idx) => {
+                const state = attendanceState[student.id] || { status: 'present', notes: '' };
+                return (
+                  <div key={`mob-att-${student.id}`} className="p-3.5 bg-white hover:bg-slate-50/80 transition-colors">
+                    <div className="flex items-center justify-between gap-2 mb-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-700 shrink-0">
+                          {idx + 1}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-sm">{student.nameKhmer}</p>
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                            <span className="font-mono">{student.code}</span>
+                            <span>•</span>
+                            <span className={`px-1.5 py-0.2 rounded text-[10px] font-semibold ${
+                              student.gender === 'F' ? 'bg-rose-50 text-rose-700' : 'bg-blue-50 text-blue-700'
+                            }`}>
+                              {student.gender === 'F' ? 'ស្រី' : 'ប្រុស'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                        state.status === 'present'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          : state.status === 'permission'
+                          ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                          : 'bg-rose-100 text-rose-800 border border-rose-200'
+                      }`}>
+                        {state.status === 'present' ? 'វត្តមាន' : state.status === 'permission' ? 'មានច្បាប់' : 'ឥតច្បាប់'}
+                      </span>
+                    </div>
+
+                    {/* Touch-Friendly Action Buttons */}
+                    <div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1 rounded-xl">
+                      <button
+                        type="button"
+                        onClick={() => handleStatusChange(student.id, 'present')}
+                        className={`py-2 px-1 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1 ${
+                          state.status === 'present'
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>វត្តមាន</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleStatusChange(student.id, 'permission')}
+                        className={`py-2 px-1 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1 ${
+                          state.status === 'permission'
+                            ? 'bg-amber-500 text-white shadow-xs'
+                            : 'text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>មានច្បាប់</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleStatusChange(student.id, 'absent')}
+                        className={`py-2 px-1 rounded-lg text-xs font-bold transition-all text-center flex items-center justify-center gap-1 ${
+                          state.status === 'absent'
+                            ? 'bg-rose-600 text-white shadow-xs'
+                            : 'text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>ឥតច្បាប់</span>
+                      </button>
+                    </div>
+
+                    {/* Quick Reason/Notes Input */}
+                    <div className="mt-2">
+                      <input
+                        type="text"
+                        value={state.notes || ''}
+                        onChange={(e) =>
+                          setAttendanceState(prev => ({
+                            ...prev,
+                            [student.id]: {
+                              ...prev[student.id],
+                              notes: e.target.value
+                            }
+                          }))
+                        }
+                        placeholder="មូលហេតុ / កត់សម្គាល់..."
+                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs placeholder:text-slate-400"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Official Signatures on Print */}
@@ -1058,7 +1158,8 @@ export const HealthAttendance: React.FC = () => {
 
           {/* Color-Coded Health Screening Input Grid */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-slate-100 text-[11px] font-bold text-slate-700 border-b border-slate-200">
@@ -1274,6 +1375,191 @@ export const HealthAttendance: React.FC = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Daily Health Card View (md:hidden) */}
+            <div className="md:hidden divide-y divide-slate-200">
+              {classStudents.length === 0 ? (
+                <div className="py-8 text-center text-slate-500 text-xs">
+                  មិនមានទិន្នន័យសិស្សក្នុងថ្នាក់ទី {selectedGrade}{selectedSection} នេះទេ
+                </div>
+              ) : (
+                classStudents.map((student, idx) => {
+                  const state = dailyHealthState[student.id] || {
+                    temperature: 36.6,
+                    status: 'normal' as HealthScreeningStatus,
+                    symptoms: [],
+                    notes: ''
+                  };
+
+                  const symptomOptions = [
+                    'ក្តៅខ្លួន',
+                    'ក្អក',
+                    'ផ្តាសាយ/ហៀរសំបោរ',
+                    'ឈឺក្បាល',
+                    'ឈឺពោះ',
+                    'ឈឺបំពង់ក',
+                    'ភ្នែកក្រហម',
+                    'កន្ទួលរមាស់'
+                  ];
+
+                  let cardBorderColor = 'border-slate-200';
+                  if (state.status === 'isolate' || state.temperature >= 38.5) {
+                    cardBorderColor = 'border-rose-300 bg-rose-50/20';
+                  } else if (state.status === 'warning' || state.temperature >= 37.5) {
+                    cardBorderColor = 'border-amber-300 bg-amber-50/20';
+                  }
+
+                  return (
+                    <div key={`mob-health-${student.id}`} className={`p-4 bg-white transition-colors ${cardBorderColor}`}>
+                      {/* Student Info & Status Header */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-700 shrink-0">
+                            {idx + 1}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-900 text-sm">{student.nameKhmer}</p>
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                              <span className="font-mono">{student.code}</span>
+                              <span>•</span>
+                              <span>{student.gender === 'female' ? 'ស្រី' : 'ប្រុស'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                          state.status === 'normal'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : state.status === 'monitor'
+                            ? 'bg-amber-100 text-amber-800'
+                            : state.status === 'warning'
+                            ? 'bg-orange-100 text-orange-800'
+                            : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {state.status === 'normal' ? 'ល្អធម្មតា' : state.status === 'monitor' ? 'ត្រូវតាមដាន' : state.status === 'warning' ? 'ក្តៅខ្លួនស្រាល' : 'ឈឺ/សម្រាក'}
+                        </span>
+                      </div>
+
+                      {/* Temperature input with steppers and quick buttons */}
+                      <div className="mt-3 p-2.5 bg-slate-50 rounded-xl border border-slate-200/70">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-slate-600">កម្ដៅរាងកាយ៖</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextTemp = Math.max(35.0, Number((state.temperature - 0.1).toFixed(1)));
+                                handleHealthFieldChange(student.id, 'temperature', nextTemp);
+                              }}
+                              className="w-7 h-7 rounded-lg bg-white border border-slate-300 text-slate-700 font-bold flex items-center justify-center text-sm active:scale-95"
+                            >
+                              -
+                            </button>
+                            <span className={`px-2.5 py-1 text-sm font-mono font-bold rounded-lg border ${
+                              state.temperature >= 38.5
+                                ? 'bg-rose-100 border-rose-400 text-rose-900'
+                                : state.temperature >= 37.5
+                                ? 'bg-amber-100 border-amber-400 text-amber-900'
+                                : 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                            }`}>
+                              {state.temperature.toFixed(1)} °C
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextTemp = Math.min(42.0, Number((state.temperature + 0.1).toFixed(1)));
+                                handleHealthFieldChange(student.id, 'temperature', nextTemp);
+                              }}
+                              className="w-7 h-7 rounded-lg bg-white border border-slate-300 text-slate-700 font-bold flex items-center justify-center text-sm active:scale-95"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Quick Presets */}
+                        <div className="flex items-center justify-end gap-1.5 mt-2">
+                          {[36.5, 37.0, 37.5, 38.5].map((preset) => (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() => handleHealthFieldChange(student.id, 'temperature', preset)}
+                              className={`px-2 py-0.5 rounded text-[10px] font-mono cursor-pointer transition-colors ${
+                                state.temperature === preset
+                                  ? 'bg-slate-800 text-white font-bold'
+                                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                              }`}
+                            >
+                              {preset}°
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Status Selection Buttons */}
+                      <div className="grid grid-cols-2 gap-1.5 mt-2.5">
+                        {[
+                          { status: 'normal' as HealthScreeningStatus, label: 'ល្អធម្មតា', active: 'bg-emerald-600 text-white border-emerald-600' },
+                          { status: 'monitor' as HealthScreeningStatus, label: 'ត្រូវតាមដាន', active: 'bg-amber-500 text-white border-amber-500' },
+                          { status: 'warning' as HealthScreeningStatus, label: 'ក្តៅខ្លួនស្រាល', active: 'bg-orange-500 text-white border-orange-500' },
+                          { status: 'isolate' as HealthScreeningStatus, label: 'ឈឺ/សម្រាក', active: 'bg-rose-600 text-white border-rose-600' },
+                        ].map(item => {
+                          const isSelected = state.status === item.status;
+                          return (
+                            <button
+                              key={item.status}
+                              type="button"
+                              onClick={() => handleHealthFieldChange(student.id, 'status', item.status)}
+                              className={`py-1.5 px-2 rounded-xl text-xs font-bold border transition-all text-center ${
+                                isSelected ? item.active : 'bg-slate-50 border-slate-200 text-slate-700'
+                              }`}
+                            >
+                              {item.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Symptoms */}
+                      <div className="mt-2.5">
+                        <span className="text-[11px] font-semibold text-slate-500 block mb-1">រោគសញ្ញាសង្កេតឃើញ៖</span>
+                        <div className="flex flex-wrap gap-1">
+                          {symptomOptions.map(symptom => {
+                            const isChecked = state.symptoms.includes(symptom);
+                            return (
+                              <button
+                                key={symptom}
+                                type="button"
+                                onClick={() => handleToggleSymptom(student.id, symptom)}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-medium border transition-colors flex items-center gap-1 ${
+                                  isChecked
+                                    ? 'bg-rose-100 text-rose-800 border-rose-300 font-bold'
+                                    : 'bg-slate-50 text-slate-600 border-slate-200'
+                                }`}
+                              >
+                                {isChecked && <Check className="w-2.5 h-2.5 text-rose-600" />}
+                                <span>{symptom}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Notes */}
+                      <div className="mt-2">
+                        <input
+                          type="text"
+                          value={state.notes || ''}
+                          onChange={(e) => handleHealthFieldChange(student.id, 'notes', e.target.value)}
+                          placeholder="កំណត់សម្គាល់បន្ថែម..."
+                          className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 placeholder:text-slate-400"
+                        />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
 
             {/* Table Footer Actions */}

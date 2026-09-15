@@ -72,42 +72,12 @@ export const TeacherDailyTasks: React.FC<TeacherDailyTasksProps> = ({
       .slice(0, 3);
   }, [notifications]);
 
-  // Upcoming School Deadlines (from calendar & system)
+  // Upcoming School Deadlines (from real calendar events only - no fake tasks)
   const upcomingDeadlines = useMemo(() => {
-    const defaultDeadlines = [
-      {
-        id: 'dl-1',
-        title: 'ថ្ងៃផុតកំណត់បញ្ចូលពិន្ទុប្រចាំខែ',
-        dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        category: 'exam_grading',
-        daysLeft: 2,
-        isUrgent: true,
-        targetTab: 'scores' as ActiveTab
-      },
-      {
-        id: 'dl-2',
-        title: 'ផ្ញើរបាយការណ៍វត្តមាន និងស្ថិតិសិស្សទៅការិយាល័យអប់រំស្រុក',
-        dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        category: 'admin',
-        daysLeft: 5,
-        isUrgent: false,
-        targetTab: 'reports_qr' as ActiveTab
-      },
-      {
-        id: 'dl-3',
-        title: 'កិច្ចប្រជុំគរុកោសល្យ និងត្រួតពិនិត្យកិច្ចតែងការបង្រៀន',
-        dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        category: 'meeting',
-        daysLeft: 1,
-        isUrgent: true,
-        targetTab: 'teacher_meetings' as ActiveTab
-      }
-    ];
-
-    // Merge with calendar events if any upcoming
-    const calendarDeadlines = calendarEvents
+    // Only real upcoming calendar events from the school calendar
+    return calendarEvents
       .filter(e => e.date >= todayStr)
-      .slice(0, 2)
+      .slice(0, 4)
       .map(e => {
         const diffTime = new Date(e.date).getTime() - new Date(todayStr).getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -121,8 +91,6 @@ export const TeacherDailyTasks: React.FC<TeacherDailyTasksProps> = ({
           targetTab: 'calendar' as ActiveTab
         };
       });
-
-    return [...defaultDeadlines, ...calendarDeadlines].slice(0, 4);
   }, [calendarEvents, todayStr]);
 
   // Priority sorting mapping
@@ -321,50 +289,52 @@ export const TeacherDailyTasks: React.FC<TeacherDailyTasksProps> = ({
         </div>
       )}
 
-      {/* Upcoming Deadlines Highlight Box */}
-      <div className="p-3 sm:p-4 bg-slate-50/70 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 uppercase tracking-wide">
-            <Clock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            កាលបរិច្ឆេទកំណត់ដែលជិតមកដល់ (Upcoming Deadlines)
-          </h4>
-          <span className="text-[11px] text-slate-400">ស្វ័យប្រវត្តិពីប្រព័ន្ធ</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-          {upcomingDeadlines.map(dl => (
-            <div
-              key={dl.id}
-              onClick={() => handleNavigate(dl.targetTab)}
-              className={`p-2.5 rounded-xl border transition-all cursor-pointer hover:shadow-xs ${
-                dl.daysLeft <= 2
-                  ? 'bg-rose-50/70 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800/60'
-                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-1 mb-1">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1">
-                  {dl.title}
-                </span>
-                <span
-                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
-                    dl.daysLeft <= 2
-                      ? 'bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200 animate-pulse'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
-                  }`}
-                >
-                  {dl.daysLeft === 0 ? 'ថ្ងៃនេះ!' : `នៅសល់ ${dl.daysLeft} ថ្ងៃ`}
-                </span>
+      {/* Upcoming Deadlines Highlight Box (Only if real events scheduled) */}
+      {upcomingDeadlines.length > 0 && (
+        <div className="p-3 sm:p-4 bg-slate-50/70 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 uppercase tracking-wide">
+              <Clock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              កាលបរិច្ឆេទកំណត់ដែលជិតមកដល់ (Upcoming Deadlines)
+            </h4>
+            <span className="text-[11px] text-slate-400">តាមប្រតិទិនជាក់ស្តែង</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {upcomingDeadlines.map(dl => (
+              <div
+                key={dl.id}
+                onClick={() => handleNavigate(dl.targetTab)}
+                className={`p-2.5 rounded-xl border transition-all cursor-pointer hover:shadow-xs ${
+                  dl.daysLeft <= 2
+                    ? 'bg-rose-50/70 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800/60'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-1 mb-1">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1">
+                    {dl.title}
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
+                      dl.daysLeft <= 2
+                        ? 'bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200 animate-pulse'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    {dl.daysLeft === 0 ? 'ថ្ងៃនេះ!' : `នៅសល់ ${dl.daysLeft} ថ្ងៃ`}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                  <span className="font-mono text-[10px]">{dl.dueDate}</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-[10px] flex items-center">
+                    ចូលអនុវត្ត <ChevronRight className="w-2.5 h-2.5 ml-0.5" />
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-                <span className="font-mono text-[10px]">{dl.dueDate}</span>
-                <span className="text-blue-600 dark:text-blue-400 font-semibold text-[10px] flex items-center">
-                  ចូលអនុវត្ត <ChevronRight className="w-2.5 h-2.5 ml-0.5" />
-                </span>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Filter Tabs */}
       <div className="px-4 sm:px-5 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-2">
