@@ -721,12 +721,12 @@ export const ScoreTablePrintModal: React.FC<ScoreTablePrintModalProps> = ({
             {/* Official Signatures & Round Red Seal */}
             {showSignatures && (
               <MoEYSOfficialDualSignatures
-                schoolLocation={schoolProfile.district || schoolProfile.addressKhmer || 'ភ្នំពេញ'}
+                schoolLocation={schoolProfile.district || schoolProfile.addressKhmer || 'ភ្នំពុំ'}
                 principalTitle="នាយកសាលា"
-                principalName={schoolProfile.principalName}
+                principalName={schoolProfile.principalName || 'លោក លីម សន'}
                 reviewerTitle="បានឃើញ និងឯកភាព"
                 teacherRoleTitle="គ្រូបន្ទុកថ្នាក់"
-                teacherName={homeroomTeacher?.nameKhmer || 'សែម ស្រីភឿន'}
+                teacherName={homeroomTeacher?.nameKhmer || ''}
                 teacherNameColor="blue"
                 showStampPlaceholder={showOfficialStamp}
                 className="mt-8 pt-4 border-t-2 border-slate-800 page-break-inside-avoid"

@@ -38,6 +38,7 @@ export const BudgetFinance: React.FC = () => {
     getTotalExpense,
     getBalance,
     schoolProfile,
+    currentUser,
     showToast
   } = useSchool();
 
@@ -57,7 +58,7 @@ export const BudgetFinance: React.FC = () => {
     category: 'សម្ភារៈឧបទេស',
     amountRiel: 500000,
     date: new Date().toISOString().split('T')[0],
-    recordedBy: 'អ្នកគ្រូ ពេជ្រ ធីតា',
+    recordedBy: currentUser?.nameKhmer || currentUser?.name || 'នាយកសាលា',
     description: '',
     status: 'approved' as const
   };

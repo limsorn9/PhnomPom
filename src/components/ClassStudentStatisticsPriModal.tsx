@@ -65,10 +65,10 @@ export const ClassStudentStatisticsPriModal: React.FC<ClassStudentStatisticsPriM
         t => t.assignedGrade === activeGrade && (t.assignedSection === activeSection || !t.assignedSection)
       ) ||
       teachers[0] || {
-        nameKhmer: 'សែម ស្រីភឿន',
+        nameKhmer: '',
         gender: 'F',
-        dob: '1990-05-12',
-        phone: '087 99 19 77'
+        dob: '',
+        phone: ''
       }
     );
   }, [teachers, activeGrade, activeSection]);
@@ -137,7 +137,7 @@ export const ClassStudentStatisticsPriModal: React.FC<ClassStudentStatisticsPriM
       speechFemale: 0,
       visionTotal: 0,
       visionFemale: 0,
-      internalOrganTotal: 1, // sample matches screenshot
+      internalOrganTotal: 0,
       internalOrganFemale: 0,
       mentalIntellectualTotal: 0,
       mentalIntellectualFemale: 0,
@@ -155,7 +155,7 @@ export const ClassStudentStatisticsPriModal: React.FC<ClassStudentStatisticsPriM
       // Vulnerable
       migrantTotal: 0,
       migrantFemale: 0,
-      orphanTotal: 1, // sample matches screenshot
+      orphanTotal: 0,
       orphanFemale: 0,
       hivAidsTotal: 0,
       hivAidsFemale: 0,
@@ -188,7 +188,7 @@ export const ClassStudentStatisticsPriModal: React.FC<ClassStudentStatisticsPriM
 
   // Customizable state allowing teacher override
   const [customTeacher, setCustomTeacher] = useState({
-    nameKhmer: homeroomTeacher.nameKhmer || 'សែម ស្រីភឿន',
+    nameKhmer: homeroomTeacher.nameKhmer || '',
     gender: homeroomTeacher.gender === 'M' ? 'ប្រុស' : 'ស្រី',
     age: '៣៥',
     ethnicMinority: 'ទេ',
@@ -876,7 +876,7 @@ export const ClassStudentStatisticsPriModal: React.FC<ClassStudentStatisticsPriM
               <MoEYSOfficialDualSignatures
                 schoolLocation={schoolProfile.district || schoolProfile.addressKhmer || 'ភ្នំពុំ'}
                 principalTitle="នាយកសាលា"
-                principalName={schoolProfile.principalName || 'ស៊ុន ពិសិដ្ឋ'}
+                principalName={schoolProfile.principalName || 'លោក លីម សន'}
                 reviewerTitle="បានឃើញ និងឯកភាព"
                 teacherRoleTitle="គ្រូបន្ទុកថ្នាក់"
                 teacherName={customTeacher.nameKhmer}

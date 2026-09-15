@@ -638,7 +638,7 @@ export const HomeroomNotificationsTab: React.FC<HomeroomNotificationsTabProps> =
 
                   <div className="pt-4 border-t border-white/10 flex items-center justify-between gap-2 mt-3 relative z-10">
                     <div className="text-[11px] text-purple-200">
-                      គ្រូបន្ទុកថ្នាក់៖ {currentTeacher?.nameKhmer || 'លោកគ្រូ ចាន់ វុទ្ធី'}
+                      គ្រូបន្ទុកថ្នាក់៖ {currentTeacher?.nameKhmer || '—'}
                     </div>
                     <button
                       onClick={onGoToMeetingsTab}

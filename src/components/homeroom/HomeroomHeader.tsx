@@ -95,7 +95,7 @@ export const HomeroomHeader: React.FC<HomeroomHeaderProps> = ({
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
-              <span>គ្រូបន្ទុកថ្នាក់៖ <strong className="text-slate-700">{currentTeacher ? currentTeacher.nameKhmer : 'លោកគ្រូ ចាន់ វុទ្ធី'}</strong></span>
+              <span>គ្រូបន្ទុកថ្នាក់៖ <strong className="text-slate-700">{currentTeacher ? currentTeacher.nameKhmer : '—'}</strong></span>
               {currentTeacher?.phone && (
                 <>
                   <span>•</span>

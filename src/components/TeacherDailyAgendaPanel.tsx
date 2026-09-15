@@ -119,8 +119,8 @@ export const TeacherDailyAgendaPanel: React.FC<TeacherDailyAgendaPanelProps> = (
     let gCalEventId: string | undefined = undefined;
 
     const taskPayload = {
-      teacherId: currentUser?.id || 't1',
-      teacherName: currentUser?.name || 'អ្នកគ្រូ ពេជ្រ ធីតា',
+      teacherId: currentUser?.id || 'admin',
+      teacherName: currentUser?.nameKhmer || currentUser?.name || 'គ្រូបង្រៀន',
       title: formData.title.trim(),
       description: formData.description,
       date: formData.date,

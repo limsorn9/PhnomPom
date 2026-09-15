@@ -87,29 +87,8 @@ export const SuspiciousAlertsBanner: React.FC<SuspiciousAlertsBannerProps> = ({
       }
     });
 
-    // Default proactive alert if none exists so admins always have visibility into active defense monitor
-    if (alerts.length === 0 && isDirector) {
-      const targetStaff = appUsers.find(u => u.role === 'secretary' || u.role === 'teacher');
-      if (targetStaff) {
-        alerts.push({
-          id: `suspicious-demo-${targetStaff.id}`,
-          userId: targetStaff.id,
-          userNameKhmer: targetStaff.nameKhmer,
-          userEmail: targetStaff.email,
-          userRole: targetStaff.role,
-          detectedAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
-          reason: 'រកឃើញការប៉ុនប៉ងចូលប្រើបរាជ័យ ៣ លើក ពីទីតាំងផ្សេងៗគ្នា ក្នុងរយៈពេលខ្លី (Geo-velocity Anomaly)',
-          severity: 'medium',
-          failedAttemptsCount: 3,
-          locations: ['Phnom Penh (ISP: Metfone)', 'Siem Reap (ISP: Smart)'],
-          ipAddresses: ['103.216.50.21', '203.144.90.12'],
-          dismissed: false
-        });
-      }
-    }
-
     return alerts.filter(a => !dismissedAlertIds.includes(a.id));
-  }, [appUsers, dismissedAlertIds, isDirector]);
+  }, [appUsers, dismissedAlertIds]);
 
   const handleDismiss = (id: string) => {
     const updated = [...dismissedAlertIds, id];

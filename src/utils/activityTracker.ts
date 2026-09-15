@@ -639,6 +639,7 @@ export function generateSeedActivities(
   // 2. Recent Student Record Updates / Creations
   students.slice(0, 5).forEach((stu, idx) => {
     const isNew = idx % 2 === 0;
+    const assignedTeacher = teachers.find(t => t.assignedGrade === stu.grade && (!t.assignedSection || t.assignedSection === stu.section)) || teachers[0];
     seeds.push({
       id: `act-seed-stu-${stu.id}`,
       domain: 'student',
@@ -648,7 +649,7 @@ export function generateSeedActivities(
       entityId: stu.id,
       entityCode: stu.code,
       entityName: stu.nameKhmer,
-      actorName: 'លោកគ្រូ ចាន់ វុទ្ធី',
+      actorName: assignedTeacher ? assignedTeacher.nameKhmer : 'លោក លីម សន',
       actorRole: 'គ្រូបន្ទុកថ្នាក់',
       timestamp: new Date(baseTime - (idx * 3600 * 1000 * 2.5 + 900000)).toISOString(),
       targetTab: 'students',

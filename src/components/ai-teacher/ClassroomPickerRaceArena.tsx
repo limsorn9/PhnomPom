@@ -222,20 +222,7 @@ export const ClassroomPickerRaceArena: React.FC<Props> = ({
         score: s.totalScore || 0
       })));
     } else {
-      // Default sample candidates
-      const samples = [
-        'សុខ វិបុល', 'ជា ចាន់រ៉ា', 'លី ស្រីនាង', 'ខៀវ ពិសិដ្ឋ',
-        'មាស សុភា', 'ហេង រតនា', 'ប៉ែន សុវណ្ណ', 'អ៊ុច ធីតា',
-        'ចាន់ សុផល', 'ង៉ែត វណ្ណា', 'កែវ មករា', 'ស៊ុន កល្យាណ'
-      ];
-      setCandidates(samples.map((name, idx) => ({
-        id: `c-${idx + 1}`,
-        name,
-        avatar: ['🦆', '🏍️', '🏎️', '✈️', '🐟', '🚀', '⭐', '🦁', '🐼', '🦊', '🐰', '🦄'][idx % 12],
-        color: COLOR_PALETTE[idx % COLOR_PALETTE.length],
-        eliminated: false,
-        score: 0
-      })));
+      setCandidates([]);
     }
   }, [students, selectedGradeFilter]);
 

@@ -270,7 +270,7 @@ export const toKhmerNumber = (val: number | string): string => {
  * Returns formatted Khmer Solar Date (កាលបរិច្ឆេទសុរិយគតិ)
  * e.g., "ភ្នំពេញ, ថ្ងៃទី២២ ខែសីហា ឆ្នាំ២០២៦"
  */
-export const getKhmerSolarDate = (date = new Date(), location = 'ភ្នំពេញ'): string => {
+export const getKhmerSolarDate = (date = new Date(), location = 'ភ្នំពុំ'): string => {
   const khmerMonths = [
     'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា',
     'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'
@@ -354,12 +354,12 @@ export const MoEYSOfficialDualSignatures: React.FC<{
   showPrincipalQR?: boolean;
   className?: string;
 }> = ({
-  schoolLocation = 'ភ្នំពេញ',
+  schoolLocation = 'ភ្នំពុំ',
   principalTitle = 'នាយកសាលា',
-  principalName = 'ស៊ុន ពិសិដ្ឋ',
+  principalName = 'លោក លីម សន',
   reviewerTitle = 'បានឃើញ និងឯកភាព',
   teacherRoleTitle = 'គ្រូបន្ទុកថ្នាក់',
-  teacherName = 'សែម ស្រីភឿន',
+  teacherName = '',
   teacherNameColor = 'blue',
   lunarDate,
   solarDate,

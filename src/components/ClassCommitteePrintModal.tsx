@@ -47,119 +47,87 @@ interface ClassCommitteePrintModalProps {
   classStudents?: Student[];
 }
 
-// Initial Default Template Data matching the official sample screenshots
+// Initial Committee Member slots
 const defaultMembersData: ClassManagementCommitteeMember[] = [
   {
     id: 'cm-1',
     order: 1,
-    honorific: 'លោកស្រី',
-    fullName: 'ហៀម ម៉ុំ',
+    honorific: 'លោក/លោកស្រី',
+    fullName: '',
     gender: 'ស្រី',
     workplace: 'ភូមិភ្នំពុំ',
     occupation: 'កសិករ',
     role: 'president',
     roleTitleKhmer: 'ប្រធាន',
-    phone: '097 538 5753',
-    gradeSection: '3ក',
+    phone: '',
+    gradeSection: '',
     livelihoodStatus: 'ជីវភាពមធ្យម',
     occupationCategory: 'កសិករ',
-    photoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'
+    photoUrl: ''
   },
   {
     id: 'cm-2',
     order: 2,
-    honorific: 'លោកស្រី',
-    fullName: 'មាស សុខុម',
+    honorific: 'លោក/លោកស្រី',
+    fullName: '',
     gender: 'ស្រី',
     workplace: 'ភូមិភ្នំពុំ',
     occupation: 'កសិករ',
     role: 'deputy_president_1',
-    roleTitleKhmer: 'អនុប្រធាន',
-    phone: '097 5555 001',
-    gradeSection: '3ក',
+    roleTitleKhmer: 'អនុប្រធានទី១',
+    phone: '',
+    gradeSection: '',
     livelihoodStatus: 'ជីវភាពមធ្យម',
     occupationCategory: 'កសិករ',
-    photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
+    photoUrl: ''
   },
   {
     id: 'cm-3',
     order: 3,
-    honorific: 'លោកស្រី',
-    fullName: 'លៀវ សុខណា',
-    gender: 'ស្រី',
+    honorific: 'លោក/លោកស្រី',
+    fullName: '',
+    gender: 'ប្រុស',
     workplace: 'ភូមិភ្នំពុំ',
     occupation: 'កសិករ',
     role: 'deputy_president_2',
-    roleTitleKhmer: 'អនុប្រធាន',
-    phone: '070 314 043',
-    gradeSection: '3ក',
+    roleTitleKhmer: 'អនុប្រធានទី២',
+    phone: '',
+    gradeSection: '',
     livelihoodStatus: 'ជីវភាពមធ្យម',
     occupationCategory: 'កសិករ',
-    photoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80'
+    photoUrl: ''
   },
   {
     id: 'cm-4',
     order: 4,
-    honorific: 'លោកស្រី',
-    fullName: 'ផន យាន',
+    honorific: 'លោក/លោកស្រី',
+    fullName: '',
     gender: 'ស្រី',
     workplace: 'ភូមិភ្នំពុំ',
     occupation: 'កសិករ',
     role: 'member',
     roleTitleKhmer: 'សមាជិក',
-    phone: '012 889 921',
-    gradeSection: '3ក',
+    phone: '',
+    gradeSection: '',
     livelihoodStatus: 'ជីវភាពមធ្យម',
     occupationCategory: 'កសិករ',
-    photoUrl: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150&auto=format&fit=crop&q=80'
+    photoUrl: ''
   },
   {
     id: 'cm-5',
     order: 5,
-    honorific: 'លោក',
-    fullName: 'ឃី ចាន់ថា',
-    gender: 'ប្រុស',
-    workplace: 'ភូមិភ្នំពុំ',
-    occupation: 'កសិករ',
-    role: 'member',
-    roleTitleKhmer: 'សមាជិក',
-    phone: '015 298 995',
-    gradeSection: '3ក',
-    livelihoodStatus: 'ជីវភាពមធ្យម',
-    occupationCategory: 'កសិករ',
-    photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'cm-6',
-    order: 6,
-    honorific: 'លោកស្រី',
-    fullName: 'លាប ឡៃ',
-    gender: 'ស្រី',
-    workplace: 'ភូមិភ្នំពុំ',
-    occupation: 'កសិករ',
-    role: 'member',
-    roleTitleKhmer: 'សមាជិក',
-    phone: '015 445 573',
-    gradeSection: '3ក',
-    livelihoodStatus: 'ជីវភាពមធ្យម',
-    occupationCategory: 'កសិករ',
-    photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'cm-7',
-    order: 7,
     honorific: 'ក្រុមប្រឹក្សាកុមារ',
-    fullName: 'ផៃ សំអាត',
+    fullName: '',
     gender: 'ស្រី',
     workplace: 'ភូមិភ្នំពុំ',
     occupation: 'សិស្ស',
     role: 'member',
-    roleTitleKhmer: 'សមាជិក',
-    phone: '096 272 0170',
-    gradeSection: '3ក',
+    roleTitleKhmer: 'សមាជិក (តំណាងសិស្ស)',
+    phone: '',
+    gradeSection: '',
     livelihoodStatus: 'ជីវភាពមធ្យម',
     occupationCategory: 'សិស្ស',
-    photoUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80'
+    photoUrl: ''
   }
 ];
 
@@ -189,8 +157,8 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
   const [schoolName, setSchoolName] = useState(schoolProfile.nameKhmer || 'សាលាបឋមសិក្សា ភ្នំពុំ');
   const [lunarDate, setLunarDate] = useState('ថ្ងៃអង្គារ ១៣កើត ខែចេត្រ ឆ្នាំម្សាញ់ សប្តស័ក ព.ស.២៥៦៩');
   const [solarDate, setSolarDate] = useState('ភ្នំពុំ, ថ្ងៃទី៣១ ខែមីនា ឆ្នាំ២០២៦');
-  const [teacherName, setTeacherName] = useState(homeroomTeacher?.nameKhmer || 'សែម ស្រីអឿន');
-  const [principalName, setPrincipalName] = useState(schoolProfile.principalName || 'គង់ សុភ័ក្រ');
+  const [teacherName, setTeacherName] = useState(homeroomTeacher?.nameKhmer || '');
+  const [principalName, setPrincipalName] = useState(schoolProfile.principalName || 'លោក លីម សន');
 
   // Customization Options
   const [showHeader, setShowHeader] = useState(true);

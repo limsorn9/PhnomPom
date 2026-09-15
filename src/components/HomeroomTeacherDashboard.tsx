@@ -780,7 +780,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded border border-slate-200">
-                <p><strong>គ្រូបន្ទុកថ្នាក់៖</strong> {currentTeacher ? currentTeacher.nameKhmer : 'លោក ចាន់ វុទ្ធី'}</p>
+                <p><strong>គ្រូបន្ទុកថ្នាក់៖</strong> {currentTeacher ? currentTeacher.nameKhmer : '—'}</p>
                 <p><strong>ឆ្នាំសិក្សា៖</strong> ២០២៤ - ២០២៥</p>
                 <p><strong>សិស្សសរុប៖</strong> {totalStudents} នាក់ (ស្រី {femaleStudents} នាក់)</p>
                 <p><strong>មធ្យមភាគពិន្ទុថ្នាក់៖</strong> {classAvgScore.toFixed(1)}/10</p>
@@ -817,7 +817,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
                 <div>
                   <p className="font-bold">គ្រូបន្ទុកថ្នាក់</p>
                   <div className="h-14"></div>
-                  <p className="font-bold font-moul">លោក ចាន់ វុទ្ធី</p>
+                  <p className="font-bold font-moul">{currentTeacher?.nameKhmer || '—'}</p>
                 </div>
               </div>
             </div>

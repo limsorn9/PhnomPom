@@ -1910,7 +1910,7 @@ export const StudentManagement: React.FC = () => {
           <div className="hidden print:flex justify-between items-end mt-8 text-xs text-slate-800 pt-6">
             <div className="text-center">
               <p>បានឃើញ និងឯកភាព</p>
-              <strong className="block mt-1 font-moul text-slate-900">នាយិកាសាលា</strong>
+              <strong className="block mt-1 font-moul text-slate-900">នាយកសាលា</strong>
               <div className="h-16" />
               <p className="font-bold">{schoolProfile.principalName}</p>
             </div>
@@ -1919,7 +1919,7 @@ export const StudentManagement: React.FC = () => {
               <p>{schoolProfile.district}, ថ្ងៃទី {new Date().getDate()} ខែ {new Date().getMonth() + 1} ឆ្នាំ២០២៤</p>
               <strong className="block mt-1 font-moul text-slate-900">អ្នករៀបចំបញ្ជី</strong>
               <div className="h-16" />
-              <p className="font-bold">អ្នកគ្រូ ពេជ្រ ធីតា</p>
+              <p className="font-bold">{currentUser?.nameKhmer || currentUser?.name || 'លេខាធិការដ្ឋាន'}</p>
             </div>
           </div>
         </div>

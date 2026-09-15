@@ -6080,7 +6080,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         entityId: id,
         entityCode: existing.code,
         entityName: updated.nameKhmer || existing.nameKhmer,
-        actorName: currentUser?.nameKhmer || 'លោកគ្រូ ចាន់ វុទ្ធី',
+        actorName: currentUser?.nameKhmer || currentUser?.name || 'អ្នកគ្រប់គ្រង',
         actorRole: currentUser?.role === 'director' ? 'នាយកសាលា' : 'គ្រូបន្ទុកថ្នាក់',
         targetTab: 'students',
         tags: [`ថ្នាក់ទី ${updated.grade || existing.grade}${updated.section || existing.section}`, existing.code],

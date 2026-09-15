@@ -88,6 +88,35 @@ export const HealthAttendance: React.FC = () => {
   const [healthAlertFilter, setHealthAlertFilter] = useState<'all' | 'unvaccinated' | 'missed_nurse' | 'bmi_risk'>('all');
   const [healthSearchQuery, setHealthSearchQuery] = useState<string>('');
 
+  // Memoized Filtered Students for Health Tab
+  const filteredHealthStudents = React.useMemo(() => {
+    return students.filter((student) => {
+      if (healthSearchQuery.trim()) {
+        const q = healthSearchQuery.toLowerCase();
+        const matchesName =
+          student.nameKhmer.toLowerCase().includes(q) ||
+          (student.nameLatin && student.nameLatin.toLowerCase().includes(q));
+        const matchesCode = student.code.toLowerCase().includes(q);
+        if (!matchesName && !matchesCode) return false;
+      }
+
+      if (healthAlertFilter === 'unvaccinated') {
+        return !student.health?.vaccinated;
+      }
+      if (healthAlertFilter === 'missed_nurse') {
+        return (
+          !student.health?.lastCheckedDate ||
+          student.health?.notes?.includes('ខកខាន') ||
+          (student.health?.bmi && (student.health.bmi < 14 || student.health.bmi > 22))
+        );
+      }
+      if (healthAlertFilter === 'bmi_risk') {
+        return student.health?.bmi < 14.5 || student.health?.bmi > 20.0;
+      }
+      return true;
+    });
+  }, [students, healthSearchQuery, healthAlertFilter]);
+
   // Batch Update Vaccination Compliance
   const handleBatchUpdateVaccinated = (studentIds: string[]) => {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -1847,7 +1876,8 @@ export const HealthAttendance: React.FC = () => {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-slate-100 text-[11px] font-bold text-slate-700 border-b border-slate-200">
@@ -1862,35 +1892,14 @@ export const HealthAttendance: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {students
-                    .filter((student) => {
-                      // Apply search filter
-                      if (healthSearchQuery.trim()) {
-                        const q = healthSearchQuery.toLowerCase();
-                        const matchesName =
-                          student.nameKhmer.toLowerCase().includes(q) ||
-                          (student.nameLatin && student.nameLatin.toLowerCase().includes(q));
-                        const matchesCode = student.code.toLowerCase().includes(q);
-                        if (!matchesName && !matchesCode) return false;
-                      }
-
-                      // Apply alert category filter
-                      if (healthAlertFilter === 'unvaccinated') {
-                        return !student.health?.vaccinated;
-                      }
-                      if (healthAlertFilter === 'missed_nurse') {
-                        return (
-                          !student.health?.lastCheckedDate ||
-                          student.health?.notes?.includes('ខកខាន') ||
-                          (student.health?.bmi && (student.health.bmi < 14 || student.health.bmi > 22))
-                        );
-                      }
-                      if (healthAlertFilter === 'bmi_risk') {
-                        return student.health?.bmi < 14.5 || student.health?.bmi > 20.0;
-                      }
-                      return true;
-                    })
-                    .map((student) => {
+                  {filteredHealthStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-8 text-center text-slate-400">
+                        មិនមានទិន្នន័យសិស្សដែលត្រូវនឹងលក្ខខណ្ឌស្វែងរកនេះទេ
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredHealthStudents.map((student) => {
                       const bmiInfo = getBmiBadgeInfo(student.health?.bmi);
                       const isUnvaccinated = !student.health?.vaccinated;
                       const isMissedNurse =
@@ -2022,9 +2031,147 @@ export const HealthAttendance: React.FC = () => {
                           </td>
                         </tr>
                       );
-                    })}
+                    })
+                  )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View for Health Records (md:hidden) */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {filteredHealthStudents.length === 0 ? (
+                <div className="py-8 text-center text-slate-400 text-xs">
+                  មិនមានទិន្នន័យសិស្សដែលត្រូវនឹងលក្ខខណ្ឌស្វែងរកនេះទេ
+                </div>
+              ) : (
+                filteredHealthStudents.map((student) => {
+                  const bmiInfo = getBmiBadgeInfo(student.health?.bmi);
+                  const isUnvaccinated = !student.health?.vaccinated;
+                  const isMissedNurse =
+                    !student.health?.lastCheckedDate ||
+                    student.health?.notes?.includes('ខកខាន') ||
+                    (student.health?.bmi && (student.health.bmi < 14 || student.health.bmi > 22));
+
+                  return (
+                    <div key={`mob-health-rec-${student.id}`} className="p-3.5 space-y-3 bg-white hover:bg-slate-50/60 transition-colors">
+                      {/* Top row: Name, Grade badge, Gender */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h4 className="font-bold text-slate-900 text-sm font-kantumruy">{student.nameKhmer}</h4>
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                            <span className="font-mono">{student.code}</span>
+                            {student.nameLatin && <span>• {student.nameLatin}</span>}
+                            <span>•</span>
+                            <span className="font-medium text-blue-700">ថ្នាក់ទី {student.grade}{student.section}</span>
+                          </div>
+                        </div>
+
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${
+                            student.gender === 'F'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : 'bg-blue-50 text-blue-700 border border-blue-200'
+                          }`}
+                        >
+                          {student.gender === 'F' ? 'ស្រី' : 'ប្រុស'}
+                        </span>
+                      </div>
+
+                      {/* Warning Badges */}
+                      {(isUnvaccinated || isMissedNurse) && (
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {isUnvaccinated && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              <AlertTriangle className="w-3 h-3 text-rose-500" />
+                              <span>ខ្វះវ៉ាក់សាំង</span>
+                            </span>
+                          )}
+                          {isMissedNurse && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                              <Clock className="w-3 h-3 text-amber-600" />
+                              <span>ខកខានជួបពេទ្យ</span>
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Stats Grid */}
+                      <div className="grid grid-cols-3 gap-2 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <div>
+                          <span className="text-slate-400 text-[10px] block">កម្ពស់ / ទម្ងន់</span>
+                          <span className="font-mono font-bold text-slate-800 text-xs">
+                            {student.health?.heightCm ? `${student.health.heightCm}cm` : '—'} / {student.health?.weightKg ? `${student.health.weightKg}kg` : '—'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 text-[10px] block">សន្ទស្សន៍ BMI</span>
+                          <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold border mt-0.5 ${bmiInfo.bgColor}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${bmiInfo.dotColor}`} />
+                            <span>{student.health?.bmi || '—'} {bmiInfo.label}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 text-[10px] block">ឈាម / វ៉ាក់សាំង</span>
+                          <span className="text-[11px] font-bold text-slate-700 block">
+                            ឈាម {student.health?.bloodType || '—'}
+                          </span>
+                          <span className={`text-[10px] font-semibold ${isUnvaccinated ? 'text-rose-600' : 'text-emerald-700'}`}>
+                            {isUnvaccinated ? 'មិនគ្រប់' : 'គ្រប់'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Notes & Last Checked */}
+                      {(student.health?.notes || student.health?.lastCheckedDate) && (
+                        <div className="text-[11px] text-slate-600 bg-amber-50/40 p-2 rounded-lg border border-amber-100/60">
+                          {student.health?.notes && <p className="line-clamp-2"><strong>ចំណាំ៖</strong> {student.health.notes}</p>}
+                          {student.health?.lastCheckedDate && (
+                            <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                              កាលបរិច្ឆេទពិនិត្យ៖ {student.health.lastCheckedDate}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-1.5 pt-1 overflow-x-auto">
+                        <button
+                          type="button"
+                          onClick={() => setQuickCareStudent(student)}
+                          className="flex-1 py-1.5 px-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold rounded-lg text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer shadow-2xs whitespace-nowrap"
+                        >
+                          <Stethoscope className="w-3.5 h-3.5 text-amber-600" />
+                          <span>កត់សម្គាល់រហ័ស</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenHealthEdit(student)}
+                          className="py-1.5 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                          <span>កែ</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHealthReportStudent(student)}
+                          className="py-1.5 px-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold rounded-lg text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Printer className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>PDF</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHealthBookletStudent(student)}
+                          className="py-1.5 px-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-lg text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <BookOpen className="w-3.5 h-3.5 text-rose-600" />
+                          <span>សៀវភៅ</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

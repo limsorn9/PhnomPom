@@ -68,46 +68,22 @@ export const SecurityAndSessionManager: React.FC<SecurityAndSessionManagerProps>
     }, 400);
   };
 
-  // Fallback initial sessions if none exists
+  // Current real active session
   const currentSessionId = 'sess-current-local';
   const sessions: UserSessionInfo[] = currentUser?.activeSessions && currentUser.activeSessions.length > 0
     ? currentUser.activeSessions
     : [
         {
           id: currentSessionId,
-          deviceId: 'dev-win-edge-01',
-          deviceName: 'Windows 11 PC (ឧបករណ៍បច្ចុប្បន្ន)',
-          browser: 'Microsoft Edge 122',
-          os: 'Windows 11 Pro',
-          ipAddress: '103.216.50.21 (ភ្នំពេញ, កម្ពុជា)',
-          location: 'Phnom Penh, Cambodia',
+          deviceId: 'dev-current',
+          deviceName: navigator.userAgent.includes('Mobile') ? 'ទូរស័ព្ទដៃ (ឧបករណ៍បច្ចុប្បន្ន)' : 'កុំព្យូទ័រ (ឧបករណ៍បច្ចុប្បន្ន)',
+          browser: navigator.userAgent.includes('Chrome') ? 'Google Chrome' : navigator.userAgent.includes('Safari') ? 'Safari' : 'Web Browser',
+          os: navigator.platform || 'ប្រព័ន្ធប្រតិបត្តិការបច្ចុប្បន្ន',
+          ipAddress: 'បណ្តាញបច្ចុប្បន្ន (Local/Network)',
+          location: 'កម្ពុជា (Cambodia)',
           lastActive: 'កំពុងប្រើប្រាស់ឥឡូវនេះ (Active now)',
-          createdAt: '2024-03-01 08:30',
+          createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
           isCurrent: true
-        },
-        {
-          id: 'sess-mobile-ios',
-          deviceId: 'dev-iphone-15',
-          deviceName: 'Apple iPhone 15 Pro',
-          browser: 'Safari Mobile 17.2',
-          os: 'iOS 17.4',
-          ipAddress: '203.144.90.12 (សៀមរាប, កម្ពុជា)',
-          location: 'Siem Reap, Cambodia',
-          lastActive: '២ ម៉ោងមុន (2 hours ago)',
-          createdAt: '2024-02-28 14:15',
-          isCurrent: false
-        },
-        {
-          id: 'sess-tab-android',
-          deviceId: 'dev-samsung-tab',
-          deviceName: 'Samsung Galaxy Tab S9 (បន្ទប់រៀន)',
-          browser: 'Chrome Mobile 121',
-          os: 'Android 14',
-          ipAddress: '118.69.180.44 (ភ្នំពេញ, កម្ពុជា)',
-          location: 'Phnom Penh, Cambodia',
-          lastActive: 'ម្សិលមិញ (Yesterday 16:45)',
-          createdAt: '2024-02-20 09:00',
-          isCurrent: false
         }
       ];
 

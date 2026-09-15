@@ -125,7 +125,7 @@ export const AtRiskStudentsTab: React.FC<AtRiskStudentsTabProps> = ({
   const [logMathAccuracy, setLogMathAccuracy] = useState<number | ''>('');
   const [logStatus, setLogStatus] = useState<AtRiskProgressStatus>('improving');
   const [logNote, setLogNote] = useState('');
-  const [logEvaluator, setLogEvaluator] = useState(currentTeacher?.nameKhmer || 'លោក ចាន់ វុទ្ធី');
+  const [logEvaluator, setLogEvaluator] = useState(currentTeacher?.nameKhmer || '');
 
   // Filter students belonging to current class
   const classStudents = useMemo(() => {
@@ -539,7 +539,7 @@ export const AtRiskStudentsTab: React.FC<AtRiskStudentsTabProps> = ({
                 តារាងតាមដាន និងវាយតម្លៃសិស្សរៀនយឺត/ខ្សោយ ថ្នាក់ទី {selectedGrade}«{selectedSection}»
               </h3>
               <p className="text-xs text-slate-500">
-                ឆ្នាំសិក្សា ២០២៤ - ២០២៥ • គ្រូបន្ទុកថ្នាក់៖ {currentTeacher?.nameKhmer || 'លោក ចាន់ វុទ្ធី'}
+                ឆ្នាំសិក្សា ២០២៤ - ២០២៥ • គ្រូបន្ទុកថ្នាក់៖ {currentTeacher?.nameKhmer || '—'}
               </p>
             </div>
           </div>
@@ -563,211 +563,386 @@ export const AtRiskStudentsTab: React.FC<AtRiskStudentsTabProps> = ({
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/80 text-[11px] font-bold text-slate-600 uppercase tracking-wider border-b border-slate-200">
-                  <th className="py-3 px-4 text-center w-12">ល.រ</th>
-                  <th className="py-3 px-4">ឈ្មោះសិស្ស</th>
-                  <th className="py-3 px-4">បញ្ហាប្រឈម & មុខវិជ្ជា</th>
-                  <th className="py-3 px-4">វិធីសាស្ត្រជួយ & មិត្តជួយមិត្ត</th>
-                  <th className="py-3 px-4 text-center">វឌ្ឍនភាពពិន្ទុ</th>
-                  <th className="py-3 px-4 text-center">ស្ថានភាព</th>
-                  <th className="py-3 px-4 text-center w-36">សកម្មភាព</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
-                {filteredAtRiskStudents.map((item, idx) => {
-                  const studentObj = students.find(s => s.id === item.studentId);
-                  const statusConf = STATUS_LABELS[item.overallStatus];
-                  const scoreGain = (item.currentScore - item.baselineScore).toFixed(1);
-                  const progressPercent = Math.min(
-                    100,
-                    Math.max(
-                      0,
-                      ((item.currentScore - item.baselineScore) / ((item.targetScore - item.baselineScore) || 1)) * 100
-                    )
-                  );
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 text-[11px] font-bold text-slate-600 uppercase tracking-wider border-b border-slate-200">
+                    <th className="py-3 px-4 text-center w-12">ល.រ</th>
+                    <th className="py-3 px-4">ឈ្មោះសិស្ស</th>
+                    <th className="py-3 px-4">បញ្ហាប្រឈម & មុខវិជ្ជា</th>
+                    <th className="py-3 px-4">វិធីសាស្ត្រជួយ & មិត្តជួយមិត្ត</th>
+                    <th className="py-3 px-4 text-center">វឌ្ឍនភាពពិន្ទុ</th>
+                    <th className="py-3 px-4 text-center">ស្ថានភាព</th>
+                    <th className="py-3 px-4 text-center w-36">សកម្មភាព</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {filteredAtRiskStudents.map((item, idx) => {
+                    const studentObj = students.find(s => s.id === item.studentId);
+                    const statusConf = STATUS_LABELS[item.overallStatus];
+                    const scoreGain = (item.currentScore - item.baselineScore).toFixed(1);
+                    const progressPercent = Math.min(
+                      100,
+                      Math.max(
+                        0,
+                        ((item.currentScore - item.baselineScore) / ((item.targetScore - item.baselineScore) || 1)) * 100
+                      )
+                    );
 
-                  return (
-                    <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                      {/* 1. Number */}
-                      <td className="py-3 px-4 text-center font-bold text-slate-500">{idx + 1}</td>
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                        {/* 1. Number */}
+                        <td className="py-3 px-4 text-center font-bold text-slate-500">{idx + 1}</td>
 
-                      {/* 2. Student Info */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-                            {item.studentName ? item.studentName.charAt(0) : 'ស'}
-                          </div>
-                          <div>
-                            <div className="font-bold text-slate-800 flex items-center gap-1.5">
-                              <span>{item.studentName}</span>
-                              <span className={`text-[10px] px-1.5 py-0.2 rounded font-medium ${item.gender === 'female' ? 'bg-pink-50 text-pink-700' : 'bg-blue-50 text-blue-700'}`}>
-                                {item.gender === 'female' ? 'ស្រី' : 'ប្រុស'}
-                              </span>
+                        {/* 2. Student Info */}
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                              {item.studentName ? item.studentName.charAt(0) : 'ស'}
                             </div>
-                            <span className="text-[11px] text-slate-400 font-mono">
-                              {studentObj?.code || 'STU-ID'} • ចុះបញ្ជី៖ {item.enrolledDate}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* 3. Categories & Subjects */}
-                      <td className="py-3 px-4">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-1 flex-wrap">
-                            {item.categories.map(cat => {
-                              const conf = CATEGORY_LABELS[cat];
-                              return (
-                                <span
-                                  key={cat}
-                                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${conf.color} flex items-center gap-1`}
-                                >
-                                  <span>{conf.icon}</span>
-                                  <span>{conf.label}</span>
+                            <div>
+                              <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                                <span>{item.studentName}</span>
+                                <span className={`text-[10px] px-1.5 py-0.2 rounded font-medium ${item.gender === 'female' ? 'bg-pink-50 text-pink-700' : 'bg-blue-50 text-blue-700'}`}>
+                                  {item.gender === 'female' ? 'ស្រី' : 'ប្រុស'}
                                 </span>
-                              );
-                            })}
-                          </div>
-                          <div className="text-[11px] text-slate-600 flex items-center gap-1">
-                            <span className="text-slate-400">មុខវិជ្ជា៖</span>
-                            <span className="font-semibold text-indigo-900">
-                              {item.subjectsNeedingHelp.join(', ')}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* 4. Strategies & Study Buddy */}
-                      <td className="py-3 px-4">
-                        <div className="space-y-1">
-                          {item.assignedBuddyName ? (
-                            <div className="flex items-center gap-1.5 text-xs text-slate-700">
-                              <HeartHandshake className="w-3.5 h-3.5 text-rose-500" />
-                              <span className="text-slate-500 text-[11px]">មិត្តជួយមិត្ត៖</span>
-                              <span className="font-bold text-slate-800 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-100">
-                                {item.assignedBuddyName}
+                              </div>
+                              <span className="text-[11px] text-slate-400 font-mono">
+                                {studentObj?.code || 'STU-ID'} • ចុះបញ្ជី៖ {item.enrolledDate}
                               </span>
                             </div>
-                          ) : (
-                            <span className="text-[11px] text-slate-400 italic">មិនទាន់ចាត់តាំងមិត្តជួយ</span>
-                          )}
+                          </div>
+                        </td>
 
-                          <div className="flex items-center gap-1 flex-wrap pt-0.5">
-                            {item.interventionStrategies.slice(0, 2).map(st => (
-                              <span
-                                key={st}
-                                className="px-1.5 py-0.2 rounded text-[10px] bg-slate-100 text-slate-700 border border-slate-200"
-                              >
-                                {STRATEGY_LABELS[st]?.label}
+                        {/* 3. Categories & Subjects */}
+                        <td className="py-3 px-4">
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {item.categories.map(cat => {
+                                const conf = CATEGORY_LABELS[cat];
+                                return (
+                                  <span
+                                    key={cat}
+                                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${conf.color} flex items-center gap-1`}
+                                  >
+                                    <span>{conf.icon}</span>
+                                    <span>{conf.label}</span>
+                                  </span>
+                                );
+                              })}
+                            </div>
+                            <div className="text-[11px] text-slate-600 flex items-center gap-1">
+                              <span className="text-slate-400">មុខវិជ្ជា៖</span>
+                              <span className="font-semibold text-indigo-900">
+                                {item.subjectsNeedingHelp.join(', ')}
                               </span>
-                            ))}
-                            {item.interventionStrategies.length > 2 && (
-                              <span className="text-[10px] text-slate-400 font-bold">
-                                +{item.interventionStrategies.length - 2}
-                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* 4. Strategies & Study Buddy */}
+                        <td className="py-3 px-4">
+                          <div className="space-y-1">
+                            {item.assignedBuddyName ? (
+                              <div className="flex items-center gap-1.5 text-xs text-slate-700">
+                                <HeartHandshake className="w-3.5 h-3.5 text-rose-500" />
+                                <span className="text-slate-500 text-[11px]">មិត្តជួយមិត្ត៖</span>
+                                <span className="font-bold text-slate-800 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-100">
+                                  {item.assignedBuddyName}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-slate-400 italic">មិនទាន់ចាត់តាំងមិត្តជួយ</span>
                             )}
+
+                            <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                              {item.interventionStrategies.slice(0, 2).map(st => (
+                                <span
+                                  key={st}
+                                  className="px-1.5 py-0.2 rounded text-[10px] bg-slate-100 text-slate-700 border border-slate-200"
+                                >
+                                  {STRATEGY_LABELS[st]?.label}
+                                </span>
+                              ))}
+                              {item.interventionStrategies.length > 2 && (
+                                <span className="text-[10px] text-slate-400 font-bold">
+                                  +{item.interventionStrategies.length - 2}
+                                </span>
+                              )}
+                            </div>
                           </div>
+                        </td>
+
+                        {/* 5. Score Progression */}
+                        <td className="py-3 px-4 text-center">
+                          <div className="inline-block text-center min-w-[130px]">
+                            <div className="flex items-center justify-between text-xs font-bold mb-1">
+                              <span className="text-slate-400 text-[11px]">ដើម {item.baselineScore}</span>
+                              <span className="text-indigo-700 font-black text-sm px-1.5 py-0.2 rounded bg-indigo-50">
+                                {item.currentScore}
+                              </span>
+                              <span className="text-emerald-600 text-[11px]">ដៅ {item.targetScore}</span>
+                            </div>
+
+                            {/* Progress bar */}
+                            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${
+                                  item.overallStatus === 'achieved'
+                                    ? 'bg-emerald-500'
+                                    : item.overallStatus === 'on_track'
+                                    ? 'bg-blue-500'
+                                    : 'bg-amber-500'
+                                }`}
+                                style={{ width: `${Math.max(10, progressPercent)}%` }}
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-between text-[10px] mt-1 text-slate-500">
+                              <span>រីកចម្រើន៖</span>
+                              <span className={`font-bold ${Number(scoreGain) > 0 ? 'text-emerald-600' : 'text-slate-600'}`}>
+                                {Number(scoreGain) > 0 ? `+${scoreGain}` : scoreGain} ពិន្ទុ
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* 6. Overall Status */}
+                        <td className="py-3 px-4 text-center">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border ${statusConf.color}`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                            <span>{statusConf.label}</span>
+                          </span>
+                        </td>
+
+                        {/* 7. Action Buttons */}
+                        <td className="py-3 px-4 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            {/* Log Progress */}
+                            <button
+                              onClick={() => handleOpenLogModal(item)}
+                              className="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors cursor-pointer"
+                              title="កត់ត្រាវឌ្ឍនភាព / វាយតម្លៃថ្មី"
+                            >
+                              <TrendingUp className="w-4 h-4" />
+                            </button>
+
+                            {/* View Detail History */}
+                            <button
+                              onClick={() => {
+                                setSelectedStudentForAction(item);
+                                setIsDetailModalOpen(true);
+                              }}
+                              className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors cursor-pointer"
+                              title="មើលប្រវត្តិវិវត្តន៍លម្អិត"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+
+                            {/* Edit */}
+                            <button
+                              onClick={() => handleOpenEditModal(item)}
+                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                              title="កែប្រែព័ត៌មាន"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Delete */}
+                            <button
+                              onClick={() => {
+                                if (confirm(`តើលោកគ្រូ-អ្នកគ្រូចង់លុបសិស្ស «${item.studentName}» ចេញពីបញ្ជីតាមដានសិស្សខ្សោយមែនទេ?`)) {
+                                  onDeleteAtRiskStudent(item.id);
+                                }
+                              }}
+                              className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors cursor-pointer"
+                              title="លុបចេញ"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View (md:hidden) */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {filteredAtRiskStudents.map((item, idx) => {
+                const studentObj = students.find(s => s.id === item.studentId);
+                const statusConf = STATUS_LABELS[item.overallStatus];
+                const scoreGain = (item.currentScore - item.baselineScore).toFixed(1);
+                const progressPercent = Math.min(
+                  100,
+                  Math.max(
+                    0,
+                    ((item.currentScore - item.baselineScore) / ((item.targetScore - item.baselineScore) || 1)) * 100
+                  )
+                );
+
+                return (
+                  <div key={`mob-at-risk-${item.id}`} className="p-3.5 space-y-3 bg-white hover:bg-slate-50/60 transition-colors">
+                    {/* Header: Student Info & Status */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                          {item.studentName ? item.studentName.charAt(0) : 'ស'}
                         </div>
-                      </td>
-
-                      {/* 5. Score Progression */}
-                      <td className="py-3 px-4 text-center">
-                        <div className="inline-block text-center min-w-[130px]">
-                          <div className="flex items-center justify-between text-xs font-bold mb-1">
-                            <span className="text-slate-400 text-[11px]">ដើម {item.baselineScore}</span>
-                            <span className="text-indigo-700 font-black text-sm px-1.5 py-0.2 rounded bg-indigo-50">
-                              {item.currentScore}
-                            </span>
-                            <span className="text-emerald-600 text-[11px]">ដៅ {item.targetScore}</span>
-                          </div>
-
-                          {/* Progress bar */}
-                          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all ${
-                                item.overallStatus === 'achieved'
-                                  ? 'bg-emerald-500'
-                                  : item.overallStatus === 'on_track'
-                                  ? 'bg-blue-500'
-                                  : 'bg-amber-500'
-                              }`}
-                              style={{ width: `${Math.max(10, progressPercent)}%` }}
-                            />
-                          </div>
-
-                          <div className="flex items-center justify-between text-[10px] mt-1 text-slate-500">
-                            <span>រីកចម្រើន៖</span>
-                            <span className={`font-bold ${Number(scoreGain) > 0 ? 'text-emerald-600' : 'text-slate-600'}`}>
-                              {Number(scoreGain) > 0 ? `+${scoreGain}` : scoreGain} ពិន្ទុ
+                        <div>
+                          <div className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                            <span>{item.studentName}</span>
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded font-medium ${item.gender === 'female' ? 'bg-pink-50 text-pink-700' : 'bg-blue-50 text-blue-700'}`}>
+                              {item.gender === 'female' ? 'ស្រី' : 'ប្រុស'}
                             </span>
                           </div>
+                          <span className="text-[11px] text-slate-400 font-mono">
+                            {studentObj?.code || 'STU-ID'} • ចុះបញ្ជី៖ {item.enrolledDate}
+                          </span>
                         </div>
-                      </td>
+                      </div>
 
-                      {/* 6. Overall Status */}
-                      <td className="py-3 px-4 text-center">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border ${statusConf.color}`}>
-                          <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                          <span>{statusConf.label}</span>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${statusConf.color}`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                        <span>{statusConf.label}</span>
+                      </span>
+                    </div>
+
+                    {/* Problem Categories & Subjects */}
+                    <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {item.categories.map(cat => {
+                          const conf = CATEGORY_LABELS[cat];
+                          return (
+                            <span
+                              key={cat}
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${conf.color} flex items-center gap-1`}
+                            >
+                              <span>{conf.icon}</span>
+                              <span>{conf.label}</span>
+                            </span>
+                          );
+                        })}
+                      </div>
+                      <div className="text-[11px] text-slate-600 flex items-center gap-1 pt-0.5">
+                        <span className="text-slate-400">មុខវិជ្ជា៖</span>
+                        <span className="font-semibold text-indigo-900">
+                          {item.subjectsNeedingHelp.join(', ')}
                         </span>
-                      </td>
+                      </div>
+                    </div>
 
-                      {/* 7. Action Buttons */}
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          {/* Log Progress */}
-                          <button
-                            onClick={() => handleOpenLogModal(item)}
-                            className="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors cursor-pointer"
-                            title="កត់ត្រាវឌ្ឍនភាព / វាយតម្លៃថ្មី"
-                          >
-                            <TrendingUp className="w-4 h-4" />
-                          </button>
-
-                          {/* View Detail History */}
-                          <button
-                            onClick={() => {
-                              setSelectedStudentForAction(item);
-                              setIsDetailModalOpen(true);
-                            }}
-                            className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors cursor-pointer"
-                            title="មើលប្រវត្តិវិវត្តន៍លម្អិត"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-
-                          {/* Edit */}
-                          <button
-                            onClick={() => handleOpenEditModal(item)}
-                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
-                            title="កែប្រែព័ត៌មាន"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-
-                          {/* Delete */}
-                          <button
-                            onClick={() => {
-                              if (confirm(`តើលោកគ្រូ-អ្នកគ្រូចង់លុបសិស្ស «${item.studentName}» ចេញពីបញ្ជីតាមដានសិស្សខ្សោយមែនទេ?`)) {
-                                onDeleteAtRiskStudent(item.id);
-                              }
-                            }}
-                            className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors cursor-pointer"
-                            title="លុបចេញ"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                    {/* Support Strategy & Study Buddy */}
+                    <div className="flex items-center justify-between text-xs text-slate-700 bg-amber-50/40 p-2 rounded-lg border border-amber-100/60">
+                      {item.assignedBuddyName ? (
+                        <div className="flex items-center gap-1.5">
+                          <HeartHandshake className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                          <span className="text-slate-500 text-[11px]">មិត្តជួយ៖</span>
+                          <span className="font-bold text-slate-800 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-100 text-xs">
+                            {item.assignedBuddyName}
+                          </span>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 italic">មិនទាន់ចាត់តាំងមិត្តជួយ</span>
+                      )}
+
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {item.interventionStrategies.slice(0, 2).map(st => (
+                          <span
+                            key={st}
+                            className="px-1.5 py-0.2 rounded text-[10px] bg-slate-100 text-slate-700 border border-slate-200"
+                          >
+                            {STRATEGY_LABELS[st]?.label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Score Progression */}
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-bold">
+                        <span className="text-slate-400 text-[11px]">ដើម {item.baselineScore}</span>
+                        <span className="text-indigo-700 font-black text-sm px-2 py-0.5 rounded bg-indigo-50 border border-indigo-100">
+                          បច្ចុប្បន្ន៖ {item.currentScore}
+                        </span>
+                        <span className="text-emerald-600 text-[11px]">ដៅ {item.targetScore}</span>
+                      </div>
+
+                      <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            item.overallStatus === 'achieved'
+                              ? 'bg-emerald-500'
+                              : item.overallStatus === 'on_track'
+                              ? 'bg-blue-500'
+                              : 'bg-amber-500'
+                          }`}
+                          style={{ width: `${Math.max(10, progressPercent)}%` }}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
+                        <span>វឌ្ឍនភាព៖</span>
+                        <span className={`font-bold ${Number(scoreGain) > 0 ? 'text-emerald-600' : 'text-slate-600'}`}>
+                          {Number(scoreGain) > 0 ? `+${scoreGain}` : scoreGain} ពិន្ទុ
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenLogModal(item)}
+                        className="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        <TrendingUp className="w-3.5 h-3.5" />
+                        <span>កត់ត្រា</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedStudentForAction(item);
+                          setIsDetailModalOpen(true);
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>ប្រវត្តិ</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditModal(item)}
+                        className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>កែ</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`តើលោកគ្រូ-អ្នកគ្រូចង់លុបសិស្ស «${item.studentName}» ចេញពីបញ្ជីតាមដានសិស្សខ្សោយមែនទេ?`)) {
+                            onDeleteAtRiskStudent(item.id);
+                          }
+                        }}
+                        className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors cursor-pointer"
+                        title="លុបចេញ"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
@@ -1321,7 +1496,7 @@ export const AtRiskStudentsTab: React.FC<AtRiskStudentsTabProps> = ({
               {/* Class Info Box */}
               <div className="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
                 <p><strong>សាលាបឋមសិក្សា៖</strong> ភ្នំពុំ</p>
-                <p><strong>គ្រូបន្ទុកថ្នាក់៖</strong> {currentTeacher?.nameKhmer || 'លោក ចាន់ វុទ្ធី'}</p>
+                <p><strong>គ្រូបន្ទុកថ្នាក់៖</strong> {currentTeacher?.nameKhmer || '—'}</p>
                 <p><strong>សិស្សក្នុងបញ្ជីបំប៉នសរុប៖</strong> {classAtRiskStudents.length} នាក់</p>
                 <p><strong>កាលបរិច្ឆេទរបាយការណ៍៖</strong> {new Date().toLocaleDateString('km-KH')}</p>
               </div>
@@ -1384,7 +1559,7 @@ export const AtRiskStudentsTab: React.FC<AtRiskStudentsTabProps> = ({
                   <p className="font-bold">ថ្ងៃទី.......ខែ.......ឆ្នាំ២០២...</p>
                   <p className="text-slate-500 text-[11px]">គ្រូបន្ទុកថ្នាក់</p>
                   <div className="h-16"></div>
-                  <p className="font-bold font-moul">{currentTeacher?.nameKhmer || 'លោក ចាន់ វុទ្ធី'}</p>
+                  <p className="font-bold font-moul">{currentTeacher?.nameKhmer || '—'}</p>
                 </div>
               </div>
             </div>

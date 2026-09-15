@@ -1653,26 +1653,26 @@ export const OfficialDocumentCenter: React.FC = () => {
                       <tr>
                         <td className="border border-slate-300 p-2 text-center font-bold">១</td>
                         <td className="border border-slate-300 p-2 font-bold text-blue-950">ប្រធានថ្នាក់ (Class Leader)</td>
-                        <td className="border border-slate-300 p-2 font-semibold">{currentClassStudents[0]?.nameKhmer || 'សុខ វិបុល'}</td>
-                        <td className="border border-slate-300 p-2 text-center">ប្រុស</td>
+                        <td className="border border-slate-300 p-2 font-semibold">{currentClassStudents[0]?.nameKhmer || '-'}</td>
+                        <td className="border border-slate-300 p-2 text-center">{currentClassStudents[0]?.gender === 'F' ? 'ស្រី' : currentClassStudents[0] ? 'ប្រុស' : '-'}</td>
                       </tr>
                       <tr>
                         <td className="border border-slate-300 p-2 text-center font-bold">២</td>
                         <td className="border border-slate-300 p-2 font-bold text-blue-950">អនុប្រធានថ្នាក់ទទួលបន្ទុកសិក្សា</td>
-                        <td className="border border-slate-300 p-2 font-semibold">{currentClassStudents[1]?.nameKhmer || 'ចាន់ រស្មី'}</td>
-                        <td className="border border-slate-300 p-2 text-center">ស្រី</td>
+                        <td className="border border-slate-300 p-2 font-semibold">{currentClassStudents[1]?.nameKhmer || '-'}</td>
+                        <td className="border border-slate-300 p-2 text-center">{currentClassStudents[1]?.gender === 'F' ? 'ស្រី' : currentClassStudents[1] ? 'ប្រុស' : '-'}</td>
                       </tr>
                       <tr>
                         <td className="border border-slate-300 p-2 text-center font-bold">៣</td>
                         <td className="border border-slate-300 p-2 font-bold text-blue-950">អនុប្រធានទទួលបន្ទុកអនាម័យ & បរិស្ថាន</td>
-                        <td className="border border-slate-300 p-2 font-semibold">{currentClassStudents[2]?.nameKhmer || 'ហេង ពិសិដ្ឋ'}</td>
-                        <td className="border border-slate-300 p-2 text-center">ប្រុស</td>
+                        <td className="border border-slate-300 p-2 font-semibold">{currentClassStudents[2]?.nameKhmer || '-'}</td>
+                        <td className="border border-slate-300 p-2 text-center">{currentClassStudents[2]?.gender === 'F' ? 'ស្រី' : currentClassStudents[2] ? 'ប្រុស' : '-'}</td>
                       </tr>
                       <tr>
                         <td className="border border-slate-300 p-2 text-center font-bold">៤</td>
                         <td className="border border-slate-300 p-2 font-bold text-blue-950">ប្រធានផ្នែកវិន័យ និងសណ្តាប់ធ្នាប់</td>
-                        <td className="border border-slate-300 p-2 font-semibold">{currentClassStudents[3]?.nameKhmer || 'កែវ មុន្នី'}</td>
-                        <td className="border border-slate-300 p-2 text-center">ស្រី</td>
+                        <td className="border border-slate-300 p-2 font-semibold">{currentClassStudents[3]?.nameKhmer || '-'}</td>
+                        <td className="border border-slate-300 p-2 text-center">{currentClassStudents[3]?.gender === 'F' ? 'ស្រី' : currentClassStudents[3] ? 'ប្រុស' : '-'}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -1788,7 +1788,7 @@ export const OfficialDocumentCenter: React.FC = () => {
                   <p className="font-moul text-xs text-red-600 font-bold pt-1">
                     {selectedDoc.includes('parent')
                       ? (selectedStudent?.guardianName || selectedStudent?.fatherName || 'អាណាព្យាបាល')
-                      : (schoolProfile.principalName || 'ស៊ុន ពិសិដ្ឋ')}
+                      : (schoolProfile.principalName || 'លោក លីម សន')}
                   </p>
                 </div>
 
@@ -1798,7 +1798,7 @@ export const OfficialDocumentCenter: React.FC = () => {
                     {customFields.dateKhmer || getKhmerLunarDate()}
                   </p>
                   <p className="text-xs text-blue-900 font-medium">
-                    {getKhmerSolarDate(new Date(), schoolProfile.district || schoolProfile.addressKhmer || 'ភ្នំពេញ')}
+                    {getKhmerSolarDate(new Date(), schoolProfile.district || schoolProfile.addressKhmer || 'ភ្នំពុំ')}
                   </p>
                   <p className="font-moul text-blue-700 text-xs font-bold mt-1">
                     {selectedDoc === 'teacher_duty_appointment' ? 'សាមីខ្លួនទទួលភារកិច្ច' : 'គ្រូបន្ទុកថ្នាក់'}
@@ -1811,7 +1811,7 @@ export const OfficialDocumentCenter: React.FC = () => {
 
                   {printSettings.showDirectorSignature && (
                     <p className="font-moul text-xs text-blue-700 font-bold pt-1">
-                      {teachers.find(t => t.id === selectedTeacherId)?.nameKhmer || 'សែម ស្រីភឿន'}
+                      {teachers.find(t => t.id === selectedTeacherId)?.nameKhmer || ''}
                     </p>
                   )}
                 </div>

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ParentMeeting, ParentRepresentative } from '../../types';
+import { useSchool } from '../../context/SchoolContext';
 import {
   Users,
   Calendar,
@@ -37,9 +38,28 @@ export const ParentMeetingsTab: React.FC<ParentMeetingsTabProps> = ({
   onDeleteMeeting,
   onOpenClassCommitteePrint
 }) => {
+  const { students, currentTeacher } = useSchool();
   const [selectedMeeting, setSelectedMeeting] = useState<ParentMeeting | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+
+  // Students of this class
+  const classStudents = useMemo(() => {
+    return students.filter(s => s.grade === selectedGrade && s.section === selectedSection);
+  }, [students, selectedGrade, selectedSection]);
+
+  // Derive dynamic parent committee from actual student guardians in this class
+  const committeeMembers = useMemo(() => {
+    const withGuardians = classStudents.filter(s => s.guardianName && s.guardianName.trim() !== '');
+    if (withGuardians.length === 0) return [];
+    const roles = ['ប្រធានគណៈកម្មការ', 'អនុប្រធានគណៈកម្មការ', 'បេឡាធិកា'];
+    return withGuardians.slice(0, 3).map((stu, idx) => ({
+      role: roles[idx] || 'សមាជិក',
+      name: stu.guardianName,
+      child: `អាណាព្យាបាល ${stu.nameKhmer}`,
+      phone: stu.guardianPhone || '—'
+    }));
+  }, [classStudents]);
 
   // Filter meetings for current class
   const classMeetings = parentMeetings.filter(
@@ -69,32 +89,18 @@ export const ParentMeetingsTab: React.FC<ParentMeetingsTabProps> = ({
       location,
       agenda: agendas.split('\n').filter(Boolean),
       attendeesCount: Number(attendeesCount),
-      totalParentsInClass: 30,
+      totalParentsInClass: classStudents.length || 30,
       resolutions: resolutions ? resolutions.split('\n').filter(Boolean) : [
         'មាតាបិតាឯកភាពជួយតាមដានកិច្ចការផ្ទះកូនរៀងរាល់ល្ងាច',
         'គាំទ្រការរៀបចំតុសិក្សាជាក្រុម និងជួយជួសជុលកង្ហារបន្ទប់រៀន'
       ],
       minutesNotes: 'កិច្ចប្រជុំបានប្រព្រឹត្តទៅដោយរលូន និងទទួលបានការគាំទ្រយ៉ាងកក់ក្តៅពីសំណាក់មាតាបិតាសិស្ស។',
-      parentCommittee: [
-        {
-          parentName: 'លោក សុខ គង់',
-          studentName: 'សុខ វិបុល',
-          role: 'ប្រធានគណៈកម្មការទ្រទ្រង់ថ្នាក់',
-          phone: '012 334 455'
-        },
-        {
-          parentName: 'អ្នកស្រី កែវ ស៊ីណា',
-          studentName: 'ចាន់ រស្មី',
-          role: 'អនុប្រធានគណៈកម្មការ',
-          phone: '098 776 554'
-        },
-        {
-          parentName: 'លោក ហេង ម៉ៅ',
-          studentName: 'ហេង ពិសិដ្ឋ',
-          role: 'បេឡាធិកា',
-          phone: '088 554 332'
-        }
-      ]
+      parentCommittee: committeeMembers.map(m => ({
+        parentName: m.name,
+        studentName: m.child.replace('អាណាព្យាបាល ', ''),
+        role: m.role,
+        phone: m.phone
+      }))
     });
 
     setShowCreateModal(false);
@@ -148,25 +154,27 @@ export const ParentMeetingsTab: React.FC<ParentMeetingsTabProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {[
-            { role: 'ប្រធានគណៈកម្មការ', name: 'លោក សុខ គង់', child: 'អាណាព្យាបាល សុខ វិបុល', phone: '012 334 455' },
-            { role: 'អនុប្រធានគណៈកម្មការ', name: 'អ្នកស្រី កែវ ស៊ីណា', child: 'អាណាព្យាបាល ចាន់ រស្មី', phone: '098 776 554' },
-            { role: 'បេឡាធិកា', name: 'លោក ហេង ម៉ៅ', child: 'អាណាព្យាបាល ហេង ពិសិដ្ឋ', phone: '088 554 332' }
-          ].map((rep, idx) => (
-            <div key={idx} className="bg-white rounded-lg p-3 border border-slate-200 shadow-xs text-xs space-y-1">
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">
-                {rep.role}
-              </span>
-              <p className="font-bold text-slate-800 pt-1 text-sm">{rep.name}</p>
-              <p className="text-slate-500">{rep.child}</p>
-              <p className="text-blue-700 font-times font-semibold flex items-center gap-1 pt-0.5">
-                <Phone className="w-3 h-3 text-blue-500" />
-                {rep.phone}
-              </p>
-            </div>
-          ))}
-        </div>
+        {committeeMembers.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {committeeMembers.map((rep, idx) => (
+              <div key={idx} className="bg-white rounded-lg p-3 border border-slate-200 shadow-xs text-xs space-y-1">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">
+                  {rep.role}
+                </span>
+                <p className="font-bold text-slate-800 pt-1 text-sm">{rep.name}</p>
+                <p className="text-slate-500">{rep.child}</p>
+                <p className="text-blue-700 font-times font-semibold flex items-center gap-1 pt-0.5">
+                  <Phone className="w-3 h-3 text-blue-500" />
+                  {rep.phone}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-3 bg-white/70 rounded-lg text-xs text-slate-500 text-center">
+            មិនទាន់មានទិន្នន័យគណៈកម្មការគ្រប់គ្រងថ្នាក់រៀននៅឡើយទេ (ព័ត៌មាននឹងបង្ហាញដោយស្វ័យប្រវត្តិតាមរយៈអាណាព្យាបាលសិស្សក្នុងថ្នាក់នេះ)
+          </div>
+        )}
       </div>
 
       {/* Meetings History & Minutes */}
@@ -301,7 +309,7 @@ export const ParentMeetingsTab: React.FC<ParentMeetingsTabProps> = ({
                 <div>
                   <p className="font-bold">គ្រូបន្ទុកថ្នាក់</p>
                   <div className="h-12"></div>
-                  <p className="font-bold font-moul">លោក ចាន់ វុទ្ធី</p>
+                  <p className="font-bold font-moul">{currentTeacher?.nameKhmer || '—'}</p>
                 </div>
               </div>
             </div>
