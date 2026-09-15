@@ -7,6 +7,7 @@ import {
   BudgetTransaction,
   DailyAttendanceRecord,
   AcademicCalendarEvent,
+  SystemNotification,
   ExamSubject,
   StudentTransferRecord,
   ProfileEditRequest,
@@ -114,7 +115,38 @@ export const initialBudgetTransactions: BudgetTransaction[] = [];
 
 export const initialAttendanceRecords: DailyAttendanceRecord[] = [];
 
-export const initialCalendarEvents: AcademicCalendarEvent[] = [];
+export const initialCalendarEvents: AcademicCalendarEvent[] = [
+  {
+    id: 'evt-exam-sem1',
+    titleKhmer: 'ការប្រឡងបញ្ចប់ឆមាសទី១ (Semester 1 Exam)',
+    startDate: '2026-03-25',
+    endDate: '2026-03-28',
+    type: 'exam',
+    description: 'ការប្រឡងវាស់ស្ទង់សមត្ថភាពសិស្សប្រចាំឆមាសទី១ គ្រប់កម្រិតថ្នាក់',
+    targetGrades: 'ថ្នាក់ទី១ ដល់ ទី៦',
+    location: 'សាលាបឋមសិក្សាភ្នំព្រឹក'
+  },
+  {
+    id: 'evt-tech-meeting',
+    titleKhmer: 'កិច្ចប្រជុំបច្ចេកទេសគរុកោសល្យប្រចាំខែ',
+    startDate: '2026-03-15',
+    endDate: '2026-03-15',
+    type: 'meeting',
+    description: 'កិច្ចប្រជុំពិភាក្សាវិធីសាស្ត្របង្រៀន និងការតាមដានសិស្សរៀនយឺត',
+    targetGrades: 'លោកគ្រូ-អ្នកគ្រូទាំងអស់',
+    location: 'បន្ទប់ប្រជុំធំ'
+  },
+  {
+    id: 'evt-reading-day',
+    titleKhmer: 'ទិវាជាតិអំណាន ១១ មីនា (National Reading Day)',
+    startDate: '2026-03-11',
+    endDate: '2026-03-11',
+    type: 'academic',
+    description: 'កម្មវិធីប្រកួតប្រជែងការអាន និងការតែងនិពន្ធសិស្សបឋមសិក្សា',
+    targetGrades: 'ថ្នាក់ទី១ ដល់ ទី៦',
+    location: 'បណ្ណាល័យសាលា'
+  }
+];
 
 export const initialUsers = [
   {
@@ -136,7 +168,51 @@ export const initialDeletedUsers: any[] = [];
 
 export const initialAccountAuditLogs: any[] = [];
 
-export const initialNotifications: any[] = [];
+export const initialNotifications: SystemNotification[] = [
+  {
+    id: 'notif-score-deadline-current',
+    title: '⏰ រំលឹកកាលបរិច្ឆេទបញ្ចូលពិន្ទុប្រចាំខែ',
+    message: 'សូមលោកគ្រូ-អ្នកគ្រូបន្ទុកថ្នាក់ទាំងអស់ រួសរាន់បញ្ចូល និងត្រួតពិនិត្យពិន្ទុសិស្សសម្រាប់ខែនេះឱ្យបានមុនថ្ងៃកំណត់ ដើម្បីរៀបចំចំណាត់ថ្នាក់សិស្ស និងចេញព្រឹត្តិបត្រពិន្ទុ។',
+    timestamp: new Date().toISOString(),
+    type: 'score_deadline',
+    targetRole: 'all',
+    read: false,
+    priority: 'urgent',
+    deadlineDate: '2026-03-31',
+    actionTab: 'scores',
+    meta: {
+      monthOrSemester: 'មីនា',
+      eventDate: '2026-03-31'
+    }
+  },
+  {
+    id: 'notif-event-exam-sem1',
+    title: '📅 កម្មវិធីសាលា៖ ការប្រឡងបញ្ចប់ឆមាសទី១',
+    message: 'ការប្រឡងវាស់ស្ទង់សមត្ថភាពសិស្សប្រចាំឆមាសទី១ នឹងចាប់ផ្តើមពីថ្ងៃទី ២៥ ដល់ ២៨ មីនា ២០២៦ នៅសាលាបឋមសិក្សាភ្នំព្រឹក។ សូមលោកគ្រូអ្នកគ្រូរៀបចំវិញ្ញាសា និងបញ្ជីឈ្មោះសិស្ស។',
+    timestamp: new Date().toISOString(),
+    type: 'school_event',
+    targetRole: 'all',
+    read: false,
+    priority: 'high',
+    deadlineDate: '2026-03-25',
+    actionTab: 'calendar',
+    meta: {
+      eventDate: '2026-03-25',
+      location: 'សាលាបឋមសិក្សាភ្នំព្រឹក'
+    }
+  },
+  {
+    id: 'notif-cloud-sync-status',
+    title: '☁️ ស្ថានភាពសមកាលកម្មទិន្នន័យ (Cloud Firestore)',
+    message: 'ទិន្នន័យគ្រប់គ្រងសាលារៀនទាំងអស់ត្រូវបានការពារ និងតភ្ជាប់ជាមួយ Cloud Firestore។ សូមចុចប៊ូតុង Sync ឬ Drive ជាប្រចាំដើម្បីការពារទិន្នន័យ។',
+    timestamp: new Date().toISOString(),
+    type: 'system',
+    targetRole: 'all',
+    read: false,
+    priority: 'normal',
+    actionTab: 'dashboard'
+  }
+];
 
 export const initialTransfers: StudentTransferRecord[] = [];
 

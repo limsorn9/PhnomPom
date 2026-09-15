@@ -54,6 +54,8 @@ import {
   Lock,
   Check,
   Plus,
+  RefreshCw,
+  Database,
   X
 } from 'lucide-react';
 import { NotificationsModal } from './NotificationsModal';
@@ -92,6 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
     setSearchQuery,
     schoolProfile,
     toastMessage,
+    showToast,
     currentUser,
     teachers,
     switchToTeacherAccount,
@@ -123,6 +126,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [showMobileSyncModal, setShowMobileSyncModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAcademicYearModal, setShowAcademicYearModal] = useState(false);
   const [modalSelectedYear, setModalSelectedYear] = useState(selectedAcademicYear);
@@ -403,24 +408,24 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Main Top Bar Controls */}
-      <div className="px-3 sm:px-6 py-2.5 flex items-center justify-between gap-x-4 gap-y-2 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors flex-wrap">
+      <div className="px-2.5 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-1.5 sm:gap-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors">
         {/* Left Side: Mobile Menu Button & Active Tab Breadcrumb */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-1">
           <button
             id="mobile-sidebar-toggle-btn"
             onClick={onToggleMobileSidebar}
-            className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors flex-shrink-0"
+            className="lg:hidden w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors shrink-0 cursor-pointer"
             aria-label={language === 'en' ? 'Open Sidebar Menu' : 'បើកម៉ឺនុយចំហៀង'}
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
 
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0 hidden sm:flex border border-blue-100 dark:border-blue-900/40">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 hidden sm:flex border border-blue-100 dark:border-blue-900/40">
               <CurrentIcon className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate font-moul leading-tight">
+              <h2 className="text-[11px] sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate font-moul leading-tight">
                 {currentTabInfo.title}
               </h2>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate hidden xl:block">
@@ -430,19 +435,19 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Right Side: Quick Search, Role Switcher, Notifications & Auth Profile */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0 flex-wrap justify-end">
+        {/* Desktop-Only Utilities (Search, Sync badges, Language, Theme, Font Size) */}
+        <div className="hidden md:flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Visual Inactivity Timeout Warning & Countdown Timer */}
           <div className="hidden xl:block">
             <InactivityTimeoutCountdown />
           </div>
 
           {/* Global Search Input & Quick Spotlight Search Trigger */}
-          <div className="relative hidden md:block w-36 lg:w-48">
+          <div className="relative hidden md:block w-36 lg:w-44">
             <button
               type="button"
               onClick={onOpenSpotlightSearch}
-              className="w-full flex items-center justify-between pl-7 pr-2 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/70 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 dark:text-slate-400 transition-all text-left group shadow-2xs"
+              className="w-full flex items-center justify-between pl-7 pr-2 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/70 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 dark:text-slate-400 transition-all text-left group shadow-2xs cursor-pointer"
               title="ស្វែងរកសិស្ស និងគ្រូ (Ctrl+K)"
             >
               <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 absolute left-2.5 top-1/2 -translate-y-1/2 transition-colors" />
@@ -458,63 +463,59 @@ export const Header: React.FC<HeaderProps> = ({
             <OfflineSyncStatusBadge />
           </div>
 
-          {true && (
-            <>
-              {/* Firebase Cloud Firestore Real-time Sync Status Indicator */}
-              <button
-                type="button"
-                onClick={() => syncAllToCloud()}
-                disabled={isCloudSyncing}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 border rounded-xl text-xs font-bold transition-all shadow-2xs ${
-                  isCloudSyncing
-                    ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 text-amber-800 dark:text-amber-300 animate-pulse'
-                    : 'bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/50 border-teal-200 dark:border-teal-800/60 text-teal-900 dark:text-teal-200'
-                }`}
-                title={
-                  lastCloudSyncTime
-                    ? `Cloud Firestore ភ្ជាប់ជាប់លាប់! ធ្វើសមកាលកម្មចុងក្រោយ៖ ${new Date(lastCloudSyncTime).toLocaleTimeString('km-KH')}`
-                    : 'ចុចដើម្បី Sync ទិន្នន័យឡើង Cloud Firestore ឥឡូវនេះ'
-                }
-              >
-                <div className={`w-2 h-2 rounded-full ${isCloudSyncing ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'}`} />
-                <Cloud className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin text-amber-600' : 'text-teal-700 dark:text-teal-400'}`} />
-                <span className="inline">
-                  {isCloudSyncing ? 'Syncing...' : 'Cloud Online'}
-                </span>
-              </button>
+          {/* Firebase Cloud Firestore Real-time Sync Status Indicator */}
+          <button
+            type="button"
+            onClick={() => syncAllToCloud()}
+            disabled={isCloudSyncing}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 border rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer ${
+              isCloudSyncing
+                ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 text-amber-800 dark:text-amber-300 animate-pulse'
+                : 'bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/50 border-teal-200 dark:border-teal-800/60 text-teal-900 dark:text-teal-200'
+            }`}
+            title={
+              lastCloudSyncTime
+                ? `Cloud Firestore ភ្ជាប់ជាប់លាប់! ធ្វើសមកាលកម្មចុងក្រោយ៖ ${new Date(lastCloudSyncTime).toLocaleTimeString('km-KH')}`
+                : 'ចុចដើម្បី Sync ទិន្នន័យឡើង Cloud Firestore ឥឡូវនេះ'
+            }
+          >
+            <div className={`w-2 h-2 rounded-full ${isCloudSyncing ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'}`} />
+            <Cloud className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin text-amber-600' : 'text-teal-700 dark:text-teal-400'}`} />
+            <span className="inline">
+              {isCloudSyncing ? 'Syncing...' : 'Cloud Online'}
+            </span>
+          </button>
 
-              {/* Google Drive Cloud Sync Quick Button */}
-              {onOpenDriveSync && (
-                <button
-                  type="button"
-                  onClick={onOpenDriveSync}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 border text-xs font-bold rounded-xl transition-all shadow-2xs cursor-pointer ${
-                    googleUser
-                      ? 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300'
-                      : 'bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300'
-                  }`}
-                  title={googleUser ? `Google Drive ភ្ជាប់រួច (${googleUser.email}) - ចុចដើម្បី Sync/Backup/Restore` : 'ភ្ជាប់ជាមួយ Google Drive API ដើម្បី Backup/Sync ទិន្នន័យអនឡាញ'}
-                >
-                  <HardDrive className={`w-3.5 h-3.5 ${googleUser ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`} />
-                  <span className="hidden sm:inline">Drive Sync</span>
-                  <span className="sm:hidden">Drive</span>
-                  {googleUser && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
-                </button>
-              )}
+          {/* Google Drive Cloud Sync Quick Button */}
+          {onOpenDriveSync && (
+            <button
+              type="button"
+              onClick={onOpenDriveSync}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 border text-xs font-bold rounded-xl transition-all shadow-2xs cursor-pointer ${
+                googleUser
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300'
+                  : 'bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300'
+              }`}
+              title={googleUser ? `Google Drive ភ្ជាប់រួច (${googleUser.email}) - ចុចដើម្បី Sync/Backup/Restore` : 'ភ្ជាប់ជាមួយ Google Drive API ដើម្បី Backup/Sync ទិន្នន័យអនឡាញ'}
+            >
+              <HardDrive className={`w-3.5 h-3.5 ${googleUser ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`} />
+              <span className="hidden lg:inline">Drive Sync</span>
+              <span className="lg:hidden">Drive</span>
+              {googleUser && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+            </button>
+          )}
 
-              {/* Bulk Import/Export Hub Button */}
-              {onOpenBulkImport && (
-                <button
-                  type="button"
-                  onClick={onOpenBulkImport}
-                  className="hidden 2xl:flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800/60 text-indigo-800 dark:text-indigo-300 text-xs font-bold rounded-xl transition-all"
-                  title={language === 'en' ? 'Bulk Data CSV / Excel Import & Export Hub' : 'នាំចូល និងនាំចេញទិន្នន័យធំ (Bulk Data CSV / Excel)'}
-                >
-                  <FileSpreadsheetIcon className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                  <span>Bulk</span>
-                </button>
-              )}
-            </>
+          {/* Bulk Import/Export Hub Button */}
+          {onOpenBulkImport && (
+            <button
+              type="button"
+              onClick={onOpenBulkImport}
+              className="hidden 2xl:flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800/60 text-indigo-800 dark:text-indigo-300 text-xs font-bold rounded-xl transition-all cursor-pointer"
+              title={language === 'en' ? 'Bulk Data CSV / Excel Import & Export Hub' : 'នាំចូល និងនាំចេញទិន្នន័យធំ (Bulk Data CSV / Excel)'}
+            >
+              <FileSpreadsheetIcon className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span>Bulk</span>
+            </button>
           )}
 
           {/* Standalone HTML Exporter Button */}
@@ -522,7 +523,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={onExportStandaloneHtml}
-              className="hidden 2xl:flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800/60 text-blue-800 dark:text-blue-300 text-xs font-bold rounded-xl transition-all"
+              className="hidden 2xl:flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800/60 text-blue-800 dark:text-blue-300 text-xs font-bold rounded-xl transition-all cursor-pointer"
               title={language === 'en' ? 'Download Standalone Single-File HTML' : 'ទាញយកជា Single-File HTML Standalone'}
             >
               <FileCode2 className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />
@@ -534,7 +535,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={() => setLanguage(language === 'km' ? 'en' : 'km')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 shadow-xs active:scale-95"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all border border-slate-200 dark:border-slate-700 shadow-xs active:scale-95 cursor-pointer"
             title={language === 'km' ? 'ប្តូរទៅភាសាអង់គ្លេស' : 'Switch to Khmer'}
           >
             <Globe className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
@@ -552,36 +553,201 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center px-0.5">
             <FontSizeAdjuster />
           </div>
+        </div>
 
+        {/* ALWAYS VISIBLE CONTROLS ON TOP-RIGHT (Notifications, Settings, Profile) */}
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Notifications Bell */}
           <button
             type="button"
             onClick={() => setShowNotifModal(true)}
-            className="relative p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors border border-slate-200 dark:border-slate-700 shadow-xs active:scale-95"
+            className="relative w-8 h-8 sm:w-auto sm:h-auto p-1.5 sm:p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors border border-slate-200 dark:border-slate-700 shadow-2xs active:scale-95 cursor-pointer flex items-center justify-center"
             title={language === 'en' ? 'System Notifications' : 'សារដំណឹងប្រព័ន្ធ'}
           >
             <Bell className="w-4 h-4" />
             {unreadNotifCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+              <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 px-0.5 rounded-full bg-rose-600 text-white text-[8px] sm:text-[9px] font-bold flex items-center justify-center ring-1.5 ring-white dark:ring-slate-900 animate-pulse">
                 {unreadNotifCount}
               </span>
             )}
           </button>
 
-          {/* Role Switcher & User Profile Menu */}
+          {/* Quick Settings Button & Dropdown (Always visible on Top Right for Mobile & Desktop) */}
           <div className="relative">
             <button
+              id="top-settings-btn"
               type="button"
-              onClick={() => setShowRoleMenu(!showRoleMenu)}
-              className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              onClick={() => {
+                setShowSettingsMenu(!showSettingsMenu);
+                setShowRoleMenu(false);
+              }}
+              className={`flex items-center justify-center gap-1.5 w-8 h-8 sm:w-auto sm:h-auto p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl transition-all border shadow-2xs active:scale-95 cursor-pointer ${
+                showSettingsMenu
+                  ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'
+                  : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+              }`}
+              title={language === 'en' ? 'Settings' : 'ការកំណត់ (Settings)'}
+              aria-label="Settings"
             >
-              <div className="w-7 h-7 rounded-lg bg-blue-700 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 overflow-hidden">
-                {currentUser?.avatarUrl ? (
-                  <img src={currentUser.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  currentUser?.nameKhmer ? currentUser.nameKhmer.charAt(0) : 'U'
-                )}
+              <Settings className={`w-4 h-4 text-blue-600 dark:text-blue-400 transition-transform duration-300 ${showSettingsMenu ? 'rotate-90' : ''}`} />
+              <span className="hidden sm:inline text-xs font-bold">{language === 'en' ? 'Settings' : 'កំណត់'}</span>
+            </button>
+
+            {/* Quick Settings Dropdown */}
+            {showSettingsMenu && (
+              <div className="absolute right-0 mt-2 w-64 sm:w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-50 animate-in fade-in zoom-in duration-100 font-battambang">
+                <div className="p-2 border-b border-slate-100 dark:border-slate-800 text-xs">
+                  <p className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                    <Settings className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span>{language === 'en' ? 'Settings & Preferences' : 'ការកំណត់ប្រព័ន្ធ'}</span>
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    {language === 'en' ? 'Manage school & personal account' : 'គ្រប់គ្រងព័ត៌មានសាលា និងគណនី'}
+                  </p>
+                </div>
+
+                <div className="py-1 space-y-1">
+                  {/* Account / User Profile Settings */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      setShowProfileModal(true);
+                    }}
+                    className="w-full text-left px-2.5 py-2 rounded-xl text-xs hover:bg-blue-50 dark:hover:bg-blue-950/40 flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-bold transition-colors cursor-pointer"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-300 flex items-center justify-center shrink-0">
+                      <UserIcon className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="leading-tight text-blue-900 dark:text-blue-200 font-bold">{language === 'en' ? 'My Profile & Account' : '👤 ប្រវត្តិរូប និងគណនីខ្ញុំ'}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal truncate">រូបថត, លេខទូរសព្ទ, ពាក្យសម្ងាត់</p>
+                    </div>
+                  </button>
+
+                  {/* School Profile / Settings (For director / super_admin / secretary) */}
+                  {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSettingsMenu(false);
+                        onOpenSettings();
+                      }}
+                      className="w-full text-left px-2.5 py-2 rounded-xl text-xs hover:bg-amber-50 dark:hover:bg-amber-950/40 flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-bold transition-colors cursor-pointer"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+                        <School className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="leading-tight text-amber-950 dark:text-amber-200 font-bold">{language === 'en' ? 'School Profile & Settings' : '🏫 ការកំណត់ព័ត៌មានសាលា'}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal truncate">ឈ្មោះសាលា, នាយក, ត្រា, ឡូហ្គោ</p>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Manage Accounts (For Director / Admin) */}
+                  {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSettingsMenu(false);
+                        setActiveTab('accounts');
+                      }}
+                      className="w-full text-left px-2.5 py-2 rounded-xl text-xs hover:bg-emerald-50 dark:hover:bg-emerald-950/40 flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-bold transition-colors cursor-pointer"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                        <UserPlus className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="leading-tight text-emerald-950 dark:text-emerald-200 font-bold">{language === 'en' ? 'Create & Manage Accounts' : '👥 គ្រប់គ្រងគណនី & សិទ្ធិ'}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal truncate">បង្កើតគណនីគ្រូ និងបុគ្គលិក</p>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Academic Year Settings */}
+                  {isDirectorOrAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSettingsMenu(false);
+                        setModalSelectedYear(selectedAcademicYear);
+                        setShowAcademicYearModal(true);
+                      }}
+                      className="w-full text-left px-2.5 py-2 rounded-xl text-xs hover:bg-indigo-50 dark:hover:bg-indigo-950/40 flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-bold transition-colors cursor-pointer"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
+                        <Calendar className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="leading-tight text-indigo-950 dark:text-indigo-200 font-bold">{language === 'en' ? 'Academic Year' : '📅 ឆ្នាំសិក្សាគោល'}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal truncate">បច្ចុប្បន្ន៖ {schoolProfile.academicYear}</p>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Sync Center Shortcut */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSettingsMenu(false);
+                      setShowMobileSyncModal(true);
+                    }}
+                    className="w-full text-left px-2.5 py-2 rounded-xl text-xs hover:bg-teal-50 dark:hover:bg-teal-950/40 flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-bold transition-colors cursor-pointer"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-teal-100 dark:bg-teal-900/60 text-teal-600 dark:text-teal-300 flex items-center justify-center shrink-0">
+                      <Cloud className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="leading-tight text-teal-950 dark:text-teal-200 font-bold">{language === 'en' ? 'Data Sync Center' : '🔄 មជ្ឈមណ្ឌល Sync ទិន្នន័យ'}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal truncate">Cloud, Drive, Offline Storage</p>
+                    </div>
+                  </button>
+
+                  {/* Quick Theme & Language inside settings dropdown */}
+                  <div className="pt-2 mt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between px-2 text-xs">
+                    <span className="text-slate-500 dark:text-slate-400 text-[11px] font-medium">ពន្លឺ / ភាសា៖</span>
+                    <div className="flex items-center gap-2">
+                      <ThemeToggleSwitch showLabel={false} size="sm" />
+                      <button
+                        type="button"
+                        onClick={() => setLanguage(language === 'km' ? 'en' : 'km')}
+                        className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] font-mono font-bold text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-slate-700 cursor-pointer"
+                      >
+                        {language === 'km' ? 'EN' : 'KM'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
+            )}
+          </div>
+
+          {/* Role Switcher & User Profile Menu (Always visible on Top Right for Mobile & Desktop) */}
+          <div className="relative">
+            <button
+              id="top-user-profile-btn"
+              type="button"
+              onClick={() => {
+                setShowRoleMenu(!showRoleMenu);
+                setShowSettingsMenu(false);
+              }}
+              className="flex items-center gap-1.5 p-0.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all shadow-2xs active:scale-95 cursor-pointer"
+              title={language === 'en' ? 'User Profile & Role' : 'គណនី និងតួនាទី (Profile)'}
+              aria-label="User Profile"
+            >
+              <div className="relative">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-700 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden shadow-xs ring-2 ring-white dark:ring-slate-800">
+                  {currentUser?.avatarUrl ? (
+                    <img src={currentUser.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    currentUser?.nameKhmer ? currentUser.nameKhmer.charAt(0) : 'U'
+                  )}
+                </div>
+                {/* Active online green dot */}
+                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-800"></span>
+              </div>
+
               <div className="text-left hidden md:block">
                 <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-none truncate max-w-[95px]">
                   {currentUser?.nameKhmer || (language === 'en' ? 'User' : 'អ្នកប្រើប្រាស់')}
@@ -590,12 +756,12 @@ export const Header: React.FC<HeaderProps> = ({
                   {currentRoleMeta.label}
                 </span>
               </div>
-              <ChevronDown className="w-3 h-3 text-slate-400 flex-shrink-0" />
+              <ChevronDown className="w-3 h-3 text-slate-400 shrink-0 hidden sm:block" />
             </button>
 
             {/* Dropdown Menu */}
             {showRoleMenu && (
-              <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 z-50 animate-in fade-in zoom-in duration-100">
+              <div className="absolute right-0 mt-2 w-64 sm:w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-50 animate-in fade-in zoom-in duration-100 font-battambang">
                 <div className="p-2 border-b border-slate-100 dark:border-slate-800 text-xs">
                   <p className="font-bold text-slate-800 dark:text-slate-100">{currentUser?.nameKhmer}</p>
                   <p className="font-times text-[11px] text-slate-400 truncate">{currentUser?.email}</p>
@@ -605,17 +771,33 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 <div className="py-1">
+                  {/* Account Settings */}
                   <button
                     type="button"
                     onClick={() => {
                       setShowRoleMenu(false);
                       setShowProfileModal(true);
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-blue-700 dark:text-blue-400 font-bold mb-1 border border-blue-100 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/20"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-blue-700 dark:text-blue-400 font-bold mb-1 border border-blue-100 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/20 cursor-pointer"
                   >
                     <Settings className="w-3.5 h-3.5 text-blue-600" />
                     <span>{language === 'en' ? 'My Account Settings' : '⚙️ ការកំណត់គណនី និងប្រវត្តិរូប'}</span>
                   </button>
+
+                  {/* School Profile Settings (for director & super_admin) */}
+                  {(currentUser?.role === 'director' || currentUser?.role === 'super_admin') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowRoleMenu(false);
+                        onOpenSettings();
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-amber-50 dark:hover:bg-amber-950/40 flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold mb-1 border border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-950/20 cursor-pointer"
+                    >
+                      <School className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                      <span>{language === 'en' ? 'School Profile & Settings' : '🏫 ការកំណត់ព័ត៌មានសាលារៀន'}</span>
+                    </button>
+                  )}
 
                   {/* Create & Manage Accounts: ONLY for director, super_admin, secretary */}
                   {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && (
@@ -625,18 +807,14 @@ export const Header: React.FC<HeaderProps> = ({
                         setShowRoleMenu(false);
                         setActiveTab('accounts');
                       }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold mb-1 border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-950/20"
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold mb-1 border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-950/20 cursor-pointer"
                     >
                       <UserPlus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       <span>{language === 'en' ? 'Create & Manage Accounts' : '👥 គ្រប់គ្រង & បង្កើតគណនីថ្មី'}</span>
                     </button>
                   )}
 
-                  {/* Role Switcher Section:
-                      - For Student/Parent: Hidden entirely (សិស្សមិនអាចឃើញផ្ទាំងទៅណាក្រៅពីខ្លួនឯងឡើយ)
-                      - For Teacher: Can view teacher options
-                      - For Director/SuperAdmin/Secretary: Can switch across administrative roles & specific teachers by name
-                  */}
+                  {/* Role Switcher Section */}
                   {currentUser?.role !== 'student' && currentUser?.role !== 'parent' && (
                     <>
                       <p className="text-[10px] font-bold uppercase text-slate-400 px-2 py-1">
@@ -650,7 +828,7 @@ export const Header: React.FC<HeaderProps> = ({
                             switchUserRole('director');
                             setShowRoleMenu(false);
                           }}
-                          className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-amber-50 dark:hover:bg-amber-950/30 flex items-center justify-between text-slate-700 dark:text-slate-300 group"
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-amber-50 dark:hover:bg-amber-950/30 flex items-center justify-between text-slate-700 dark:text-slate-300 group cursor-pointer"
                         >
                           <div className="flex items-center gap-2">
                             <Building2 className="w-3.5 h-3.5 text-amber-600" />
@@ -667,7 +845,7 @@ export const Header: React.FC<HeaderProps> = ({
                               switchUserRole('secretary');
                               setShowRoleMenu(false);
                             }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300 cursor-pointer"
                           >
                             <Shield className="w-3.5 h-3.5 text-indigo-600" />
                             <span>{language === 'en' ? 'Secretary' : 'លេខាធិការ (Secretary)'}</span>
@@ -678,7 +856,7 @@ export const Header: React.FC<HeaderProps> = ({
                               switchUserRole('librarian');
                               setShowRoleMenu(false);
                             }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300 cursor-pointer"
                           >
                             <BookOpen className="w-3.5 h-3.5 text-amber-600" />
                             <span>{language === 'en' ? 'Librarian' : 'បណ្ណារក្ស (Librarian)'}</span>
@@ -702,7 +880,7 @@ export const Header: React.FC<HeaderProps> = ({
                                   switchToTeacherAccount(teacher);
                                   setShowRoleMenu(false);
                                 }}
-                                className="w-full text-left px-2 py-1.5 rounded-lg text-xs hover:bg-indigo-50 dark:hover:bg-indigo-950/40 flex items-center justify-between group text-slate-700 dark:text-slate-200 transition-colors"
+                                className="w-full text-left px-2 py-1.5 rounded-lg text-xs hover:bg-indigo-50 dark:hover:bg-indigo-950/40 flex items-center justify-between group text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
                               >
                                 <div className="flex items-center gap-2 min-w-0">
                                   <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold text-[10px] flex items-center justify-center shrink-0 overflow-hidden">
@@ -738,7 +916,7 @@ export const Header: React.FC<HeaderProps> = ({
                       setShowRoleMenu(false);
                       logoutApp();
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2 font-bold"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2 font-bold cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     <span>{language === 'en' ? 'Log Out' : 'ចាកចេញពីប្រព័ន្ធ (Logout)'}</span>
@@ -747,21 +925,235 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
           </div>
-
-          {/* Quick Settings Button - ONLY for director and super_admin */}
-          {(currentUser?.role === 'director' || currentUser?.role === 'super_admin') && (
-            <button
-              id="top-settings-btn"
-              onClick={onOpenSettings}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition-colors border border-slate-200 dark:border-slate-700"
-              title={language === 'en' ? 'Edit School Settings' : 'កែប្រែព័ត៌មានសាលារៀន'}
-            >
-              <Settings className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-              <span className="hidden lg:inline">{language === 'en' ? 'Settings' : 'កំណត់ព័ត៌មាន'}</span>
-            </button>
-          )}
         </div>
       </div>
+
+      {/* Click outside overlay to close dropdowns */}
+      {(showRoleMenu || showSettingsMenu) && (
+        <div
+          className="fixed inset-0 z-40 bg-black/5"
+          onClick={() => {
+            setShowRoleMenu(false);
+            setShowSettingsMenu(false);
+          }}
+        />
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* MOBILE-OPTIMIZED SYNC BAR (របារសមកាលកម្មទិន្នន័យលើទូរសព្ទ) */}
+      {/* ------------------------------------------------------------- */}
+      <div className="md:hidden bg-slate-50/95 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800 px-2.5 py-1.5 select-none">
+        <div className="grid grid-cols-3 gap-1.5 w-full">
+          {/* 1. Cloud Firestore Button */}
+          <button
+            type="button"
+            onClick={async () => {
+              showToast('កំពុងធ្វើសមកាលកម្មឡើង Cloud Firestore...', 'info');
+              await syncAllToCloud();
+              showToast('បានធ្វើសមកាលកម្មទិន្នន័យឡើង Firestore ជោគជ័យ!', 'success');
+            }}
+            disabled={isCloudSyncing}
+            className={`flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl text-[11px] font-bold transition-all border shadow-2xs active:scale-95 cursor-pointer w-full min-w-0 ${
+              isCloudSyncing
+                ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 text-amber-800 dark:text-amber-300 animate-pulse'
+                : 'bg-white dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 border-teal-200/80 dark:border-teal-800/80 text-teal-900 dark:text-teal-200'
+            }`}
+            title={lastCloudSyncTime ? 'Cloud Firestore ភ្ជាប់ជាប់លាប់! ចុចដើម្បី Sync ឥឡូវ' : 'ចុចដើម្បី Sync ឡើង Cloud'}
+          >
+            <span className="relative flex h-2 w-2 shrink-0">
+              {isCloudSyncing ? (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              ) : (
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              )}
+            </span>
+            <Cloud className={`w-3.5 h-3.5 shrink-0 ${isCloudSyncing ? 'animate-spin text-amber-600' : 'text-teal-600 dark:text-teal-400'}`} />
+            <span className="truncate">
+              {isCloudSyncing ? 'Sync...' : 'Cloud'}
+            </span>
+          </button>
+
+          {/* 2. Google Drive Status & Link Button */}
+          {onOpenDriveSync ? (
+            <button
+              type="button"
+              onClick={onOpenDriveSync}
+              className={`flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl text-[11px] font-bold transition-all border shadow-2xs active:scale-95 cursor-pointer w-full min-w-0 ${
+                googleUser
+                  ? 'bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border-emerald-300/80 dark:border-emerald-700/80 text-emerald-800 dark:text-emerald-200'
+                  : 'bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 border-amber-300/80 dark:border-amber-700/80 text-amber-800 dark:text-amber-200'
+              }`}
+              title={googleUser ? `Drive Sync: ${googleUser.email}` : 'ចុចដើម្បីភ្ជាប់ Google Drive'}
+            >
+              <HardDrive className={`w-3.5 h-3.5 shrink-0 ${googleUser ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`} />
+              <span className="truncate">Drive</span>
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${googleUser ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+            </button>
+          ) : (
+            <div className="w-full" />
+          )}
+
+          {/* 3. Sync Details (ព័ត៌មាន Sync) Button */}
+          <button
+            type="button"
+            onClick={() => setShowMobileSyncModal(true)}
+            className="flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 text-[11px] font-bold active:scale-95 transition-all shadow-2xs cursor-pointer w-full min-w-0"
+            title="ពិនិត្យមើលព័ត៌មាន Sync ទាំងអស់ និងធ្វើសមកាលកម្ម"
+          >
+            <RefreshCw className={`w-3 h-3 shrink-0 text-blue-600 dark:text-blue-400 ${isCloudSyncing ? 'animate-spin' : ''}`} />
+            <span className="truncate">ព័ត៌មាន Sync</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Data Sync Center Modal */}
+      {showMobileSyncModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs font-battambang animate-in fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="px-4 py-3 bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-white/10">
+                  <Cloud className="w-5 h-5 text-blue-300" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold leading-tight font-moul">មជ្ឈមណ្ឌល Sync ទិន្នន័យ</h3>
+                  <p className="text-[10px] text-blue-200">Data Synchronization Center</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMobileSyncModal(false)}
+                className="p-1 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 space-y-3 overflow-y-auto">
+              {/* Card 1: Cloud Firestore */}
+              <div className="p-3 rounded-xl border border-teal-200 dark:border-teal-800/60 bg-teal-50/50 dark:bg-teal-950/20">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300">
+                      <Cloud className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-teal-950 dark:text-teal-200">Firebase Cloud Firestore</p>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        ភ្ជាប់ជាប់លាប់ (Cloud Online)
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      showToast('កំពុង Sync ទិន្នន័យឡើង Firestore...', 'info');
+                      await syncAllToCloud();
+                      showToast('បានធ្វើសមកាលកម្មទិន្នន័យឡើង Firestore ជោគជ័យ!', 'success');
+                    }}
+                    disabled={isCloudSyncing}
+                    className="px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold transition-all shadow-xs flex items-center gap-1 disabled:opacity-50 cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isCloudSyncing ? 'animate-spin' : ''}`} />
+                    <span>{isCloudSyncing ? 'កំពុង Sync...' : 'Sync ឥឡូវ'}</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                  ទិន្នន័យសិស្ស គ្រូ ពិន្ទុ វត្តមាន និងថវិកា ត្រូវបានរក្សាទុកនៅលើ Cloud ដាតាបេសសុវត្ថិភាព។
+                </p>
+                <div className="mt-2 pt-2 border-t border-teal-100 dark:border-teal-800/40 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
+                  <span>Sync ចុងក្រោយ៖</span>
+                  <span className="font-bold text-slate-700 dark:text-slate-300">
+                    {lastCloudSyncTime ? new Date(lastCloudSyncTime).toLocaleTimeString('km-KH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'ទើប Sync រួច'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Card 2: Google Drive API */}
+              <div className="p-3 rounded-xl border border-blue-200 dark:border-blue-800/60 bg-blue-50/50 dark:bg-blue-950/20">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+                      <HardDrive className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-blue-950 dark:text-blue-200">Google Drive Backup & Sync</p>
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${googleUser ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${googleUser ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                        {googleUser ? 'ភ្ជាប់រួច' : 'មិនទាន់ភ្ជាប់ Google'}
+                      </span>
+                    </div>
+                  </div>
+                  {onOpenDriveSync && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMobileSyncModal(false);
+                        onOpenDriveSync();
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>{googleUser ? 'បើកផ្ទាំង Drive' : 'ភ្ជាប់ Drive'}</span>
+                    </button>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                  {googleUser
+                    ? `បានភ្ជាប់ជាមួយគណនី Google៖ ${googleUser.email} (អាចទាញយក Backup ឬនាំចេញ Google Sheets បានភ្លាមៗ)`
+                    : 'ភ្ជាប់គណនី Google Drive ផ្ទាល់ខ្លួនដើម្បីស្វ័យប្រវត្តិនាំចេញ Backup និងសន្លឹកកិច្ចការ Google Sheets។'}
+                </p>
+              </div>
+
+              {/* Card 3: Offline Storage & Local Cache */}
+              <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="p-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                    <Database className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">អង្គចងចាំក្នុងទូរសព្ទ (Offline Cache)</p>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                      ដំណើរការរលូនទោះគ្មាន Internet
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                  រាល់ទិន្នន័យទាំងអស់ត្រូវបានរក្សាទុកក្នុងទូរសព្ទរបស់អ្នកដោយស្វ័យប្រវត្តិតាមរយៈ IndexedDB ដូច្នេះលោកគ្រូអ្នកគ្រូអាចបញ្ចូលពិន្ទុ និងវត្តមានទោះបីគ្មានសេវាអ៊ីនធឺណិត។
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer with Master Sync Button */}
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => setShowMobileSyncModal(false)}
+                className="px-3 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                បិទ
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  showToast('កំពុងធ្វើសមកាលកម្មទិន្នន័យទាំងអស់...', 'info');
+                  await syncAllToCloud();
+                  showToast('បានធ្វើសមកាលកម្មទិន្នន័យគ្រប់ប្រព័ន្ធជោគជ័យ!', 'success');
+                  setShowMobileSyncModal(false);
+                }}
+                disabled={isCloudSyncing}
+                className="flex-1 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer active:scale-98"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin' : ''}`} />
+                <span>{isCloudSyncing ? 'កំពុង Sync ទិន្នន័យ...' : 'ធ្វើសមកាលកម្មទិន្នន័យទាំងអស់ឥឡូវនេះ'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Notifications Modal */}
       <NotificationsModal

@@ -260,6 +260,7 @@ interface SchoolContextType {
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
   clearNotification: (id: string) => void;
+  syncRealSchoolNotifications: () => void;
 
   // School Profile
   schoolProfile: SchoolProfile;
@@ -5556,6 +5557,142 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
+  const syncRealSchoolNotifications = () => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const monthNamesKh = [
+      'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា',
+      'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'
+    ];
+    const currentMonthKh = monthNamesKh[now.getMonth()];
+    const endOfMonthDay = new Date(currentYear, now.getMonth() + 1, 0).getDate();
+    const deadlineDateStr = `${currentYear}-${String(now.getMonth() + 1).padStart(2, '0')}-${endOfMonthDay}`;
+
+    setNotifications(prev => {
+      const updated = [...prev];
+
+      // 1. Pending Profile Edit Requests (សំណើសុំកែប្រែព័ត៌មានសិស្ស)
+      const pendingReqs = (profileEditRequests || []).filter(r => r.status === 'pending');
+      const reqNotifId = 'notif-pending-profile-requests';
+      const existingReqIndex = updated.findIndex(n => n.id === reqNotifId);
+      if (pendingReqs.length > 0) {
+        const notifObj: SystemNotification = {
+          id: reqNotifId,
+          title: `📝 សំណើសុំកែប្រែទិន្នន័យសិស្ស (${pendingReqs.length} ករណី)`,
+          message: `មានសំណើសុំកែប្រែព័ត៌មានសិស្សចំនួន ${pendingReqs.length} ករណីពីលោកគ្រូ-អ្នកគ្រូ កំពុងរង់ចាំការត្រួតពិនិត្យ និងអនុម័តពីគណៈគ្រប់គ្រងសាលា។`,
+          timestamp: existingReqIndex >= 0 ? updated[existingReqIndex].timestamp : now.toISOString(),
+          type: 'alert',
+          targetRole: 'director',
+          read: existingReqIndex >= 0 ? updated[existingReqIndex].read : false,
+          priority: 'high',
+          actionTab: 'students',
+          meta: { pendingCount: pendingReqs.length }
+        };
+        if (existingReqIndex >= 0) {
+          updated[existingReqIndex] = notifObj;
+        } else {
+          updated.unshift(notifObj);
+        }
+      } else if (existingReqIndex >= 0) {
+        updated.splice(existingReqIndex, 1);
+      }
+
+      // 2. Score Entry Deadline (កាលបរិច្ឆេទបញ្ចូលពិន្ទុប្រចាំខែ)
+      const scoreId = `notif-score-deadline-${currentMonthKh}-${currentYear}`;
+      const existingScoreIndex = updated.findIndex(n => n.id === scoreId || n.id === 'notif-score-deadline-current');
+      if (existingScoreIndex < 0) {
+        updated.unshift({
+          id: scoreId,
+          title: `⏰ រំលឹកកាលបរិច្ឆេទបញ្ចូលពិន្ទុខែ${currentMonthKh}`,
+          message: `សូមលោកគ្រូ-អ្នកគ្រូបន្ទុកថ្នាក់ទាំងអស់ រួសរាន់បញ្ចូល និងត្រួតពិនិត្យពិន្ទុសិស្សសម្រាប់ខែ «${currentMonthKh} ${currentYear}» ឱ្យបានមុនថ្ងៃទី ${endOfMonthDay} ដើម្បីរៀបចំចំណាត់ថ្នាក់សិស្សប្រចាំខែ។`,
+          timestamp: now.toISOString(),
+          type: 'score_deadline',
+          targetRole: 'all',
+          read: false,
+          priority: 'urgent',
+          deadlineDate: deadlineDateStr,
+          actionTab: 'scores',
+          meta: { monthOrSemester: currentMonthKh, eventDate: deadlineDateStr }
+        });
+      }
+
+      // 3. Absence & Dropout Watchlist (តាមដានវត្តមានសិស្ស)
+      const highAbsenceStudents = (students || []).filter(s => {
+        const absences = (s as any).totalAbsences || (s as any).absentCount || 0;
+        return absences >= 3;
+      });
+      const attId = 'notif-attendance-watchlist';
+      const existingAttIndex = updated.findIndex(n => n.id === attId);
+      if (highAbsenceStudents.length > 0) {
+        const sampleNames = highAbsenceStudents.slice(0, 3).map(s => s.nameKhmer).join(', ');
+        const attNotifObj: SystemNotification = {
+          id: attId,
+          title: `⚠️ តាមដានសិស្សអវត្តមានច្រើន (${highAbsenceStudents.length} នាក់)`,
+          message: `មានសិស្សដែលមានអវត្តមានច្រើន (ចាប់ពី ៣ ដងឡើងទៅ) ដូចជា៖ ${sampleNames}${highAbsenceStudents.length > 3 ? ' និង ' + (highAbsenceStudents.length - 3) + ' នាក់ទៀត' : ''}។ សូមលោកគ្រូអ្នកគ្រូបន្ទុកថ្នាក់ចុះស្រាវជ្រាវ និងសួរសុខទុក្ខ។`,
+          timestamp: existingAttIndex >= 0 ? updated[existingAttIndex].timestamp : now.toISOString(),
+          type: 'alert',
+          targetRole: 'all',
+          read: existingAttIndex >= 0 ? updated[existingAttIndex].read : false,
+          priority: 'high',
+          actionTab: 'attendance_health',
+          meta: { studentCount: highAbsenceStudents.length }
+        };
+        if (existingAttIndex >= 0) {
+          updated[existingAttIndex] = attNotifObj;
+        } else {
+          updated.push(attNotifObj);
+        }
+      }
+
+      // 4. Upcoming Calendar Events (កម្មវិធីសាលា)
+      (calendarEvents || []).forEach(evt => {
+        const evtDate = new Date(evt.startDate);
+        if (!isNaN(evtDate.getTime())) {
+          const evtId = `notif-event-${evt.id}`;
+          const existingEvtIndex = updated.findIndex(n => n.id === evtId);
+          if (existingEvtIndex < 0) {
+            const title = evt.titleKhmer || (evt as any).title || 'កម្មវិធីសាលា';
+            updated.push({
+              id: evtId,
+              title: `📅 កម្មវិធីសាលា៖ ${title}`,
+              message: `កម្មវិធី «${title}» នឹងប្រព្រឹត្តទៅនៅថ្ងៃទី ${evt.startDate}${evt.location ? ' នៅ ' + evt.location : ''}។ ${evt.description || ''}`,
+              timestamp: now.toISOString(),
+              type: 'school_event',
+              targetRole: 'all',
+              read: false,
+              priority: 'normal',
+              deadlineDate: evt.startDate,
+              actionTab: 'calendar',
+              meta: { eventDate: evt.startDate, location: evt.location }
+            });
+          }
+        }
+      });
+
+      // 5. Cloud Firestore Status
+      const cloudId = 'notif-cloud-sync-status';
+      if (!updated.some(n => n.id === cloudId)) {
+        updated.push({
+          id: cloudId,
+          title: `☁️ ស្ថានភាពសមកាលកម្មទិន្នន័យ (Cloud Firestore)`,
+          message: `ទិន្នន័យគ្រប់គ្រងសាលារៀនទាំងអស់ត្រូវបានការពារ និងតភ្ជាប់ជាមួយ Cloud Firestore។ សូមចុចប៊ូតុង Sync ឬ Drive ជាប្រចាំដើម្បីការពារទិន្នន័យ។`,
+          timestamp: now.toISOString(),
+          type: 'system',
+          targetRole: 'all',
+          read: false,
+          priority: 'normal',
+          actionTab: 'dashboard'
+        });
+      }
+
+      return updated;
+    });
+  };
+
+  useEffect(() => {
+    syncRealSchoolNotifications();
+  }, [profileEditRequests.length, students.length, calendarEvents.length]);
+
   const updateCurrentUserProfile = (updatedFields: Partial<AppUser>) => {
     if (!currentUser) return { success: false, message: 'មិនមានអ្នកប្រើប្រាស់កំពុងចូលស្ថាប័នទេ' };
     const finalUpdates = { ...updatedFields };
@@ -7119,6 +7256,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         markNotificationRead,
         markAllNotificationsRead,
         clearNotification,
+        syncRealSchoolNotifications,
         schoolProfile,
         updateSchoolProfile,
         students,
