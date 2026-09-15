@@ -576,6 +576,28 @@ const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY = 'phnom_pom_primary_school_v2';
 
+export const safeJsonParse = <T,>(raw: string | null, fallback: T): T => {
+  if (!raw) return fallback;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed !== null && parsed !== undefined ? parsed : fallback;
+  } catch (err) {
+    console.warn('Failed to parse stored JSON from localStorage, using fallback:', err);
+    return fallback;
+  }
+};
+
+export const safeSetLocalStorage = (key: string, value: any): boolean => {
+  try {
+    const serialized = typeof value === 'string' ? value : JSON.stringify(value);
+    localStorage.setItem(key, serialized);
+    return true;
+  } catch (err) {
+    console.warn(`Failed to write to localStorage key "${key}":`, err);
+    return false;
+  }
+};
+
 export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
     const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_active_tab`);
@@ -864,59 +886,43 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const [students, setStudents] = useState<Student[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_students`);
-    return saved ? JSON.parse(saved) : initialStudents;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_students`), initialStudents);
   });
 
   const [teachers, setTeachers] = useState<Teacher[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_teachers`);
-    return saved ? JSON.parse(saved) : initialTeachers;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_teachers`), initialTeachers);
   });
 
   const [classrooms, setClassrooms] = useState<Classroom[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_classrooms`);
-    return saved ? JSON.parse(saved) : initialClassrooms;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_classrooms`), initialClassrooms);
   });
 
   const [scores, setScores] = useState<StudentScoreRecord[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_scores`);
-    return saved ? JSON.parse(saved) : initialScores;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_scores`), initialScores);
   });
 
   const [budgetTransactions, setBudgetTransactions] = useState<BudgetTransaction[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_budget`);
-    return saved ? JSON.parse(saved) : initialBudgetTransactions;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_budget`), initialBudgetTransactions);
   });
 
   const [attendanceRecords, setAttendanceRecords] = useState<DailyAttendanceRecord[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_attendance`);
-    return saved ? JSON.parse(saved) : initialAttendanceRecords;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_attendance`), initialAttendanceRecords);
   });
 
   const [dailyHealthChecks, setDailyHealthChecks] = useState<DailyHealthCheckRecord[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_health_checks`);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        // fallback
-      }
-    }
-    return [];
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_health_checks`), []);
   });
 
   useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_health_checks`, JSON.stringify(dailyHealthChecks));
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_health_checks`, dailyHealthChecks);
   }, [dailyHealthChecks]);
 
   const [calendarEvents, setCalendarEvents] = useState<AcademicCalendarEvent[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_calendar`);
-    return saved ? JSON.parse(saved) : initialCalendarEvents;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_calendar`), initialCalendarEvents);
   });
 
   const [transfers, setTransfers] = useState<StudentTransferRecord[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_transfers`);
-    return saved ? JSON.parse(saved) : initialTransfers;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_transfers`), initialTransfers);
   });
 
   // Academic Years State
@@ -993,50 +999,42 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Exam Subjects State
   const [examSubjects, setExamSubjects] = useState<ExamSubject[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_exam_subjects`);
-    return saved ? JSON.parse(saved) : initialExamSubjects;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_exam_subjects`), initialExamSubjects);
   });
 
   // Profile Edit Requests State
   const [profileEditRequests, setProfileEditRequests] = useState<ProfileEditRequest[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_edit_requests`);
-    return saved ? JSON.parse(saved) : initialProfileEditRequests;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_edit_requests`), initialProfileEditRequests);
   });
 
   // Released Exam Results State (grade_section_month_year -> boolean)
   const [releasedResults, setReleasedResults] = useState<Record<string, boolean>>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_released_results`);
-    return saved ? JSON.parse(saved) : {};
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_released_results`), {});
   });
 
   // Catchment Villages State
   const [villages, setVillages] = useState<string[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_villages`);
-    return saved ? JSON.parse(saved) : initialCatchmentVillages;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_villages`), initialCatchmentVillages);
   });
 
   // Household Records State
   const [households, setHouseholds] = useState<HouseholdRecord[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_households`);
-    return saved ? JSON.parse(saved) : initialHouseholdRecords;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_households`), initialHouseholdRecords);
   });
 
   // Library Books State
   const [libraryBooks, setLibraryBooks] = useState<LibraryBook[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_library_books`);
-    return saved ? JSON.parse(saved) : initialLibraryBooks;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_library_books`), initialLibraryBooks);
   });
 
   // Library Reading Logs State
   const [readingLogs, setReadingLogs] = useState<LibraryReadingLog[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_reading_logs`);
-    return saved ? JSON.parse(saved) : initialReadingLogs;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_reading_logs`), initialReadingLogs);
   });
 
   // Library Visitor Logs State
   const [libraryVisitors, setLibraryVisitors] = useState<LibraryVisitorLog[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_library_visitors`);
-    return saved ? JSON.parse(saved) : initialLibraryVisitors;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_library_visitors`), initialLibraryVisitors);
   });
 
   // Universal Print Settings State
@@ -1174,8 +1172,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Lesson Plans State
   const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_lesson_plans`);
-    return saved ? JSON.parse(saved) : initialLessonPlans;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_lesson_plans`), initialLessonPlans);
   });
 
   const addLessonPlan = (plan: Omit<LessonPlan, 'id' | 'createdAt'>) => {
@@ -1200,8 +1197,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Parent Meetings State
   const [parentMeetings, setParentMeetings] = useState<ParentMeeting[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_parent_meetings`);
-    return saved ? JSON.parse(saved) : initialParentMeetings;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_parent_meetings`), initialParentMeetings);
   });
 
   const addParentMeeting = (meeting: Omit<ParentMeeting, 'id' | 'createdAt'>) => {
@@ -1226,8 +1222,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Parent Requests & Urgent Inquiries State (សំណើពីមាតាបិតា)
   const [parentRequests, setParentRequests] = useState<ParentRequest[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_parent_requests`);
-    return saved ? JSON.parse(saved) : initialParentRequests;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_parent_requests`), initialParentRequests);
   });
 
   const addParentRequest = (req: Omit<ParentRequest, 'id' | 'createdAt'>) => {
@@ -1280,8 +1275,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Class Councils State
   const [classCouncils, setClassCouncils] = useState<ClassCouncil[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_class_councils`);
-    return saved ? JSON.parse(saved) : initialClassCouncils;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_class_councils`), initialClassCouncils);
   });
 
   const updateClassCouncil = (grade: number, section: string, council: Partial<ClassCouncil>) => {
@@ -1307,12 +1301,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // At-Risk & Slow Learners Management State (គ្រប់គ្រងសិស្សខ្សោយ និងសិស្សរៀនយឺត)
   const [atRiskStudents, setAtRiskStudents] = useState<AtRiskStudent[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_at_risk_students`);
-    return saved ? JSON.parse(saved) : initialAtRiskStudents;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_at_risk_students`), initialAtRiskStudents);
   });
 
   useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_at_risk_students`, JSON.stringify(atRiskStudents));
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_at_risk_students`, atRiskStudents);
   }, [atRiskStudents]);
 
   // Activity & Data Change Audit Logs State (កំណត់ត្រាសកម្មភាព និងការកែប្រែទិន្នន័យ)
@@ -1472,21 +1465,19 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Student Digital Badges & Achievement Markers State (ផ្លាកសញ្ញា និងមេដាយឌីជីថល)
   const [studentBadgeDefinitions, setStudentBadgeDefinitions] = useState<BadgeDefinition[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_badge_definitions`);
-    return saved ? JSON.parse(saved) : initialBadgeDefinitions;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_badge_definitions`), initialBadgeDefinitions);
   });
 
   const [studentBadgeAssignments, setStudentBadgeAssignments] = useState<StudentBadgeAssignment[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_badge_assignments`);
-    return saved ? JSON.parse(saved) : initialStudentBadgeAssignments;
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_badge_assignments`), initialStudentBadgeAssignments);
   });
 
   useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_badge_definitions`, JSON.stringify(studentBadgeDefinitions));
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_badge_definitions`, studentBadgeDefinitions);
   }, [studentBadgeDefinitions]);
 
   useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_badge_assignments`, JSON.stringify(studentBadgeAssignments));
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_badge_assignments`, studentBadgeAssignments);
   }, [studentBadgeAssignments]);
 
   const assignBadgeToStudent = (assignment: Omit<StudentBadgeAssignment, 'id' | 'createdAt' | 'badge'>) => {
@@ -3367,47 +3358,47 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [currentUser]);
 
   useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_notifications`, JSON.stringify(notifications));
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_notifications`, notifications);
   }, [notifications]);
 
   useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_profile`, JSON.stringify(schoolProfile));
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_profile`, schoolProfile);
   }, [schoolProfile]);
 
   useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_students`, JSON.stringify(students));
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_students`, students);
   }, [students]);
 
   useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_teachers`, JSON.stringify(teachers));
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_teachers`, teachers);
   }, [teachers]);
 
   useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_classrooms`, JSON.stringify(classrooms));
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_classrooms`, classrooms);
   }, [classrooms]);
 
   useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_scores`, JSON.stringify(scores));
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_scores`, scores);
   }, [scores]);
 
   useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_budget`, JSON.stringify(budgetTransactions));
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_budget`, budgetTransactions);
   }, [budgetTransactions]);
 
   useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_attendance`, JSON.stringify(attendanceRecords));
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_attendance`, attendanceRecords);
   }, [attendanceRecords]);
 
   useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_calendar`, JSON.stringify(calendarEvents));
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_calendar`, calendarEvents);
   }, [calendarEvents]);
 
   useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_transfers`, JSON.stringify(transfers));
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_transfers`, transfers);
   }, [transfers]);
 
   useEffect(() => {
-    localStorage.setItem(`${LOCAL_STORAGE_KEY}_school_groups`, JSON.stringify(schoolGroups));
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_school_groups`, schoolGroups);
   }, [schoolGroups]);
 
   // Cloud Firestore Sync State & Timestamps
@@ -3681,19 +3672,36 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const localLastMutation = Number(localStorage.getItem(LAST_LOCAL_MUTATION_KEY) || '0');
       const cloudLastUpdatedTime = cloudData.lastUpdated ? new Date(cloudData.lastUpdated).getTime() : 0;
 
+      let parsedLocalStudentsCount = 0;
+      try {
+        if (localSavedStudents) {
+          const parsed = JSON.parse(localSavedStudents);
+          if (Array.isArray(parsed)) parsedLocalStudentsCount = parsed.length;
+        }
+      } catch {}
+
+      const cloudStudentsCount = Array.isArray(cloudData.students) ? cloudData.students.length : 0;
+      const isCloudEmptyWhileLocalHasData = (parsedLocalStudentsCount > 0 && cloudStudentsCount === 0);
+      const isLocalNewer = (localLastMutation - cloudLastUpdatedTime > 2500);
+
       // Conflict Resolution:
-      // If local data exists and was modified after the cloud snapshot (by more than 2.5s) AND this is NOT an initial fetch on a fresh device, retain local data and push
-      if (!isInitialFetch && localSavedStudents && (localLastMutation - cloudLastUpdatedTime > 2500)) {
-        console.info('Local data is newer than Cloud Firestore data. Retaining local data and syncing to Cloud.');
+      // If local data exists and was modified after the cloud snapshot (by more than 2.5s)
+      // OR local data has records while cloud is empty, retain local data and push to cloud
+      if (parsedLocalStudentsCount > 0 && (isLocalNewer || isCloudEmptyWhileLocalHasData)) {
+        console.info('Local data is newer or more complete than Cloud Firestore data. Retaining local data and syncing to Cloud.');
         const payload = getFullSchoolPayload();
-        syncSchoolDataToFirestore(payload).catch(console.warn);
+        syncSchoolDataToFirestore(payload, true).catch(console.warn);
         return;
       }
 
       // Cloud data is authoritative or newer: apply safely
       isRemoteUpdateRef.current = true;
       if (cloudData.schoolProfile) setSchoolProfile(prev => ({ ...prev, ...cloudData.schoolProfile }));
-      if (cloudData.students && Array.isArray(cloudData.students)) setStudents(cloudData.students.filter(Boolean));
+      if (cloudData.students && Array.isArray(cloudData.students)) {
+        if (cloudData.students.length > 0 || parsedLocalStudentsCount === 0) {
+          setStudents(cloudData.students.filter(Boolean));
+        }
+      }
       if (cloudData.teachers && Array.isArray(cloudData.teachers)) setTeachers(cloudData.teachers.filter(Boolean));
       if (cloudData.classrooms && Array.isArray(cloudData.classrooms)) setClassrooms(cloudData.classrooms.filter(Boolean));
       if (cloudData.scores && Array.isArray(cloudData.scores)) setScores(cloudData.scores.filter(Boolean));

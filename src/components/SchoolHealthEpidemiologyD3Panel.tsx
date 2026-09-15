@@ -275,10 +275,10 @@ export const SchoolHealthEpidemiologyD3Panel: React.FC<SchoolHealthEpidemiologyD
               recommendation: recommendations[cat.category] || 'បន្តតាមដានសុខភាពទូទៅ'
             });
 
-            d3.select(event.currentTarget).attr('opacity', 0.8).attr('stroke', '#0f172a').attr('stroke-width', 1.5);
+            d3.select(event.currentTarget as any).attr('opacity', 0.8).attr('stroke', '#0f172a').attr('stroke-width', 1.5);
           })
           .on('mouseleave', (event) => {
-            d3.select(event.currentTarget).attr('opacity', 1).attr('stroke', 'none');
+            d3.select(event.currentTarget as any).attr('opacity', 1).attr('stroke', 'none');
           })
           .transition()
           .duration(700)
