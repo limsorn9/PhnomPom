@@ -490,6 +490,12 @@ export const subscribeToSchoolData = (
 
     const unsubStaff = onSnapshot(doc(db, 'schools', CLOUD_DOCS.STAFF_USERS), handleSnapshot, handleSnapshotError);
     unsubscribers.push(unsubStaff);
+
+    const unsubAcademics = onSnapshot(doc(db, 'schools', CLOUD_DOCS.ACADEMICS), handleSnapshot, handleSnapshotError);
+    unsubscribers.push(unsubAcademics);
+
+    const unsubResources = onSnapshot(doc(db, 'schools', CLOUD_DOCS.RESOURCES), handleSnapshot, handleSnapshotError);
+    unsubscribers.push(unsubResources);
   } catch (e: any) {
     if (e?.code === 'resource-exhausted' || e?.message?.toLowerCase().includes('quota')) {
       markFirestoreQuotaExhausted(30);

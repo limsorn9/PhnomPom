@@ -130,6 +130,47 @@ export const initialUsers = [
     staffCode: 'MOEYS-SUPER-001',
     createdAt: '2024-01-01',
     status: 'active' as const
+  },
+  {
+    id: 'u-director',
+    username: 'director',
+    email: 'director@school.gov.kh',
+    password: 'Ls12122012@',
+    nameKhmer: 'លោក លីម សន (នាយកសាលា)',
+    nameLatin: 'Lim Sorn',
+    role: 'director' as const,
+    phone: '087 99 19 77',
+    staffCode: 'MOEYS-104921',
+    createdAt: '2024-01-01',
+    status: 'active' as const
+  },
+  {
+    id: 'u-teacher-1',
+    username: 'chenda',
+    email: 'chenda.sok@school.gov.kh',
+    password: 'Ls12122012@',
+    nameKhmer: 'អ្នកគ្រូ សុខ ចិន្តា (គ្រូបង្រៀន)',
+    nameLatin: 'Sok Chenda',
+    role: 'teacher' as const,
+    phone: '012 34 56 78',
+    staffCode: 'MOEYS-104922',
+    assignedGrade: 1,
+    assignedSection: 'ក',
+    createdAt: '2024-01-01',
+    status: 'active' as const
+  },
+  {
+    id: 'u-secretary',
+    username: 'secretary',
+    email: 'secretary@school.gov.kh',
+    password: 'Ls12122012@',
+    nameKhmer: 'លោក ចាន់ សារិទ្ធ (លេខាធិការ)',
+    nameLatin: 'Chan Sarith',
+    role: 'secretary' as const,
+    phone: '098 76 54 32',
+    staffCode: 'MOEYS-104923',
+    createdAt: '2024-01-01',
+    status: 'active' as const
   }
 ];
 

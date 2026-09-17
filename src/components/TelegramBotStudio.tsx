@@ -19,6 +19,7 @@ import { TelegramBotAlertSystem } from './telegram/TelegramBotAlertSystem';
 import { TelegramSmartAutoResponder, DEFAULT_AUTO_RESPONDER_RULES, AutoResponderRule } from './telegram/TelegramSmartAutoResponder';
 import { TelegramClassroomGroupRouter } from './telegram/TelegramClassroomGroupRouter';
 import { TelegramGroupIdInspector } from './telegram/TelegramGroupIdInspector';
+import { TelegramRealtimeEventTriggers } from './telegram/TelegramRealtimeEventTriggers';
 import { TelegramTransmissionTimelineChart } from './telegram/TelegramTransmissionTimelineChart';
 import { TelegramBotSummaryCard } from './telegram/TelegramBotSummaryCard';
 import { TelegramBotActivityLog } from './telegram/TelegramBotActivityLog';
@@ -110,7 +111,7 @@ interface BotCommandConfig {
 
 export const TelegramBotStudio: React.FC = () => {
   const { currentUser, schoolProfile, students, teachers, showToast } = useSchool();
-  const [activeTab, setActiveTab] = useState<'chat' | 'commands' | 'webhook_activity' | 'activity_log' | 'group_config' | 'channel_validator' | 'auto_responder' | 'group_router' | 'group_inspector' | 'templates' | 'analytics' | 'automated_tasks' | 'alert_system' | 'settings'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'commands' | 'webhook_activity' | 'activity_log' | 'group_config' | 'channel_validator' | 'auto_responder' | 'group_router' | 'group_inspector' | 'templates' | 'analytics' | 'automated_tasks' | 'alert_system' | 'event_triggers' | 'settings'>('chat');
   
   // Strict Principal & Staff Access Control
   const isPrincipal = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
@@ -1098,6 +1099,21 @@ export const TelegramBotStudio: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('event_triggers')}
+          className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'event_triggers'
+              ? 'bg-white text-amber-600 border-b-2 border-amber-600 shadow-sm'
+              : 'text-slate-600 hover:text-amber-600 hover:bg-slate-50'
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5 text-amber-500" />
+          Event Triggers (សិស្ស/គ្រូ/ពិន្ទុ)
+          <span className="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+            Real-time
+          </span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('alert_system')}
           className={`px-3.5 py-3 font-semibold text-xs rounded-t-xl transition-all flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'alert_system'
@@ -1925,6 +1941,14 @@ export const TelegramBotStudio: React.FC = () => {
 
       {/* Tab: Automated Tasks */}
       {activeTab === 'automated_tasks' && <TelegramAutomatedTasks />}
+
+      {/* Tab: Real-time Event Triggers (New Student, New Teacher, Score Updates) */}
+      {activeTab === 'event_triggers' && (
+        <TelegramRealtimeEventTriggers
+          onShowToast={showToast}
+          isPrincipal={isPrincipal}
+        />
+      )}
 
       {/* Tab 4: Bot Settings & Test Configuration */}
       {activeTab === 'settings' && (

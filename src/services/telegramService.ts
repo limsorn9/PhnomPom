@@ -994,5 +994,383 @@ export async function recordApiFailure(
   return { triggeredAlert: false };
 }
 
+// =========================================================================
+// Real-time Event Notification Triggers (សិស្សថ្មី, គ្រូថ្មី, ពិន្ទុសំខាន់ៗ)
+// =========================================================================
+
+export const EVENT_NOTIFICATIONS_CONFIG_KEY = 'phnom_pom_telegram_event_notifications_v1';
+
+export interface TelegramEventNotificationSettings {
+  notifyOnNewStudent: boolean;
+  notifyOnNewTeacher: boolean;
+  notifyOnSignificantScore: boolean;
+  scoreNotifyThreshold: 'significant_only' | 'all' | 'top_only' | 'at_risk_only';
+  customChatId?: string;
+}
+
+export const DEFAULT_EVENT_NOTIFICATION_SETTINGS: TelegramEventNotificationSettings = {
+  notifyOnNewStudent: true,
+  notifyOnNewTeacher: true,
+  notifyOnSignificantScore: true,
+  scoreNotifyThreshold: 'significant_only',
+};
+
+export function getTelegramEventNotificationSettings(): TelegramEventNotificationSettings {
+  try {
+    const raw = localStorage.getItem(EVENT_NOTIFICATIONS_CONFIG_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...DEFAULT_EVENT_NOTIFICATION_SETTINGS, ...parsed };
+    }
+  } catch (e) {
+    console.warn('Failed to load telegram event notification settings:', e);
+  }
+  return DEFAULT_EVENT_NOTIFICATION_SETTINGS;
+}
+
+export function saveTelegramEventNotificationSettings(
+  partial: Partial<TelegramEventNotificationSettings>
+): TelegramEventNotificationSettings {
+  try {
+    const current = getTelegramEventNotificationSettings();
+    const updated = { ...current, ...partial };
+    localStorage.setItem(EVENT_NOTIFICATIONS_CONFIG_KEY, JSON.stringify(updated));
+    return updated;
+  } catch (e) {
+    console.warn('Failed to save telegram event notification settings:', e);
+    return getTelegramEventNotificationSettings();
+  }
+}
+
+/**
+ * Send Telegram notification when a new student is registered
+ */
+export async function notifyTelegramNewStudent(
+  student: {
+    id?: string;
+    code?: string;
+    nameKhmer: string;
+    nameLatin?: string;
+    gender: 'M' | 'F';
+    grade: number;
+    section: string;
+    dob?: string;
+    guardianName?: string;
+    guardianPhone?: string;
+    phone?: string;
+    village?: string;
+    commune?: string;
+    district?: string;
+    province?: string;
+    isTransferIn?: boolean;
+    previousSchool?: string;
+  },
+  actor?: { nameKhmer?: string; role?: string },
+  customChatId?: string | number
+): Promise<TelegramSendResult> {
+  const config = getTelegramEventNotificationSettings();
+  if (!config.notifyOnNewStudent) {
+    return { success: true, message: 'មុខងារជូនដំណឹងសិស្សថ្មីត្រូវបានបិទ (Disabled in settings)' };
+  }
+
+  const targetChatId = customChatId || (config.customChatId?.trim() ? config.customChatId.trim() : undefined);
+  const genderKh = student.gender === 'F' ? 'ស្រី (F)' : 'ប្រុស (M)';
+  const addressParts = [student.village, student.commune, student.district, student.province].filter(Boolean);
+  const address = addressParts.length > 0 ? addressParts.join(', ') : 'មិនបានបញ្ជាក់';
+  const guardianPhone = student.guardianPhone || student.phone || 'គ្មានលេខ';
+  const guardianName = student.guardianName || 'មិនបានបញ្ជាក់';
+  const dobText = student.dob || 'មិនបានបញ្ជាក់';
+  const actorName = actor?.nameKhmer || 'គណៈគ្រប់គ្រងសាលា';
+  const actorRole = actor?.role ? `(${actor.role})` : '';
+  const transferNote = student.isTransferIn && student.previousSchool 
+    ? `\n🔄 *ផ្ទេរមកពី៖* ${student.previousSchool}` 
+    : '';
+
+  const message = 
+`🎓 *សិស្សថ្មីត្រូវបានចុះឈ្មោះចូលរៀនក្នុងប្រព័ន្ធ*
+━━━━━━━━━━━━━━━━━━━━━━
+👤 *ឈ្មោះសិស្ស៖* *${student.nameKhmer}* ${student.nameLatin ? `(${student.nameLatin})` : ''}
+🆔 *អត្តលេខសិស្ស៖* \`${student.code || 'ទើបបង្កើត'}\`
+🏫 *ថ្នាក់រៀន៖* ថ្នាក់ទី *${student.grade}«${student.section}»*
+🚻 *ភេទ៖* ${genderKh}
+🎂 *ថ្ងៃខែឆ្នាំកំណើត៖* ${dobText}
+👨‍👩‍👦 *អាណាព្យាបាល៖* ${guardianName}
+📞 *ទូរស័ព្ទអាណាព្យាបាល៖* ${guardianPhone}
+📍 *អាសយដ្ឋាន/ទីលំនៅ៖* ${address}${transferNote}
+━━━━━━━━━━━━━━━━━━━━━━
+✍️ *អ្នកកត់ត្រា៖* ${actorName} ${actorRole}
+🕒 *កាលបរិច្ឆេទ៖* _${new Date().toLocaleString('km-KH')}_`;
+
+  return await sendTelegramNotification({
+    title: `ចុះឈ្មោះសិស្សថ្មី៖ ${student.nameKhmer} (ថ្នាក់ទី ${student.grade}${student.section})`,
+    message,
+    category: 'announcement',
+    chatId: targetChatId,
+    metadata: {
+      eventType: 'new_student',
+      studentId: student.id,
+      studentCode: student.code,
+      grade: student.grade,
+      section: student.section,
+      nameKhmer: student.nameKhmer,
+      guardianPhone,
+      triggeredByName: actorName,
+      triggeredByRole: actor?.role || 'Admin'
+    }
+  });
+}
+
+/**
+ * Send Telegram notification when a new teacher is added to the system
+ */
+export async function notifyTelegramNewTeacher(
+  teacher: {
+    id?: string;
+    staffCode?: string;
+    nameKhmer: string;
+    nameLatin?: string;
+    gender?: 'M' | 'F';
+    role?: string;
+    assignedGrade?: number;
+    assignedSection?: string;
+    phone?: string;
+    email?: string;
+    qualification?: string;
+    yearsOfService?: number;
+  },
+  actor?: { nameKhmer?: string; role?: string },
+  customChatId?: string | number
+): Promise<TelegramSendResult> {
+  const config = getTelegramEventNotificationSettings();
+  if (!config.notifyOnNewTeacher) {
+    return { success: true, message: 'មុខងារជូនដំណឹងគ្រូថ្មីត្រូវបានបិទ (Disabled in settings)' };
+  }
+
+  const targetChatId = customChatId || (config.customChatId?.trim() ? config.customChatId.trim() : undefined);
+  const genderKh = teacher.gender === 'F' ? 'ស្រី (F)' : 'ប្រុស (M)';
+  const phoneText = teacher.phone || 'គ្មានលេខ';
+  const emailText = teacher.email || 'គ្មាន';
+  const roleText = teacher.role || 'គ្រូបង្រៀន';
+  const classText = teacher.assignedGrade 
+    ? `ថ្នាក់ទី ${teacher.assignedGrade}«${teacher.assignedSection || 'ក'}»` 
+    : 'គ្មានបន្ទុកថ្នាក់ជាក់លាក់';
+  const qualificationText = teacher.qualification || 'គរុកោសល្យបឋមសិក្សា';
+  const experienceText = typeof teacher.yearsOfService === 'number' && teacher.yearsOfService > 0
+    ? `\n⏳ *បទពិសោធន៍បង្រៀន៖* ${teacher.yearsOfService} ឆ្នាំ`
+    : '';
+  const actorName = actor?.nameKhmer || 'លោកនាយកសាលា';
+  const actorRole = actor?.role ? `(${actor.role})` : '';
+
+  const message = 
+`👨‍🏫 *លោកគ្រូ-អ្នកគ្រូថ្មីត្រូវបានបន្ថែមក្នុងប្រព័ន្ធ*
+━━━━━━━━━━━━━━━━━━━━━━
+👤 *គោត្តនាម-នាម៖* *${teacher.nameKhmer}* ${teacher.nameLatin ? `(${teacher.nameLatin})` : ''}
+🆔 *អត្តលេខមន្ត្រី (Staff Code)៖* \`${teacher.staffCode || 'ទើបបង្កើត'}\`
+💼 *មុខតំណែង/តួនាទី៖* *${roleText}*
+🏫 *បន្ទុកថ្នាក់៖* ${classText}
+🚻 *ភេទ៖* ${genderKh}
+📞 *លេខទូរស័ព្ទ៖* ${phoneText}
+📧 *អ៊ីម៉ែល៖* \`${emailText}\`
+🎓 *កម្រិតវប្បធម៌/សញ្ញាបត្រ៖* ${qualificationText}${experienceText}
+━━━━━━━━━━━━━━━━━━━━━━
+✍️ *អ្នកបញ្ចូលទិន្នន័យ៖* ${actorName} ${actorRole}
+🕒 *កាលបរិច្ឆេទ៖* _${new Date().toLocaleString('km-KH')}_`;
+
+  return await sendTelegramNotification({
+    title: `បន្ថែមលោកគ្រូ/អ្នកគ្រូថ្មី៖ ${teacher.nameKhmer} (${roleText})`,
+    message,
+    category: 'general',
+    chatId: targetChatId,
+    metadata: {
+      eventType: 'new_teacher',
+      teacherId: teacher.id,
+      staffCode: teacher.staffCode,
+      nameKhmer: teacher.nameKhmer,
+      role: teacher.role,
+      triggeredByName: actorName,
+      triggeredByRole: actor?.role || 'Director'
+    }
+  });
+}
+
+/**
+ * Send Telegram notification when significant score updates occur (A, B, Top 3, or At-Risk/Fail)
+ */
+export async function notifyTelegramScoreUpdate(
+  record: {
+    id: string;
+    studentId: string;
+    studentCode: string;
+    studentNameKhmer: string;
+    gender: 'M' | 'F';
+    grade: number;
+    section: string;
+    monthOrSemester: string;
+    academicYear: string;
+    scores: {
+      khmerReading?: number;
+      khmerWriting?: number;
+      mathematics?: number;
+      scienceSocial?: number;
+      moralCivics?: number;
+      artsPhysical?: number;
+      [key: string]: number | undefined;
+    };
+    totalScore: number;
+    averageScore: number;
+    rank: number;
+    gradeLetter: 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
+    resultStatus: 'ជាប់' | 'ធ្លាក់';
+    remarks?: string;
+  },
+  forceSend: boolean = false,
+  actor?: { nameKhmer?: string; role?: string },
+  customChatId?: string | number
+): Promise<TelegramSendResult> {
+  const config = getTelegramEventNotificationSettings();
+  if (!config.notifyOnSignificantScore && !forceSend) {
+    return { success: true, message: 'មុខងារជូនដំណឹងពិន្ទុត្រូវបានបិទ (Disabled in settings)' };
+  }
+
+  const isTopRank = record.rank <= 3 || record.gradeLetter === 'A' || record.gradeLetter === 'B';
+  const isAtRisk = record.resultStatus === 'ធ្លាក់' || record.gradeLetter === 'F' || record.averageScore < 5.0;
+
+  // Filter based on threshold unless forceSend
+  if (!forceSend) {
+    if (config.scoreNotifyThreshold === 'top_only' && !isTopRank) {
+      return { success: true, message: 'មិនមែនសិស្សឆ្នើម (Top-Ranked) មិនបានផ្ញើ' };
+    }
+    if (config.scoreNotifyThreshold === 'at_risk_only' && !isAtRisk) {
+      return { success: true, message: 'មិនមែនសិស្សរៀនយឺត (At-Risk) មិនបានផ្ញើ' };
+    }
+    if (config.scoreNotifyThreshold === 'significant_only' && !isTopRank && !isAtRisk) {
+      return { success: true, message: 'ពិន្ទុមធ្យមធម្មតា មិនស្ថិតក្នុងលក្ខខណ្ឌសំខាន់ៗ (A, B, Top 3 ឬធ្លាក់)' };
+    }
+  }
+
+  const targetChatId = customChatId || (config.customChatId?.trim() ? config.customChatId.trim() : undefined);
+  let headerIcon = '📊';
+  let badgeTitle = 'អាប់ដេតពិន្ទុ & លទ្ធផលសិក្សា';
+  if (record.gradeLetter === 'A' || record.rank === 1) {
+    headerIcon = '🏆🌟';
+    badgeTitle = 'លទ្ធផលសិក្សាឆ្នើមលេខ១ (Top 1 Outstanding Score)';
+  } else if (isTopRank) {
+    headerIcon = '🌟';
+    badgeTitle = `លទ្ធផលសិក្សាល្អប្រសើរ (ចំណាត់ថ្នាក់លេខ ${record.rank})`;
+  } else if (isAtRisk) {
+    headerIcon = '⚠️🚨';
+    badgeTitle = 'ដំណឹងសិស្សរៀនយឺត / ត្រូវការជំនួយបំប៉នបន្ទាន់ (Academic Alert)';
+  }
+
+  const actorName = actor?.nameKhmer || 'គ្រូបន្ទុកថ្នាក់';
+  const actorRole = actor?.role ? `(${actor.role})` : '';
+
+  const reading = record.scores.khmerReading ?? 0;
+  const writing = record.scores.khmerWriting ?? 0;
+  const math = record.scores.mathematics ?? 0;
+  const science = record.scores.scienceSocial ?? 0;
+  const moral = record.scores.moralCivics ?? 0;
+  const arts = record.scores.artsPhysical ?? 0;
+
+  const defaultRemark = record.resultStatus === 'ជាប់' 
+    ? (isTopRank ? 'ខិតខំរៀនសូត្របានល្អប្រសើរណាស់ សូមបន្តរក្សាលទ្ធផលនេះ!' : 'ការសិក្សាបានជាប់តាមកម្រិតស្តង់ដារ')
+    : 'លទ្ធផលក្រោមមធ្យមភាគ ៥.០ ត្រូវការជួបប្រឹក្សាជាមួយមាតាបិតា និងបំប៉នបន្ថែម';
+
+  const remarksText = record.remarks?.trim() ? record.remarks.trim() : defaultRemark;
+
+  const message =
+`${headerIcon} *${badgeTitle}*
+━━━━━━━━━━━━━━━━━━━━━━
+👤 *ឈ្មោះសិស្ស៖* *${record.studentNameKhmer}* (អត្តលេខ៖ \`${record.studentCode}\`)
+🏫 *ថ្នាក់រៀន៖* ថ្នាក់ទី *${record.grade}«${record.section}»*
+🗓️ *ការវាយតម្លៃ៖* ខែ *${record.monthOrSemester}* (ឆ្នាំ ${record.academicYear})
+━━━━━━━━━━━━━━━━━━━━━━
+🏆 *ចំណាត់ថ្នាក់ក្នុងថ្នាក់៖* *លេខ ${record.rank}*
+📈 *ពិន្ទុមធ្យមភាគ៖* *${record.averageScore.toFixed(2)} / 10*
+🎖️ *និទ្ទេសរួម៖* *និទ្ទេស ${record.gradeLetter}* (${record.resultStatus === 'ជាប់' ? '✅ ជាប់' : '❌ ធ្លាក់'})
+📊 *ពិន្ទុសរុប៖* ${record.totalScore.toFixed(1)} / 60
+
+📝 *ពិន្ទុតាមមុខវិជ្ជា៖*
+• ភាសាខ្មែរ (អាន): *${reading}* | (សរសេរ): *${writing}*
+• គណិតវិទ្យា: *${math}*
+• វិទ្យាសាស្ត្រ & សិក្សាសង្គម: *${science}*
+• សីលធម៌ & ពលរដ្ឋ: *${moral}*
+• សិល្បៈ & អប់រំកាយ: *${arts}*
+
+💬 *ការកត់សម្គាល់៖* ${remarksText}
+━━━━━━━━━━━━━━━━━━━━━━
+👨‍🏫 *គ្រូបន្ទុកថ្នាក់៖* ${actorName} ${actorRole}
+🕒 *កាលបរិច្ឆេទ៖* _${new Date().toLocaleString('km-KH')}_`;
+
+  return await sendTelegramNotification({
+    title: `${headerIcon} ពិន្ទុខែ ${record.monthOrSemester}៖ ${record.studentNameKhmer} (លេខ ${record.rank} - និទ្ទេស ${record.gradeLetter})`,
+    message,
+    category: isAtRisk ? 'security' : 'audit',
+    chatId: targetChatId,
+    metadata: {
+      eventType: 'score_update',
+      studentId: record.studentId,
+      studentCode: record.studentCode,
+      grade: record.grade,
+      section: record.section,
+      month: record.monthOrSemester,
+      rank: record.rank,
+      averageScore: record.averageScore,
+      gradeLetter: record.gradeLetter,
+      resultStatus: record.resultStatus,
+      isTopRank,
+      isAtRisk,
+      triggeredByName: actorName,
+      triggeredByRole: actor?.role || 'Teacher'
+    }
+  });
+}
+
+/**
+ * Send Telegram notification when bulk students are imported
+ */
+export async function notifyTelegramBulkStudents(
+  count: number,
+  grade?: number,
+  section?: string,
+  actor?: { nameKhmer?: string; role?: string },
+  customChatId?: string | number
+): Promise<TelegramSendResult> {
+  const config = getTelegramEventNotificationSettings();
+  if (!config.notifyOnNewStudent) {
+    return { success: true, message: 'មុខងារជូនដំណឹងសិស្សថ្មីត្រូវបានបិទ' };
+  }
+
+  const targetChatId = customChatId || (config.customChatId?.trim() ? config.customChatId.trim() : undefined);
+  const classText = grade ? `ថ្នាក់ទី ${grade}«${section || 'ក'}»` : 'គ្រប់កម្រិតថ្នាក់';
+  const actorName = actor?.nameKhmer || 'គណៈគ្រប់គ្រងសាលា';
+  const actorRole = actor?.role ? `(${actor.role})` : '';
+
+  const message =
+`🎓 *ការនាំចូលបញ្ជីសិស្សថ្មីជាដុំ (Bulk Students Registration)*
+━━━━━━━━━━━━━━━━━━━━━━
+📊 *ចំនួនសិស្សសរុប៖* *${count} នាក់*
+🏫 *គោលដៅថ្នាក់៖* *${classText}*
+📁 *ប្រភពទិន្នន័យ៖* នាំចូលតាមឯកសារ Excel / CSV
+━━━━━━━━━━━━━━━━━━━━━━
+✍️ *អ្នកកត់ត្រា៖* ${actorName} ${actorRole}
+🕒 *កាលបរិច្ឆេទ៖* _${new Date().toLocaleString('km-KH')}_`;
+
+  return await sendTelegramNotification({
+    title: `នាំចូលសិស្សថ្មីជាដុំ៖ ${count} នាក់ (${classText})`,
+    message,
+    category: 'announcement',
+    chatId: targetChatId,
+    metadata: {
+      eventType: 'bulk_students',
+      count,
+      grade,
+      section,
+      triggeredByName: actorName,
+      triggeredByRole: actor?.role || 'Admin'
+    }
+  });
+}
+
 
 

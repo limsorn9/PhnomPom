@@ -61,6 +61,7 @@ import {
   Loader2,
   FileSpreadsheet,
   CloudUpload,
+  Cloud,
   Zap,
   UserX,
   Image as ImageIcon
@@ -88,7 +89,11 @@ export const AccountsManagement: React.FC = () => {
     rejectProfileEditRequest,
     isStudentRegisteredInAccounts,
     autoGenerateStudentAccounts,
-    confirmAction
+    confirmAction,
+    syncAllToCloud,
+    pullAllFromCloud,
+    isCloudSyncing,
+    lastCloudSyncTime
   } = useSchool();
 
   const [activeTab, setActiveTab] = useState<
@@ -571,6 +576,43 @@ export const AccountsManagement: React.FC = () => {
               <p className="text-xs text-slate-500">
                 ការបែងចែកថេបគណនីគ្រូ/បុគ្គលិក និងគណនីសិស្សដាច់ដោយឡែកពីគ្នា ព្រមទាំងគ្រប់គ្រងសិទ្ធិប្រើប្រាស់
               </p>
+
+              {/* Cloud Sync Status & Two-way Sync Button */}
+              <div className="mt-2.5 inline-flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-1.5 shadow-2xs">
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="flex h-2 w-2 relative">
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isCloudSyncing ? 'bg-amber-400' : 'bg-emerald-400'} opacity-75`}></span>
+                    <span className={`relative inline-flex rounded-full h-2 w-2 ${isCloudSyncing ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                  </span>
+                  <Cloud className="w-3.5 h-3.5 text-teal-600" />
+                  <span className="font-bold text-slate-700">Cloud Sync:</span>
+                  <span className="text-[11px] text-slate-500">
+                    {lastCloudSyncTime ? `ទើបធ្វើសមកាលកម្ម (${new Date(lastCloudSyncTime).toLocaleTimeString('km-KH')})` : 'ភ្ជាប់រួចរាល់'}
+                  </span>
+                </div>
+
+                <div className="h-3.5 w-px bg-slate-300"></div>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    showToast('កំពុងធ្វើសមកាលកម្មទិន្នន័យគណនីជាមួយ Cloud Firestore...', 'info');
+                    await pullAllFromCloud();
+                    await syncAllToCloud();
+                    showToast('បានធ្វើសមកាលកម្មគណនីគ្រប់ឧបករណ៍ (ទូរស័ព្ទ និង PC) ជោគជ័យ!', 'success');
+                  }}
+                  disabled={isCloudSyncing}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    isCloudSyncing
+                      ? 'bg-amber-100 text-amber-800 animate-pulse'
+                      : 'bg-teal-600 hover:bg-teal-700 text-white shadow-2xs active:scale-95'
+                  }`}
+                  title="ទាញយកគណនីពី Cloud និងបញ្ជូនគណនីទាំងអស់ឡើង Cloud ដើម្បីឱ្យទូរស័ព្ទ និង PC ឃើញដូចគ្នា ១០០%"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isCloudSyncing ? 'animate-spin' : ''}`} />
+                  <span>{isCloudSyncing ? 'កំពុង Sync...' : 'ធ្វើសមកាលកម្មឥឡូវ (Sync Now)'}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

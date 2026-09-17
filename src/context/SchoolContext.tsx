@@ -107,7 +107,12 @@ import {
   buildNotification,
   SendNotificationPayload
 } from '../services/fcmNotificationService';
-import { sendTelegramNotification } from '../services/telegramService';
+import {
+  sendTelegramNotification,
+  notifyTelegramNewStudent,
+  notifyTelegramNewTeacher,
+  notifyTelegramScoreUpdate
+} from '../services/telegramService';
 import {
   initialSchoolProfile,
   initialTeachers,
@@ -269,7 +274,7 @@ interface SchoolContextType {
 
   // Students
   students: Student[];
-  addStudent: (student: Omit<Student, 'id' | 'code'>) => void;
+  addStudent: (student: Omit<Student, 'id' | 'code'>, options?: { skipTelegramNotification?: boolean }) => void;
   updateStudent: (id: string, updated: Partial<Student>) => void;
   deleteStudent: (id: string) => void;
   deleteAllStudents: () => void;
@@ -678,12 +683,26 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try {
         const parsed: AppUser[] = JSON.parse(saved);
         // Ensure super admin credentials are kept up to date with new password
-        return parsed.map(u => {
+        const updated = parsed.map(u => {
           if (u.email?.toLowerCase() === 'limsorn9@gmail.com' || u.username === 'limsorn') {
             return { ...u, password: 'Ls12122012@' };
           }
           return u;
         });
+
+        // Ensure foundational school roles are available
+        const merged = [...updated];
+        for (const initU of initialUsers) {
+          const exists = merged.some(
+            u => u.id === initU.id || 
+                 u.username.toLowerCase() === initU.username.toLowerCase() || 
+                 (u.email && initU.email && u.email.toLowerCase() === initU.email.toLowerCase())
+          );
+          if (!exists) {
+            merged.push(initU);
+          }
+        }
+        return merged;
       } catch {
         return initialUsers;
       }
@@ -3502,7 +3521,23 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (cloudData.modelSchoolStandards && Array.isArray(cloudData.modelSchoolStandards)) setModelSchoolStandards(cloudData.modelSchoolStandards.filter(Boolean));
         if (cloudData.schoolAssets && Array.isArray(cloudData.schoolAssets)) setSchoolAssets(cloudData.schoolAssets.filter(Boolean));
         if (cloudData.schoolGroups && Array.isArray(cloudData.schoolGroups)) setSchoolGroups(cloudData.schoolGroups.filter(Boolean));
-        if (cloudData.appUsers && Array.isArray(cloudData.appUsers)) setAppUsers(cloudData.appUsers.filter(Boolean));
+        if (cloudData.appUsers && Array.isArray(cloudData.appUsers)) {
+          setAppUsers(prevUsers => {
+            const cloudUsers: AppUser[] = (cloudData.appUsers || []).filter(Boolean);
+            const merged: AppUser[] = [...cloudUsers];
+            for (const localUser of prevUsers) {
+              const exists = merged.some(cu =>
+                cu.id === localUser.id ||
+                (cu.username && localUser.username && cu.username.toLowerCase() === localUser.username.toLowerCase()) ||
+                (cu.email && localUser.email && cu.email.toLowerCase() === localUser.email.toLowerCase())
+              );
+              if (!exists) {
+                merged.push(localUser);
+              }
+            }
+            return merged;
+          });
+        }
         if (cloudData.equipmentItems && Array.isArray(cloudData.equipmentItems)) setEquipmentItems(cloudData.equipmentItems.filter(Boolean));
         if (cloudData.equipmentLoans && Array.isArray(cloudData.equipmentLoans)) setEquipmentLoans(cloudData.equipmentLoans.filter(Boolean));
         if (cloudData.teacherDailyTasks && Array.isArray(cloudData.teacherDailyTasks)) setTeacherDailyTasks(cloudData.teacherDailyTasks.filter(Boolean));
@@ -3672,26 +3707,44 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!cloudData) return;
 
       const localSavedStudents = localStorage.getItem(`${LOCAL_STORAGE_KEY}_students`);
+      const localSavedUsers = localStorage.getItem(`${LOCAL_STORAGE_KEY}_users`);
+      const localSavedTeachers = localStorage.getItem(`${LOCAL_STORAGE_KEY}_teachers`);
       const localLastMutation = Number(localStorage.getItem(LAST_LOCAL_MUTATION_KEY) || '0');
       const cloudLastUpdatedTime = cloudData.lastUpdated ? new Date(cloudData.lastUpdated).getTime() : 0;
 
       let parsedLocalStudentsCount = 0;
+      let parsedLocalUsers: AppUser[] = [];
+      let parsedLocalTeachersCount = 0;
       try {
         if (localSavedStudents) {
           const parsed = JSON.parse(localSavedStudents);
           if (Array.isArray(parsed)) parsedLocalStudentsCount = parsed.length;
         }
       } catch {}
+      try {
+        if (localSavedUsers) {
+          const parsed = JSON.parse(localSavedUsers);
+          if (Array.isArray(parsed)) parsedLocalUsers = parsed.filter(Boolean);
+        }
+      } catch {}
+      try {
+        if (localSavedTeachers) {
+          const parsed = JSON.parse(localSavedTeachers);
+          if (Array.isArray(parsed)) parsedLocalTeachersCount = parsed.length;
+        }
+      } catch {}
 
       const cloudStudentsCount = Array.isArray(cloudData.students) ? cloudData.students.length : 0;
-      const isCloudEmptyWhileLocalHasData = (parsedLocalStudentsCount > 0 && cloudStudentsCount === 0);
+      const cloudUsersCount = Array.isArray(cloudData.appUsers) ? cloudData.appUsers.length : 0;
+      const hasLocalCustomData = parsedLocalStudentsCount > 0 || parsedLocalUsers.length > 1 || parsedLocalTeachersCount > 1;
+      const isCloudEmptyWhileLocalHasData = hasLocalCustomData && (cloudStudentsCount === 0 && cloudUsersCount <= 1);
       const isLocalNewer = (localLastMutation - cloudLastUpdatedTime > 2500);
 
       // Conflict Resolution:
       // If local data exists and was modified after the cloud snapshot (by more than 2.5s)
-      // OR local data has records while cloud is empty, retain local data and push to cloud
-      if (parsedLocalStudentsCount > 0 && (isLocalNewer || isCloudEmptyWhileLocalHasData)) {
-        console.info('Local data is newer or more complete than Cloud Firestore data. Retaining local data and syncing to Cloud.');
+      // OR local data has custom records while cloud is empty, retain local data and push to cloud
+      if (hasLocalCustomData && (isLocalNewer || isCloudEmptyWhileLocalHasData)) {
+        console.info('Local data has custom records or is newer than Cloud Firestore. Retaining local data and syncing to Cloud.');
         const payload = getFullSchoolPayload();
         syncSchoolDataToFirestore(payload, true).catch(console.warn);
         return;
@@ -3713,7 +3766,28 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (cloudData.calendarEvents && Array.isArray(cloudData.calendarEvents)) setCalendarEvents(cloudData.calendarEvents.filter(Boolean));
       if (cloudData.transfers && Array.isArray(cloudData.transfers)) setTransfers(cloudData.transfers.filter(Boolean));
       if (cloudData.activityLogs && Array.isArray(cloudData.activityLogs)) setActivityLogs(cloudData.activityLogs.filter(Boolean));
-      if (cloudData.appUsers && Array.isArray(cloudData.appUsers) && cloudData.appUsers.length > 0) setAppUsers(cloudData.appUsers);
+      if (cloudData.appUsers && Array.isArray(cloudData.appUsers)) {
+        setAppUsers(prevUsers => {
+          const cloudUsers: AppUser[] = (cloudData.appUsers || []).filter(Boolean);
+          const merged: AppUser[] = [...cloudUsers];
+          for (const localUser of prevUsers) {
+            const exists = merged.some(cu =>
+              cu.id === localUser.id ||
+              (cu.username && localUser.username && cu.username.toLowerCase() === localUser.username.toLowerCase()) ||
+              (cu.email && localUser.email && cu.email.toLowerCase() === localUser.email.toLowerCase())
+            );
+            if (!exists) {
+              merged.push(localUser);
+            }
+          }
+          if (merged.length > cloudUsers.length) {
+            setTimeout(() => {
+              syncSchoolDataToFirestore({ ...getFullSchoolPayload(), appUsers: merged }, true).catch(console.warn);
+            }, 1000);
+          }
+          return merged;
+        });
+      }
       if (cloudData.academicYears && Array.isArray(cloudData.academicYears)) setAcademicYears(cloudData.academicYears.filter(Boolean));
       if (cloudData.examSubjects && Array.isArray(cloudData.examSubjects)) setExamSubjects(cloudData.examSubjects.filter(Boolean));
       if (cloudData.profileEditRequests && Array.isArray(cloudData.profileEditRequests)) setProfileEditRequests(cloudData.profileEditRequests.filter(Boolean));
@@ -5892,7 +5966,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   };
 
-  const addStudent = (studentData: Omit<Student, 'id' | 'code'>) => {
+  const addStudent = (studentData: Omit<Student, 'id' | 'code'>, options?: { skipTelegramNotification?: boolean }) => {
     // Check permissions
     if (currentUser && !['director', 'super_admin', 'secretary', 'teacher'].includes(currentUser.role)) {
       showToast('អ្នកគ្មានសិទ្ធិបញ្ចូលសិស្សថ្មីចូលប្រព័ន្ធទេ!', 'error');
@@ -5929,6 +6003,14 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setAppUsers(prev => [studentUser, ...prev]);
 
     showToast(`បានបញ្ចូលសិស្ស «${newStudent.nameKhmer}» និងបង្កើតគណនី (អត្តលេខ ${code}) ជោគជ័យ!`);
+
+    // Real-time Telegram Bot Notification for new student registration
+    if (!options?.skipTelegramNotification) {
+      notifyTelegramNewStudent(newStudent, {
+        nameKhmer: currentUser?.nameKhmer || 'លោកនាយកសាលា',
+        role: currentUser?.role === 'director' ? 'នាយកសាលា' : currentUser?.role === 'teacher' ? 'គ្រូបង្រៀន' : 'អ្នកគ្រប់គ្រង'
+      }).catch(err => console.warn('Telegram student notification trigger error:', err));
+    }
 
     // Audit log
     addActivityLog({
@@ -6339,6 +6421,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     showToast(`បានបញ្ចូលលោកគ្រូ/អ្នកគ្រូ «${newTeacher.nameKhmer}» និងបានបង្កើតគណនីចូលប្រព័ន្ធជោគជ័យ!`);
 
+    // Real-time Telegram Bot Notification for new teacher registration
+    notifyTelegramNewTeacher(newTeacher, {
+      nameKhmer: currentUser?.nameKhmer || 'លោក លីម សន (នាយកសាលា)',
+      role: currentUser?.role === 'director' ? 'នាយកសាលា' : 'គណៈគ្រប់គ្រង'
+    }).catch(err => console.warn('Telegram teacher notification trigger error:', err));
+
     addActivityLog({
       domain: 'teacher',
       actionType: 'create',
@@ -6614,6 +6702,17 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setScores(finalScoresWithRanks);
     showToast(`បានកត់ត្រាពិន្ទុ & គណនាចំណាត់ថ្នាក់សិស្ស «${student.nameKhmer}» រួចរាល់!`);
+
+    // Real-time Telegram Bot Notification for important score updates (A, B, Top 3, or At-Risk)
+    const savedRecordWithRank = finalScoresWithRanks.find(s => s.id === record.id) || {
+      ...record,
+      rank: idToRank.get(record.id) || 1
+    };
+
+    notifyTelegramScoreUpdate(savedRecordWithRank, false, {
+      nameKhmer: currentUser?.nameKhmer || 'គ្រូបន្ទុកថ្នាក់',
+      role: currentUser?.role === 'teacher' ? 'គ្រូបន្ទុកថ្នាក់' : currentUser?.role === 'director' ? 'នាយកសាលា' : 'អ្នកកត់ត្រា'
+    }).catch(err => console.warn('Telegram score notification trigger error:', err));
 
     addActivityLog({
       domain: 'academic',

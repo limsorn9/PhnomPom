@@ -110,6 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
     isCloudSyncing,
     lastCloudSyncTime,
     syncAllToCloud,
+    pullAllFromCloud,
     academicYears,
     selectedAcademicYear,
     setSelectedAcademicYear,
@@ -466,7 +467,10 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Firebase Cloud Firestore Real-time Sync Status Indicator */}
           <button
             type="button"
-            onClick={() => syncAllToCloud()}
+            onClick={async () => {
+              await pullAllFromCloud();
+              await syncAllToCloud();
+            }}
             disabled={isCloudSyncing}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 border rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer ${
               isCloudSyncing
@@ -475,8 +479,8 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
             title={
               lastCloudSyncTime
-                ? `Cloud Firestore ភ្ជាប់ជាប់លាប់! ធ្វើសមកាលកម្មចុងក្រោយ៖ ${new Date(lastCloudSyncTime).toLocaleTimeString('km-KH')}`
-                : 'ចុចដើម្បី Sync ទិន្នន័យឡើង Cloud Firestore ឥឡូវនេះ'
+                ? `Cloud Firestore ភ្ជាប់ជាប់លាប់! ធ្វើសមកាលកម្មចុងក្រោយ៖ ${new Date(lastCloudSyncTime).toLocaleTimeString('km-KH')} (ចុចដើម្បី Sync ទៅ-មក)`
+                : 'ចុចដើម្បី Sync ទិន្នន័យទៅ-មកជាមួយ Cloud Firestore ឥឡូវនេះ'
             }
           >
             <div className={`w-2 h-2 rounded-full ${isCloudSyncing ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'}`} />
