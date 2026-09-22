@@ -263,53 +263,53 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
   ];
 
   return (
-    <div className="space-y-5 sm:space-y-6 pb-12 font-battambang">
+    <div className="space-y-4 sm:space-y-6 pb-12 font-battambang">
       {/* 1. TOP DIGNIFIED SCHOOL IDENTITY BANNER (Cambodian MoEYS Standard) */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-950 via-blue-950 to-indigo-950 text-white shadow-md border border-indigo-900/50 p-4 sm:p-6">
+      <section className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-r from-slate-950 via-blue-950 to-indigo-950 text-white shadow-md border border-indigo-900/50 p-3.5 sm:p-6">
         <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute left-1/3 bottom-0 w-48 h-48 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-5">
           {/* School Details */}
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-bold text-[11px] shadow-xs">
-                <Sparkles className="w-3.5 h-3.5 text-amber-900 shrink-0" />
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
+              <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-bold text-[10px] sm:text-[11px] shadow-xs">
+                <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-900 shrink-0" />
                 <span>ស្តង់ដារសាលាបឋមសិក្សាគំរូ</span>
               </span>
 
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-900/80 text-blue-200 border border-blue-700/60 font-medium text-[11px]">
-                <Calendar className="w-3 h-3 text-amber-400" />
+              <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full bg-blue-900/80 text-blue-200 border border-blue-700/60 font-medium text-[10px] sm:text-[11px]">
+                <Calendar className="w-3 h-3 text-amber-400 shrink-0" />
                 <span>ឆ្នាំសិក្សា {selectedAcademicYear}</span>
                 {selectedAcademicYear === schoolProfile.academicYear && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-1" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
                 )}
               </span>
 
-              <span className="hidden sm:inline-flex items-center gap-1 text-slate-400 text-[11px]">
-                <span>កូដសាលា៖</span>
+              <span className="inline-flex items-center gap-1 text-slate-300 text-[10px] sm:text-[11px] bg-slate-900/60 px-2 py-0.5 rounded-full border border-slate-700/50">
+                <span>កូដ៖</span>
                 <strong className="text-amber-300 font-mono">{schoolProfile.schoolCode}</strong>
               </span>
             </div>
 
             <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold font-moul tracking-wide text-white leading-snug">
+              <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold font-moul tracking-wide text-white leading-snug">
                 {schoolProfile.nameKhmer}
               </h1>
-              <p className="text-xs sm:text-sm text-blue-200/90 font-medium">
+              <p className="text-xs sm:text-sm text-blue-200/90 font-medium line-clamp-2 sm:line-clamp-none">
                 {schoolProfile.nameLatin} • {schoolProfile.commune || 'ឃុំ'}, {schoolProfile.district || 'ស្រុក'}, {schoolProfile.province || 'ខេត្ត'}
               </p>
             </div>
 
             {/* Principal & Quick Contact */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-300 pt-0.5">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-300 pt-0.5">
               <div className="flex items-center gap-1.5">
                 <BadgeCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                <span>នាយកសាលា៖ <strong className="text-white">{schoolProfile.principalName}</strong></span>
+                <span className="text-[11px] sm:text-xs">នាយក៖ <strong className="text-white">{schoolProfile.principalName}</strong></span>
               </div>
               <a
                 href={`tel:${schoolProfile.principalPhone.replace(/\s+/g, '')}`}
-                className="flex items-center gap-1 text-emerald-300 hover:text-emerald-200 font-mono font-bold hover:underline"
+                className="flex items-center gap-1 text-emerald-300 hover:text-emerald-200 font-mono font-bold hover:underline text-[11px] sm:text-xs"
               >
                 <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 <span>{schoolProfile.principalPhone}</span>
@@ -319,63 +319,63 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
                   href={schoolProfile.mapUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="hidden sm:inline-flex items-center gap-1 text-red-300 hover:text-red-200 hover:underline"
+                  className="inline-flex items-center gap-1 text-rose-300 hover:text-rose-200 hover:underline text-[11px] sm:text-xs"
                 >
                   <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                  <span>Google Maps</span>
+                  <span>Maps</span>
                   <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                 </a>
               )}
             </div>
           </div>
 
-          {/* Direct Shortcut Action Buttons */}
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0 pt-2 lg:pt-0">
+          {/* Direct Shortcut Action Buttons - Optimized for Mobile Grid */}
+          <div className="grid grid-cols-3 sm:flex sm:flex-nowrap items-center gap-1.5 sm:gap-2 shrink-0 pt-2 lg:pt-0 w-full sm:w-auto">
             <button
               onClick={() => setActiveTab('students')}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-sm transition-transform active:scale-95 cursor-pointer min-h-[44px]"
+              className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[11px] sm:text-xs font-bold shadow-xs transition-transform active:scale-95 cursor-pointer min-h-[44px] text-center"
             >
-              <UserPlus className="w-4 h-4" />
-              <span>+ ចុះឈ្មោះសិស្ស</span>
+              <UserPlus className="w-4 h-4 shrink-0" />
+              <span className="leading-tight">ចុះឈ្មោះសិស្ស</span>
             </button>
 
             <button
               onClick={() => setIsQuickAttOpen(true)}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-sm transition-transform active:scale-95 cursor-pointer min-h-[44px]"
+              className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-2 sm:py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[11px] sm:text-xs font-bold shadow-xs transition-transform active:scale-95 cursor-pointer min-h-[44px] text-center"
             >
-              <QrCode className="w-4 h-4" />
-              <span>កត់វត្តមាន</span>
+              <QrCode className="w-4 h-4 shrink-0" />
+              <span className="leading-tight">កត់វត្តមាន</span>
             </button>
 
             <button
               onClick={() => setActiveTab('scores')}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-sm transition-transform active:scale-95 cursor-pointer min-h-[44px]"
+              className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-2 sm:py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[11px] sm:text-xs font-bold shadow-xs transition-transform active:scale-95 cursor-pointer min-h-[44px] text-center"
             >
-              <BookOpenCheck className="w-4 h-4 text-amber-300" />
-              <span>បញ្ចូលពិន្ទុ</span>
+              <BookOpenCheck className="w-4 h-4 text-amber-300 shrink-0" />
+              <span className="leading-tight">បញ្ចូលពិន្ទុ</span>
             </button>
           </div>
         </div>
       </section>
 
       {/* 2. ORDERLY ROLE VIEW & SECTION SELECTOR TABS */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-2 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
-        {/* Row 1: Role Persona Switcher (Director, Teacher, Student) */}
-        <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
-          <div className="flex items-center gap-1.5 min-w-max">
+      <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-1.5 sm:p-2 border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1.5 sm:space-y-2">
+        {/* Row 1: Role Persona Switcher (Director, Teacher, Student) + Mobile Academic Year Selector */}
+        <div className="flex items-center justify-between gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 min-w-max">
             {/* Director Button */}
             {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && (
               <button
                 onClick={() => handleRequestDashboardMode('director')}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer min-h-[38px] ${
                   dashboardMode === 'director'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
-                <Building2 className="w-4 h-4" />
+                <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                 <span>នាយកសាលា</span>
-                <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
+                <span className={`px-1.5 py-0.2 rounded-md text-[9px] sm:text-[10px] font-mono ${
                   dashboardMode === 'director' ? 'bg-blue-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                 }`}>
                   {totalStudents}
@@ -387,16 +387,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
             {currentUser?.role !== 'student' && currentUser?.role !== 'parent' && (
               <button
                 onClick={() => handleRequestDashboardMode('teacher')}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer min-h-[38px] ${
                   dashboardMode === 'teacher'
                     ? 'bg-sky-600 text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
-                <Award className="w-4 h-4" />
+                <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                 <span>លោកគ្រូ-អ្នកគ្រូ</span>
                 {teacherGrade && (
-                  <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
+                  <span className={`px-1.5 py-0.2 rounded-md text-[9px] sm:text-[10px] ${
                     dashboardMode === 'teacher' ? 'bg-sky-500 text-white' : 'bg-sky-100 text-sky-700'
                   }`}>
                     ថ្នាក់ទី {toKhmerNum(teacherGrade)}
@@ -408,28 +408,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
             {/* Student & Guardian Button */}
             <button
               onClick={() => handleRequestDashboardMode('student')}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer min-h-[38px] ${
                 dashboardMode === 'student'
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              <GraduationCap className="w-4 h-4" />
+              <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
               <span>សិស្ស & អាណាព្យាបាល</span>
             </button>
           </div>
 
-          {/* Quick Academic Year Pill with Switch Action */}
-          <div className="hidden md:flex items-center gap-2 text-xs pl-2 border-l border-slate-200 dark:border-slate-800 shrink-0">
-            <span className="text-slate-500 text-[11px]">ឆ្នាំសិក្សា៖</span>
+          {/* Quick Academic Year Pill with Switch Action - Visible on Mobile & Desktop */}
+          <div className="flex items-center gap-1.5 text-xs pl-1.5 sm:pl-2 border-l border-slate-200 dark:border-slate-800 shrink-0">
+            <span className="text-slate-500 text-[10px] sm:text-[11px] hidden sm:inline">ឆ្នាំសិក្សា៖</span>
             <select
               value={selectedAcademicYear}
               onChange={(e) => setSelectedAcademicYear(e.target.value)}
-              className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none cursor-pointer"
+              className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-[11px] sm:text-xs font-bold px-1.5 sm:px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none cursor-pointer max-w-[105px] sm:max-w-none"
+              title="ជ្រើសរើសឆ្នាំសិក្សា"
             >
               {academicYears.map(yr => (
                 <option key={yr} value={yr}>
-                  {yr} {yr === schoolProfile.academicYear ? '★ (ឆ្នាំគោល)' : ''}
+                  {yr} {yr === schoolProfile.academicYear ? '★' : ''}
                 </option>
               ))}
             </select>
@@ -438,65 +439,70 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
 
         {/* Row 2: Sub-view Tab Navigation (Overview, Analytics, Tools, Activity, Academic Years) */}
         {dashboardMode === 'director' && (
-          <div className="flex items-center gap-1 pt-1.5 border-t border-slate-100 dark:border-slate-800/80 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800/80 overflow-x-auto no-scrollbar scroll-smooth">
             <button
               onClick={() => setActiveSection('overview')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+              className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-colors cursor-pointer whitespace-nowrap min-h-[36px] ${
                 activeSection === 'overview'
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              <Activity className="w-3.5 h-3.5" />
-              <span>ទិដ្ឋភាពទូទៅ (Overview)</span>
+              <Activity className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">ទិដ្ឋភាពទូទៅ (Overview)</span>
+              <span className="sm:hidden inline">ទូទៅ</span>
             </button>
 
             <button
               onClick={() => setActiveSection('analytics')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+              className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-colors cursor-pointer whitespace-nowrap min-h-[36px] ${
                 activeSection === 'analytics'
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              <BarChart3 className="w-3.5 h-3.5 text-blue-500" />
-              <span>ស្ថិតិ & ក្រាហ្វិក (Analytics)</span>
+              <BarChart3 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+              <span className="hidden sm:inline">ស្ថិតិ & ក្រាហ្វិក (Analytics)</span>
+              <span className="sm:hidden inline">ស្ថិតិ</span>
             </button>
 
             <button
               onClick={() => setActiveSection('tools')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+              className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-colors cursor-pointer whitespace-nowrap min-h-[36px] ${
                 activeSection === 'tools'
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              <Zap className="w-3.5 h-3.5 text-amber-500" />
-              <span>ឧបករណ៍ & សកម្មភាព (Tools)</span>
+              <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span className="hidden sm:inline">ឧបករណ៍ & សកម្មភាព (Tools)</span>
+              <span className="sm:hidden inline">ឧបករណ៍</span>
             </button>
 
             <button
               onClick={() => setActiveSection('activity')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+              className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-colors cursor-pointer whitespace-nowrap min-h-[36px] ${
                 activeSection === 'activity'
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              <Clock className="w-3.5 h-3.5 text-emerald-500" />
-              <span>សកម្មភាពថ្មីៗ (Activity)</span>
+              <Clock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <span className="hidden sm:inline">សកម្មភាពថ្មីៗ (Activity)</span>
+              <span className="sm:hidden inline">សកម្មភាព</span>
             </button>
 
             <button
               onClick={() => setActiveSection('academic_years')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+              className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-colors cursor-pointer whitespace-nowrap min-h-[36px] ${
                 activeSection === 'academic_years'
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              <Calendar className="w-3.5 h-3.5 text-rose-500" />
-              <span>បណ្ណសារឆ្នាំសិក្សា (Archives)</span>
+              <Calendar className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+              <span className="hidden sm:inline">បណ្ណសារឆ្នាំសិក្សា (Archives)</span>
+              <span className="sm:hidden inline">ឆ្នាំសិក្សា</span>
             </button>
           </div>
         )}
@@ -511,31 +517,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
           {activeSection === 'overview' && (
             <div className="space-y-5 animate-fade-in">
               {/* 4 Executive KPI Cards (Optimized 2x2 on mobile, 4-col on desktop) */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
                 {/* 1. Total Students */}
                 <div
                   onClick={() => setActiveTab('students')}
-                  className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:border-blue-300 transition-all cursor-pointer group"
+                  className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-blue-300 transition-all cursor-pointer group active:scale-98"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">សិស្សសរុប</span>
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-                      <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">សិស្សសរុប</span>
+                    <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <Users className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                     </div>
                   </div>
-                  <div className="mt-2 flex items-baseline gap-1.5">
-                    <span className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white font-mono">{totalStudents}</span>
-                    <span className="text-xs text-slate-500">នាក់</span>
+                  <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5">
+                    <span className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-white font-mono">{totalStudents}</span>
+                    <span className="text-[10px] sm:text-xs text-slate-500">នាក់</span>
                   </div>
                   {/* Progress bar of gender ratio */}
-                  <div className="mt-2.5">
+                  <div className="mt-2 sm:mt-2.5">
                     <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex">
                       <div style={{ width: `${femalePercent}%` }} className="bg-rose-500 h-full" title={`ស្រី ${femalePercent}%`} />
                       <div style={{ width: `${100 - femalePercent}%` }} className="bg-blue-600 h-full" title={`ប្រុស ${100 - femalePercent}%`} />
                     </div>
-                    <div className="flex justify-between text-[10px] text-slate-500 mt-1">
-                      <span>ស្រី៖ <strong className="text-rose-600">{femaleStudents}</strong> ({femalePercent}%)</span>
-                      <span>ប្រុស៖ <strong className="text-blue-600">{maleStudents}</strong></span>
+                    <div className="flex justify-between text-[9px] sm:text-[10px] text-slate-500 mt-1 gap-1">
+                      <span className="truncate">ស្រី៖ <strong className="text-rose-600">{femaleStudents}</strong> ({femalePercent}%)</span>
+                      <span className="truncate">ប្រុស៖ <strong className="text-blue-600">{maleStudents}</strong></span>
                     </div>
                   </div>
                 </div>
@@ -543,22 +549,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
                 {/* 2. Teachers & Staff */}
                 <div
                   onClick={() => setActiveTab('teachers')}
-                  className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:border-emerald-300 transition-all cursor-pointer group"
+                  className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-emerald-300 transition-all cursor-pointer group active:scale-98"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">គ្រូបង្រៀន</span>
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-                      <Award className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">គ្រូបង្រៀន</span>
+                    <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <Award className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                     </div>
                   </div>
-                  <div className="mt-2 flex items-baseline gap-1.5">
-                    <span className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white font-mono">{totalTeachers}</span>
-                    <span className="text-xs text-slate-500">នាក់</span>
+                  <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5">
+                    <span className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-white font-mono">{totalTeachers}</span>
+                    <span className="text-[10px] sm:text-xs text-slate-500">នាក់</span>
                   </div>
-                  <div className="mt-2.5 text-[10px] text-slate-500 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2">
-                    <span>ស្រី៖ <strong className="text-emerald-700 dark:text-emerald-400">{femaleTeachers} នាក់</strong></span>
-                    <span className="px-1.5 py-0.5 rounded bg-emerald-100/70 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-bold text-[9px]">
-                      ១០០% ពេញម៉ោង
+                  <div className="mt-2 sm:mt-2.5 text-[9px] sm:text-[10px] text-slate-500 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-1.5 sm:pt-2">
+                    <span className="truncate">ស្រី៖ <strong className="text-emerald-700 dark:text-emerald-400">{femaleTeachers} នាក់</strong></span>
+                    <span className="px-1.5 py-0.5 rounded bg-emerald-100/70 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-bold text-[8.5px] sm:text-[9px] shrink-0">
+                      ពេញម៉ោង
                     </span>
                   </div>
                 </div>
@@ -566,43 +572,43 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
                 {/* 3. Classrooms */}
                 <div
                   onClick={() => setActiveTab('classrooms')}
-                  className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:border-indigo-300 transition-all cursor-pointer group"
+                  className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-indigo-300 transition-all cursor-pointer group active:scale-98"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">ថ្នាក់រៀនសរុប</span>
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-                      <School className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">ថ្នាក់រៀនសរុប</span>
+                    <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <School className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                     </div>
                   </div>
-                  <div className="mt-2 flex items-baseline gap-1.5">
-                    <span className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white font-mono">{totalClassrooms}</span>
-                    <span className="text-xs text-slate-500">ថ្នាក់</span>
+                  <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5">
+                    <span className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-white font-mono">{totalClassrooms}</span>
+                    <span className="text-[10px] sm:text-xs text-slate-500">ថ្នាក់</span>
                   </div>
-                  <div className="mt-2.5 text-[10px] text-slate-500 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2">
-                    <span>ថ្នាក់ទី១ ដល់ទី៦</span>
-                    <span className="text-indigo-600 dark:text-indigo-400 font-bold">~{Math.round(totalStudents / (totalClassrooms || 1))} សិស្ស/ថ្នាក់</span>
+                  <div className="mt-2 sm:mt-2.5 text-[9px] sm:text-[10px] text-slate-500 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-1.5 sm:pt-2">
+                    <span>ទី១-ទី៦</span>
+                    <span className="text-indigo-600 dark:text-indigo-400 font-bold">~{Math.round(totalStudents / (totalClassrooms || 1))} នាក់/ថ្នាក់</span>
                   </div>
                 </div>
 
                 {/* 4. Attendance Rate & Finance Balance */}
                 <div
                   onClick={() => setActiveTab('finance')}
-                  className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:border-amber-300 transition-all cursor-pointer group"
+                  className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-amber-300 transition-all cursor-pointer group active:scale-98"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">វត្តមាន & ថវិកា</span>
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-                      <CircleDollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">វត្តមាន & ថវិកា</span>
+                    <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <CircleDollarSign className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                     </div>
                   </div>
-                  <div className="mt-2 flex items-baseline gap-1.5">
-                    <span className="text-xl sm:text-2xl font-bold text-emerald-600 font-mono">៩៨.៤%</span>
-                    <span className="text-[10px] text-emerald-600 font-bold px-1.5 py-0.2 rounded bg-emerald-50 dark:bg-emerald-950/50">
-                      វត្តមានល្អ
+                  <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5 flex-wrap">
+                    <span className="text-lg sm:text-2xl font-bold text-emerald-600 font-mono">៩៨.៤%</span>
+                    <span className="text-[9px] sm:text-[10px] text-emerald-600 font-bold px-1.5 py-0.2 rounded bg-emerald-50 dark:bg-emerald-950/50">
+                      ល្អ
                     </span>
                   </div>
-                  <div className="mt-2.5 text-[10px] text-slate-500 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2">
-                    <span>សមតុល្យថវិកា៖</span>
+                  <div className="mt-2 sm:mt-2.5 text-[9px] sm:text-[10px] text-slate-500 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-1.5 sm:pt-2">
+                    <span>សមតុល្យ៖</span>
                     <span className="font-bold text-slate-900 dark:text-white font-mono">
                       {(balanceRiel / 1000000).toFixed(1)}M ៛
                     </span>
@@ -611,37 +617,37 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
               </div>
 
               {/* Categorized Professional Quick Action Hub (Organized into 4 clean cards) */}
-              <div className="space-y-3">
+              <div className="space-y-2.5 sm:space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-moul flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-amber-500" />
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-moul flex items-center gap-1.5 sm:gap-2">
+                    <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
                     <span>សកម្មភាព និងការងារប្រចាំថ្ងៃ</span>
                   </h3>
                   <button
                     onClick={() => setActiveSection('tools')}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] sm:text-xs text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
                   >
-                    <span>មើលឧបករណ៍ទាំងអស់</span>
+                    <span>ឧបករណ៍ទាំងអស់</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-4">
                   {quickActionGroups.map((grp) => (
                     <div
                       key={grp.category}
-                      className={`rounded-2xl p-4 border ${grp.color} bg-white dark:bg-slate-900 shadow-2xs space-y-3`}
+                      className={`rounded-xl sm:rounded-2xl p-3 sm:p-4 border ${grp.color} bg-white dark:bg-slate-900 shadow-2xs space-y-2.5 sm:space-y-3`}
                     >
-                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5 sm:pb-2">
                         <span className="text-xs font-bold text-slate-900 dark:text-white font-kantumruy">
                           {grp.title}
                         </span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${grp.badgeColor}`}>
+                        <span className={`text-[9.5px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full ${grp.badgeColor}`}>
                           ៤ មុខងារ
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                         {grp.actions.map((act) => {
                           const IconComponent = act.icon;
                           return (
@@ -654,15 +660,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
                                   setActiveTab(act.tab);
                                 }
                               }}
-                              className="flex flex-col items-start p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-left border border-slate-200/60 dark:border-slate-700/60 active:scale-95 transition-all group cursor-pointer min-h-[58px]"
+                              className="flex flex-col justify-between p-2 sm:p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-left border border-slate-200/60 dark:border-slate-700/60 active:scale-95 transition-all group cursor-pointer min-h-[54px] sm:min-h-[58px]"
                             >
                               <div className="flex items-center gap-1.5 w-full">
                                 <IconComponent className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0 group-hover:scale-110 transition-transform" />
-                                <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 line-clamp-1">
+                                <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1 leading-tight">
                                   {act.label}
                                 </span>
                               </div>
-                              <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 truncate">
+                              <span className="text-[9.5px] sm:text-[10px] text-slate-400 dark:text-slate-500 mt-1 truncate block">
                                 {act.sub}
                               </span>
                             </button>
@@ -675,39 +681,39 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
               </div>
 
               {/* Fast Visual Snapshot: Enrollment Chart + Today's School Alerts */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 sm:gap-6">
                 {/* Enrollment preview bar chart */}
-                <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+                <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white font-kantumruy">
                         ស្ថិតិសិស្សតាមកម្រិតថ្នាក់ (ថ្នាក់ទី១ ដល់ទី៦)
                       </h4>
-                      <p className="text-[11px] text-slate-500">ការបែងចែកសិស្សប្រុស និងសិស្សស្រី</p>
+                      <p className="text-[10px] sm:text-[11px] text-slate-500">ការបែងចែកសិស្សប្រុស និងសិស្សស្រី</p>
                     </div>
                     <button
                       onClick={() => {
                         setActiveSection('analytics');
                         setAnalyticsSubTab('enrollment');
                       }}
-                      className="text-xs text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1 cursor-pointer"
+                      className="text-[11px] sm:text-xs text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1 cursor-pointer"
                     >
                       <span>មើលលម្អិត</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
-                  <div className="h-56 w-full">
+                  <div className="h-48 sm:h-56 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={gradeDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <BarChart data={gradeDistribution} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#64748b" />
-                        <YAxis tick={{ fontSize: 11 }} stroke="#64748b" />
+                        <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#64748b" />
+                        <YAxis tick={{ fontSize: 10 }} stroke="#64748b" />
                         <Tooltip
                           formatter={(value, name) => [`${value} នាក់`, name]}
                           contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
                         />
-                        <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '6px' }} />
+                        <Legend wrapperStyle={{ fontSize: '10.5px', paddingTop: '4px' }} />
                         <Bar dataKey="សិស្សប្រុស" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                         <Bar dataKey="សិស្សស្រី" fill="#ec4899" radius={[4, 4, 0, 0]} />
                       </BarChart>
@@ -716,11 +722,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
                 </div>
 
                 {/* Upcoming Events & Operational Checklist */}
-                <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3 flex flex-col justify-between">
+                <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-3 flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-rose-500" />
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 sm:pb-2.5">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <Calendar className="w-4 h-4 text-rose-500 shrink-0" />
                         <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white font-kantumruy">
                           កាលវិភាគ & ព្រឹត្តិការណ៍
                         </h4>
@@ -733,14 +739,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
                       </button>
                     </div>
 
-                    <div className="space-y-2 mt-3">
+                    <div className="space-y-2 mt-2.5 sm:mt-3">
                       {calendarEvents.slice(0, 3).map((ev, idx) => (
-                        <div key={idx} className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-start justify-between gap-2 text-xs">
+                        <div key={idx} className="p-2 sm:p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-start justify-between gap-2 text-xs">
                           <div>
-                            <h5 className="font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{ev.title}</h5>
-                            <p className="text-slate-400 text-[10px] mt-0.5">{ev.description || 'ព្រឹត្តិការណ៍សាលា'}</p>
+                            <h5 className="font-bold text-slate-800 dark:text-slate-200 line-clamp-1 text-[11px] sm:text-xs">{ev.title}</h5>
+                            <p className="text-slate-400 text-[9.5px] sm:text-[10px] mt-0.5 line-clamp-1">{ev.description || 'ព្រឹត្តិការណ៍សាលា'}</p>
                           </div>
-                          <span className="px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-mono text-[10px] font-bold shrink-0">
+                          <span className="px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-mono text-[9.5px] sm:text-[10px] font-bold shrink-0">
                             {ev.date}
                           </span>
                         </div>
@@ -748,10 +754,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <div className="pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-800">
                     <button
                       onClick={() => setActiveSection('activity')}
-                      className="w-full py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      className="w-full py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer min-h-[40px]"
                     >
                       <Clock className="w-3.5 h-3.5" />
                       <span>មើលប្រវត្តិសកម្មភាពសាលា</span>
@@ -1142,71 +1148,71 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
           </div>
 
           {/* Teacher Class Stat Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+            <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">សិស្សក្នុងបន្ទុក</span>
-                <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
-                  <Users className="w-4 h-4" />
+                <span className="text-[11px] sm:text-xs font-medium text-slate-500">សិស្សក្នុងបន្ទុក</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-slate-900 dark:text-white font-mono">{assignedClassStudents.length}</span>
-                <span className="text-xs text-slate-500">នាក់</span>
+              <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5">
+                <span className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-mono">{assignedClassStudents.length}</span>
+                <span className="text-[10px] sm:text-xs text-slate-500">នាក់</span>
               </div>
-              <div className="mt-2 text-xs text-slate-500 border-t border-slate-100 dark:border-slate-800 pt-2 flex justify-between">
+              <div className="mt-2 sm:mt-2.5 text-[9.5px] sm:text-xs text-slate-500 border-t border-slate-100 dark:border-slate-800 pt-1.5 sm:pt-2 flex justify-between">
                 <span>ស្រី៖ <strong className="text-rose-600">{classFemaleStudents}</strong></span>
                 <span>ប្រុស៖ <strong className="text-blue-600">{classMaleStudents}</strong></span>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+            <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">កិច្ចការមិនទាន់ចប់</span>
-                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                  <Clock className="w-4 h-4" />
+                <span className="text-[11px] sm:text-xs font-medium text-slate-500">កិច្ចការមិនទាន់ចប់</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-amber-600 font-mono">
+              <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5">
+                <span className="text-xl sm:text-2xl font-bold text-amber-600 font-mono">
                   {teacherDailyTasks.filter(t => !t.isCompleted).length}
                 </span>
-                <span className="text-xs text-slate-500">កិច្ចការ</span>
+                <span className="text-[10px] sm:text-xs text-slate-500">កិច្ចការ</span>
               </div>
-              <div className="mt-2 text-xs text-slate-500 border-t border-slate-100 dark:border-slate-800 pt-2">
-                <span>កិច្ចការបន្ទាន់ត្រូវបញ្ចប់សប្តាហ៍នេះ</span>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">វត្តមានមធ្យម</span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <CalendarCheck className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-emerald-600 font-mono">៩៨.៤%</span>
-                <span className="text-xs text-emerald-500 font-bold">ល្អណាស់</span>
-              </div>
-              <div className="mt-2 text-xs text-slate-500 border-t border-slate-100 dark:border-slate-800 pt-2">
-                <span>វត្តមានទៀងទាត់ក្នុងថ្នាក់</span>
+              <div className="mt-2 sm:mt-2.5 text-[9.5px] sm:text-xs text-slate-500 border-t border-slate-100 dark:border-slate-800 pt-1.5 sm:pt-2 truncate">
+                <span>កិច្ចការបន្ទាន់សប្តាហ៍នេះ</span>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+            <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">ជំនួយការ AI</span>
-                <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4" />
+                <span className="text-[11px] sm:text-xs font-medium text-slate-500">វត្តមានមធ្យម</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-sm font-bold text-purple-700">AI Teacher Ready</span>
+              <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5">
+                <span className="text-xl sm:text-2xl font-bold text-emerald-600 font-mono">៩៨.៤%</span>
+                <span className="text-[9.5px] sm:text-xs text-emerald-500 font-bold">ល្អ</span>
+              </div>
+              <div className="mt-2 sm:mt-2.5 text-[9.5px] sm:text-xs text-slate-500 border-t border-slate-100 dark:border-slate-800 pt-1.5 sm:pt-2 truncate">
+                <span>វត្តមានទៀងទាត់</span>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] sm:text-xs font-medium text-slate-500">ជំនួយការ AI</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                  <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </div>
+              </div>
+              <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5">
+                <span className="text-xs sm:text-sm font-bold text-purple-700 dark:text-purple-300">AI Teacher Ready</span>
               </div>
               <button
                 onClick={() => setActiveTab('ai_teacher')}
-                className="mt-2 text-xs text-purple-600 hover:text-purple-700 font-bold flex items-center gap-1 border-t border-slate-100 dark:border-slate-800 pt-2 w-full cursor-pointer"
+                className="mt-2 text-[11px] sm:text-xs text-purple-600 hover:text-purple-700 font-bold flex items-center gap-1 border-t border-slate-100 dark:border-slate-800 pt-1.5 sm:pt-2 w-full cursor-pointer"
               >
                 <span>បង្កើតកិច្ចតែងការ</span>
                 <ArrowRight className="w-3 h-3" />

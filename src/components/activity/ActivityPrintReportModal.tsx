@@ -331,7 +331,7 @@ export const ActivityPrintReportModal: React.FC<ActivityPrintReportModalProps> =
                   <div className="text-[11px] text-slate-500">កាលបរិច្ឆេទរបាយការណ៍៖</div>
                   <div className="font-bold text-slate-800">{currentDateKhmer}</div>
                   <div className="text-[11px] text-slate-500">
-                    ឆ្នាំសិក្សា៖ <strong>{schoolProfile.currentAcademicYear || '២០២៥-២០២៦'}</strong>
+                    ឆ្នាំសិក្សា៖ <strong>{schoolProfile.academicYear || schoolProfile.currentAcademicYear}</strong>
                   </div>
                 </div>
               </div>

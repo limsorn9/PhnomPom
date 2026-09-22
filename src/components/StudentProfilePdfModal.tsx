@@ -332,7 +332,7 @@ export const StudentProfilePdfModal: React.FC<StudentProfilePdfModalProps> = ({
                   </h4>
                 </div>
                 <span className="text-[10px] text-emerald-800 font-times font-bold">
-                  ឆ្នាំសិក្សា {schoolProfile.academicYear || '2023-2024'}
+                  ឆ្នាំសិក្សា {schoolProfile.academicYear}
                 </span>
               </div>
 

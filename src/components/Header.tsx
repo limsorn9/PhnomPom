@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { ActiveTab, UserRole } from '../types';
 import { User } from 'firebase/auth';
@@ -131,9 +131,13 @@ export const Header: React.FC<HeaderProps> = ({
   const [showMobileSyncModal, setShowMobileSyncModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAcademicYearModal, setShowAcademicYearModal] = useState(false);
-  const [modalSelectedYear, setModalSelectedYear] = useState(selectedAcademicYear);
+  const [modalSelectedYear, setModalSelectedYear] = useState(selectedAcademicYear || schoolProfile.academicYear);
   const [newYearInput, setNewYearInput] = useState('');
   const [isAddingNewYearInline, setIsAddingNewYearInline] = useState(false);
+
+  useEffect(() => {
+    setModalSelectedYear(selectedAcademicYear || schoolProfile.academicYear);
+  }, [selectedAcademicYear, schoolProfile.academicYear]);
 
   const tabTitles: Record<ActiveTab, { title: string; subtitle: string; icon: React.ComponentType<{ className?: string }> }> = {
     dashboard: {

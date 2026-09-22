@@ -8,13 +8,15 @@ interface ActivityReportWatermarkProps {
   customText?: string;
   opacity?: number;
   printOnly?: boolean;
+  academicYear?: string;
 }
 
 export const ActivityReportWatermark: React.FC<ActivityReportWatermarkProps> = ({
   type = 'official',
   customText,
   opacity = 0.08,
-  printOnly = false
+  printOnly = false,
+  academicYear
 }) => {
   if (type === 'none') return null;
 
@@ -80,7 +82,7 @@ export const ActivityReportWatermark: React.FC<ActivityReportWatermarkProps> = (
 
         {/* Audit Verification Timestamp */}
         <div className="font-mono text-[10px] tracking-wider text-slate-700 mt-2 font-bold">
-          SECURITY STAMP • MOEYS AUDIT SYSTEM • 2025-2026
+          SECURITY STAMP • MOEYS AUDIT SYSTEM • {academicYear || 'ACADEMIC YEAR'}
         </div>
       </div>
     </div>

@@ -50,6 +50,7 @@ export const HealthAttendance: React.FC = () => {
     batchRecordHealthChecks,
     updateStudent,
     schoolProfile,
+    selectedAcademicYear,
     teachers,
     currentUser,
     showToast
@@ -2297,7 +2298,7 @@ export const HealthAttendance: React.FC = () => {
           onClose={() => setHealthBookletStudent(null)}
           student={healthBookletStudent}
           schoolProfile={schoolProfile}
-          academicYear="២០២៥-២០២៦"
+          academicYear={selectedAcademicYear || schoolProfile.academicYear}
           allStudents={classStudents.length > 0 ? classStudents : students}
         />
       )}
@@ -2309,7 +2310,7 @@ export const HealthAttendance: React.FC = () => {
           onClose={() => setHealthReportStudent(null)}
           student={healthReportStudent}
           schoolProfile={schoolProfile}
-          academicYear="២០២៥-២០២៦"
+          academicYear={selectedAcademicYear || schoolProfile.academicYear}
         />
       )}
 
@@ -2338,7 +2339,7 @@ export const HealthAttendance: React.FC = () => {
           onClose={() => setShowPriModal(false)}
           selectedGrade={selectedGrade}
           selectedSection={selectedSection}
-          academicYear="២០២៥-២០២៦"
+          academicYear={selectedAcademicYear || schoolProfile.academicYear}
           schoolProfile={schoolProfile}
           homeroomTeacher={teachers.find(t => t.assignedGrade === selectedGrade && t.assignedSection === selectedSection)}
           students={students}

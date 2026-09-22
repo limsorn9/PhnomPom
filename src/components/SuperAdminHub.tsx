@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { 
   ShieldAlert, 
@@ -39,6 +39,8 @@ export const SuperAdminHub: React.FC = () => {
     setAppUsers, 
     schoolProfile, 
     updateSchoolProfile, 
+    setGlobalActiveAcademicYear,
+    setSelectedAcademicYear,
     showToast, 
     activityLogs,
     schoolGroups
@@ -63,6 +65,12 @@ export const SuperAdminHub: React.FC = () => {
 
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [globalAcademicYear, setGlobalAcademicYear] = useState(schoolProfile.academicYear || '២០២៤ - ២០២៥');
+
+  useEffect(() => {
+    if (schoolProfile.academicYear) {
+      setGlobalAcademicYear(schoolProfile.academicYear);
+    }
+  }, [schoolProfile.academicYear]);
 
   // Verify Super Admin
   const isSuperAdmin = currentUser?.role === 'super_admin' || currentUser?.username === 'limsorn';
@@ -549,9 +557,9 @@ export const SuperAdminHub: React.FC = () => {
               <select
                 value={globalAcademicYear}
                 onChange={e => {
-                  setGlobalAcademicYear(e.target.value);
-                  updateSchoolProfile({ ...schoolProfile, academicYear: e.target.value });
-                  showToast('បានកែប្រែឆ្នាំសិក្សាស្ដង់ដាទូទាំងប្រព័ន្ធជោគជ័យ!', 'success');
+                  const val = e.target.value;
+                  setGlobalAcademicYear(val);
+                  setGlobalActiveAcademicYear(val);
                 }}
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-slate-800 bg-white"
               >

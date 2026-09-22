@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { exportMonthlyBudgetReportToGoogleSheets } from '../services/googleSheets';
 import { getAccessToken, googleSignIn } from '../services/googleAuth';
@@ -35,11 +35,15 @@ export const MonthlyBudgetSheetsSync: React.FC = () => {
     showToast
   } = useSchool();
 
-  const [selectedYear, setSelectedYear] = useState(selectedAcademicYear);
+  const [selectedYear, setSelectedYear] = useState(selectedAcademicYear || schoolProfile.academicYear);
   const [isSyncing, setIsSyncing] = useState(false);
   const [googleSheetUrl, setGoogleSheetUrl] = useState<string | null>(null);
   const [googleDriveReportUrl, setGoogleDriveReportUrl] = useState<string | null>(null);
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>('all');
+
+  useEffect(() => {
+    setSelectedYear(selectedAcademicYear || schoolProfile.academicYear);
+  }, [selectedAcademicYear, schoolProfile.academicYear]);
 
   const monthlySummaries = getMonthlyBudgetSummaries(selectedYear);
 

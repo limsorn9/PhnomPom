@@ -136,11 +136,12 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
   onClose,
   selectedGrade,
   selectedSection,
-  selectedAcademicYear = '២០២៥-២០២៦',
+  selectedAcademicYear,
   schoolProfile,
   homeroomTeacher,
   classStudents = []
 }) => {
+  const activeAcademicYear = selectedAcademicYear || schoolProfile?.academicYear || '២០២៥-២០២៦';
   // Active View Tab: 'table' (Landscape Table) vs 'tree' (Portrait Org Chart Tree) vs 'editor' (Edit Data)
   const [activeTab, setActiveTab] = useState<'table' | 'tree' | 'editor'>('table');
 
@@ -484,7 +485,7 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
                   សមាសភាពគណៈកម្មការគ្រប់គ្រងថ្នាក់រៀន ( គ.ក.ថ. )
                 </h1>
                 <p className="text-xs font-semibold text-slate-700 font-battambang">
-                  ថ្នាក់ទី {selectedGrade}«{selectedSection}» ឆ្នាំសិក្សា {selectedAcademicYear}
+                  ថ្នាក់ទី {selectedGrade}«{selectedSection}» ឆ្នាំសិក្សា {activeAcademicYear}
                 </p>
               </div>
 
@@ -606,7 +607,7 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
                   រចនាសម្ព័ន្ធគណៈកម្មការគ្រប់គ្រងថ្នាក់រៀន( គ.ក.ថ. )
                 </h1>
                 <p className="text-xs font-semibold text-slate-700 font-battambang">
-                  ថ្នាក់ទី {selectedGrade}«{selectedSection}» ឆ្នាំសិក្សា {selectedAcademicYear}
+                  ថ្នាក់ទី {selectedGrade}«{selectedSection}» ឆ្នាំសិក្សា {activeAcademicYear}
                 </p>
               </div>
 

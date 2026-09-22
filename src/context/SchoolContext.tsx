@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import {
   Student,
   Teacher,
@@ -914,10 +914,16 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Initialize school state
   const [schoolProfile, setSchoolProfile] = useState<SchoolProfile>(() => {
     const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_profile`);
-    if (!saved) return initialSchoolProfile;
+    const savedSelectedYear = localStorage.getItem(`${LOCAL_STORAGE_KEY}_selected_academic_year`);
+    if (!saved) {
+      return savedSelectedYear && savedSelectedYear.trim()
+        ? { ...initialSchoolProfile, academicYear: savedSelectedYear.trim() }
+        : initialSchoolProfile;
+    }
     try {
       const parsed = JSON.parse(saved);
-      return { ...initialSchoolProfile, ...parsed };
+      const yearToUse = (savedSelectedYear && savedSelectedYear.trim()) || parsed.academicYear || initialSchoolProfile.academicYear;
+      return { ...initialSchoolProfile, ...parsed, academicYear: yearToUse };
     } catch {
       return initialSchoolProfile;
     }
@@ -1101,9 +1107,88 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return dyn;
   });
 
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>(() => {
-    return getCurrentAcademicYear();
+  const [selectedAcademicYear, setSelectedAcademicYearState] = useState<string>(() => {
+    const savedSelected = localStorage.getItem(`${LOCAL_STORAGE_KEY}_selected_academic_year`);
+    if (savedSelected && savedSelected.trim()) return savedSelected.trim();
+    const savedProfile = localStorage.getItem(`${LOCAL_STORAGE_KEY}_profile`);
+    if (savedProfile) {
+      try {
+        const parsed = JSON.parse(savedProfile);
+        if (parsed.academicYear && parsed.academicYear.trim()) return parsed.academicYear.trim();
+      } catch (_) {}
+    }
+    return schoolProfile.academicYear || getCurrentAcademicYear();
   });
+
+  // Global synchronized setter for academic year across the entire application
+  const setSelectedAcademicYear = useCallback((year: string) => {
+    const trimmed = year?.trim();
+    if (!trimmed) return;
+
+    setSelectedAcademicYearState(trimmed);
+    try {
+      localStorage.setItem(`${LOCAL_STORAGE_KEY}_selected_academic_year`, trimmed);
+    } catch (_) {}
+
+    // Synchronize schoolProfile.academicYear so all components reading schoolProfile.academicYear update immediately
+    setSchoolProfile(prev => {
+      if (prev.academicYear === trimmed) return prev;
+      const updated = { ...prev, academicYear: trimmed };
+      try {
+        localStorage.setItem(`${LOCAL_STORAGE_KEY}_profile`, JSON.stringify(updated));
+      } catch (_) {}
+      return updated;
+    });
+
+    // Ensure it exists in academicYears list
+    setAcademicYears(prev => {
+      if (!prev.includes(trimmed)) {
+        const next = Array.from(new Set([trimmed, ...prev]));
+        try {
+          localStorage.setItem(`${LOCAL_STORAGE_KEY}_academic_years`, JSON.stringify(next));
+        } catch (_) {}
+        return next;
+      }
+      return prev;
+    });
+
+    // Broadcast change to all event listeners
+    try {
+      window.dispatchEvent(new CustomEvent('academic-year-changed', { detail: trimmed }));
+    } catch (_) {}
+  }, []);
+
+  // Save selected academic year to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(`${LOCAL_STORAGE_KEY}_selected_academic_year`, selectedAcademicYear);
+    } catch (_) {}
+  }, [selectedAcademicYear]);
+
+  // Synchronize across tabs and custom events
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === `${LOCAL_STORAGE_KEY}_selected_academic_year` && e.newValue && e.newValue.trim() && e.newValue.trim() !== selectedAcademicYear) {
+        const val = e.newValue.trim();
+        setSelectedAcademicYearState(val);
+        setSchoolProfile(prev => prev.academicYear === val ? prev : { ...prev, academicYear: val });
+      }
+    };
+    const handleCustomYearEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      if (customEvent.detail && customEvent.detail.trim() && customEvent.detail.trim() !== selectedAcademicYear) {
+        const val = customEvent.detail.trim();
+        setSelectedAcademicYearState(val);
+        setSchoolProfile(prev => prev.academicYear === val ? prev : { ...prev, academicYear: val });
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('academic-year-changed', handleCustomYearEvent);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('academic-year-changed', handleCustomYearEvent);
+    };
+  }, [selectedAcademicYear]);
 
   // Language State ('km' | 'en')
   const [language, setLanguage] = useState<AppLanguage>(() => {
@@ -7191,6 +7276,9 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
     setSchoolProfile(prev => ({ ...prev, ...profile }));
+    if (profile.academicYear && profile.academicYear.trim()) {
+      setSelectedAcademicYear(profile.academicYear.trim());
+    }
     showToast('បានធ្វើបច្ចុប្បន្នភាពព័ត៌មានសាលារៀនជោគជ័យ!');
   };
 

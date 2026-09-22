@@ -34,9 +34,10 @@ export const StudentHealthBookletModal: React.FC<StudentHealthBookletModalProps>
   selectedStudent,
   students,
   schoolProfile,
-  academicYear = '២០២៥-២០២៦',
+  academicYear,
   onSaveStudentHealth
 }) => {
+  const activeAcademicYear = academicYear || schoolProfile?.academicYear || '២០២៥-២០២៦';
   // Active student selection
   const [currentStudentId, setCurrentStudentId] = useState<string>(
     selectedStudent?.id || (Array.isArray(students) && students.length > 0 ? students[0]?.id || '' : '')
@@ -778,7 +779,7 @@ export const StudentHealthBookletModal: React.FC<StudentHealthBookletModalProps>
                     ថ្នាក់ទី{currentStudent.grade} "{currentStudent.section}"
                   </div>
                   <div className="p-2 border-r-2 border-blue-900 font-moul text-blue-950 text-xs sm:text-sm">
-                    ឆ្នាំសិក្សា {academicYear}
+                    ឆ្នាំសិក្សា {activeAcademicYear}
                   </div>
                   <div className="p-2 font-moul text-blue-950 text-xs sm:text-sm">
                     អាយុ {studentAge} ឆ្នាំ

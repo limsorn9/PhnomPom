@@ -62,7 +62,8 @@ export const StudentRankingSystem: React.FC<StudentRankingSystemProps> = ({
   className = '',
   defaultMonth
 }) => {
-  const { showToast, currentUser } = useSchool();
+  const { showToast, currentUser, selectedAcademicYear } = useSchool();
+  const activeAcademicYear = selectedAcademicYear || schoolProfile.academicYear;
 
   // Find available months from student scores
   const availableMonths = useMemo(() => {
@@ -93,9 +94,9 @@ export const StudentRankingSystem: React.FC<StudentRankingSystemProps> = ({
       student.grade,
       student.section,
       selectedMonth,
-      schoolProfile.academicYear
+      activeAcademicYear
     );
-  }, [scores, allStudents, student.grade, student.section, selectedMonth, schoolProfile.academicYear]);
+  }, [scores, allStudents, student.grade, student.section, selectedMonth, activeAcademicYear]);
 
   const rankingDetail: StudentRankingDetail | null = useMemo(() => {
     return getStudentRankingDetail(
@@ -103,9 +104,9 @@ export const StudentRankingSystem: React.FC<StudentRankingSystemProps> = ({
       allStudents,
       student.id,
       selectedMonth,
-      schoolProfile.academicYear
+      activeAcademicYear
     );
-  }, [scores, allStudents, student.id, selectedMonth, schoolProfile.academicYear]);
+  }, [scores, allStudents, student.id, selectedMonth, activeAcademicYear]);
 
   // Formatted Telegram Message
   const telegramMessage = useMemo(() => {
@@ -195,7 +196,7 @@ export const StudentRankingSystem: React.FC<StudentRankingSystemProps> = ({
               ចំណាត់ថ្នាក់ & ការជូនដំណឹង Telegram
             </h2>
             <p className="text-xs text-slate-300">
-              សិស្ស៖ <strong className="text-white font-semibold">{student.nameKhmer}</strong> ({student.code}) • ថ្នាក់ទី {student.grade}{student.section} • ឆ្នាំសិក្សា {schoolProfile.academicYear}
+              សិស្ស៖ <strong className="text-white font-semibold">{student.nameKhmer}</strong> ({student.code}) • ថ្នាក់ទី {student.grade}{student.section} • ឆ្នាំសិក្សា {activeAcademicYear}
             </p>
           </div>
 

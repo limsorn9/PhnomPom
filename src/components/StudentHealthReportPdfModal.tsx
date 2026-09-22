@@ -34,8 +34,9 @@ export const StudentHealthReportPdfModal: React.FC<StudentHealthReportPdfModalPr
   onClose,
   student,
   schoolProfile,
-  academicYear = '២០២៥-២០២៦'
+  academicYear
 }) => {
+  const activeAcademicYear = academicYear || schoolProfile?.academicYear || '២០២៥-២០២៦';
   const reportRef = useRef<HTMLDivElement>(null);
   const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
 
@@ -228,7 +229,7 @@ export const StudentHealthReportPdfModal: React.FC<StudentHealthReportPdfModalPr
                   <div className="flex justify-center my-1">
                     <AngkorBorderOrnament />
                   </div>
-                  <p className="text-[11px] text-slate-500">ឆ្នាំសិក្សា៖ <span className="font-bold text-slate-800">{academicYear}</span></p>
+                  <p className="text-[11px] text-slate-500">ឆ្នាំសិក្សា៖ <span className="font-bold text-slate-800">{activeAcademicYear}</span></p>
                 </div>
               </div>
 

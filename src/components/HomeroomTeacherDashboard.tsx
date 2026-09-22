@@ -832,7 +832,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
           onClose={() => setShowClassCommitteeModal(false)}
           selectedGrade={selectedGrade}
           selectedSection={selectedSection}
-          selectedAcademicYear="២០២៥-២០២៦"
+          selectedAcademicYear={selectedAcademicYear || schoolProfile.academicYear}
           schoolProfile={schoolProfile}
           homeroomTeacher={currentTeacher}
           classStudents={classStudents}
@@ -846,7 +846,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
           onClose={() => setShowPriModal(false)}
           selectedGrade={selectedGrade}
           selectedSection={selectedSection}
-          academicYear="២០២៥-២០២៦"
+          academicYear={selectedAcademicYear || schoolProfile.academicYear}
           schoolProfile={schoolProfile}
           homeroomTeacher={currentTeacher}
           students={students}
@@ -860,7 +860,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
           onClose={() => setShowHealthBookletModal(false)}
           student={classStudents[0] || students[0]}
           schoolProfile={schoolProfile}
-          academicYear="២០២៥-២០២៦"
+          academicYear={selectedAcademicYear || schoolProfile.academicYear}
           allStudents={classStudents.length > 0 ? classStudents : students}
         />
       )}

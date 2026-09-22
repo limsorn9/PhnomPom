@@ -472,7 +472,7 @@ export const ClassStudentStatisticsPriModal: React.FC<ClassStudentStatisticsPriM
                     តារាងចំនួនសិស្សតាមថ្នាក់ (សម្រាប់គ្រូ)
                   </h2>
                   <p className="text-xs font-bold font-battambang mt-0.5 text-slate-900">
-                    ថ្នាក់ទី{activeGrade} "{activeSection}" ឆ្នាំសិក្សា {academicYear || '២០២៥-២០២៦'}
+                    ថ្នាក់ទី{activeGrade} "{activeSection}" ឆ្នាំសិក្សា {academicYear || schoolProfile?.academicYear || '២០២៥-២០២៦'}
                   </p>
                 </div>
               </div>
@@ -610,7 +610,7 @@ export const ClassStudentStatisticsPriModal: React.FC<ClassStudentStatisticsPriM
                       ២.(ខ) សិស្សថ្មី សិស្សឡើងថ្នាក់ និងសិស្សត្រួតថ្នាក់
                     </h3>
                     <p className="text-[9.5px] text-slate-700">
-                      ក្នុងឆ្នាំសិក្សា {academicYear || '២០២៥-២០២៦'} (ចំនួនសិស្សរាប់គិតត្រឹមថ្ងៃ 1-11-2025)
+                      ក្នុងឆ្នាំសិក្សា {academicYear || schoolProfile?.academicYear || '២០២៥-២០២៦'} (ចំនួនសិស្សរាប់គិតត្រឹមថ្ងៃ 1-11-2025)
                     </p>
                   </div>
 
