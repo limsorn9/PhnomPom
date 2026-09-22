@@ -102,6 +102,52 @@ export const initialTeachers: Teacher[] = [
     schedule: [
       { day: 'ចន្ទ', subject: 'ប្រជុំគណៈគ្រប់គ្រង & ផែនការសាលា', timeSlot: '07:30 - 08:30', gradeClass: 'រដ្ឋបាល' }
     ]
+  },
+  {
+    id: 't-teacher-1',
+    staffCode: 'MOEYS-104922',
+    nameKhmer: 'អ្នកគ្រូ សុខ ចិន្តា',
+    nameLatin: 'Sok Chenda',
+    gender: 'F',
+    dob: '1988-03-15',
+    phone: '012 34 56 78',
+    email: 'chenda.sok@school.gov.kh',
+    qualification: 'បរិញ្ញាបត្រគរុកោសល្យ',
+    framework: 'ក្របខណ្ឌគ្រូបង្រៀនកម្រិតមូលដ្ឋាន',
+    teachingSubject: 'ភាសាខ្មែរ-គណិតវិទ្យា',
+    role: 'គ្រូបង្រៀន / គ្រូបន្ទុកថ្នាក់',
+    assignedGrade: 1,
+    assignedSection: 'ក',
+    yearsOfService: 8,
+    startDate: '2016-10-01',
+    status: 'active',
+    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    schedule: [
+      { day: 'ចន្ទ', subject: 'ភាសាខ្មែរ', timeSlot: '07:30 - 09:00', gradeClass: '1ក' },
+      { day: 'អង្គារ', subject: 'គណិតវិទ្យា', timeSlot: '07:30 - 09:00', gradeClass: '1ក' },
+      { day: 'ពុធ', subject: 'វិទ្យាសាស្ត្រ', timeSlot: '07:30 - 09:00', gradeClass: '1ក' }
+    ]
+  },
+  {
+    id: 't-secretary',
+    staffCode: 'MOEYS-104923',
+    nameKhmer: 'លោក ចាន់ សារិទ្ធ',
+    nameLatin: 'Chan Sarith',
+    gender: 'M',
+    dob: '1985-08-20',
+    phone: '098 76 54 32',
+    email: 'secretary@school.gov.kh',
+    qualification: 'បរិញ្ញាបត្ររដ្ឋបាលសាធារណៈ',
+    framework: 'ក្របខណ្ឌរដ្ឋបាល',
+    teachingSubject: 'កិច្ចការរដ្ឋបាល & លិខិតបទដ្ឋាន',
+    role: 'លេខាធិការដ្ឋាន & រដ្ឋបាល',
+    yearsOfService: 10,
+    startDate: '2014-10-01',
+    status: 'active',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    schedule: [
+      { day: 'ចន្ទ', subject: 'ការងារលិខិតបទដ្ឋាន និងរដ្ឋបាលទូទៅ', timeSlot: '07:30 - 11:30', gradeClass: 'ការិយាល័យរដ្ឋបាល' }
+    ]
   }
 ];
 

@@ -61,8 +61,15 @@ export const TeacherManagement: React.FC = () => {
     showToast,
     currentUser,
     recordTeacherQuickCheckIn,
-    getTeacherCheckInStatus
+    getTeacherCheckInStatus,
+    syncStaffAccountsToTeachers,
+    isStaffAccountInTeachers
   } = useSchool();
+
+  const canManageStaff = currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary';
+  const staffRoles = ['teacher', 'director', 'deputy_director', 'secretary', 'librarian', 'super_admin'];
+  const staffAccounts = (appUsers || []).filter(u => u && staffRoles.includes(u.role));
+  const missingStaffAccounts = staffAccounts.filter(u => !isStaffAccountInTeachers(u));
 
   const [localSearch, setLocalSearch] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
@@ -411,7 +418,16 @@ export const TeacherManagement: React.FC = () => {
               <Printer className="w-4 h-4 text-indigo-600" />
               <span>បោះពុម្ពបញ្ជីគ្រូ</span>
             </button>
-            {currentUser.role === 'director' && (
+            <button
+              id="sync-staff-btn"
+              onClick={() => syncStaffAccountsToTeachers()}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 text-xs font-bold rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
+              title="ធ្វើសមកាលកម្មគណនីគ្រូ និងបុគ្គលិកទាំងអស់ចូលក្នុងបញ្ជីបុគ្គលិក"
+            >
+              <RefreshCw className="w-4 h-4 text-blue-600" />
+              <span>ធ្វើសមកាលកម្មគណនី</span>
+            </button>
+            {canManageStaff && (
               <button
                 id="add-teacher-modal-btn"
                 onClick={() => {
@@ -422,11 +438,36 @@ export const TeacherManagement: React.FC = () => {
                 className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ បន្ថែមគ្រូបង្រៀនថ្មី</span>
+                <span>+ បន្ថែមបុគ្គលិក/គ្រូថ្មី</span>
               </button>
             )}
           </div>
         </div>
+
+        {/* Missing Staff Warning Banner if any account is not yet in teachers */}
+        {missingStaffAccounts.length > 0 && (
+          <div className="mt-4 p-3.5 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-900 shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="font-bold text-amber-900">
+                  រកឃើញគណនីបុគ្គលិកចំនួន {missingStaffAccounts.length} មិនទាន់មានក្នុងបញ្ជីបុគ្គលិក
+                </p>
+                <p className="text-[11px] text-amber-700">
+                  {missingStaffAccounts.map(u => `${u.nameKhmer} (${u.role})`).join(', ')}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => syncStaffAccountsToTeachers()}
+              className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all shrink-0 cursor-pointer"
+            >
+              បញ្ចូលទាំងអស់ចូលបញ្ជីឥឡូវនេះ
+            </button>
+          </div>
+        )}
 
         {/* Search & Filter bar */}
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-100">
@@ -626,15 +667,17 @@ export const TeacherManagement: React.FC = () => {
                 </button>
               </div>
 
-              {currentUser.role === 'director' && (
-                <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1">
+                {(canManageStaff || (currentUser?.nameKhmer === teacher.nameKhmer || currentUser?.staffCode === teacher.staffCode)) && (
                   <button
                     onClick={() => handleEdit(teacher)}
                     className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                    title="កែប្រែ"
+                    title={canManageStaff ? "កែប្រែទិន្នន័យបុគ្គលិក" : "កែប្រែព័ត៌មានផ្ទាល់ខ្លួន"}
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
+                )}
+                {canManageStaff && (
                   <button
                     onClick={() => {
                       if (window.confirm(`តើអ្នកពិតជាចង់លុបទិន្នន័យលោកគ្រូ/អ្នកគ្រូ «${teacher.nameKhmer}» ឬទេ?`)) {
@@ -646,8 +689,8 @@ export const TeacherManagement: React.FC = () => {
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
           );
@@ -1126,38 +1169,45 @@ export const TeacherManagement: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      ឈ្មោះជាភាសាខ្មែរ (ជ្រើសរើសពីគណនី) *
+                      ឈ្មោះជាភាសាខ្មែរ (ជ្រើសរើស ឬវាយបញ្ចូល) *
                     </label>
-                    <select
-                      required
-                      value={formData.nameKhmer}
-                      onChange={e => {
-                        const selectedName = e.target.value;
-                        const matchingUser = appUsers?.find(u => u.nameKhmer === selectedName);
-                        setFormData({ 
-                          ...formData, 
-                          nameKhmer: selectedName,
-                          ...(matchingUser?.nameLatin ? { nameLatin: matchingUser.nameLatin } : {}),
-                          ...(matchingUser?.phone ? { phone: matchingUser.phone } : {}),
-                          ...(matchingUser?.email ? { email: matchingUser.email } : {}),
-                          ...(matchingUser?.avatarUrl ? { avatarUrl: matchingUser.avatarUrl } : {})
-                        });
-                      }}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
-                    >
-                      <option value="">-- សូមជ្រើសរើសគណនីគ្រូ --</option>
-                      {appUsers
-                        ?.filter(u => ['teacher', 'director', 'deputy_director', 'secretary', 'librarian'].includes(u.role))
-                        .map(user => (
-                          <option key={user.id} value={user.nameKhmer}>
-                            {user.nameKhmer} ({user.role})
-                          </option>
-                      ))}
-                      {/* Allow keeping existing name if it doesn't match an account */}
-                      {formData.nameKhmer && !appUsers?.some(u => u.nameKhmer === formData.nameKhmer) && (
-                        <option value={formData.nameKhmer}>{formData.nameKhmer} (គ្មានគណនី)</option>
-                      )}
-                    </select>
+                    <div className="space-y-1.5">
+                      <select
+                        value={appUsers?.some(u => u.nameKhmer === formData.nameKhmer) ? formData.nameKhmer : ''}
+                        onChange={e => {
+                          const selectedName = e.target.value;
+                          if (!selectedName) return;
+                          const matchingUser = appUsers?.find(u => u.nameKhmer === selectedName);
+                          setFormData({ 
+                            ...formData, 
+                            nameKhmer: selectedName,
+                            ...(matchingUser?.nameLatin ? { nameLatin: matchingUser.nameLatin } : {}),
+                            ...(matchingUser?.phone ? { phone: matchingUser.phone } : {}),
+                            ...(matchingUser?.email ? { email: matchingUser.email } : {}),
+                            ...(matchingUser?.staffCode ? { staffCode: matchingUser.staffCode } : {}),
+                            ...(matchingUser?.avatarUrl ? { avatarUrl: matchingUser.avatarUrl } : {})
+                          });
+                        }}
+                        className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                      >
+                        <option value="">-- ជ្រើសរើសពីគណនីបុគ្គលិកដែលមានស្រាប់ --</option>
+                        {appUsers
+                          ?.filter(u => ['teacher', 'director', 'deputy_director', 'secretary', 'librarian', 'super_admin'].includes(u.role))
+                          .map(user => (
+                            <option key={user.id} value={user.nameKhmer}>
+                              {user.nameKhmer} ({user.role}) - {user.staffCode || user.username}
+                            </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        required
+                        value={formData.nameKhmer}
+                        onChange={e => setFormData({ ...formData, nameKhmer: e.target.value })}
+                        placeholder="វាយបញ្ចូលឈ្មោះផ្ទាល់ (ឧ. លោក ស៊ូ ចន្ថា)"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">

@@ -292,6 +292,8 @@ interface SchoolContextType {
   addTeacher: (teacher: Omit<Teacher, 'id' | 'staffCode'>) => void;
   updateTeacher: (id: string, updated: Partial<Teacher>) => void;
   deleteTeacher: (id: string) => void;
+  syncStaffAccountsToTeachers: () => { syncedCount: number; alreadyCount: number };
+  isStaffAccountInTeachers: (user: AppUser) => boolean;
 
   // Classrooms
   classrooms: Classroom[];
@@ -604,6 +606,131 @@ export const safeSetLocalStorage = (key: string, value: any): boolean => {
   }
 };
 
+export const isTeacherMatch = (teacher: Teacher, user: AppUser): boolean => {
+  // 1. Staff code match
+  if (user.staffCode && teacher.staffCode && user.staffCode.trim().toLowerCase() === teacher.staffCode.trim().toLowerCase()) {
+    return true;
+  }
+  // 2. Email match
+  if (user.email && teacher.email && user.email.trim().toLowerCase() === teacher.email.trim().toLowerCase()) {
+    return true;
+  }
+  // 3. Clean Name match
+  const cleanUserName = (user.nameKhmer || '').replace(/\(.*?\)/g, '').replace(/^(លោក|អ្នកគ្រូ|លោកគ្រូ|កញ្ញា)\s+/, '').trim();
+  const cleanTeacherName = (teacher.nameKhmer || '').replace(/\(.*?\)/g, '').replace(/^(លោក|អ្នកគ្រូ|លោកគ្រូ|កញ្ញា)\s+/, '').trim();
+  if (cleanUserName && cleanTeacherName && cleanUserName === cleanTeacherName) {
+    return true;
+  }
+  // 4. Exact nameKhmer match
+  if (user.nameKhmer && teacher.nameKhmer && user.nameKhmer.trim() === teacher.nameKhmer.trim()) {
+    return true;
+  }
+  // 5. Phone match
+  const uPhone = user.phone ? user.phone.replace(/\D/g, '') : '';
+  const tPhone = teacher.phone ? teacher.phone.replace(/\D/g, '') : '';
+  if (uPhone && tPhone && uPhone === tPhone && uPhone.length >= 7) {
+    return true;
+  }
+  // 6. ID pattern match
+  if (teacher.id === `t-${user.id.replace('u-', '')}` || teacher.id === user.id.replace('u-', '')) {
+    return true;
+  }
+  return false;
+};
+
+export const createTeacherFromAppUser = (user: AppUser, existingTeachersCount: number): Teacher => {
+  const staffCode = user.staffCode || `MOEYS-10${String(existingTeachersCount + 1).padStart(4, '0')}`;
+  
+  let roleTitle = 'គ្រូបង្រៀន / គ្រូបន្ទុកថ្នាក់';
+  let teachingSubject = 'ភាសាខ្មែរ-គណិតវិទ្យា';
+  let framework = 'ក្របខណ្ឌគ្រូបង្រៀនកម្រិតមូលដ្ឋាន';
+  let qualification = 'បរិញ្ញាបត្រ';
+  
+  if (user.role === 'director') {
+    roleTitle = 'នាយកសាលា';
+    teachingSubject = 'គ្រប់គ្រងអប់រំទូទៅ';
+    framework = 'ក្របខណ្ឌមន្ត្រីគ្រប់គ្រងជាន់ខ្ពស់';
+    qualification = 'បរិញ្ញាបត្រជាន់ខ្ពស់ គ្រប់គ្រងអប់រំ';
+  } else if (user.role === 'super_admin') {
+    roleTitle = 'ប្រធានគណៈគ្រប់គ្រង / Super Admin';
+    teachingSubject = 'គ្រប់គ្រងអប់រំ និងប្រព័ន្ធព័ត៌មានវិទ្យា';
+    framework = 'ក្របខណ្ឌមន្ត្រីជាន់ខ្ពស់';
+    qualification = 'អនុបណ្ឌិត/បរិញ្ញាបត្រជាន់ខ្ពស់';
+  } else if (user.role === 'secretary') {
+    roleTitle = 'លេខាធិការដ្ឋាន & រដ្ឋបាល';
+    teachingSubject = 'កិច្ចការរដ្ឋបាល & លិខិតបទដ្ឋាន';
+    framework = 'ក្របខណ្ឌរដ្ឋបាល';
+    qualification = 'បរិញ្ញាបត្ររដ្ឋបាលសាធារណៈ';
+  } else if (user.role === 'librarian') {
+    roleTitle = 'បណ្ណារក្ស & ព័ត៌មានវិទ្យា';
+    teachingSubject = 'បណ្ណាល័យ & ធនធានសិក្សា';
+    framework = 'ក្របខណ្ឌបណ្ណារក្ស';
+    qualification = 'បរិញ្ញាបត្រព័ត៌មានវិទ្យា/បណ្ណាល័យ';
+  }
+
+  const isFemale = user.nameKhmer?.includes('អ្នកគ្រូ') || user.nameKhmer?.includes('ស្រី') || user.nameKhmer?.includes('ចិន្តា');
+  const gender: 'M' | 'F' = isFemale ? 'F' : 'M';
+
+  const avatarUrl = user.avatarUrl || (gender === 'F'
+    ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'
+    : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80');
+
+  return {
+    id: user.id.startsWith('u-') ? `t-${user.id.replace('u-', '')}` : `t-${user.id}`,
+    staffCode,
+    nameKhmer: user.nameKhmer,
+    nameLatin: user.nameLatin || user.nameKhmer,
+    gender,
+    dob: '1988-01-01',
+    phone: user.phone || '',
+    email: user.email || '',
+    role: roleTitle,
+    framework,
+    qualification,
+    teachingSubject,
+    assignedGrade: user.assignedGrade || (user.role === 'teacher' ? 1 : undefined),
+    assignedSection: user.assignedSection || (user.role === 'teacher' ? 'ក' : undefined),
+    yearsOfService: user.role === 'director' ? 20 : 5,
+    startDate: user.createdAt || '2024-01-01',
+    status: user.status === 'suspended' ? 'on_leave' : 'active',
+    avatarUrl,
+    schedule: user.role === 'teacher' ? [
+      { day: 'ចន្ទ', subject: 'ភាសាខ្មែរ', timeSlot: '07:30 - 09:00', gradeClass: `${user.assignedGrade || 1}${user.assignedSection || 'ក'}` },
+      { day: 'អង្គារ', subject: 'គណិតវិទ្យា', timeSlot: '07:30 - 09:00', gradeClass: `${user.assignedGrade || 1}${user.assignedSection || 'ក'}` },
+      { day: 'ពុធ', subject: 'វិទ្យាសាស្ត្រ', timeSlot: '07:30 - 09:00', gradeClass: `${user.assignedGrade || 1}${user.assignedSection || 'ក'}` }
+    ] : [
+      { day: 'ចន្ទ', subject: roleTitle, timeSlot: '07:30 - 11:30', gradeClass: 'រដ្ឋបាល/សាលា' }
+    ]
+  };
+};
+
+export const ensureStaffInTeachers = (currentTeachers: Teacher[], users: AppUser[]): Teacher[] => {
+  const staffRoles: UserRole[] = ['teacher', 'director', 'deputy_director' as any, 'secretary', 'librarian', 'super_admin'];
+  const staffUsers = (users || []).filter(u => u && staffRoles.includes(u.role));
+  const result = [...(currentTeachers || [])];
+
+  for (const user of staffUsers) {
+    const matchIndex = result.findIndex(t => isTeacherMatch(t, user));
+    if (matchIndex === -1) {
+      const newTeacher = createTeacherFromAppUser(user, result.length);
+      result.push(newTeacher);
+    } else {
+      const t = result[matchIndex];
+      result[matchIndex] = {
+        ...t,
+        staffCode: t.staffCode || user.staffCode || `MOEYS-10${String(matchIndex + 1).padStart(4, '0')}`,
+        phone: t.phone || user.phone || '',
+        email: t.email || user.email || '',
+        assignedGrade: t.assignedGrade ?? user.assignedGrade,
+        assignedSection: t.assignedSection ?? user.assignedSection,
+        avatarUrl: t.avatarUrl || user.avatarUrl || ''
+      };
+    }
+  }
+
+  return result;
+};
+
 export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
     const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_active_tab`);
@@ -912,8 +1039,20 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
 
   const [teachers, setTeachers] = useState<Teacher[]>(() => {
-    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_teachers`), initialTeachers);
+    const raw = safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_teachers`), initialTeachers);
+    return ensureStaffInTeachers(raw, appUsers);
   });
+
+  // Automatically synchronize staff accounts into teachers directory whenever appUsers changes
+  useEffect(() => {
+    setTeachers(prev => {
+      const updated = ensureStaffInTeachers(prev, appUsers);
+      if (updated.length !== prev.length) {
+        return updated;
+      }
+      return prev;
+    });
+  }, [appUsers]);
 
   const [classrooms, setClassrooms] = useState<Classroom[]>(() => {
     return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_classrooms`), initialClassrooms);
@@ -4715,42 +4854,13 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     }
 
-    // If a teacher account was created, also link or create a Teacher profile in teachers list if missing
-    if (newUser.role === 'teacher') {
+    // If a staff or teacher account was created, also link or create a Teacher profile in teachers list if missing
+    const staffRolesForTeacherProfile: UserRole[] = ['teacher', 'director', 'deputy_director' as any, 'secretary', 'librarian', 'super_admin'];
+    if (staffRolesForTeacherProfile.includes(newUser.role)) {
       setTeachers(prev => {
-        const exists = prev.find(t => 
-          t.id === newUser.id.replace('u-', '') || 
-          (newUser.email && t.email?.toLowerCase() === newUser.email.toLowerCase()) || 
-          (newUser.phone && t.phone?.replace(/\s+/g, '') === newUser.phone.replace(/\s+/g, ''))
-        );
+        const exists = prev.some(t => isTeacherMatch(t, newUser));
         if (exists) return prev;
-
-        const nextIndex = prev.length + 1;
-        const staffCode = newUser.staffCode || `MOEYS-10${String(nextIndex).padStart(4, '0')}`;
-        const newTeacherRecord: Teacher = {
-          id: newUser.id.startsWith('u-t-') ? newUser.id.replace('u-', '') : `t-${Date.now()}`,
-          staffCode,
-          nameKhmer: newUser.nameKhmer,
-          nameLatin: newUser.nameLatin || newUser.nameKhmer,
-          gender: 'M',
-          dob: '1990-01-01',
-          phone: newUser.phone || '',
-          email: newUser.email,
-          role: 'គ្រូបង្រៀន',
-          framework: 'ក្របខណ្ឌគ្រូបង្រៀនកម្រិតមូលដ្ឋាន',
-          qualification: 'បរិញ្ញាបត្រ',
-          teachingSubject: 'ភាសាខ្មែរ-គណិតវិទ្យា',
-          assignedGrade: newUser.assignedGrade || 1,
-          assignedSection: newUser.assignedSection || 'ក',
-          yearsOfService: 1,
-          startDate: new Date().toISOString().split('T')[0],
-          status: 'active',
-          avatarUrl: newUser.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-          schedule: [
-            { day: 'ចន្ទ', subject: 'ភាសាខ្មែរ', timeSlot: '07:30 - 09:00', gradeClass: `${newUser.assignedGrade || 1}${newUser.assignedSection || 'ក'}` },
-            { day: 'អង្គារ', subject: 'គណិតវិទ្យា', timeSlot: '07:30 - 08:30', gradeClass: `${newUser.assignedGrade || 1}${newUser.assignedSection || 'ក'}` }
-          ]
-        };
+        const newTeacherRecord = createTeacherFromAppUser(newUser, prev.length);
         return [newTeacherRecord, ...prev];
       });
     }
@@ -5831,13 +5941,13 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     if (role === 'librarian') {
-      // បណ្ណារក្សមានសិទ្ធិបើកផ្ទាំងគ្រប់គ្រងបណ្ណារក្ស និងធនធានសិក្សា
-      return ['librarian_dashboard', 'library', 'learning_resources', 'reports_qr', 'official_documents'].includes(tab);
+      // បណ្ណារក្សមានសិទ្ធិបើកផ្ទាំងគ្រប់គ្រងបណ្ណារក្ស ធនធានសិក្សា និងបញ្ជីបុគ្គលិក/គ្រូបង្រៀន
+      return ['librarian_dashboard', 'library', 'learning_resources', 'reports_qr', 'official_documents', 'teachers'].includes(tab);
     }
 
     if (role === 'teacher') {
-      // គ្រូអាចបើកបានតែដាស់បតគ្រូ និងផ្ទាំងសិស្ស
-      return ['homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'scores', 'attendance_health', 'student_portal'].includes(tab);
+      // គ្រូអាចបើកបានដាស់បតគ្រូ ផ្ទាំងសិស្ស និងបញ្ជីបុគ្គលិក/គ្រូបង្រៀន (teachers) ដើម្បីពិនិត្យមើលសហការី កាលវិភាគ និងវត្តមាន
+      return ['homeroom_dashboard', 'teachers', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'scores', 'attendance_health', 'student_portal'].includes(tab);
     }
 
     if (role === 'student' || role === 'parent') {
@@ -6580,6 +6690,50 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const syncStaffAccountsToTeachers = (): { syncedCount: number; alreadyCount: number } => {
+    const staffRoles: UserRole[] = ['teacher', 'director', 'deputy_director' as any, 'secretary', 'librarian', 'super_admin'];
+    const staffUsers = (appUsers || []).filter(u => u && staffRoles.includes(u.role));
+    let syncedCount = 0;
+    let alreadyCount = 0;
+
+    setTeachers(prevTeachers => {
+      const updated = [...prevTeachers];
+      for (const user of staffUsers) {
+        const existingIndex = updated.findIndex(t => isTeacherMatch(t, user));
+        if (existingIndex >= 0) {
+          alreadyCount++;
+          const t = updated[existingIndex];
+          updated[existingIndex] = {
+            ...t,
+            staffCode: t.staffCode || user.staffCode || `MOEYS-10${String(existingIndex + 1).padStart(4, '0')}`,
+            phone: t.phone || user.phone || '',
+            email: t.email || user.email || '',
+            assignedGrade: t.assignedGrade ?? user.assignedGrade,
+            assignedSection: t.assignedSection ?? user.assignedSection,
+            avatarUrl: t.avatarUrl || user.avatarUrl || ''
+          };
+        } else {
+          const newTeacher = createTeacherFromAppUser(user, updated.length);
+          updated.push(newTeacher);
+          syncedCount++;
+        }
+      }
+      return updated;
+    });
+
+    if (syncedCount > 0) {
+      showToast(`បានបញ្ចូលគណនីបុគ្គលិកថ្មីចំនួន ${syncedCount} ចូលក្នុងបញ្ជីបុគ្គលិកដោយជោគជ័យ!`, 'success');
+    } else {
+      showToast(`គណនីបុគ្គលិកទាំងអស់ (${alreadyCount} គណនី) បានបញ្ចូលក្នុងបញ្ជីបុគ្គលិករួចរាល់ហើយ!`, 'info');
+    }
+
+    return { syncedCount, alreadyCount };
+  };
+
+  const isStaffAccountInTeachers = (user: AppUser): boolean => {
+    return teachers.some(t => isTeacherMatch(t, user));
+  };
+
   const addClassroom = (classroomData: Omit<Classroom, 'id'>) => {
     const newClass: Classroom = {
       ...classroomData,
@@ -7297,6 +7451,8 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         addTeacher,
         updateTeacher,
         deleteTeacher,
+        syncStaffAccountsToTeachers,
+        isStaffAccountInTeachers,
         classrooms,
         addClassroom,
         updateClassroom,

@@ -82,6 +82,8 @@ export const AccountsManagement: React.FC = () => {
     clearAccountAuditLogs,
     students,
     teachers,
+    syncStaffAccountsToTeachers,
+    isStaffAccountInTeachers,
     showToast,
     impersonateUser,
     profileEditRequests,
@@ -946,18 +948,29 @@ export const AccountsManagement: React.FC = () => {
           {activeTab === 'teachers_staff' && (
             <div className="space-y-4">
               {/* Teacher & Staff Info Banner */}
-              <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200/80 rounded-2xl p-4 text-xs text-emerald-950 flex items-start gap-3 shadow-xs">
-                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 mt-0.5">
-                  <User className="w-5 h-5" />
+              <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200/80 rounded-2xl p-4 text-xs text-emerald-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 mt-0.5">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-bold text-emerald-900 text-sm">
+                      👨‍🏫 បញ្ជីគណនីលោកគ្រូ-អ្នកគ្រូ & បុគ្គលិកសិក្សាទូទាំងសាលា (Teachers & Staff Center)
+                    </p>
+                    <p className="text-slate-700 text-xs leading-relaxed">
+                      គណនីលោកគ្រូ-អ្នកគ្រូគ្រប់កម្រិតថ្នាក់ ព្រមទាំងនាយកសាលា លេខាធិការ និងបណ្ណារក្ស ត្រូវបានដាក់បញ្ចូលគ្នាក្នុងផ្ទាំងនេះយ៉ាងងាយស្រួល។
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="font-bold text-emerald-900 text-sm">
-                    👨‍🏫 បញ្ជីគណនីលោកគ្រូ-អ្នកគ្រូ & បុគ្គលិកសិក្សាទូទាំងសាលា (Teachers & Staff Center)
-                  </p>
-                  <p className="text-slate-700 text-xs leading-relaxed">
-                    គណនីលោកគ្រូ-អ្នកគ្រូគ្រប់កម្រិតថ្នាក់ (មត្តេយ្យ បឋម បន្ទុកថ្នាក់ និងបង្រៀនមុខវិជ្ជា) ព្រមទាំងនាយកសាលា លេខាធិការ និងបណ្ណារក្ស ត្រូវបានដាក់បញ្ចូលគ្នាក្នុងផ្ទាំងនេះយ៉ាងងាយស្រួល <strong>ដោយមិនបាច់បែងចែកថេបរញ៉េរញ៉ៃឡើយ</strong>។
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => syncStaffAccountsToTeachers()}
+                  className="shrink-0 px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer hover:shadow active:scale-95"
+                  title="ធ្វើសមកាលកម្មគណនីគ្រូ និងបុគ្គលិកទាំងអស់ចូលក្នុងបញ្ជីគ្រប់គ្រងបុគ្គលិក (Teachers Directory)"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>🔄 ធ្វើសមកាលកម្មទៅបញ្ជីបុគ្គលិក</span>
+                </button>
               </div>
 
               {/* Teacher & Staff Stat Summary Cards */}
@@ -1362,11 +1375,25 @@ export const AccountsManagement: React.FC = () => {
                               {user.studentCode} (ថ្នាក់ទី {user.assignedGrade}{user.assignedSection})
                             </span>
                           ) : user.staffCode ? (
-                            <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                              {user.staffCode}
-                            </span>
+                            <div>
+                              <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                {user.staffCode}
+                              </span>
+                              {isStaffAccountInTeachers(user) && (
+                                <span className="block mt-1 text-[10px] text-emerald-700 font-semibold">
+                                  ✓ មានក្នុងបញ្ជីបុគ្គលិក
+                                </span>
+                              )}
+                            </div>
                           ) : (
-                            <span className="text-slate-400">-</span>
+                            <div>
+                              <span className="text-slate-400">-</span>
+                              {['teacher', 'director', 'deputy_director', 'secretary', 'librarian', 'super_admin'].includes(user.role) && isStaffAccountInTeachers(user) && (
+                                <span className="block mt-1 text-[10px] text-emerald-700 font-semibold">
+                                  ✓ មានក្នុងបញ្ជីបុគ្គលិក
+                                </span>
+                              )}
+                            </div>
                           )}
                         </td>
 

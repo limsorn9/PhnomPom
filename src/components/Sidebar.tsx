@@ -281,6 +281,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           badgeColor: 'bg-indigo-100 text-indigo-700 font-bold',
         },
         {
+          id: 'teachers',
+          labelKh: 'គ្រូបង្រៀន & បុគ្គលិក',
+          labelEn: 'Teaching Staff',
+          icon: GraduationCap,
+          badge: teachers.length,
+          badgeColor: 'bg-indigo-100 text-indigo-700 font-semibold',
+        },
+        {
           id: 'scores',
           labelKh: 'ស្រង់ពិន្ទុ & ចំណាត់ថ្នាក់',
           labelEn: 'Academic Scores',
@@ -453,7 +461,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return cat.id === 'teacher' || cat.id === 'student';
       }
       if (currentUser?.role === 'librarian') {
-        return cat.id === 'student';
+        return cat.id === 'director' || cat.id === 'student';
       }
       return true; // director, super_admin, secretary
     })
