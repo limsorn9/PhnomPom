@@ -1,14 +1,27 @@
 import express from 'express';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
+import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
+// If running from dist/ (the compiled bundle), it is ALWAYS the production server
+const isCompiledBundle = Boolean(
+  (typeof __filename !== 'undefined' && (__filename.includes('dist') || __filename.endsWith('.cjs'))) ||
+  (process.argv[1] && (process.argv[1].includes('dist') || process.argv[1].endsWith('.cjs')))
+);
+
+if (isCompiledBundle) {
+  process.env.NODE_ENV = 'production';
+}
+
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  // In development (tsx server.ts in sandbox), dev server MUST bind strictly to port 3000 (nginx reverse proxy).
+  // In production (dist/server.cjs in Cloud Run), bind to process.env.PORT provided by Cloud Run (typically 8080).
+  const isDev = process.env.NODE_ENV !== 'production' && !isCompiledBundle;
+  const PORT = isDev ? 3000 : (process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
 
   app.use(express.json({ limit: '10mb' }));
 
@@ -1231,16 +1244,27 @@ async function startServer() {
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
+    let distPath = path.join(process.cwd(), 'dist');
+    if (!fs.existsSync(distPath) || !fs.existsSync(path.join(distPath, 'index.html'))) {
+      if (fs.existsSync(path.join(__dirname, 'index.html'))) {
+        distPath = __dirname;
+      }
+    }
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      const indexPath = path.join(distPath, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(404).send('Application build not found. Please build the application.');
+      }
     });
   }
 
