@@ -29,6 +29,7 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   GraduationCap,
+  School,
   ExternalLink,
   RefreshCw,
   Award,
@@ -2401,33 +2402,38 @@ export const StudentManagement: React.FC = () => {
 
       {/* Add / Edit Student Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200">
+        <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+            {/* Mobile Drag Indicator */}
+            <div className="pt-2 sm:hidden bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 flex justify-center">
+              <div className="w-12 h-1 bg-white/40 rounded-full" />
+            </div>
+
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-5 text-white flex items-center justify-between rounded-t-2xl sticky top-0 z-10">
+            <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-4 sm:p-5 text-white flex items-center justify-between sticky top-0 z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                  <UserPlus className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                  <UserPlus className="w-5 h-5 text-blue-200" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold font-moul">
+                  <h3 className="text-sm sm:text-base font-bold font-moul leading-tight">
                     {editingStudent ? 'កែប្រែព័ត៌មានសិស្ស' : 'ទម្រង់ចុះឈ្មោះសិស្សថ្មី (MoEYS Standard)'}
                   </h3>
-                  <p className="text-xs text-blue-100">
-                    ទម្រង់ប្រមូលទិន្នន័យសិស្សលម្អិតស្របតាមស្តង់ដារក្រសួងអប់រំ យុវជន និងកីឡា (មានការផ្ទៀងផ្ទាត់ Validation ស្វ័យប្រវត្តិ)
+                  <p className="text-[11px] sm:text-xs text-blue-100 line-clamp-1 sm:line-clamp-none mt-0.5">
+                    ទម្រង់ប្រមូលទិន្នន័យសិស្សលម្អិតស្របតាមស្តង់ដារក្រសួងអប់រំ យុវជន និងកីឡា
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleCreateStudent} className="p-6 space-y-6 text-xs sm:text-sm">
+            <form onSubmit={handleCreateStudent} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 text-xs sm:text-sm">
               {/* Auto-Save Draft Indicator */}
               <FormAutoSaveIndicator
                 hasSavedDraft={hasSavedDraft}
@@ -2439,67 +2445,115 @@ export const StudentManagement: React.FC = () => {
 
               {!editingStudent ? (
                  <div className="space-y-4">
-                    <p className="text-emerald-700 bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-sm leading-relaxed">
-                      <span className="font-bold">📝 បញ្ចូលតែព័ត៌មានចាំបាច់សិនបានហើយ។</span><br/>
-                      ពេលបញ្ចូលរួច ប្រព័ន្ធនឹងបង្កើតគណនី និងពាក្យសម្ងាត់ជូនសិស្សដោយស្វ័យប្រវត្តិ (អត្តលេខសិស្ស = Username & Password)។ ចាំគ្រូបន្ទុកថ្នាក់ជាអ្នកបំពេញព័ត៌មានលម្អិតតាមក្រោយ។
+                    <p className="text-emerald-700 bg-emerald-50 p-3 sm:p-4 rounded-2xl border border-emerald-200 shadow-2xs leading-relaxed text-xs">
+                      <span className="font-bold">📝 បញ្ចូលតែព័ត៌មានចាំបាច់សិនបានហើយ៖</span><br/>
+                      ពេលបញ្ចូលរួច ប្រព័ន្ធនឹងបង្កើតគណនី និងពាក្យសម្ងាត់ជូនសិស្សដោយស្វ័យប្រវត្តិ (អត្តលេខសិស្ស = Username & Password)។
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-slate-700 font-bold mb-1.5">គោត្តនាម និងនាម <span className="text-red-500">*</span></label>
+                        <label className="block text-slate-700 font-bold mb-1.5 flex items-center gap-1.5">
+                          <Users className="w-4 h-4 text-blue-600" />
+                          <span>គោត្តនាម និងនាម</span>
+                          <span className="text-red-500">*</span>
+                        </label>
                         <input
                           type="text"
                           required
                           value={formData.nameKhmer}
                           onChange={(e) => setFormData(prev => ({ ...prev, nameKhmer: e.target.value }))}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all font-bold"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all font-bold text-sm bg-white"
                           placeholder="ឧ. សុខ សាន្ត"
                         />
                       </div>
                       <div>
-                        <label className="block text-slate-700 font-bold mb-1.5">ភេទ <span className="text-red-500">*</span></label>
-                        <select
-                          required
-                          value={formData.gender}
-                          onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value as Gender }))}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-bold bg-white"
-                        >
-                          <option value="M">ប្រុស (M)</option>
-                          <option value="F">ស្រី (F)</option>
-                        </select>
+                        <label className="block text-slate-700 font-bold mb-1.5">
+                          ភេទ <span className="text-red-500">*</span>
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, gender: 'M' }))}
+                            className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 font-bold text-xs transition-all active:scale-95 ${
+                              formData.gender === 'M'
+                                ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                            }`}
+                          >
+                            <span>👦</span>
+                            <span>ប្រុស (M)</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, gender: 'F' }))}
+                            className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 font-bold text-xs transition-all active:scale-95 ${
+                              formData.gender === 'F'
+                                ? 'bg-rose-600 border-rose-600 text-white shadow-xs'
+                                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                            }`}
+                          >
+                            <span>👧</span>
+                            <span>ស្រី (F)</span>
+                          </button>
+                        </div>
                       </div>
                       <div>
-                        <label className="block text-slate-700 font-bold mb-1.5">ថ្នាក់ទី <span className="text-red-500">*</span></label>
-                        <select
-                          required
-                          value={formData.grade}
-                          onChange={(e) => setFormData(prev => ({ ...prev, grade: Number(e.target.value) }))}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-bold bg-white"
-                        >
-                          <option value={0} disabled>ជ្រើសរើសថ្នាក់</option>
+                        <label className="block text-slate-700 font-bold mb-1.5 flex items-center gap-1.5">
+                          <GraduationCap className="w-4 h-4 text-indigo-600" />
+                          <span>ថ្នាក់ទី</span>
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <div className="grid grid-cols-6 gap-1">
                           {[1, 2, 3, 4, 5, 6].map((g) => (
-                            <option key={g} value={g}>ថ្នាក់ទី {g}</option>
+                            <button
+                              key={g}
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, grade: g }))}
+                              className={`py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
+                                formData.grade === g
+                                  ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              {g}
+                            </button>
                           ))}
-                        </select>
+                        </div>
                       </div>
                       <div>
-                        <label className="block text-slate-700 font-bold mb-1.5">បន្ទប់ <span className="text-red-500">*</span></label>
-                        <input
-                          type="text"
-                          required
-                          value={formData.section}
-                          onChange={(e) => setFormData(prev => ({ ...prev, section: e.target.value }))}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all font-bold"
-                          placeholder="ឧ. ក"
-                        />
+                        <label className="block text-slate-700 font-bold mb-1.5 flex items-center gap-1.5">
+                          <School className="w-4 h-4 text-emerald-600" />
+                          <span>បន្ទប់</span>
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {['ក', 'ខ', 'គ', 'ឃ'].map((sec) => (
+                            <button
+                              key={sec}
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, section: sec }))}
+                              className={`py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
+                                formData.section === sec
+                                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              បន្ទប់ {sec}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                       <div className="sm:col-span-2">
-                        <label className="block text-slate-700 font-bold mb-1.5">លេខទូរស័ព្ទអាណាព្យាបាល</label>
+                        <label className="block text-slate-700 font-bold mb-1.5 flex items-center gap-1.5">
+                          <Phone className="w-4 h-4 text-teal-600" />
+                          <span>លេខទូរស័ព្ទអាណាព្យាបាល</span>
+                        </label>
                         <input
                           type="tel"
+                          inputMode="tel"
                           value={formData.phone}
                           onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all font-bold text-left"
-                          placeholder="ឧ. 012345678"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all font-bold text-left bg-white text-sm"
+                          placeholder="ឧ. 012 345 678"
                           dir="ltr"
                         />
                       </div>
@@ -3188,17 +3242,17 @@ export const StudentManagement: React.FC = () => {
               )}
 
               {/* Form Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+              <div className="sticky bottom-0 bg-white/95 backdrop-blur-md pt-3 pb-1 border-t border-slate-200 flex items-center justify-end gap-3 z-10">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 border border-slate-300 rounded-xl text-slate-700 hover:bg-slate-100 font-medium transition-colors"
+                  className="px-4 py-2 border border-slate-300 rounded-xl text-slate-700 hover:bg-slate-100 font-bold transition-colors"
                 >
                   បោះបង់
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" />
                   <span>{editingStudent ? 'រក្សាទុកការកែប្រែ' : 'បញ្ចូលសិស្ស'}</span>

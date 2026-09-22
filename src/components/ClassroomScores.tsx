@@ -36,7 +36,12 @@ import {
   Check,
   Trash2,
   AlertTriangle,
-  Zap
+  Zap,
+  Edit3,
+  Calculator,
+  Palette,
+  Heart,
+  Compass
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -1751,20 +1756,30 @@ export const ClassroomScores: React.FC = () => {
 
       {/* Score Edit Modal */}
       {activeStudentForScoreEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200">
-            <div className="bg-gradient-to-r from-blue-700 to-indigo-700 p-5 text-white flex items-center justify-between rounded-t-2xl">
-              <div>
-                <h3 className="text-base font-bold font-moul">
-                  បញ្ចូលពិន្ទុ: {activeStudentForScoreEdit.nameKhmer}
-                </h3>
-                <p className="text-xs text-blue-100">
-                  ថ្នាក់ទី {selectedGrade}{selectedSection} • ប្រចាំខែ {selectedMonth} ({selectedAcademicYear})
-                </p>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+            {/* Mobile Drag Indicator */}
+            <div className="pt-2 sm:hidden bg-gradient-to-r from-blue-700 to-indigo-700 flex justify-center">
+              <div className="w-12 h-1 bg-white/40 rounded-full" />
+            </div>
+
+            <div className="bg-gradient-to-r from-blue-700 to-indigo-700 p-4 sm:p-5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
+                  <Award className="w-5 h-5 text-amber-300" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold font-moul leading-tight">
+                    បញ្ចូលពិន្ទុ: {activeStudentForScoreEdit.nameKhmer}
+                  </h3>
+                  <p className="text-[11px] sm:text-xs text-blue-100 mt-0.5">
+                    ថ្នាក់ទី {selectedGrade}{selectedSection} • ខែ {selectedMonth} ({selectedAcademicYear})
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setActiveStudentForScoreEdit(null)}
-                className="p-1.5 rounded-full text-white/80 hover:text-white"
+                className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1798,12 +1813,12 @@ export const ClassroomScores: React.FC = () => {
 
               if (invalidFields.length > 0) {
                 return (
-                  <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5 text-xs text-red-800 animate-in fade-in duration-150">
+                  <div className="mx-4 sm:mx-6 mt-3 p-2.5 sm:p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2 text-xs text-red-800 animate-in fade-in duration-150">
                     <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                     <div>
-                      <strong className="font-bold">សារព្រមានផ្ទៀងផ្ទាត់ពិន្ទុ (Validation Alert):</strong>
+                      <strong className="font-bold">សារព្រមានផ្ទៀងផ្ទាត់ពិន្ទុ:</strong>
                       <p className="mt-0.5 text-[11px] leading-relaxed">
-                        ពិន្ទុមិនអាចលើសពីកម្រិតកំណត់ ឬតូចជាង ០ បានឡើយ។ សូមពិនិត្យ៖ <span className="font-bold underline">{invalidFields.join(', ')}</span>
+                        ពិន្ទុមិនអាចលើសពីកម្រិតកំណត់ ឬតូចជាង ០ បានឡើយ៖ <span className="font-bold underline">{invalidFields.join(', ')}</span>
                       </p>
                     </div>
                   </div>
@@ -1812,155 +1827,288 @@ export const ClassroomScores: React.FC = () => {
               return null;
             })()}
 
-            <form onSubmit={handleSaveSingleScore} className="p-6 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3.5">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">
-                    ភាសាខ្មែរ (អំណាន) <span className="text-slate-400 font-normal">/10</span>
-                  </label>
+            <form onSubmit={handleSaveSingleScore} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {/* 1. Khmer Reading */}
+                <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-slate-800 font-bold flex items-center gap-1.5">
+                      <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                      <span>ភាសាខ្មែរ (អំណាន)</span>
+                    </label>
+                    <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">/10</span>
+                  </div>
                   <input
                     type="number"
                     step="0.25"
                     min="0"
                     max="10"
+                    inputMode="decimal"
                     required
                     value={singleScoreForm.khmerReading ?? 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, khmerReading: Number(e.target.value) })
                     }
-                    className={`w-full px-3 py-2 bg-slate-50 border rounded-xl font-mono text-sm transition-colors ${
+                    className={`w-full px-3 py-2 bg-white border rounded-xl font-mono text-sm font-bold transition-colors ${
                       Number(singleScoreForm.khmerReading ?? 0) > 10 || Number(singleScoreForm.khmerReading ?? 0) < 0
                         ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
                         : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
                     }`}
                   />
+                  {/* Quick score chips for mobile */}
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {[7, 7.5, 8, 8.5, 9, 9.5, 10].map(pt => (
+                      <button
+                        key={`kr-${pt}`}
+                        type="button"
+                        onClick={() => setSingleScoreForm({ ...singleScoreForm, khmerReading: pt })}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono transition-all active:scale-95 ${
+                          Number(singleScoreForm.khmerReading) === pt
+                            ? 'bg-blue-600 text-white shadow-2xs'
+                            : 'bg-white hover:bg-blue-50 text-slate-700 border border-slate-200'
+                        }`}
+                      >
+                        {pt}
+                      </button>
+                    ))}
+                  </div>
                   {Number(singleScoreForm.khmerReading ?? 0) > 10 && (
-                    <p className="text-[10px] text-red-600 font-semibold mt-1">⚠️ មិនអាចលើសពី ១០</p>
+                    <p className="text-[10px] text-red-600 font-semibold">⚠️ មិនអាចលើសពី ១០</p>
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">
-                    ភាសាខ្មែរ (សំណេរ) <span className="text-slate-400 font-normal">/10</span>
-                  </label>
+                {/* 2. Khmer Writing */}
+                <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-slate-800 font-bold flex items-center gap-1.5">
+                      <Edit3 className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>ភាសាខ្មែរ (សំណេរ)</span>
+                    </label>
+                    <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">/10</span>
+                  </div>
                   <input
                     type="number"
                     step="0.25"
                     min="0"
                     max="10"
+                    inputMode="decimal"
                     required
                     value={singleScoreForm.khmerWriting ?? 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, khmerWriting: Number(e.target.value) })
                     }
-                    className={`w-full px-3 py-2 bg-slate-50 border rounded-xl font-mono text-sm transition-colors ${
+                    className={`w-full px-3 py-2 bg-white border rounded-xl font-mono text-sm font-bold transition-colors ${
                       Number(singleScoreForm.khmerWriting ?? 0) > 10 || Number(singleScoreForm.khmerWriting ?? 0) < 0
                         ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
                         : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
                     }`}
                   />
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {[7, 7.5, 8, 8.5, 9, 9.5, 10].map(pt => (
+                      <button
+                        key={`kw-${pt}`}
+                        type="button"
+                        onClick={() => setSingleScoreForm({ ...singleScoreForm, khmerWriting: pt })}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono transition-all active:scale-95 ${
+                          Number(singleScoreForm.khmerWriting) === pt
+                            ? 'bg-indigo-600 text-white shadow-2xs'
+                            : 'bg-white hover:bg-indigo-50 text-slate-700 border border-slate-200'
+                        }`}
+                      >
+                        {pt}
+                      </button>
+                    ))}
+                  </div>
                   {Number(singleScoreForm.khmerWriting ?? 0) > 10 && (
-                    <p className="text-[10px] text-red-600 font-semibold mt-1">⚠️ មិនអាចលើសពី ១០</p>
+                    <p className="text-[10px] text-red-600 font-semibold">⚠️ មិនអាចលើសពី ១០</p>
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">
-                    គណិតវិទ្យា <span className="text-slate-400 font-normal">/10</span>
-                  </label>
+                {/* 3. Mathematics */}
+                <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-slate-800 font-bold flex items-center gap-1.5">
+                      <Calculator className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>គណិតវិទ្យា</span>
+                    </label>
+                    <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">/10</span>
+                  </div>
                   <input
                     type="number"
                     step="0.25"
                     min="0"
                     max="10"
+                    inputMode="decimal"
                     required
                     value={singleScoreForm.mathematics ?? 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, mathematics: Number(e.target.value) })
                     }
-                    className={`w-full px-3 py-2 bg-slate-50 border rounded-xl font-mono text-sm transition-colors ${
+                    className={`w-full px-3 py-2 bg-white border rounded-xl font-mono text-sm font-bold transition-colors ${
                       Number(singleScoreForm.mathematics ?? 0) > 10 || Number(singleScoreForm.mathematics ?? 0) < 0
                         ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
                         : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
                     }`}
                   />
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {[7, 7.5, 8, 8.5, 9, 9.5, 10].map(pt => (
+                      <button
+                        key={`math-${pt}`}
+                        type="button"
+                        onClick={() => setSingleScoreForm({ ...singleScoreForm, mathematics: pt })}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono transition-all active:scale-95 ${
+                          Number(singleScoreForm.mathematics) === pt
+                            ? 'bg-emerald-600 text-white shadow-2xs'
+                            : 'bg-white hover:bg-emerald-50 text-slate-700 border border-slate-200'
+                        }`}
+                      >
+                        {pt}
+                      </button>
+                    ))}
+                  </div>
                   {Number(singleScoreForm.mathematics ?? 0) > 10 && (
-                    <p className="text-[10px] text-red-600 font-semibold mt-1">⚠️ មិនអាចលើសពី ១០</p>
+                    <p className="text-[10px] text-red-600 font-semibold">⚠️ មិនអាចលើសពី ១០</p>
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">
-                    វិទ្យាសាស្ត្រ និងសង្គម <span className="text-slate-400 font-normal">/10</span>
-                  </label>
+                {/* 4. Science & Social */}
+                <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-slate-800 font-bold flex items-center gap-1.5">
+                      <Compass className="w-3.5 h-3.5 text-teal-600" />
+                      <span>វិទ្យាសាស្ត្រ និងសង្គម</span>
+                    </label>
+                    <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">/10</span>
+                  </div>
                   <input
                     type="number"
                     step="0.25"
                     min="0"
                     max="10"
+                    inputMode="decimal"
                     required
                     value={singleScoreForm.scienceSocial ?? 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, scienceSocial: Number(e.target.value) })
                     }
-                    className={`w-full px-3 py-2 bg-slate-50 border rounded-xl font-mono text-sm transition-colors ${
+                    className={`w-full px-3 py-2 bg-white border rounded-xl font-mono text-sm font-bold transition-colors ${
                       Number(singleScoreForm.scienceSocial ?? 0) > 10 || Number(singleScoreForm.scienceSocial ?? 0) < 0
                         ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
                         : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
                     }`}
                   />
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {[7, 7.5, 8, 8.5, 9, 9.5, 10].map(pt => (
+                      <button
+                        key={`sc-${pt}`}
+                        type="button"
+                        onClick={() => setSingleScoreForm({ ...singleScoreForm, scienceSocial: pt })}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono transition-all active:scale-95 ${
+                          Number(singleScoreForm.scienceSocial) === pt
+                            ? 'bg-teal-600 text-white shadow-2xs'
+                            : 'bg-white hover:bg-teal-50 text-slate-700 border border-slate-200'
+                        }`}
+                      >
+                        {pt}
+                      </button>
+                    ))}
+                  </div>
                   {Number(singleScoreForm.scienceSocial ?? 0) > 10 && (
-                    <p className="text-[10px] text-red-600 font-semibold mt-1">⚠️ មិនអាចលើសពី ១០</p>
+                    <p className="text-[10px] text-red-600 font-semibold">⚠️ មិនអាចលើសពី ១០</p>
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">
-                    សីលធម៌ និងពលរដ្ឋ <span className="text-slate-400 font-normal">/10</span>
-                  </label>
+                {/* 5. Moral & Civics */}
+                <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-slate-800 font-bold flex items-center gap-1.5">
+                      <Heart className="w-3.5 h-3.5 text-rose-600" />
+                      <span>សីលធម៌ និងពលរដ្ឋ</span>
+                    </label>
+                    <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">/10</span>
+                  </div>
                   <input
                     type="number"
                     step="0.25"
                     min="0"
                     max="10"
+                    inputMode="decimal"
                     required
                     value={singleScoreForm.moralCivics ?? 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, moralCivics: Number(e.target.value) })
                     }
-                    className={`w-full px-3 py-2 bg-slate-50 border rounded-xl font-mono text-sm transition-colors ${
+                    className={`w-full px-3 py-2 bg-white border rounded-xl font-mono text-sm font-bold transition-colors ${
                       Number(singleScoreForm.moralCivics ?? 0) > 10 || Number(singleScoreForm.moralCivics ?? 0) < 0
                         ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
                         : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
                     }`}
                   />
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {[7, 7.5, 8, 8.5, 9, 9.5, 10].map(pt => (
+                      <button
+                        key={`mc-${pt}`}
+                        type="button"
+                        onClick={() => setSingleScoreForm({ ...singleScoreForm, moralCivics: pt })}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono transition-all active:scale-95 ${
+                          Number(singleScoreForm.moralCivics) === pt
+                            ? 'bg-rose-600 text-white shadow-2xs'
+                            : 'bg-white hover:bg-rose-50 text-slate-700 border border-slate-200'
+                        }`}
+                      >
+                        {pt}
+                      </button>
+                    ))}
+                  </div>
                   {Number(singleScoreForm.moralCivics ?? 0) > 10 && (
-                    <p className="text-[10px] text-red-600 font-semibold mt-1">⚠️ មិនអាចលើសពី ១០</p>
+                    <p className="text-[10px] text-red-600 font-semibold">⚠️ មិនអាចលើសពី ១០</p>
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">
-                    សិល្បៈ និងកាយវិការ <span className="text-slate-400 font-normal">/10</span>
-                  </label>
+                {/* 6. Arts & Physical */}
+                <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-slate-800 font-bold flex items-center gap-1.5">
+                      <Palette className="w-3.5 h-3.5 text-amber-600" />
+                      <span>សិល្បៈ និងកាយវិការ</span>
+                    </label>
+                    <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">/10</span>
+                  </div>
                   <input
                     type="number"
                     step="0.25"
                     min="0"
                     max="10"
+                    inputMode="decimal"
                     required
                     value={singleScoreForm.artsPhysical ?? 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, artsPhysical: Number(e.target.value) })
                     }
-                    className={`w-full px-3 py-2 bg-slate-50 border rounded-xl font-mono text-sm transition-colors ${
+                    className={`w-full px-3 py-2 bg-white border rounded-xl font-mono text-sm font-bold transition-colors ${
                       Number(singleScoreForm.artsPhysical ?? 0) > 10 || Number(singleScoreForm.artsPhysical ?? 0) < 0
                         ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
                         : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
                     }`}
                   />
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {[7, 7.5, 8, 8.5, 9, 9.5, 10].map(pt => (
+                      <button
+                        key={`ap-${pt}`}
+                        type="button"
+                        onClick={() => setSingleScoreForm({ ...singleScoreForm, artsPhysical: pt })}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono transition-all active:scale-95 ${
+                          Number(singleScoreForm.artsPhysical) === pt
+                            ? 'bg-amber-600 text-white shadow-2xs'
+                            : 'bg-white hover:bg-amber-50 text-slate-700 border border-slate-200'
+                        }`}
+                      >
+                        {pt}
+                      </button>
+                    ))}
+                  </div>
                   {Number(singleScoreForm.artsPhysical ?? 0) > 10 && (
-                    <p className="text-[10px] text-red-600 font-semibold mt-1">⚠️ មិនអាចលើសពី ១០</p>
+                    <p className="text-[10px] text-red-600 font-semibold">⚠️ មិនអាចលើសពី ១០</p>
                   )}
                 </div>
 
@@ -1969,27 +2117,32 @@ export const ClassroomScores: React.FC = () => {
                   const val = Number(singleScoreForm[sub.code] ?? 8.0);
                   const isInvalid = val > sub.maxScore || val < 0;
                   return (
-                    <div key={sub.id}>
-                      <label className="block text-slate-700 font-bold mb-1">
-                        {sub.nameKhmer} <span className="text-slate-400 font-normal">/{sub.maxScore}</span>
-                      </label>
+                    <div key={sub.id} className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-slate-800 font-bold flex items-center gap-1.5 truncate">
+                          <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                          <span>{sub.nameKhmer}</span>
+                        </label>
+                        <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">/{sub.maxScore}</span>
+                      </div>
                       <input
                         type="number"
                         step="0.25"
                         min="0"
                         max={sub.maxScore}
+                        inputMode="decimal"
                         value={singleScoreForm[sub.code] ?? 8.0}
                         onChange={(e) =>
                           setSingleScoreForm({ ...singleScoreForm, [sub.code]: Number(e.target.value) })
                         }
-                        className={`w-full px-3 py-2 bg-slate-50 border rounded-xl font-mono text-sm transition-colors ${
+                        className={`w-full px-3 py-2 bg-white border rounded-xl font-mono text-sm font-bold transition-colors ${
                           isInvalid
                             ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
                             : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
                         }`}
                       />
                       {isInvalid && (
-                        <p className="text-[10px] text-red-600 font-semibold mt-1">⚠️ មិនអាចលើសពី {sub.maxScore}</p>
+                        <p className="text-[10px] text-red-600 font-semibold">⚠️ មិនអាចលើសពី {sub.maxScore}</p>
                       )}
                     </div>
                   );
@@ -1997,7 +2150,7 @@ export const ClassroomScores: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">
+                <label className="block text-slate-700 font-bold mb-1.5">
                   ការកត់សម្គាល់របស់គ្រូបន្ទុកថ្នាក់
                 </label>
                 <input
@@ -2007,21 +2160,22 @@ export const ClassroomScores: React.FC = () => {
                     setSingleScoreForm({ ...singleScoreForm, remarks: e.target.value })
                   }
                   placeholder="ឧ. ការសិក្សាល្អប្រសើរ ខិតខំលើសំណេរ..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
-              <div className="pt-3 flex justify-end gap-2">
+              {/* Sticky bottom Action Buttons */}
+              <div className="sticky bottom-0 bg-white/95 backdrop-blur-md pt-3 pb-1 border-t border-slate-100 flex items-center justify-end gap-2.5 z-10">
                 <button
                   type="button"
                   onClick={() => setActiveStudentForScoreEdit(null)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
                 >
                   បោះបង់
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow flex items-center gap-2"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   រក្សាទុកពិន្ទុ

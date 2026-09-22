@@ -988,6 +988,29 @@ export const HealthAttendance: React.FC = () => {
               })}
             </div>
 
+            {/* Mobile Sticky Attendance Bottom Action Bar */}
+            <div className="md:hidden sticky bottom-16 inset-x-0 z-20 p-2.5 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-lg flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold">
+                <span className="text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200">
+                  វត្តមាន: {presentCount}
+                </span>
+                <span className="text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200">
+                  ច្បាប់: {permissionCount}
+                </span>
+                <span className="text-rose-700 bg-rose-50 px-2 py-1 rounded-lg border border-rose-200">
+                  ឥត: {absentCount}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveAttendance}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold rounded-xl text-xs shadow-md flex items-center gap-1.5 transition-all"
+              >
+                <Save className="w-4 h-4" />
+                <span>រក្សាទុក</span>
+              </button>
+            </div>
+
             {/* Official Signatures on Print */}
             <div className="hidden print:flex justify-between items-end mt-8 text-xs text-slate-800 p-6 pt-2">
               <div className="text-center">
