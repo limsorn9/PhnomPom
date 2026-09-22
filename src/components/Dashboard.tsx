@@ -263,7 +263,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
   ];
 
   return (
-    <div className="space-y-4 sm:space-y-6 pb-12 font-battambang">
+    <div className="space-y-4 sm:space-y-6 pb-24 lg:pb-12 font-battambang px-0.5 sm:px-0">
       {/* 1. TOP DIGNIFIED SCHOOL IDENTITY BANNER (Cambodian MoEYS Standard) */}
       <section className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-r from-slate-950 via-blue-950 to-indigo-950 text-white shadow-md border border-indigo-900/50 p-3.5 sm:p-6">
         <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -333,7 +333,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
           <div className="grid grid-cols-3 sm:flex sm:flex-nowrap items-center gap-1.5 sm:gap-2 shrink-0 pt-2 lg:pt-0 w-full sm:w-auto">
             <button
               onClick={() => setActiveTab('students')}
-              className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[11px] sm:text-xs font-bold shadow-xs transition-transform active:scale-95 cursor-pointer min-h-[44px] text-center"
+              className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-3.5 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl text-[10.5px] sm:text-xs font-bold shadow-xs transition-transform active:scale-95 cursor-pointer min-h-[44px] text-center"
             >
               <UserPlus className="w-4 h-4 shrink-0" />
               <span className="leading-tight">ចុះឈ្មោះសិស្ស</span>
@@ -341,7 +341,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
 
             <button
               onClick={() => setIsQuickAttOpen(true)}
-              className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-2 sm:py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[11px] sm:text-xs font-bold shadow-xs transition-transform active:scale-95 cursor-pointer min-h-[44px] text-center"
+              className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-3.5 py-2 sm:py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-xl text-[10.5px] sm:text-xs font-bold shadow-xs transition-transform active:scale-95 cursor-pointer min-h-[44px] text-center"
             >
               <QrCode className="w-4 h-4 shrink-0" />
               <span className="leading-tight">កត់វត្តមាន</span>
@@ -349,7 +349,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
 
             <button
               onClick={() => setActiveTab('scores')}
-              className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3.5 py-2 sm:py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[11px] sm:text-xs font-bold shadow-xs transition-transform active:scale-95 cursor-pointer min-h-[44px] text-center"
+              className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-3.5 py-2 sm:py-2.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-xl text-[10.5px] sm:text-xs font-bold shadow-xs transition-transform active:scale-95 cursor-pointer min-h-[44px] text-center"
             >
               <BookOpenCheck className="w-4 h-4 text-amber-300 shrink-0" />
               <span className="leading-tight">បញ្ចូលពិន្ទុ</span>
