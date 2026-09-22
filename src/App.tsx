@@ -17,6 +17,8 @@ import { AccountsManagement } from './components/AccountsManagement';
 import { StudentPortal } from './components/StudentPortal';
 import { SecretaryDashboard } from './components/SecretaryDashboard';
 import { HomeroomTeacherDashboard } from './components/HomeroomTeacherDashboard';
+import { MyClasses } from './components/MyClasses';
+import { TeacherProfile } from './components/TeacherProfile';
 import { SchoolAdmin } from './components/SchoolAdmin';
 import { SchoolManagement } from './components/SchoolManagement';
 import { OfficialDocumentCenter } from './components/OfficialDocumentCenter';
@@ -171,6 +173,8 @@ const MainLayout: React.FC = () => {
           {activeTab === 'ai_teacher' && canAccessTab('ai_teacher') && <AITeacherHub />}
           {activeTab === 'activity_logs' && canAccessTab('activity_logs') && <RecentActivityDashboard />}
           {activeTab === 'homeroom_dashboard' && canAccessTab('homeroom_dashboard') && <HomeroomTeacherDashboard />}
+          {activeTab === 'my_classes' && canAccessTab('my_classes') && <MyClasses />}
+          {activeTab === 'teacher_profile' && canAccessTab('teacher_profile') && <TeacherProfile />}
           {activeTab === 'teacher_agenda' && canAccessTab('teacher_agenda') && <TeacherDailyAgendaPanel />}
           {activeTab === 'equipment_loans' && canAccessTab('equipment_loans') && <SchoolEquipmentLoanManager />}
           {activeTab === 'teacher_meetings' && canAccessTab('teacher_meetings') && <TeacherMeetingMinutesManager />}

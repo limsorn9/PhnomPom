@@ -725,6 +725,8 @@ export type ActiveTab =
   | 'secretary_dashboard'
   | 'librarian_dashboard'
   | 'homeroom_dashboard'
+  | 'my_classes'
+  | 'teacher_profile'
   | 'teacher_agenda'
   | 'equipment_loans'
   | 'teacher_meetings'

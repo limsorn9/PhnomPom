@@ -58,6 +58,8 @@ import { DirectCameraCaptureModal } from './common/DirectCameraCaptureModal';
 import { PhotoCropAndAlignModal } from './common/PhotoCropAndAlignModal';
 import { BatchStudentPhotoImportModal } from './common/BatchStudentPhotoImportModal';
 import { BatchClassStudentAccountsModal } from './BatchClassStudentAccountsModal';
+import { AddStudentModal } from './AddStudentModal';
+import { BulkImportStudentsModal } from './BulkImportStudentsModal';
 import { uploadStudentProfilePhoto, compressImageFile } from '../services/firebaseStorage';
 import { uploadProfilePhotoToDrive } from '../services/googleDrive';
 import {
@@ -151,6 +153,8 @@ export const StudentManagement: React.FC = () => {
   const [selectedRiskFilter, setSelectedRiskFilter] = useState<'all' | 'at_risk' | 'consecutive_absent' | 'score_drop' | 'normal'>('all');
   const [localSearch, setLocalSearch] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isNewAddStudentModalOpen, setIsNewAddStudentModalOpen] = useState(false);
+  const [isBulkImportStudentsModalOpen, setIsBulkImportStudentsModalOpen] = useState(false);
   const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   const [isSingleDeleteDialogOpen, setIsSingleDeleteDialogOpen] = useState(false);
@@ -887,6 +891,26 @@ export const StudentManagement: React.FC = () => {
 
             <button
               type="button"
+              onClick={() => setIsBulkImportStudentsModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-emerald-300/60"
+              title="នាំចូលបញ្ជីសិស្សតាមរយៈ Excel PLP-SMS ឬ Copy-Paste"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
+              <span>📥 នាំចូលសិស្សច្រើននាក់ (Excel/Paste)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsNewAddStudentModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-blue-300"
+              title="បន្ថែមសិស្សថ្មីក្នុងប្រព័ន្ធ (MoEYS Standard)"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>+ បន្ថែមសិស្ស (Add Student)</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setIsBatchPhotoModalOpen(true)}
               className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-700 hover:to-orange-800 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-amber-300/60"
               title="Upload រូបថតសិស្សច្រើននាក់ព្រមគ្នា និងផ្គូផ្គងស្វ័យប្រវត្តិតាមអត្តលេខ ឬឈ្មោះ"
@@ -903,11 +927,11 @@ export const StudentManagement: React.FC = () => {
                   setFormData(initialFormState);
                   setIsAddModalOpen(true);
                 }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-blue-300"
-                title="ចុះឈ្មោះបង្កើតសិស្សថ្មីក្នុងប្រព័ន្ធ"
+                className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
+                title="ចុះឈ្មោះបង្កើតសិស្សថ្មីក្នុងប្រព័ន្ធ (ទម្រង់បុរាណ)"
               >
-                <UserPlus className="w-4 h-4" />
-                <span>+ ចុះឈ្មោះសិស្សថ្មី (MoEYS)</span>
+                <Plus className="w-4 h-4" />
+                <span>ចុះឈ្មោះទម្រង់ចាស់</span>
               </button>
             ) : isTeacher ? (
               <button
@@ -3588,6 +3612,22 @@ export const StudentManagement: React.FC = () => {
         onClose={() => setIsBatchClassAccountsModalOpen(false)}
         initialGrade={selectedGrade === 'all' ? (isTeacher ? teacherGrade : 1) : Number(selectedGrade)}
         initialSection={isTeacher ? teacherSection : 'ក'}
+      />
+
+      {/* New MoEYS Compliant Add Student Modal */}
+      <AddStudentModal
+        isOpen={isNewAddStudentModalOpen}
+        onClose={() => setIsNewAddStudentModalOpen(false)}
+        defaultGrade={selectedGrade === 'all' ? (isTeacher ? teacherGrade : 1) : Number(selectedGrade)}
+        defaultSection={isTeacher ? teacherSection : 'ក'}
+      />
+
+      {/* Bulk Import Students Modal (Excel & Copy-Paste) */}
+      <BulkImportStudentsModal
+        isOpen={isBulkImportStudentsModalOpen}
+        onClose={() => setIsBulkImportStudentsModalOpen(false)}
+        targetGrade={selectedGrade === 'all' ? (isTeacher ? teacherGrade : 1) : Number(selectedGrade)}
+        targetSection={isTeacher ? teacherSection : 'ក'}
       />
     </div>
   );

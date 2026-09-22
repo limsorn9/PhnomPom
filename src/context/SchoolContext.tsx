@@ -755,7 +755,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return (saved === 'library' || saved === 'librarian_dashboard') ? saved as ActiveTab : 'librarian_dashboard';
       }
       if (userRole === 'teacher') {
-        const allowedTeacherTabs: ActiveTab[] = ['homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'scores', 'attendance_health', 'student_portal'];
+        const allowedTeacherTabs: ActiveTab[] = ['homeroom_dashboard', 'my_classes', 'teacher_profile', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'scores', 'attendance_health', 'student_portal'];
         if (allowedTeacherTabs.includes(saved as ActiveTab)) {
           return saved as ActiveTab;
         }
@@ -6022,7 +6022,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (role === 'super_admin' || role === 'director') return true;
 
     if (role === 'secretary') {
-      return ['secretary_dashboard', 'dashboard', 'homeroom_dashboard', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'library', 'learning_resources', 'telegram_bot'].includes(tab);
+      return ['secretary_dashboard', 'dashboard', 'homeroom_dashboard', 'my_classes', 'teacher_profile', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'activity_logs', 'school_admin', 'school_management', 'official_documents', 'students', 'transfers', 'household_census', 'teachers', 'classrooms', 'attendance_health', 'calendar', 'reports_qr', 'settings', 'library', 'learning_resources', 'telegram_bot'].includes(tab);
     }
 
     if (role === 'librarian') {
@@ -6031,8 +6031,8 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     if (role === 'teacher') {
-      // គ្រូអាចបើកបានដាស់បតគ្រូ ផ្ទាំងសិស្ស និងបញ្ជីបុគ្គលិក/គ្រូបង្រៀន (teachers) ដើម្បីពិនិត្យមើលសហការី កាលវិភាគ និងវត្តមាន
-      return ['homeroom_dashboard', 'teachers', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'scores', 'attendance_health', 'student_portal'].includes(tab);
+      // គ្រូអាចបើកបានដាស់បតគ្រូ ថ្នាក់របស់ខ្ញុំ ប្រវត្តិរូប ផ្ទាំងសិស្ស និងបញ្ជីបុគ្គលិក/គ្រូបង្រៀន
+      return ['homeroom_dashboard', 'my_classes', 'teacher_profile', 'teachers', 'teacher_agenda', 'equipment_loans', 'teacher_meetings', 'teaching_resources', 'ai_teacher', 'scores', 'attendance_health', 'student_portal'].includes(tab);
     }
 
     if (role === 'student' || role === 'parent') {

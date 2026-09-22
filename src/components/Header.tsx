@@ -295,6 +295,16 @@ export const Header: React.FC<HeaderProps> = ({
       subtitle: 'តេលេក្រាមឆាតបតផ្ទាល់ក្នុងកម្មវិធី (@SornBot - 240224709)',
       icon: Bot
     },
+    my_classes: {
+      title: language === 'en' ? 'My Classes' : 'ថ្នាក់រៀនរបស់ខ្ញុំ',
+      subtitle: language === 'en' ? 'Assigned classes and student roster' : 'គ្រប់គ្រងថ្នាក់រៀន និងបញ្ជីសិស្សតាមកម្រិតថ្នាក់',
+      icon: School
+    },
+    teacher_profile: {
+      title: language === 'en' ? 'Teacher Profile' : 'ប្រវត្តិរូបគ្រូបង្រៀន',
+      subtitle: language === 'en' ? 'Professional profile and grading configuration' : 'ព័ត៌មានផ្ទាល់ខ្លួន កម្រិតបង្រៀន និងការកំណត់ប្រព័ន្ធពិន្ទុ',
+      icon: UserIcon
+    },
   };
 
   const currentTabInfo = tabTitles[activeTab] || tabTitles.dashboard;
