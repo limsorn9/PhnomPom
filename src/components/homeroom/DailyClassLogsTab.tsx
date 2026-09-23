@@ -175,7 +175,7 @@ export const DailyClassLogsTab: React.FC<DailyClassLogsTabProps> = ({
   const [formAbsentCount, setFormAbsentCount] = useState<number | ''>(0);
   const [formHighlightInput, setFormHighlightInput] = useState('');
   const [formHighlights, setFormHighlights] = useState<string[]>([]);
-  const [formRecordedBy, setFormRecordedBy] = useState(currentTeacher?.nameKhmer || '');
+  const [formRecordedBy, setFormRecordedBy] = useState(currentTeacher?.nameKhmer || 'លោក ចាន់ វុទ្ធី');
 
   // Filter logs by current grade and section
   const classLogs = useMemo(() => {
@@ -266,7 +266,7 @@ export const DailyClassLogsTab: React.FC<DailyClassLogsTabProps> = ({
     setFormAbsentCount(0);
     setFormHighlightInput('');
     setFormHighlights([]);
-    setFormRecordedBy(currentTeacher?.nameKhmer || '');
+    setFormRecordedBy(currentTeacher?.nameKhmer || 'លោក ចាន់ វុទ្ធី');
     setIsAddModalOpen(true);
   };
 
@@ -1179,7 +1179,7 @@ export const DailyClassLogsTab: React.FC<DailyClassLogsTabProps> = ({
                   ថ្នាក់ទី {selectedGrade} «{selectedSection}» • ឆ្នាំសិក្សា ២០២៤ - ២០២៥
                 </p>
                 <p className="text-[11px] text-slate-500">
-                  គ្រូបន្ទុកថ្នាក់៖ {currentTeacher?.nameKhmer || '—'}
+                  គ្រូបន្ទុកថ្នាក់៖ {currentTeacher?.nameKhmer || 'លោក ចាន់ វុទ្ធី'}
                 </p>
               </div>
 
@@ -1241,7 +1241,7 @@ export const DailyClassLogsTab: React.FC<DailyClassLogsTabProps> = ({
                   <p className="text-slate-600">ថ្ងៃទី........ ខែ........ ឆ្នាំ២០២...</p>
                   <p className="font-moul text-xs mt-1">គ្រូបន្ទុកថ្នាក់</p>
                   <div className="h-20"></div>
-                  <p className="font-bold text-slate-900">{currentTeacher?.nameKhmer || '—'}</p>
+                  <p className="font-bold text-slate-900">{currentTeacher?.nameKhmer || 'លោក ចាន់ វុទ្ធី'}</p>
                 </div>
               </div>
             </div>

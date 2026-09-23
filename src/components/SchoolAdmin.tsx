@@ -31,11 +31,9 @@ import {
   Printer,
   ChevronRight,
   ChevronDown,
-  History,
-  Layers
+  History
 } from 'lucide-react';
 import { RecentActivityDashboard } from './RecentActivityDashboard';
-import { GroupManagement } from './GroupManagement';
 
 export const SchoolAdmin: React.FC = () => {
   const {
@@ -51,7 +49,6 @@ export const SchoolAdmin: React.FC = () => {
     addSchoolCommittee,
     updateSchoolCommittee,
     deleteSchoolCommittee,
-    schoolGroups,
     teachers,
     schoolProfile,
     showToast,
@@ -60,7 +57,7 @@ export const SchoolAdmin: React.FC = () => {
   } = useSchool();
 
   // Active Tab within School Admin
-  const [adminTab, setAdminTab] = useState<'correspondence' | 'staff_records' | 'committees' | 'groups' | 'audit_logs'>('correspondence');
+  const [adminTab, setAdminTab] = useState<'correspondence' | 'staff_records' | 'committees' | 'audit_logs'>('correspondence');
 
   // Search & Filter States
   const [corSearch, setCorSearch] = useState('');
@@ -433,17 +430,6 @@ export const SchoolAdmin: React.FC = () => {
           >
             <Users className="w-4 h-4" />
             <span>គណៈកម្មការសាលារៀន ({schoolCommittees.length})</span>
-          </button>
-          <button
-            onClick={() => setAdminTab('groups')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${
-              adminTab === 'groups'
-                ? 'bg-blue-800 text-white shadow-sm shadow-blue-200'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <Layers className="w-4 h-4" />
-            <span>គ្រប់គ្រងក្រុម & ក្លឹបសិក្សា ({schoolGroups.length})</span>
           </button>
           <button
             onClick={() => setAdminTab('audit_logs')}
@@ -835,14 +821,7 @@ export const SchoolAdmin: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 4: SCHOOL GROUPS & CLUBS */}
-      {adminTab === 'groups' && (
-        <div className="space-y-4">
-          <GroupManagement />
-        </div>
-      )}
-
-      {/* TAB 5: AUDIT & ACTIVITY LOGS */}
+      {/* TAB 4: AUDIT & ACTIVITY LOGS */}
       {adminTab === 'audit_logs' && (
         <div className="space-y-4">
           <RecentActivityDashboard />

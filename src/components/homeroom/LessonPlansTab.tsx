@@ -91,7 +91,7 @@ export const LessonPlansTab: React.FC<LessonPlansTabProps> = ({
       },
       teacherReflection: '',
       status: 'approved',
-      approvedBy: 'លោក លីម សន (នាយកសាលា)'
+      approvedBy: 'លោក ចាន់ វុទ្ធី (នាយករង)'
     });
 
     setShowCreateModal(false);
@@ -313,7 +313,7 @@ export const LessonPlansTab: React.FC<LessonPlansTabProps> = ({
                   <p className="font-bold">បានឃើញ និងអនុម័ត</p>
                   <p className="text-slate-500">នាយកសាលា / នាយករង</p>
                   <div className="h-16"></div>
-                  <p className="font-bold font-moul text-slate-800">លោក លីម សន</p>
+                  <p className="font-bold font-moul text-slate-800">លោក ចាន់ វុទ្ធី</p>
                 </div>
                 <div>
                   <p className="font-bold">ថ្ងៃទី....... ខែ....... ឆ្នាំ២០២៦</p>

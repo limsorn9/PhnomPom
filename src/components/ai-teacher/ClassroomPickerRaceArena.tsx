@@ -222,7 +222,20 @@ export const ClassroomPickerRaceArena: React.FC<Props> = ({
         score: s.totalScore || 0
       })));
     } else {
-      setCandidates([]);
+      // Default sample candidates
+      const samples = [
+        'សុខ វិបុល', 'ជា ចាន់រ៉ា', 'លី ស្រីនាង', 'ខៀវ ពិសិដ្ឋ',
+        'មាស សុភា', 'ហេង រតនា', 'ប៉ែន សុវណ្ណ', 'អ៊ុច ធីតា',
+        'ចាន់ សុផល', 'ង៉ែត វណ្ណា', 'កែវ មករា', 'ស៊ុន កល្យាណ'
+      ];
+      setCandidates(samples.map((name, idx) => ({
+        id: `c-${idx + 1}`,
+        name,
+        avatar: ['🦆', '🏍️', '🏎️', '✈️', '🐟', '🚀', '⭐', '🦁', '🐼', '🦊', '🐰', '🦄'][idx % 12],
+        color: COLOR_PALETTE[idx % COLOR_PALETTE.length],
+        eliminated: false,
+        score: 0
+      })));
     }
   }, [students, selectedGradeFilter]);
 
@@ -352,9 +365,29 @@ export const ClassroomPickerRaceArena: React.FC<Props> = ({
 
     // 1. WHEEL MODE
     if (activeMode === 'wheel') {
-      const spins = Math.max(4, Math.floor(raceDurationSeconds * 1.5));
-      const randomExtra = Math.random() * 360;
-      const targetDeg = wheelRotation + (spins * 360) + randomExtra;
+      const count = activeCandidates.length;
+      const arcSizeDeg = 360 / count;
+      // Pre-select winner accurately among active candidates
+      const targetWinnerIndex = Math.floor(Math.random() * count);
+      const targetWinner = activeCandidates[targetWinnerIndex];
+
+      // Center angle of this candidate's segment on the wheel (measured clockwise from 3 o'clock / positive X axis)
+      const candidateCenterAngle = (targetWinnerIndex + 0.5) * arcSizeDeg;
+
+      // Pointer / Needle is at top (12 o'clock = 270 degrees in canvas coordinates).
+      // When rotated by R degrees clockwise, point at angle A on the wheel moves to (A + R) % 360.
+      // We want (candidateCenterAngle + R) % 360 = 270 degrees.
+      // Therefore: R % 360 = (270 - candidateCenterAngle + 360) % 360.
+      const requiredEndingMod = ((270 - candidateCenterAngle) % 360 + 360) % 360;
+
+      // Minimum full spins based on raceDurationSeconds (at least 6 full spins for excitement)
+      const minSpins = Math.max(6, Math.floor(raceDurationSeconds * 2.5));
+      const currentMod = ((wheelRotation % 360) + 360) % 360;
+      let deltaMod = (requiredEndingMod - currentMod) % 360;
+      if (deltaMod < 0) deltaMod += 360;
+
+      // Final target rotation
+      const targetDeg = wheelRotation + (minSpins * 360) + deltaMod;
       const duration = totalDurationMs;
       const startTime = performance.now();
       const initialRotation = wheelRotation;
@@ -365,7 +398,7 @@ export const ClassroomPickerRaceArena: React.FC<Props> = ({
         const elapsed = now - startTime;
         const progress = Math.min(elapsed / duration, 1);
         
-        // Cubic ease out
+        // Smooth cubic ease out
         const easeOut = 1 - Math.pow(1 - progress, 3);
         const currentRot = initialRotation + (targetDeg - initialRotation) * easeOut;
         setWheelRotation(currentRot);
@@ -373,8 +406,8 @@ export const ClassroomPickerRaceArena: React.FC<Props> = ({
         const timeLeft = Math.max(0, Math.ceil((duration - elapsed) / 1000));
         setRemainingTimeSeconds(timeLeft);
 
-        // Sound tick check
-        if (Math.abs(currentRot - lastTickDegree) > (360 / Math.max(activeCandidates.length, 6))) {
+        // Sound tick check as wedges pass pointer
+        if (Math.abs(currentRot - lastTickDegree) > (360 / Math.max(count, 6))) {
           soundManager.playTick();
           lastTickDegree = currentRot;
         }
@@ -382,12 +415,9 @@ export const ClassroomPickerRaceArena: React.FC<Props> = ({
         if (progress < 1) {
           requestAnimationFrame(animateWheel);
         } else {
-          // Finished
-          const normalized = (360 - (currentRot % 360)) % 360;
-          const arcSize = 360 / activeCandidates.length;
-          const winningIndex = Math.floor(normalized / arcSize) % activeCandidates.length;
-          const chosen = activeCandidates[winningIndex];
-          concludeWinner(chosen);
+          // Finished - ensure rotation is locked exactly on targetDeg
+          setWheelRotation(targetDeg);
+          concludeWinner(targetWinner);
         }
       };
 
@@ -1559,6 +1589,193 @@ export const ClassroomPickerRaceArena: React.FC<Props> = ({
                 </div>
               </div>
             )}
+
+            {/* ------------------------------------------------------------- */}
+            {/* PROMINENT CELEBRATION POPUP MODAL (INSIDE ARENA FOR FULLSCREEN) */}
+            {/* ------------------------------------------------------------- */}
+            {showCelebrationModal && winner && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
+                <div className="relative bg-gradient-to-br from-amber-400 via-yellow-300 to-orange-400 text-slate-950 rounded-3xl w-full max-w-lg border-4 border-yellow-100 shadow-2xl p-6 md:p-8 space-y-6 text-center animate-bounce-short">
+                  
+                  {/* Close Button */}
+                  <button
+                    onClick={() => setShowCelebrationModal(false)}
+                    className="absolute top-4 right-4 p-2 rounded-full bg-black/10 hover:bg-black/20 text-slate-950 transition-all cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+
+                  {/* Big Trophy & Fireworks Icon */}
+                  <div className="w-24 h-24 bg-white/95 rounded-full flex items-center justify-center mx-auto text-5xl shadow-xl border-4 border-amber-300 animate-pulse">
+                    🏆
+                  </div>
+
+                  {/* Salutation Title */}
+                  <div className="space-y-2">
+                    <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-slate-950 text-amber-300 rounded-full text-xs font-bold uppercase tracking-wider font-moul shadow-md">
+                      <PartyPopper className="w-4 h-4 text-amber-400" />
+                      <span>សូមអបអរសាទរជើងឯក!</span>
+                      <PartyPopper className="w-4 h-4 text-amber-400" />
+                    </div>
+
+                    {/* Huge Student Winner Name */}
+                    <h2 className="text-3xl sm:text-4xl font-bold font-moul text-slate-950 drop-shadow-sm tracking-wide">
+                      « {winner.name} »
+                    </h2>
+
+                    <p className="text-xs sm:text-sm font-medium text-slate-900">
+                      បានឈ្នះជើងឯកក្នុងការប្រកួត <strong>{currentModeInfo?.nameKh || 'ល្បែងប្រណាំង'}</strong>!
+                    </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                    <button
+                      onClick={() => {
+                        setShowCelebrationModal(false);
+                        handleOpenWinnerQuestion();
+                      }}
+                      className="w-full sm:w-auto px-6 py-3 bg-blue-950 hover:bg-blue-900 text-white rounded-2xl text-xs sm:text-sm font-bold font-moul shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+                    >
+                      <HelpCircle className="w-4 h-4 text-amber-400" />
+                      <span>🎯 ចោទសួរភ្លាមៗ (Quiz)</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (onAwardScoreToStudent) {
+                          onAwardScoreToStudent(winner.id, winner.name, 100);
+                        }
+                        showToast(`🏆 បានផ្តល់ ១០០ ពិន្ទុលើកទឹកចិត្តដល់ «${winner.name}»!`);
+                        setShowCelebrationModal(false);
+                      }}
+                      className="w-full sm:w-auto px-6 py-3 bg-emerald-800 hover:bg-emerald-700 text-white rounded-2xl text-xs sm:text-sm font-bold font-moul shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+                    >
+                      <Award className="w-4 h-4 text-amber-300" />
+                      <span>+100 ពិន្ទុ</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ------------------------------------------------------------- */}
+            {/* WINNER INTERACTIVE QUESTION MODAL (INSIDE ARENA FOR FULLSCREEN) */}
+            {/* ------------------------------------------------------------- */}
+            {isQuestionModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-fadeIn">
+                <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 text-white rounded-3xl w-full max-w-xl border border-white/15 shadow-2xl p-6 space-y-5">
+                  
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-2xl">🎯</span>
+                      <div>
+                        <h3 className="text-base font-bold font-moul text-amber-300">
+                          សំណួរបញ្ចាំងសម្រាប់ «{winner?.name}»
+                        </h3>
+                        <p className="text-[11px] text-white/60">
+                          សូមឱ្យសិស្សឆ្លើយផ្ទាល់ក្នុងថ្នាក់ និងជ្រើសរើសចម្លើយដើម្បីទទួលពិន្ទុ
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setIsQuestionModalOpen(false)}
+                      className="p-1.5 rounded-xl hover:bg-white/10 text-white/70 hover:text-white cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {isGeneratingQuestion ? (
+                    <div className="py-12 text-center space-y-3">
+                      <Sparkles className="w-8 h-8 text-amber-400 animate-spin mx-auto" />
+                      <p className="text-xs text-white/80 font-bold">
+                        AI កំពុងបង្កើតសំណួរថ្មីសម្រាប់សិស្ស...
+                      </p>
+                    </div>
+                  ) : currentQuestion ? (
+                    <div className="space-y-4">
+                      <h4 className="text-base md:text-lg font-bold font-moul leading-relaxed text-center text-amber-200">
+                        {currentQuestion.q}
+                      </h4>
+
+                      {/* 4 Options Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {currentQuestion.options.map((opt, optIdx) => {
+                          const isSelected = selectedAnswer === opt;
+                          const isCorrect = opt === currentQuestion.correct;
+
+                          let btnStyle = 'bg-white/10 hover:bg-white/20 border-white/15 text-white';
+                          if (isAnswerChecked) {
+                            if (isCorrect) {
+                              btnStyle = 'bg-emerald-600 border-emerald-400 text-white font-bold ring-2 ring-emerald-400/30';
+                            } else if (isSelected) {
+                              btnStyle = 'bg-rose-600 border-rose-400 text-white';
+                            } else {
+                              btnStyle = 'bg-white/5 opacity-40 border-transparent';
+                            }
+                          }
+
+                          return (
+                            <button
+                              key={optIdx}
+                              disabled={isAnswerChecked}
+                              onClick={() => handleSelectQuizOption(opt)}
+                              className={`p-3.5 rounded-2xl border text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${btnStyle}`}
+                            >
+                              <span>{opt}</span>
+                              {isAnswerChecked && isCorrect && <CheckCircle2 className="w-4 h-4 text-emerald-300" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Explanation feedback */}
+                      {isAnswerChecked && (
+                        <div className="p-3.5 bg-white/10 rounded-2xl text-xs space-y-1 animate-fadeIn border border-white/10">
+                          <p className="text-white/90">
+                            💡 <strong>ការពន្យល់៖</strong> {currentQuestion.explanation}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {/* Modal Footer */}
+                  <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                    <button
+                      onClick={handleOpenWinnerQuestion}
+                      className="px-3.5 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold flex items-center gap-1.5 text-white cursor-pointer"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>ប្តូរសំណួរថ្មី</span>
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          if (winner && onAwardScoreToStudent) {
+                            onAwardScoreToStudent(winner.id, winner.name, 100);
+                          }
+                          showToast(`🎉 បានផ្តល់ ១០០ ពិន្ទុដល់ «${winner?.name}» សម្រាប់ការឆ្លើយត្រូវ!`);
+                          setIsQuestionModalOpen(false);
+                        }}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold font-moul cursor-pointer"
+                      >
+                        ឆ្លើយត្រូវ (+100 ពិន្ទុ)
+                      </button>
+                      <button
+                        onClick={() => setIsQuestionModalOpen(false)}
+                        className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold cursor-pointer"
+                      >
+                        បិទ
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1728,179 +1945,6 @@ export const ClassroomPickerRaceArena: React.FC<Props> = ({
           </div>
         </div>
       </div>
-
-      {/* ------------------------------------------------------------- */}
-      {/* 3. PROMINENT CELEBRATION POPUP MODAL WITH WINNER NAME */}
-      {/* ------------------------------------------------------------- */}
-      {showCelebrationModal && winner && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-          <div className="relative bg-gradient-to-br from-amber-500 via-yellow-400 to-orange-500 text-slate-950 rounded-3xl w-full max-w-lg border-4 border-yellow-200 shadow-2xl p-6 md:p-8 space-y-6 text-center animate-bounce-short">
-            
-            {/* Close Button */}
-            <button
-              onClick={() => setShowCelebrationModal(false)}
-              className="absolute top-4 right-4 p-2 rounded-full bg-black/10 hover:bg-black/20 text-slate-950 transition-all cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Big Trophy & Fireworks Icon */}
-            <div className="w-24 h-24 bg-white/90 rounded-full flex items-center justify-center mx-auto text-5xl shadow-xl border-4 border-amber-300">
-              🏆
-            </div>
-
-            {/* Salutation Title */}
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-slate-950 text-amber-300 rounded-full text-xs font-bold uppercase tracking-wider font-moul shadow-md">
-                <PartyPopper className="w-4 h-4 text-amber-400" />
-                <span>សូមអបអរសាទរជើងឯក!</span>
-                <PartyPopper className="w-4 h-4 text-amber-400" />
-              </div>
-
-              {/* Huge Student Winner Name */}
-              <h2 className="text-3xl sm:text-4xl font-bold font-moul text-slate-950 drop-shadow-sm tracking-wide">
-                « {winner.name} »
-              </h2>
-
-              <p className="text-xs sm:text-sm font-medium text-slate-900">
-                បានឈ្នះជើងឯកក្នុងការប្រកួត <strong>{currentModeInfo?.nameKh || 'ល្បែងប្រណាំង'}</strong>!
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              <button
-                onClick={() => {
-                  setShowCelebrationModal(false);
-                  handleOpenWinnerQuestion();
-                }}
-                className="w-full sm:w-auto px-6 py-3 bg-blue-950 hover:bg-blue-900 text-white rounded-2xl text-xs sm:text-sm font-bold font-moul shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
-              >
-                <HelpCircle className="w-4 h-4 text-amber-400" />
-                <span>🎯 ចោទសួរភ្លាមៗ (Quiz)</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  if (onAwardScoreToStudent) {
-                    onAwardScoreToStudent(winner.id, winner.name, 100);
-                  }
-                  showToast(`🏆 បានផ្តល់ ១០០ ពិន្ទុលើកទឹកចិត្តដល់ «${winner.name}»!`);
-                  setShowCelebrationModal(false);
-                }}
-                className="w-full sm:w-auto px-6 py-3 bg-emerald-800 hover:bg-emerald-700 text-white rounded-2xl text-xs sm:text-sm font-bold font-moul shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
-              >
-                <Award className="w-4 h-4 text-amber-300" />
-                <span>+100 ពិន្ទុ</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ------------------------------------------------------------- */}
-      {/* 4. WINNER INTERACTIVE QUESTION / QUIZ CHALLENGE MODAL */}
-      {/* ------------------------------------------------------------- */}
-      {isQuestionModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 text-white rounded-3xl w-full max-w-xl border border-white/10 shadow-2xl p-6 space-y-5">
-            
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2.5">
-                <span className="text-2xl">🎯</span>
-                <div>
-                  <h3 className="text-base font-bold font-moul text-amber-300">
-                    សំណួរបញ្ចាំងសម្រាប់ «{winner?.name}»
-                  </h3>
-                  <p className="text-[11px] text-white/60">
-                    សូមឱ្យសិស្សឆ្លើយផ្ទាល់ក្នុងថ្នាក់ និងជ្រើសរើសចម្លើយដើម្បីទទួលពិន្ទុ
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setIsQuestionModalOpen(false)}
-                className="p-1.5 rounded-xl hover:bg-white/10 text-white/70 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            {isGeneratingQuestion ? (
-              <div className="py-12 text-center space-y-3">
-                <Sparkles className="w-8 h-8 text-amber-400 animate-spin mx-auto" />
-                <p className="text-xs text-white/80 font-bold">
-                  AI កំពុងបង្កើតសំណួរថ្មីសម្រាប់សិស្ស...
-                </p>
-              </div>
-            ) : currentQuestion ? (
-              <div className="space-y-4">
-                <h4 className="text-base md:text-lg font-bold font-moul leading-relaxed text-center text-amber-200">
-                  {currentQuestion.q}
-                </h4>
-
-                {/* 4 Options Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {currentQuestion.options.map((opt, optIdx) => {
-                    const isSelected = selectedAnswer === opt;
-                    const isCorrect = opt === currentQuestion.correct;
-
-                    let btnStyle = 'bg-white/10 hover:bg-white/20 border-white/15 text-white';
-                    if (isAnswerChecked) {
-                      if (isCorrect) {
-                        btnStyle = 'bg-emerald-600 border-emerald-400 text-white font-bold ring-2 ring-emerald-400/30';
-                      } else if (isSelected) {
-                        btnStyle = 'bg-rose-600 border-rose-400 text-white';
-                      } else {
-                        btnStyle = 'bg-white/5 opacity-40 border-transparent';
-                      }
-                    }
-
-                    return (
-                      <button
-                        key={optIdx}
-                        disabled={isAnswerChecked}
-                        onClick={() => handleSelectQuizOption(opt)}
-                        className={`p-3.5 rounded-2xl border text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${btnStyle}`}
-                      >
-                        <span>{opt}</span>
-                        {isAnswerChecked && isCorrect && <CheckCircle2 className="w-4 h-4 text-emerald-300" />}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Explanation feedback */}
-                {isAnswerChecked && (
-                  <div className="p-3.5 bg-white/10 rounded-2xl text-xs space-y-1 animate-fadeIn border border-white/10">
-                    <p className="text-white/90">
-                      💡 <strong>ការពន្យល់៖</strong> {currentQuestion.explanation}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ) : null}
-
-            {/* Modal Footer */}
-            <div className="flex items-center justify-between pt-2 border-t border-white/10">
-              <button
-                onClick={handleOpenWinnerQuestion}
-                className="px-3.5 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold flex items-center gap-1.5 text-white cursor-pointer"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>ប្តូរសំណួរផ្សេង</span>
-              </button>
-
-              <button
-                onClick={() => setIsQuestionModalOpen(false)}
-                className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl text-xs cursor-pointer"
-              >
-                រួចរាល់
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

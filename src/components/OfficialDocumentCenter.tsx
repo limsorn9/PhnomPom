@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import {
   MoEYSRoyalHeader,
@@ -12,6 +12,7 @@ import {
 import { ClassCommitteePrintModal } from './ClassCommitteePrintModal';
 import { StudentHealthBookletModal } from './StudentHealthBookletModal';
 import { ClassStudentStatisticsPriModal } from './ClassStudentStatisticsPriModal';
+import { KhmerOrnateCertificateModal } from './KhmerOrnateCertificateModal';
 import { printElement, downloadElementAsPdf } from '../utils/printUtils';
 import {
   Printer,
@@ -48,6 +49,7 @@ export type DocumentCategory = 'all' | 'students' | 'agreements_invitations' | '
 
 export type DocumentType =
   // 1. សិស្ស & ការសិក្សា (Student Academic)
+  | 'plp_training_certificate'
   | 'study_certificate'
   | 'transfer_letter'
   | 'commendation_letter'
@@ -89,7 +91,19 @@ interface DocumentTemplateMeta {
 }
 
 export const DOCUMENT_TEMPLATES: DocumentTemplateMeta[] = [
-  // Category: students
+  // Category: students & staff (Featured)
+  {
+    id: 'plp_training_certificate',
+    titleKhmer: '✨ វិញ្ញាបនបត្រក្បាច់មាសផ្លូវការ (PLP / បឋមសិក្សា ភ្នំពុំ - នាយកសាលា)',
+    titleLatin: 'Official Ornate Certificate (MoEYS / School Principal)',
+    category: 'students',
+    categoryNameKhmer: 'សិស្ស & ការសិក្សា',
+    targetType: 'teacher',
+    description: 'គំរូវិញ្ញាបនបត្រក្បាច់មាសប្រណិត ក្បាលលិខិតជាតិ ត្រាមូលក្រហម និងហត្ថលេខានាយកសាលា ភ្នំពុំ',
+    icon: Award,
+    accentColor: 'text-amber-700 bg-amber-50 border-amber-300',
+    isVerifiedMoEYS: true
+  },
   {
     id: 'study_certificate',
     titleKhmer: '១. លិខិតបញ្ជាក់ការសិក្សា',
@@ -378,13 +392,8 @@ export const OfficialDocumentCenter: React.FC = () => {
     selectedAcademicYear,
     parentMeetings,
     classCouncils,
-    atRiskStudents,
-    currentUser
+    atRiskStudents
   } = useSchool();
-
-  const isTeacher = currentUser?.role === 'teacher';
-  const teacherGrade = currentUser?.assignedGrade || 1;
-  const teacherSection = currentUser?.assignedSection || 'ក';
 
   const printCanvasRef = useRef<HTMLDivElement>(null);
 
@@ -393,32 +402,16 @@ export const OfficialDocumentCenter: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDoc, setSelectedDoc] = useState<DocumentType>('parent_agreement');
 
-  // Accessible students list
-  const accessibleStudents = useMemo(() => {
-    return isTeacher
-      ? students.filter(s => s.grade === teacherGrade && s.section === teacherSection)
-      : students;
-  }, [isTeacher, teacherGrade, teacherSection, students]);
-
   // Selected Entities for dynamic database binding
-  const [selectedStudentId, setSelectedStudentId] = useState<string>(accessibleStudents[0]?.id || students[0]?.id || '');
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(students[0]?.id || '');
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>(teachers[0]?.id || '');
-  const [selectedGrade, setSelectedGrade] = useState<number>(isTeacher ? teacherGrade : 1);
-  const [selectedSection, setSelectedSection] = useState<string>(isTeacher ? teacherSection : 'ក');
+  const [selectedGrade, setSelectedGrade] = useState<number>(1);
+  const [selectedSection, setSelectedSection] = useState<string>('ក');
   const [selectedMonth, setSelectedMonth] = useState<string>('ឆមាសទី១');
   const [showCommitteeModal, setShowCommitteeModal] = useState<boolean>(false);
   const [showPriModal, setShowPriModal] = useState<boolean>(false);
   const [showHealthBookletModal, setShowHealthBookletModal] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (isTeacher) {
-      setSelectedGrade(teacherGrade);
-      setSelectedSection(teacherSection);
-      if (accessibleStudents.length > 0 && !accessibleStudents.some(s => s.id === selectedStudentId)) {
-        setSelectedStudentId(accessibleStudents[0]?.id || "");
-      }
-    }
-  }, [isTeacher, teacherGrade, teacherSection, accessibleStudents]);
+  const [showCertificateModal, setShowCertificateModal] = useState<boolean>(false);
 
   // Paper & Print configuration
   const [paperSize, setPaperSize] = useState<'a4' | 'letter'>('a4');
@@ -561,6 +554,36 @@ export const OfficialDocumentCenter: React.FC = () => {
           </div>
         </div>
 
+        {/* Featured Certificate Quick Studio Banner */}
+        <div className="mt-5 p-4 rounded-2xl bg-gradient-to-r from-amber-900 via-amber-800 to-yellow-900 text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md border border-amber-600/40">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/30 border border-amber-300/40 flex items-center justify-center text-amber-200 shadow-inner">
+              <Award className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-moul text-sm text-amber-100">
+                  គំរូវិញ្ញាបនបត្រផ្លូវការ (សាលាបឋមសិក្សា ភ្នំពុំ - នាយកសាលា)
+                </h3>
+                <span className="bg-amber-400 text-amber-950 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  MoEYS Official
+                </span>
+              </div>
+              <p className="text-xs text-amber-200/80 font-battambang mt-0.5">
+                រចនាក្បាច់មាសខ្មែរប្រណិត ឡូហ្គោក្រសួងអប់រំ ក្បាលលិខិតជាតិ ត្រាមូលក្រហម និងហត្ថលេខានាយកសាលា ទំហំ A4 Landscape
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowCertificateModal(true)}
+            className="px-4 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-amber-950 rounded-xl text-xs font-extrabold shadow-md transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap shadow-amber-900/40"
+          >
+            <Sparkles className="w-4 h-4 text-amber-900" />
+            <span>បើកផ្ទាំងរចនាវិញ្ញាបនបត្រ (Studio)</span>
+          </button>
+        </div>
+
         {/* Category Filters & Search Bar */}
         <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           {/* Categories Tab */}
@@ -628,93 +651,48 @@ export const OfficialDocumentCenter: React.FC = () => {
           </div>
 
           {/* Search Input */}
-          <div className="relative min-w-[260px]">
+          <div className="relative min-w-[240px]">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="ស្វែងរកទម្រង់លិខិត ឬពាក្យគន្លឹះ..."
-              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              placeholder="ស្វែងរកទម្រង់ឯកសារ..."
+              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-1"
-              >
-                ✕
-              </button>
-            )}
           </div>
-        </div>
-
-        {/* Quick Keyword Search Tags */}
-        <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px]">
-          <span className="text-slate-400 font-medium">ពាក្យគន្លឹះរហ័ស៖</span>
-          {['លិខិតបញ្ជាក់', 'កិច្ចព្រមព្រៀង', 'ពិន្ទុ', 'សុខភាព', 'គ.ក.ថ.', 'សារពើភ័ណ្ឌ', 'លិខិតផ្ទេរ'].map(tag => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => setSearchQuery(searchQuery === tag ? '' : tag)}
-              className={`px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
-                searchQuery === tag
-                  ? 'bg-blue-100 text-blue-800 border-blue-300 font-bold'
-                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              #{tag}
-            </button>
-          ))}
         </div>
 
         {/* Template Catalog Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 mt-4 pt-3 border-t border-slate-100 max-h-56 overflow-y-auto p-1 scrollbar-thin">
-          {filteredTemplates.length === 0 ? (
-            <div className="col-span-full py-8 text-center text-slate-500 text-xs space-y-2">
-              <AlertCircle className="w-8 h-8 mx-auto text-slate-400" />
-              <p>រកមិនឃើញទម្រង់ឯកសារដែលត្រូវនឹងពាក្យ «{searchQuery}» ឡើយ។</p>
+          {filteredTemplates.map(template => {
+            const isSelected = selectedDoc === template.id;
+            const IconComp = template.icon;
+            return (
               <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('all');
-                }}
-                className="px-3 py-1.5 bg-blue-50 text-blue-700 font-bold rounded-lg border border-blue-200 hover:bg-blue-100 transition-all cursor-pointer"
+                key={template.id}
+                onClick={() => setSelectedDoc(template.id)}
+                className={`p-3 rounded-xl text-left border transition-all flex items-start gap-2.5 cursor-pointer ${
+                  isSelected
+                    ? 'bg-blue-50 border-blue-600 shadow-sm ring-1 ring-blue-500/30'
+                    : 'bg-slate-50/70 border-slate-200 hover:bg-white hover:border-slate-300'
+                }`}
               >
-                បង្ហាញទម្រង់ទាំងអស់ឡើងវិញ
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${template.accentColor}`}>
+                  <IconComp className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <p className={`text-xs font-bold truncate ${isSelected ? 'text-blue-950 font-moul' : 'text-slate-800'}`}>
+                      {template.titleKhmer}
+                    </p>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 shrink-0" />}
+                  </div>
+                  <p className="text-[10px] text-slate-500 truncate mt-0.5 font-times">{template.titleLatin}</p>
+                </div>
               </button>
-            </div>
-          ) : (
-            filteredTemplates.map(template => {
-              const isSelected = selectedDoc === template.id;
-              const IconComp = template.icon;
-              return (
-                <button
-                  key={template.id}
-                  onClick={() => setSelectedDoc(template.id)}
-                  className={`p-3 rounded-xl text-left border transition-all flex items-start gap-2.5 cursor-pointer ${
-                    isSelected
-                      ? 'bg-blue-50 border-blue-600 shadow-sm ring-1 ring-blue-500/30'
-                      : 'bg-slate-50/70 border-slate-200 hover:bg-white hover:border-slate-300'
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${template.accentColor}`}>
-                    <IconComp className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <p className={`text-xs font-bold truncate ${isSelected ? 'text-blue-950 font-moul' : 'text-slate-800'}`}>
-                        {template.titleKhmer}
-                      </p>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 shrink-0" />}
-                    </div>
-                    <p className="text-[10px] text-slate-500 truncate mt-0.5 font-times">{template.titleLatin}</p>
-                  </div>
-                </button>
-              );
-            })
-          )}
+            );
+          })}
         </div>
       </div>
 
@@ -788,14 +766,14 @@ export const OfficialDocumentCenter: React.FC = () => {
                     onChange={e => {
                       setSelectedStudentId(e.target.value);
                       const s = students.find(item => item.id === e.target.value);
-                      if (s && !isTeacher) {
+                      if (s) {
                         setSelectedGrade(s.grade);
                         setSelectedSection(s.section);
                       }
                     }}
                     className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
                   >
-                    {accessibleStudents.map(s => (
+                    {students.map(s => (
                       <option key={s.id} value={s.id}>
                         {s.nameKhmer} ({s.gender === 'female' ? 'ស្រី' : 'ប្រុស'}) - ថ្នាក់ទី{s.grade}{s.section} [{s.code}]
                       </option>
@@ -855,42 +833,32 @@ export const OfficialDocumentCenter: React.FC = () => {
 
             {/* Target 3: Classroom / Grade Selection */}
             {(activeTemplateMeta.targetType === 'classroom' || activeTemplateMeta.id === 'student_scorecard') && (
-              isTeacher ? (
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">បន្ទុកថ្នាក់បង្រៀន</label>
-                  <div className="w-full px-3.5 py-2 bg-blue-50 border border-blue-200 rounded-xl text-xs font-bold text-blue-900 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-                    <span>ថ្នាក់ទី {teacherGrade} «{teacherSection}»</span>
-                  </div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">កម្រិតថ្នាក់</label>
+                  <select
+                    value={selectedGrade}
+                    onChange={e => setSelectedGrade(Number(e.target.value))}
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
+                  >
+                    {[1, 2, 3, 4, 5, 6].map(g => (
+                      <option key={g} value={g}>ថ្នាក់ទី {g}</option>
+                    ))}
+                  </select>
                 </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">កម្រិតថ្នាក់</label>
-                    <select
-                      value={selectedGrade}
-                      onChange={e => setSelectedGrade(Number(e.target.value))}
-                      className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
-                    >
-                      {[1, 2, 3, 4, 5, 6].map(g => (
-                        <option key={g} value={g}>ថ្នាក់ទី {g}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">បន្ទប់</label>
-                    <select
-                      value={selectedSection}
-                      onChange={e => setSelectedSection(e.target.value)}
-                      className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
-                    >
-                      {['ក', 'ខ', 'គ', 'A', 'B'].map(s => (
-                        <option key={s} value={s}>បន្ទប់ «{s}»</option>
-                      ))}
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">បន្ទប់</label>
+                  <select
+                    value={selectedSection}
+                    onChange={e => setSelectedSection(e.target.value)}
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
+                  >
+                    {['ក', 'ខ', 'គ', 'A', 'B'].map(s => (
+                      <option key={s} value={s}>បន្ទប់ «{s}»</option>
+                    ))}
+                  </select>
                 </div>
-              )
+              </div>
             )}
 
             {/* Target: Month/Semester for Scorecards */}
@@ -1176,6 +1144,59 @@ export const OfficialDocumentCenter: React.FC = () => {
                   <p className="text-slate-600">{customFields.dateKhmer}</p>
                 </div>
               </div>
+
+              {/* ---------------------------------------------------- */}
+              {/* TEMPLATE 0: PLP TRAINING CERTIFICATE (វិញ្ញាបនបត្រក្បាច់មាសផ្លូវការ) */}
+              {/* ---------------------------------------------------- */}
+              {selectedDoc === 'plp_training_certificate' && (
+                <div className="space-y-6 pt-2 text-center">
+                  <div className="flex justify-center -mb-2">
+                    <span className="font-moul text-3xl sm:text-4xl text-red-600 tracking-wider">
+                      វិញ្ញាបនបត្រ
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <h3 className="font-moul text-lg text-blue-950">
+                      នាយកសាលាបឋមសិក្សា ភ្នំពុំ
+                    </h3>
+                    <p className="font-moul text-sm text-blue-900">
+                      សូមបញ្ជាក់ថា ៖
+                    </p>
+                  </div>
+
+                  <div className="py-2">
+                    <span className="font-moul text-xs text-blue-950 mr-2">ឈ្មោះ:</span>
+                    <span className="font-moul text-2xl text-blue-950 px-4 py-1 border-b-2 border-dotted border-amber-400">
+                      {teachers.find(t => t.id === selectedTeacherId)?.nameKhmer || 'លីម សន'}
+                    </span>
+                  </div>
+
+                  <p className="max-w-2xl mx-auto text-sm text-slate-800 leading-relaxed font-battambang">
+                    បានចូលរួម និងបំពេញគ្រប់លក្ខខណ្ឌក្នុងវគ្គបណ្តុះបណ្តាលអនឡាញតាមថ្នាលអភិវឌ្ឍវិជ្ជាជីវៈបន្ត PLP អំពី
+                  </p>
+
+                  <div className="py-1">
+                    <h4 className="font-moul text-base text-blue-950 max-w-xl mx-auto px-4 py-2 rounded-xl bg-amber-50 border border-amber-300">
+                      «ការណែនាំប្រើប្រាស់កញ្ចប់សម្ភារៈគណិតវិទ្យាថ្នាក់ទី២»
+                    </h4>
+                  </div>
+
+                  <p className="text-xs text-slate-600 italic">
+                    វិញ្ញាបនបត្រនេះប្រគល់ជូនសាមីជនប្រើប្រាស់តាមការដែលអាចប្រើបាន។
+                  </p>
+
+                  <div className="pt-4 flex justify-center no-print">
+                    <button
+                      onClick={() => setShowCertificateModal(true)}
+                      className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-bold rounded-xl text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 text-slate-950" />
+                      <span>បើកផ្ទាំងរចនាវិញ្ញាបនបត្រ A4 Landscape ពេញលេញ</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* ---------------------------------------------------- */}
               {/* TEMPLATE 1: PARENT RESPONSIBILITY AGREEMENT (កិច្ចសន្យា/កិច្ចព្រមព្រៀងមាតាបិតា) */}
@@ -1653,26 +1674,26 @@ export const OfficialDocumentCenter: React.FC = () => {
                       <tr>
                         <td className="border border-slate-300 p-2 text-center font-bold">១</td>
                         <td className="border border-slate-300 p-2 font-bold text-blue-950">ប្រធានថ្នាក់ (Class Leader)</td>
-                        <td className="border border-slate-300 p-2 font-semibold">{currentClassStudents[0]?.nameKhmer || '-'}</td>
-                        <td className="border border-slate-300 p-2 text-center">{currentClassStudents[0]?.gender === 'F' ? 'ស្រី' : currentClassStudents[0] ? 'ប្រុស' : '-'}</td>
+                        <td className="border border-slate-300 p-2 font-semibold">{currentClassStudents[0]?.nameKhmer || 'សុខ វិបុល'}</td>
+                        <td className="border border-slate-300 p-2 text-center">ប្រុស</td>
                       </tr>
                       <tr>
                         <td className="border border-slate-300 p-2 text-center font-bold">២</td>
                         <td className="border border-slate-300 p-2 font-bold text-blue-950">អនុប្រធានថ្នាក់ទទួលបន្ទុកសិក្សា</td>
-                        <td className="border border-slate-300 p-2 font-semibold">{currentClassStudents[1]?.nameKhmer || '-'}</td>
-                        <td className="border border-slate-300 p-2 text-center">{currentClassStudents[1]?.gender === 'F' ? 'ស្រី' : currentClassStudents[1] ? 'ប្រុស' : '-'}</td>
+                        <td className="border border-slate-300 p-2 font-semibold">{currentClassStudents[1]?.nameKhmer || 'ចាន់ រស្មី'}</td>
+                        <td className="border border-slate-300 p-2 text-center">ស្រី</td>
                       </tr>
                       <tr>
                         <td className="border border-slate-300 p-2 text-center font-bold">៣</td>
                         <td className="border border-slate-300 p-2 font-bold text-blue-950">អនុប្រធានទទួលបន្ទុកអនាម័យ & បរិស្ថាន</td>
-                        <td className="border border-slate-300 p-2 font-semibold">{currentClassStudents[2]?.nameKhmer || '-'}</td>
-                        <td className="border border-slate-300 p-2 text-center">{currentClassStudents[2]?.gender === 'F' ? 'ស្រី' : currentClassStudents[2] ? 'ប្រុស' : '-'}</td>
+                        <td className="border border-slate-300 p-2 font-semibold">{currentClassStudents[2]?.nameKhmer || 'ហេង ពិសិដ្ឋ'}</td>
+                        <td className="border border-slate-300 p-2 text-center">ប្រុស</td>
                       </tr>
                       <tr>
                         <td className="border border-slate-300 p-2 text-center font-bold">៤</td>
                         <td className="border border-slate-300 p-2 font-bold text-blue-950">ប្រធានផ្នែកវិន័យ និងសណ្តាប់ធ្នាប់</td>
-                        <td className="border border-slate-300 p-2 font-semibold">{currentClassStudents[3]?.nameKhmer || '-'}</td>
-                        <td className="border border-slate-300 p-2 text-center">{currentClassStudents[3]?.gender === 'F' ? 'ស្រី' : currentClassStudents[3] ? 'ប្រុស' : '-'}</td>
+                        <td className="border border-slate-300 p-2 font-semibold">{currentClassStudents[3]?.nameKhmer || 'កែវ មុន្នី'}</td>
+                        <td className="border border-slate-300 p-2 text-center">ស្រី</td>
                       </tr>
                     </tbody>
                   </table>
@@ -1788,7 +1809,7 @@ export const OfficialDocumentCenter: React.FC = () => {
                   <p className="font-moul text-xs text-red-600 font-bold pt-1">
                     {selectedDoc.includes('parent')
                       ? (selectedStudent?.guardianName || selectedStudent?.fatherName || 'អាណាព្យាបាល')
-                      : (schoolProfile.principalName || 'លោក លីម សន')}
+                      : (schoolProfile.principalName || 'ស៊ុន ពិសិដ្ឋ')}
                   </p>
                 </div>
 
@@ -1798,7 +1819,7 @@ export const OfficialDocumentCenter: React.FC = () => {
                     {customFields.dateKhmer || getKhmerLunarDate()}
                   </p>
                   <p className="text-xs text-blue-900 font-medium">
-                    {getKhmerSolarDate(new Date(), schoolProfile.district || schoolProfile.addressKhmer || 'ភ្នំពុំ')}
+                    {getKhmerSolarDate(new Date(), schoolProfile.district || schoolProfile.addressKhmer || 'ភ្នំពេញ')}
                   </p>
                   <p className="font-moul text-blue-700 text-xs font-bold mt-1">
                     {selectedDoc === 'teacher_duty_appointment' ? 'សាមីខ្លួនទទួលភារកិច្ច' : 'គ្រូបន្ទុកថ្នាក់'}
@@ -1811,7 +1832,7 @@ export const OfficialDocumentCenter: React.FC = () => {
 
                   {printSettings.showDirectorSignature && (
                     <p className="font-moul text-xs text-blue-700 font-bold pt-1">
-                      {teachers.find(t => t.id === selectedTeacherId)?.nameKhmer || ''}
+                      {teachers.find(t => t.id === selectedTeacherId)?.nameKhmer || 'សែម ស្រីភឿន'}
                     </p>
                   )}
                 </div>
@@ -1859,6 +1880,15 @@ export const OfficialDocumentCenter: React.FC = () => {
           schoolProfile={schoolProfile}
           academicYear={selectedAcademicYear}
           allStudents={students.filter(s => s.grade === selectedGrade && s.section === selectedSection)}
+        />
+      )}
+
+      {/* Khmer Ornate Certificate Studio Modal */}
+      {showCertificateModal && (
+        <KhmerOrnateCertificateModal
+          isOpen={showCertificateModal}
+          onClose={() => setShowCertificateModal(false)}
+          initialRecipientName={teachers.find(t => t.id === selectedTeacherId)?.nameKhmer || 'លីម សន'}
         />
       )}
     </div>

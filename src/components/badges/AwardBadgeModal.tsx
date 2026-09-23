@@ -104,13 +104,10 @@ export const AwardBadgeModal: React.FC<AwardBadgeModalProps> = ({
       if (filterSection !== 'all' && s.section !== filterSection) return false;
       if (studentSearch.trim()) {
         const q = studentSearch.toLowerCase();
-        const nameKh = s.nameKhmer || '';
-        const nameLat = s.nameLatin || '';
-        const code = s.code || '';
         return (
-          nameKh.toLowerCase().includes(q) ||
-          nameLat.toLowerCase().includes(q) ||
-          code.toLowerCase().includes(q)
+          s.nameKhmer.toLowerCase().includes(q) ||
+          s.nameLatin.toLowerCase().includes(q) ||
+          s.code.toLowerCase().includes(q)
         );
       }
       return true;

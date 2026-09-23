@@ -1,15 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { RecentActivityDashboard } from './RecentActivityDashboard';
-import { TeacherDailyAgendaPanel } from './TeacherDailyAgendaPanel';
-import { SchoolActivityFeed } from './SchoolActivityFeed';
-import { TeacherDailyTasks } from './TeacherDailyTasks';
-import { QuickAttendanceModal } from './QuickAttendanceModal';
-import { NewClassroomWizardModal } from './NewClassroomWizardModal';
-import { AcademicTrendAnalysis } from './AcademicTrendAnalysis';
-import { DirectorAcademicYearControl } from './DirectorAcademicYearControl';
-import { toKhmerNum } from '../data/initialData';
-import { ActiveTab } from '../types';
+import { AngkorBannerArtwork } from './AngkorBannerArtwork';
+import { BannerCustomizerModal } from './BannerCustomizerModal';
+import { SchoolNews } from './SchoolNews';
+import { DashboardSummaryPrintModal } from './DashboardSummaryPrintModal';
 import {
   Users,
   GraduationCap,
@@ -19,12 +14,13 @@ import {
   TrendingUp,
   Award,
   ArrowUpRight,
+  ArrowDownRight,
   UserPlus,
   FileSpreadsheet,
   QrCode,
   HeartPulse,
   BookOpenCheck,
-  CheckCircle2,
+  CheckCircle,
   Clock,
   Sparkles,
   PieChart as PieChartIcon,
@@ -35,25 +31,9 @@ import {
   Building2,
   BadgeCheck,
   Calendar,
-  ShieldCheck,
-  BookOpen,
-  ArrowRight,
-  FileText,
-  AlertCircle,
-  Check,
-  Layers,
-  ChevronRight,
-  Activity,
-  BarChart3,
-  SlidersHorizontal,
-  BookmarkCheck,
-  Zap,
-  Flame,
-  ArrowRightLeft,
-  Tv,
-  Library as LibraryIcon,
-  Home,
-  Bot
+  Camera,
+  Sliders,
+  Printer
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -66,16 +46,10 @@ import {
   PieChart,
   Pie,
   Cell,
-  CartesianGrid,
-  AreaChart,
-  Area
+  CartesianGrid
 } from 'recharts';
 
-interface DashboardProps {
-  onOpenMobileMenu?: () => void;
-}
-
-export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
+export const Dashboard: React.FC = () => {
   const {
     students,
     teachers,
@@ -83,65 +57,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
     scores,
     budgetTransactions,
     calendarEvents,
-    teacherDailyTasks,
-    currentUser,
     getTotalIncome,
     getTotalExpense,
     getBalance,
     setActiveTab,
-    schoolProfile,
-    language,
-    academicYears,
-    selectedAcademicYear,
-    setSelectedAcademicYear,
-    setGlobalActiveAcademicYear
+    schoolProfile
   } = useSchool();
 
-  // Role modes: Director, Teacher, Student
-  const isTeacherUser = currentUser?.role === 'teacher';
-  const isStudentUser = currentUser?.role === 'student' || currentUser?.role === 'parent';
-  const initialMode: 'director' | 'teacher' | 'student' = isStudentUser
-    ? 'student'
-    : isTeacherUser
-    ? 'teacher'
-    : 'director';
+  const [isBannerCustomizerOpen, setIsBannerCustomizerOpen] = useState(false);
+  const [isPrintSummaryOpen, setIsPrintSummaryOpen] = useState(false);
 
-  const [dashboardMode, setDashboardMode] = useState<'director' | 'teacher' | 'student'>(initialMode);
-  const [activeSection, setActiveSection] = useState<'overview' | 'analytics' | 'tools' | 'activity' | 'academic_years'>('overview');
-  const [analyticsSubTab, setAnalyticsSubTab] = useState<'enrollment' | 'attendance' | 'grades' | 'budget' | 'trimesters'>('enrollment');
-  const [isQuickAttOpen, setIsQuickAttOpen] = useState(false);
-  const [isNewClassOpen, setIsNewClassOpen] = useState(false);
-
-  // Role mode switcher handler with permission check
-  const handleRequestDashboardMode = (targetMode: 'director' | 'teacher' | 'student') => {
-    if (currentUser?.role === 'student' && targetMode !== 'student') return;
-    if (currentUser?.role === 'teacher' && targetMode === 'director') return;
-    if (
-      targetMode === 'director' &&
-      currentUser?.role !== 'director' &&
-      currentUser?.role !== 'super_admin' &&
-      currentUser?.role !== 'secretary'
-    ) {
-      return;
-    }
-    setDashboardMode(targetMode);
-  };
-
-  // Teacher-specific data
-  const teacherGrade = currentUser?.assignedGrade;
-  const teacherSection = currentUser?.assignedSection;
-  const assignedClassStudents = useMemo(() => {
-    return students.filter(s => {
-      if (teacherGrade && s.grade !== teacherGrade) return false;
-      if (teacherSection && s.section !== teacherSection) return false;
-      return true;
-    });
-  }, [students, teacherGrade, teacherSection]);
-
-  const classFemaleStudents = assignedClassStudents.filter(s => s.gender === 'F').length;
-  const classMaleStudents = assignedClassStudents.filter(s => s.gender === 'M').length;
-
-  // Director KPI statistics
+  // Calculations
   const totalStudents = students.length;
   const femaleStudents = students.filter(s => s.gender === 'F').length;
   const maleStudents = students.filter(s => s.gender === 'M').length;
@@ -149,1178 +75,535 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenMobileMenu }) => {
 
   const totalTeachers = teachers.length;
   const femaleTeachers = teachers.filter(t => t.gender === 'F').length;
-  const femaleTeacherPercent = totalTeachers > 0 ? Math.round((femaleTeachers / totalTeachers) * 100) : 0;
 
-  const totalClassrooms = classrooms.length;
+  const totalIncomeRiel = getTotalIncome();
+  const totalExpenseRiel = getTotalExpense();
   const balanceRiel = getBalance();
   const balanceUsd = Math.round(balanceRiel / 4050);
 
   // Grade Distribution Data
-  const gradeDistribution = useMemo(() => {
-    return [1, 2, 3, 4, 5, 6].map(g => {
-      const gradeStudents = students.filter(s => s.grade === g);
-      const boys = gradeStudents.filter(s => s.gender === 'M').length;
-      const girls = gradeStudents.filter(s => s.gender === 'F').length;
-      return {
-        name: `ថ្នាក់ទី ${toKhmerNum(g)}`,
-        សិស្សប្រុស: boys,
-        សិស្សស្រី: girls,
-        សរុប: gradeStudents.length
-      };
-    });
-  }, [students]);
+  const gradeDistribution = [1, 2, 3, 4, 5, 6].map(g => {
+    const gradeStudents = students.filter(s => s.grade === g);
+    const boys = gradeStudents.filter(s => s.gender === 'M').length;
+    const girls = gradeStudents.filter(s => s.gender === 'F').length;
+    return {
+      name: `ថ្នាក់ទី ${g}`,
+      សិស្សប្រុស: boys,
+      សិស្សស្រី: girls,
+      សរុប: gradeStudents.length
+    };
+  });
 
-  // Weekly Attendance Trend Data
-  const attendanceTrendData = useMemo(() => [
-    { day: 'ចន្ទ', វត្តមាន: 98.4, ច្បាប់: 1.2, ឥតច្បាប់: 0.4 },
-    { day: 'អង្គារ', វត្តមាន: 97.8, ច្បាប់: 1.6, ឥតច្បាប់: 0.6 },
-    { day: 'ពុធ', វត្តមាន: 99.1, ច្បាប់: 0.7, ឥតច្បាប់: 0.2 },
-    { day: 'ព្រហស្បតិ៍', វត្តមាន: 98.0, ច្បាប់: 1.5, ឥតច្បាប់: 0.5 },
-    { day: 'សុក្រ', វត្តមាន: 96.9, ច្បាប់: 2.3, ឥតច្បាប់: 0.8 },
-    { day: 'សៅរ៍', វត្តមាន: 98.6, ច្បាប់: 1.1, ឥតច្បាប់: 0.3 },
-  ], []);
-
-  // Academic Score Distribution Data (A to F)
-  const scoreDistributionData = useMemo(() => [
-    { grade: 'និទ្ទេស A (៩-១០)', count: scores.filter(s => s.averageScore >= 9).length || 28, fill: '#10b981' },
-    { grade: 'និទ្ទេស B (៨-៨.៩)', count: scores.filter(s => s.averageScore >= 8 && s.averageScore < 9).length || 45, fill: '#3b82f6' },
-    { grade: 'និទ្ទេស C (៧-៧.៩)', count: scores.filter(s => s.averageScore >= 7 && s.averageScore < 8).length || 38, fill: '#6366f1' },
-    { grade: 'និទ្ទេស D (៦-៦.៩)', count: scores.filter(s => s.averageScore >= 6 && s.averageScore < 7).length || 22, fill: '#f59e0b' },
-    { grade: 'និទ្ទេស E (៥-៥.៩)', count: scores.filter(s => s.averageScore >= 5 && s.averageScore < 6).length || 14, fill: '#ea580c' },
-    { grade: 'និទ្ទេស F (< ៥.០)', count: scores.filter(s => s.averageScore < 5).length || 6, fill: '#ef4444' },
-  ], [scores]);
-
-  // Budget Source Breakdown Data
-  const budgetSourceData = useMemo(() => {
-    const map: { [key: string]: number } = {};
-    budgetTransactions.forEach(tx => {
-      if (tx.type === 'income') {
-        map[tx.source] = (map[tx.source] || 0) + tx.amountRiel;
-      }
-    });
-    return Object.keys(map).map(source => ({
-      name: source,
-      value: map[source]
-    }));
-  }, [budgetTransactions]);
-
-  const PIE_COLORS = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'];
-
-  // Categorized Quick Actions for Professional School Management
-  const quickActionGroups = [
-    {
-      category: 'admin',
-      title: 'ការងាររដ្ឋបាល & សិស្ស',
-      description: 'គ្រប់គ្រងបញ្ជីឈ្មោះ ផ្ទេរសិស្ស និងលិខិតរដ្ឋបាល',
-      color: 'border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20',
-      badgeColor: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300',
-      actions: [
-        { id: 'students', label: 'ចុះឈ្មោះ & បញ្ជីសិស្ស', sub: `${totalStudents} នាក់`, icon: UserPlus, tab: 'students' as ActiveTab },
-        { id: 'transfers', label: 'លិខិតផ្ទេរសិស្ស MoEYS', sub: 'ចេញ-ចូល', icon: ArrowRightLeft, tab: 'transfers' as ActiveTab },
-        { id: 'official_documents', label: 'ឯកសាររដ្ឋបាល & បោះពុម្ព', sub: 'លិខិតផ្លូវការ', icon: FileSpreadsheet, tab: 'official_documents' as ActiveTab },
-        { id: 'household_census', label: 'ជំរឿនខ្នងផ្ទះ & ផែនទី', sub: 'តំបន់សាលា', icon: Home, tab: 'household_census' as ActiveTab }
-      ]
-    },
-    {
-      category: 'academic',
-      title: 'ការបង្រៀន & លទ្ធផលសិក្សា',
-      description: 'បញ្ចូលពិន្ទុ កិច្ចតែងការ AI និងបន្ទុកថ្នាក់រៀន',
-      color: 'border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/40 dark:bg-indigo-950/20',
-      badgeColor: 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300',
-      actions: [
-        { id: 'scores', label: 'បញ្ចូលពិន្ទុ & ចំណាត់ថ្នាក់', sub: 'ប្រចាំខែ/ឆមាស', icon: BookOpenCheck, tab: 'scores' as ActiveTab },
-        { id: 'homeroom', label: 'បន្ទុកថ្នាក់រៀន (Homeroom)', sub: `${totalClassrooms} ថ្នាក់`, icon: Award, tab: 'homeroom_dashboard' as ActiveTab },
-        { id: 'ai_teacher', label: 'ជំនួយការបង្រៀន AI', sub: 'កិច្ចតែងការ & ស្លាយ', icon: Sparkles, tab: 'ai_teacher' as ActiveTab },
-        { id: 'teaching_resources', label: 'មជ្ឈមណ្ឌលធនធានបង្រៀន', sub: 'Drive ឯកសារ', icon: BookOpen, tab: 'teaching_resources' as ActiveTab }
-      ]
-    },
-    {
-      category: 'attendance',
-      title: 'វត្តមាន សុខភាព & បណ្ណាល័យ',
-      description: 'ស្កេន QR វត្តមានប្រចាំថ្ងៃ និងសៀវភៅបណ្ណាល័យ',
-      color: 'border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20',
-      badgeColor: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300',
-      actions: [
-        { id: 'quick_att', label: 'ស្កេន QR / កត់វត្តមាន', sub: '១-Tap រហ័ស', icon: QrCode, onClick: () => setIsQuickAttOpen(true) },
-        { id: 'attendance_health', label: 'វត្តមាន & សុខភាពសិស្ស', sub: 'អាហារូបត្ថម្ភ', icon: HeartPulse, tab: 'attendance_health' as ActiveTab },
-        { id: 'library', label: 'បណ្ណាល័យ & សៀវភៅ', sub: 'ចរាចរណ៍សៀវភៅ', icon: LibraryIcon, tab: 'library' as ActiveTab },
-        { id: 'equipment_loans', label: 'ខ្ចី-សង ឧបករណ៍សាលា', sub: 'Tablet / TV', icon: Tv, tab: 'equipment_loans' as ActiveTab }
-      ]
-    },
-    {
-      category: 'finance',
-      title: 'ហិរញ្ញវត្ថុ & របាយការណ៍ MoEYS',
-      description: 'តាមដានថវិការដ្ឋ កម្មវិធី PB និងការជូនដំណឹង',
-      color: 'border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20',
-      badgeColor: 'bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300',
-      actions: [
-        { id: 'finance', label: 'ថវិកាសាលា & ចំណូល-ចំណាយ', sub: `${(balanceRiel / 1000000).toFixed(1)}M ៛`, icon: CircleDollarSign, tab: 'finance' as ActiveTab },
-        { id: 'reports_qr', label: 'តារាងស្ថិតិ & MoEYS EMIS', sub: 'ទម្រង់ស្តង់ដារ', icon: FileSpreadsheet, tab: 'reports_qr' as ActiveTab },
-        { id: 'school_management', label: 'ស្តង់ដារសាលាគំរូទាំង ៥', sub: '២៧ សូចនាករ', icon: School, tab: 'school_management' as ActiveTab },
-        { id: 'telegram_bot', label: 'ប្រព័ន្ធ Telegram Alert', sub: 'ផ្ញើទៅអាណាព្យាបាល', icon: Bot, tab: 'telegram_bot' as ActiveTab }
-      ]
-    }
+  // Subject Averages Data
+  const subjectAverages = [
+    { subject: 'ភាសាខ្មែរ (អំណាន)', average: 8.7 },
+    { subject: 'ភាសាខ្មែរ (សំណេរ)', average: 8.2 },
+    { subject: 'គណិតវិទ្យា', average: 8.5 },
+    { subject: 'វិទ្យាសាស្ត្រ-សង្គម', average: 8.6 },
+    { subject: 'សីលធម៌-ពលរដ្ឋ', average: 9.1 },
+    { subject: 'សិល្បៈ-កាយវិការ', average: 8.8 }
   ];
 
-  return (
-    <div className="space-y-4 sm:space-y-6 pb-24 lg:pb-12 font-battambang px-0.5 sm:px-0">
-      {/* 1. TOP DIGNIFIED SCHOOL IDENTITY BANNER (Cambodian MoEYS Standard) */}
-      <section className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-r from-slate-950 via-blue-950 to-indigo-950 text-white shadow-md border border-indigo-900/50 p-3.5 sm:p-6">
-        <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute left-1/3 bottom-0 w-48 h-48 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
+  // Budget Source Breakdown Data
+  const budgetBySourceMap: { [key: string]: number } = {};
+  budgetTransactions.forEach(tx => {
+    if (tx.type === 'income') {
+      budgetBySourceMap[tx.source] = (budgetBySourceMap[tx.source] || 0) + tx.amountRiel;
+    }
+  });
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-5">
-          {/* School Details */}
-          <div className="space-y-1.5 sm:space-y-2">
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
-              <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-bold text-[10px] sm:text-[11px] shadow-xs">
-                <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-900 shrink-0" />
+  const budgetSourceData = Object.keys(budgetBySourceMap).map(source => ({
+    name: source,
+    value: budgetBySourceMap[source]
+  }));
+
+  const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+
+  // Top Achievers (Sort by average score descending)
+  const topStudents = [...scores]
+    .sort((a, b) => b.averageScore - a.averageScore)
+    .slice(0, 5);
+
+  // Health / Nutrition status count
+  const normalNutrition = students.filter(s => s.health.nutritionStatus === 'normal').length;
+  const underweightNutrition = students.filter(s => s.health.nutritionStatus === 'underweight').length;
+  const overweightNutrition = students.filter(s => s.health.nutritionStatus === 'overweight').length;
+
+  return (
+    <div className="space-y-6">
+      {/* Welcome & Overview Banner with Angkor Artwork / Custom Image */}
+      <div className="rounded-2xl p-5 sm:p-6 text-white shadow-xl relative overflow-hidden border border-indigo-900/60 transition-all duration-300">
+        {/* Dynamic Angkor Artwork / Custom Background */}
+        <AngkorBannerArtwork
+          bannerUrl={schoolProfile.bannerUrl}
+          bannerType={schoolProfile.bannerType || 'angkor_twilight'}
+          overlayOpacity={schoolProfile.bannerOverlayOpacity !== undefined ? schoolProfile.bannerOverlayOpacity : 80}
+        />
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          <div className="space-y-2 max-w-3xl">
+            <div className="flex flex-wrap items-center gap-2.5 text-xs font-semibold">
+              <span className="bg-gradient-to-r from-amber-400 to-amber-300 text-slate-950 px-3 py-1 rounded-full font-bold text-xs flex items-center gap-1.5 shadow-sm leading-normal">
+                <Sparkles className="w-3.5 h-3.5 text-amber-900 shrink-0" />
                 <span>ស្តង់ដារសាលាបឋមសិក្សាគំរូ</span>
               </span>
-
-              <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full bg-blue-900/80 text-blue-200 border border-blue-700/60 font-medium text-[10px] sm:text-[11px]">
-                <Calendar className="w-3 h-3 text-amber-400 shrink-0" />
-                <span>ឆ្នាំសិក្សា {selectedAcademicYear}</span>
-                {selectedAcademicYear === schoolProfile.academicYear && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
-                )}
-              </span>
-
-              <span className="inline-flex items-center gap-1 text-slate-300 text-[10px] sm:text-[11px] bg-slate-900/60 px-2 py-0.5 rounded-full border border-slate-700/50">
-                <span>កូដ៖</span>
-                <strong className="text-amber-300 font-mono">{schoolProfile.schoolCode}</strong>
-              </span>
+              <span className="text-blue-100 font-medium">ឆ្នាំសិក្សា {schoolProfile.academicYear}</span>
+              <span className="text-slate-400">•</span>
+              <span className="text-amber-300 font-mono">កូដសាលា: {schoolProfile.schoolCode}</span>
+              
+              {/* Quick Banner Customizer Action */}
+              <button
+                id="dash-custom-banner-btn"
+                type="button"
+                onClick={() => setIsBannerCustomizerOpen(true)}
+                className="ml-auto lg:ml-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-black/40 hover:bg-black/60 border border-white/20 text-amber-200 hover:text-white text-[11px] font-bold transition-all cursor-pointer backdrop-blur-xs shadow-xs"
+                title="ប្តូររូបភាពផ្ទាំងធំ (Change Banner Artwork)"
+              >
+                <Camera className="w-3 h-3 text-amber-300" />
+                <span>ប្តូរផ្ទាំងធំ</span>
+              </button>
             </div>
 
             <div>
-              <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold font-moul tracking-wide text-white leading-snug">
+              <h2 className="text-2xl sm:text-3xl font-bold font-moul tracking-wide text-white leading-tight drop-shadow-md">
                 {schoolProfile.nameKhmer}
-              </h1>
-              <p className="text-xs sm:text-sm text-blue-200/90 font-medium line-clamp-2 sm:line-clamp-none">
-                {schoolProfile.nameLatin} • {schoolProfile.commune || 'ឃុំ'}, {schoolProfile.district || 'ស្រុក'}, {schoolProfile.province || 'ខេត្ត'}
+              </h2>
+              <p className="text-amber-200/95 text-sm font-medium font-times drop-shadow-sm">
+                {schoolProfile.nameLatin}
               </p>
             </div>
 
-            {/* Principal & Quick Contact */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-300 pt-0.5">
+            {/* Geographical and Principal Details */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-200 pt-1">
+              <div className="flex items-center gap-1.5 text-slate-200">
+                <MapPin className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
+                <span>{schoolProfile.village} {schoolProfile.commune} {schoolProfile.district} {schoolProfile.province}</span>
+              </div>
               <div className="flex items-center gap-1.5">
-                <BadgeCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                <span className="text-[11px] sm:text-xs">នាយក៖ <strong className="text-white">{schoolProfile.principalName}</strong></span>
+                <BadgeCheck className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+                <span>នាយកសាលា: <strong className="text-white">{schoolProfile.principalName}</strong></span>
               </div>
               <a
                 href={`tel:${schoolProfile.principalPhone.replace(/\s+/g, '')}`}
-                className="flex items-center gap-1 text-emerald-300 hover:text-emerald-200 font-mono font-bold hover:underline text-[11px] sm:text-xs"
+                className="flex items-center gap-1 text-emerald-300 hover:text-emerald-200 font-mono font-bold hover:underline"
               >
-                <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <Phone className="w-3.5 h-3.5 text-emerald-400" />
                 <span>{schoolProfile.principalPhone}</span>
               </a>
+            </div>
+
+            {/* Quick External Links Chips */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
               {schoolProfile.mapUrl && (
                 <a
                   href={schoolProfile.mapUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-rose-300 hover:text-rose-200 hover:underline text-[11px] sm:text-xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-600/30 hover:bg-red-600/50 border border-red-500/40 rounded-lg text-xs text-red-200 hover:text-white transition-colors backdrop-blur-xs"
                 >
-                  <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                  <span>Maps</span>
-                  <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                  <MapPin className="w-3.5 h-3.5 text-red-400" />
+                  <span>មើលទីតាំង Google Maps</span>
+                  <ExternalLink className="w-3 h-3 opacity-80" />
+                </a>
+              )}
+              {schoolProfile.facebookPage && (
+                <a
+                  href={schoolProfile.facebookPage}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-sky-600/30 hover:bg-sky-600/50 border border-sky-500/40 rounded-lg text-xs text-sky-200 hover:text-white transition-colors backdrop-blur-xs"
+                >
+                  <Facebook className="w-3.5 h-3.5 text-sky-400" />
+                  <span>ទំព័រ Facebook ផ្លូវការ</span>
+                  <ExternalLink className="w-3 h-3 opacity-80" />
                 </a>
               )}
             </div>
           </div>
 
-          {/* Direct Shortcut Action Buttons - Optimized for Mobile Grid */}
-          <div className="grid grid-cols-3 sm:flex sm:flex-nowrap items-center gap-1.5 sm:gap-2 shrink-0 pt-2 lg:pt-0 w-full sm:w-auto">
+          <div className="flex flex-wrap sm:flex-col gap-2 flex-shrink-0">
             <button
+              id="dash-print-summary-btn"
+              type="button"
+              onClick={() => setIsPrintSummaryOpen(true)}
+              className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md transition-transform active:scale-95 cursor-pointer backdrop-blur-xs"
+              title="បោះពុម្ពរបាយការណ៍សង្ខេបស្ថិតិសាលារៀន (Print Dashboard Summary)"
+            >
+              <Printer className="w-4 h-4 text-emerald-100" />
+              បោះពុម្ពសង្ខេបស្ថិតិ
+            </button>
+            <button
+              id="dash-add-student-btn"
               onClick={() => setActiveTab('students')}
-              className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-3.5 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl text-[10.5px] sm:text-xs font-bold shadow-xs transition-transform active:scale-95 cursor-pointer min-h-[44px] text-center"
+              className="flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md transition-transform active:scale-95 cursor-pointer"
             >
-              <UserPlus className="w-4 h-4 shrink-0" />
-              <span className="leading-tight">ចុះឈ្មោះសិស្ស</span>
+              <UserPlus className="w-4 h-4 text-white" />
+              ចុះឈ្មោះសិស្សថ្មី
             </button>
-
             <button
-              onClick={() => setIsQuickAttOpen(true)}
-              className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-3.5 py-2 sm:py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-xl text-[10.5px] sm:text-xs font-bold shadow-xs transition-transform active:scale-95 cursor-pointer min-h-[44px] text-center"
-            >
-              <QrCode className="w-4 h-4 shrink-0" />
-              <span className="leading-tight">កត់វត្តមាន</span>
-            </button>
-
-            <button
+              id="dash-record-score-btn"
               onClick={() => setActiveTab('scores')}
-              className="inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-1.5 sm:px-3.5 py-2 sm:py-2.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-xl text-[10.5px] sm:text-xs font-bold shadow-xs transition-transform active:scale-95 cursor-pointer min-h-[44px] text-center"
+              className="flex items-center justify-center gap-2 bg-slate-800/90 hover:bg-slate-700 border border-slate-600/80 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow transition-transform active:scale-95 cursor-pointer backdrop-blur-xs"
             >
-              <BookOpenCheck className="w-4 h-4 text-amber-300 shrink-0" />
-              <span className="leading-tight">បញ្ចូលពិន្ទុ</span>
+              <BookOpenCheck className="w-4 h-4 text-amber-300" />
+              បញ្ចូលពិន្ទុប្រចាំខែ
+            </button>
+            <button
+              id="dash-reports-btn"
+              onClick={() => setActiveTab('reports_qr')}
+              className="flex items-center justify-center gap-2 bg-indigo-900/90 hover:bg-indigo-800 border border-indigo-500/40 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow transition-transform active:scale-95 cursor-pointer backdrop-blur-xs"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
+              របាយការណ៍ MoEYS
             </button>
           </div>
         </div>
-      </section>
-
-      {/* 2. ORDERLY ROLE VIEW & SECTION SELECTOR TABS */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-1.5 sm:p-2 border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-1.5 sm:space-y-2">
-        {/* Row 1: Role Persona Switcher (Director, Teacher, Student) + Mobile Academic Year Selector */}
-        <div className="flex items-center justify-between gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
-          <div className="flex items-center gap-1 sm:gap-1.5 min-w-max">
-            {/* Director Button */}
-            {(currentUser?.role === 'director' || currentUser?.role === 'super_admin' || currentUser?.role === 'secretary') && (
-              <button
-                onClick={() => handleRequestDashboardMode('director')}
-                className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer min-h-[38px] ${
-                  dashboardMode === 'director'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                <span>នាយកសាលា</span>
-                <span className={`px-1.5 py-0.2 rounded-md text-[9px] sm:text-[10px] font-mono ${
-                  dashboardMode === 'director' ? 'bg-blue-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                }`}>
-                  {totalStudents}
-                </span>
-              </button>
-            )}
-
-            {/* Teacher Button */}
-            {currentUser?.role !== 'student' && currentUser?.role !== 'parent' && (
-              <button
-                onClick={() => handleRequestDashboardMode('teacher')}
-                className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer min-h-[38px] ${
-                  dashboardMode === 'teacher'
-                    ? 'bg-sky-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                <span>លោកគ្រូ-អ្នកគ្រូ</span>
-                {teacherGrade && (
-                  <span className={`px-1.5 py-0.2 rounded-md text-[9px] sm:text-[10px] ${
-                    dashboardMode === 'teacher' ? 'bg-sky-500 text-white' : 'bg-sky-100 text-sky-700'
-                  }`}>
-                    ថ្នាក់ទី {toKhmerNum(teacherGrade)}
-                  </span>
-                )}
-              </button>
-            )}
-
-            {/* Student & Guardian Button */}
-            <button
-              onClick={() => handleRequestDashboardMode('student')}
-              className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer min-h-[38px] ${
-                dashboardMode === 'student'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-              <span>សិស្ស & អាណាព្យាបាល</span>
-            </button>
-          </div>
-
-          {/* Quick Academic Year Pill with Switch Action - Visible on Mobile & Desktop */}
-          <div className="flex items-center gap-1.5 text-xs pl-1.5 sm:pl-2 border-l border-slate-200 dark:border-slate-800 shrink-0">
-            <span className="text-slate-500 text-[10px] sm:text-[11px] hidden sm:inline">ឆ្នាំសិក្សា៖</span>
-            <select
-              value={selectedAcademicYear}
-              onChange={(e) => setSelectedAcademicYear(e.target.value)}
-              className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-[11px] sm:text-xs font-bold px-1.5 sm:px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none cursor-pointer max-w-[105px] sm:max-w-none"
-              title="ជ្រើសរើសឆ្នាំសិក្សា"
-            >
-              {academicYears.map(yr => (
-                <option key={yr} value={yr}>
-                  {yr} {yr === schoolProfile.academicYear ? '★' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Row 2: Sub-view Tab Navigation (Overview, Analytics, Tools, Activity, Academic Years) */}
-        {dashboardMode === 'director' && (
-          <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800/80 overflow-x-auto no-scrollbar scroll-smooth">
-            <button
-              onClick={() => setActiveSection('overview')}
-              className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-colors cursor-pointer whitespace-nowrap min-h-[36px] ${
-                activeSection === 'overview'
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">ទិដ្ឋភាពទូទៅ (Overview)</span>
-              <span className="sm:hidden inline">ទូទៅ</span>
-            </button>
-
-            <button
-              onClick={() => setActiveSection('analytics')}
-              className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-colors cursor-pointer whitespace-nowrap min-h-[36px] ${
-                activeSection === 'analytics'
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <BarChart3 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-              <span className="hidden sm:inline">ស្ថិតិ & ក្រាហ្វិក (Analytics)</span>
-              <span className="sm:hidden inline">ស្ថិតិ</span>
-            </button>
-
-            <button
-              onClick={() => setActiveSection('tools')}
-              className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-colors cursor-pointer whitespace-nowrap min-h-[36px] ${
-                activeSection === 'tools'
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <span className="hidden sm:inline">ឧបករណ៍ & សកម្មភាព (Tools)</span>
-              <span className="sm:hidden inline">ឧបករណ៍</span>
-            </button>
-
-            <button
-              onClick={() => setActiveSection('activity')}
-              className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-colors cursor-pointer whitespace-nowrap min-h-[36px] ${
-                activeSection === 'activity'
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-              <span className="hidden sm:inline">សកម្មភាពថ្មីៗ (Activity)</span>
-              <span className="sm:hidden inline">សកម្មភាព</span>
-            </button>
-
-            <button
-              onClick={() => setActiveSection('academic_years')}
-              className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-colors cursor-pointer whitespace-nowrap min-h-[36px] ${
-                activeSection === 'academic_years'
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <Calendar className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-              <span className="hidden sm:inline">បណ្ណសារឆ្នាំសិក្សា (Archives)</span>
-              <span className="sm:hidden inline">ឆ្នាំសិក្សា</span>
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* ========================================================================= */}
-      {/* 3. DIRECTOR DASHBOARD - TABBED WORKSPACE CONTENT */}
-      {/* ========================================================================= */}
-      {dashboardMode === 'director' && (
-        <div className="space-y-6">
-          {/* SECTION A: OVERVIEW (Key Metric Cards + Fast Categorized Hub + Snapshot) */}
-          {activeSection === 'overview' && (
-            <div className="space-y-5 animate-fade-in">
-              {/* 4 Executive KPI Cards (Optimized 2x2 on mobile, 4-col on desktop) */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-                {/* 1. Total Students */}
-                <div
-                  onClick={() => setActiveTab('students')}
-                  className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-blue-300 transition-all cursor-pointer group active:scale-98"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">សិស្សសរុប</span>
-                    <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-                      <Users className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-                    </div>
-                  </div>
-                  <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5">
-                    <span className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-white font-mono">{totalStudents}</span>
-                    <span className="text-[10px] sm:text-xs text-slate-500">នាក់</span>
-                  </div>
-                  {/* Progress bar of gender ratio */}
-                  <div className="mt-2 sm:mt-2.5">
-                    <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex">
-                      <div style={{ width: `${femalePercent}%` }} className="bg-rose-500 h-full" title={`ស្រី ${femalePercent}%`} />
-                      <div style={{ width: `${100 - femalePercent}%` }} className="bg-blue-600 h-full" title={`ប្រុស ${100 - femalePercent}%`} />
-                    </div>
-                    <div className="flex justify-between text-[9px] sm:text-[10px] text-slate-500 mt-1 gap-1">
-                      <span className="truncate">ស្រី៖ <strong className="text-rose-600">{femaleStudents}</strong> ({femalePercent}%)</span>
-                      <span className="truncate">ប្រុស៖ <strong className="text-blue-600">{maleStudents}</strong></span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. Teachers & Staff */}
-                <div
-                  onClick={() => setActiveTab('teachers')}
-                  className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-emerald-300 transition-all cursor-pointer group active:scale-98"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">គ្រូបង្រៀន</span>
-                    <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-                      <Award className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-                    </div>
-                  </div>
-                  <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5">
-                    <span className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-white font-mono">{totalTeachers}</span>
-                    <span className="text-[10px] sm:text-xs text-slate-500">នាក់</span>
-                  </div>
-                  <div className="mt-2 sm:mt-2.5 text-[9px] sm:text-[10px] text-slate-500 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-1.5 sm:pt-2">
-                    <span className="truncate">ស្រី៖ <strong className="text-emerald-700 dark:text-emerald-400">{femaleTeachers} នាក់</strong></span>
-                    <span className="px-1.5 py-0.5 rounded bg-emerald-100/70 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-bold text-[8.5px] sm:text-[9px] shrink-0">
-                      ពេញម៉ោង
-                    </span>
-                  </div>
-                </div>
-
-                {/* 3. Classrooms */}
-                <div
-                  onClick={() => setActiveTab('classrooms')}
-                  className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-indigo-300 transition-all cursor-pointer group active:scale-98"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">ថ្នាក់រៀនសរុប</span>
-                    <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-                      <School className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-                    </div>
-                  </div>
-                  <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5">
-                    <span className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-white font-mono">{totalClassrooms}</span>
-                    <span className="text-[10px] sm:text-xs text-slate-500">ថ្នាក់</span>
-                  </div>
-                  <div className="mt-2 sm:mt-2.5 text-[9px] sm:text-[10px] text-slate-500 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-1.5 sm:pt-2">
-                    <span>ទី១-ទី៦</span>
-                    <span className="text-indigo-600 dark:text-indigo-400 font-bold">~{Math.round(totalStudents / (totalClassrooms || 1))} នាក់/ថ្នាក់</span>
-                  </div>
-                </div>
-
-                {/* 4. Attendance Rate & Finance Balance */}
-                <div
-                  onClick={() => setActiveTab('finance')}
-                  className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:border-amber-300 transition-all cursor-pointer group active:scale-98"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">វត្តមាន & ថវិកា</span>
-                    <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-                      <CircleDollarSign className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-                    </div>
-                  </div>
-                  <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5 flex-wrap">
-                    <span className="text-lg sm:text-2xl font-bold text-emerald-600 font-mono">៩៨.៤%</span>
-                    <span className="text-[9px] sm:text-[10px] text-emerald-600 font-bold px-1.5 py-0.2 rounded bg-emerald-50 dark:bg-emerald-950/50">
-                      ល្អ
-                    </span>
-                  </div>
-                  <div className="mt-2 sm:mt-2.5 text-[9px] sm:text-[10px] text-slate-500 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-1.5 sm:pt-2">
-                    <span>សមតុល្យ៖</span>
-                    <span className="font-bold text-slate-900 dark:text-white font-mono">
-                      {(balanceRiel / 1000000).toFixed(1)}M ៛
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Categorized Professional Quick Action Hub (Organized into 4 clean cards) */}
-              <div className="space-y-2.5 sm:space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-moul flex items-center gap-1.5 sm:gap-2">
-                    <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
-                    <span>សកម្មភាព និងការងារប្រចាំថ្ងៃ</span>
-                  </h3>
-                  <button
-                    onClick={() => setActiveSection('tools')}
-                    className="text-[11px] sm:text-xs text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>ឧបករណ៍ទាំងអស់</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-4">
-                  {quickActionGroups.map((grp) => (
-                    <div
-                      key={grp.category}
-                      className={`rounded-xl sm:rounded-2xl p-3 sm:p-4 border ${grp.color} bg-white dark:bg-slate-900 shadow-2xs space-y-2.5 sm:space-y-3`}
-                    >
-                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5 sm:pb-2">
-                        <span className="text-xs font-bold text-slate-900 dark:text-white font-kantumruy">
-                          {grp.title}
-                        </span>
-                        <span className={`text-[9.5px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full ${grp.badgeColor}`}>
-                          ៤ មុខងារ
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
-                        {grp.actions.map((act) => {
-                          const IconComponent = act.icon;
-                          return (
-                            <button
-                              key={act.id}
-                              onClick={() => {
-                                if (act.onClick) {
-                                  act.onClick();
-                                } else if (act.tab) {
-                                  setActiveTab(act.tab);
-                                }
-                              }}
-                              className="flex flex-col justify-between p-2 sm:p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-left border border-slate-200/60 dark:border-slate-700/60 active:scale-95 transition-all group cursor-pointer min-h-[54px] sm:min-h-[58px]"
-                            >
-                              <div className="flex items-center gap-1.5 w-full">
-                                <IconComponent className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0 group-hover:scale-110 transition-transform" />
-                                <span className="text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1 leading-tight">
-                                  {act.label}
-                                </span>
-                              </div>
-                              <span className="text-[9.5px] sm:text-[10px] text-slate-400 dark:text-slate-500 mt-1 truncate block">
-                                {act.sub}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Fast Visual Snapshot: Enrollment Chart + Today's School Alerts */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 sm:gap-6">
-                {/* Enrollment preview bar chart */}
-                <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white font-kantumruy">
-                        ស្ថិតិសិស្សតាមកម្រិតថ្នាក់ (ថ្នាក់ទី១ ដល់ទី៦)
-                      </h4>
-                      <p className="text-[10px] sm:text-[11px] text-slate-500">ការបែងចែកសិស្សប្រុស និងសិស្សស្រី</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setActiveSection('analytics');
-                        setAnalyticsSubTab('enrollment');
-                      }}
-                      className="text-[11px] sm:text-xs text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>មើលលម្អិត</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="h-48 sm:h-56 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={gradeDistribution} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#64748b" />
-                        <YAxis tick={{ fontSize: 10 }} stroke="#64748b" />
-                        <Tooltip
-                          formatter={(value, name) => [`${value} នាក់`, name]}
-                          contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                        />
-                        <Legend wrapperStyle={{ fontSize: '10.5px', paddingTop: '4px' }} />
-                        <Bar dataKey="សិស្សប្រុស" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="សិស្សស្រី" fill="#ec4899" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Upcoming Events & Operational Checklist */}
-                <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-3 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 sm:pb-2.5">
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        <Calendar className="w-4 h-4 text-rose-500 shrink-0" />
-                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white font-kantumruy">
-                          កាលវិភាគ & ព្រឹត្តិការណ៍
-                        </h4>
-                      </div>
-                      <button
-                        onClick={() => setActiveTab('calendar')}
-                        className="text-xs text-blue-600 hover:underline font-bold cursor-pointer"
-                      >
-                        ប្រតិទិន
-                      </button>
-                    </div>
-
-                    <div className="space-y-2 mt-2.5 sm:mt-3">
-                      {calendarEvents.slice(0, 3).map((ev, idx) => (
-                        <div key={idx} className="p-2 sm:p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-start justify-between gap-2 text-xs">
-                          <div>
-                            <h5 className="font-bold text-slate-800 dark:text-slate-200 line-clamp-1 text-[11px] sm:text-xs">{ev.title}</h5>
-                            <p className="text-slate-400 text-[9.5px] sm:text-[10px] mt-0.5 line-clamp-1">{ev.description || 'ព្រឹត្តិការណ៍សាលា'}</p>
-                          </div>
-                          <span className="px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-mono text-[9.5px] sm:text-[10px] font-bold shrink-0">
-                            {ev.date}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-800">
-                    <button
-                      onClick={() => setActiveSection('activity')}
-                      className="w-full py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer min-h-[40px]"
-                    >
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>មើលប្រវត្តិសកម្មភាពសាលា</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* SECTION B: ANALYTICS HUB (Interactive Segmented Charts) */}
-          {activeSection === 'analytics' && (
-            <div className="space-y-4 animate-fade-in">
-              {/* Sub-tabs for Analytics */}
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
-                <button
-                  onClick={() => setAnalyticsSubTab('enrollment')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    analyticsSubTab === 'enrollment'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800'
-                  }`}
-                >
-                  ស្ថិតិសិស្សតាមកម្រិតថ្នាក់
-                </button>
-
-                <button
-                  onClick={() => setAnalyticsSubTab('attendance')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    analyticsSubTab === 'attendance'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800'
-                  }`}
-                >
-                  និន្នាការវត្តមានប្រចាំសប្តាហ៍
-                </button>
-
-                <button
-                  onClick={() => setAnalyticsSubTab('grades')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    analyticsSubTab === 'grades'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800'
-                  }`}
-                >
-                  ការបែងចែកនិទ្ទេសពិន្ទុ (A-F)
-                </button>
-
-                <button
-                  onClick={() => setAnalyticsSubTab('budget')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    analyticsSubTab === 'budget'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800'
-                  }`}
-                >
-                  ប្រភពថវិកាសាលា
-                </button>
-
-                <button
-                  onClick={() => setAnalyticsSubTab('trimesters')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    analyticsSubTab === 'trimesters'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800'
-                  }`}
-                >
-                  ការវិភាគនិន្នាការ ៣ ត្រីមាស
-                </button>
-              </div>
-
-              {/* Tab 1: Enrollment */}
-              {analyticsSubTab === 'enrollment' && (
-                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white font-kantumruy">
-                        ស្ថិតិសិស្សតាមកម្រិតថ្នាក់ (ថ្នាក់ទី១ ដល់ទី៦)
-                      </h3>
-                      <p className="text-xs text-slate-500">ការបែងចែកសិស្សប្រុស សិស្សស្រី និងចំនួនថ្នាក់រៀនសរុប</p>
-                    </div>
-                    <button
-                      onClick={() => setActiveTab('students')}
-                      className="text-xs text-blue-600 font-bold flex items-center gap-1 cursor-pointer"
-                    >
-                      មើលបញ្ជីសិស្សពេញ <ArrowUpRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="h-72 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={gradeDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#64748b" />
-                        <YAxis tick={{ fontSize: 12 }} stroke="#64748b" />
-                        <Tooltip
-                          formatter={(value, name) => [`${value} នាក់`, name]}
-                          contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                        />
-                        <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                        <Bar dataKey="សិស្សប្រុស" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="សិស្សស្រី" fill="#ec4899" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 2: Attendance Weekly Trend */}
-              {analyticsSubTab === 'attendance' && (
-                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white font-kantumruy">
-                        និន្នាការវត្តមានសិស្សប្រចាំសប្តាហ៍ (%)
-                      </h3>
-                      <p className="text-xs text-slate-500">ការតាមដានអត្រាវត្តមាន ច្បាប់ និងអវត្តមានឥតច្បាប់</p>
-                    </div>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      មធ្យម ៩៨.១%
-                    </span>
-                  </div>
-
-                  <div className="h-72 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={attendanceTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="attGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
-                          </linearGradient>
-                          <linearGradient id="excusedGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="day" tick={{ fontSize: 12 }} stroke="#64748b" />
-                        <YAxis domain={[90, 100]} tick={{ fontSize: 12 }} stroke="#64748b" unit="%" />
-                        <Tooltip
-                          formatter={(value: any, name: any) => [`${value}%`, name]}
-                          contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                        />
-                        <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                        <Area type="monotone" dataKey="វត្តមាន" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#attGrad)" />
-                        <Area type="monotone" dataKey="ច្បាប់" stroke="#f59e0b" strokeWidth={1.5} fillOpacity={1} fill="url(#excusedGrad)" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 3: Grades Distribution */}
-              {analyticsSubTab === 'grades' && (
-                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white font-kantumruy">
-                        ការបែងចែកនិទ្ទេសពិន្ទុរួម (Academic Grades A-F)
-                      </h3>
-                      <p className="text-xs text-slate-500">ចំនួនសិស្សទទួលបាននិទ្ទេស A ដល់ F ប្រចាំឆមាស</p>
-                    </div>
-                    <button
-                      onClick={() => setActiveTab('scores')}
-                      className="text-xs text-indigo-600 font-bold flex items-center gap-1 cursor-pointer"
-                    >
-                      តារាងពិន្ទុ <ArrowUpRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="h-72 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={scoreDistributionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="grade" tick={{ fontSize: 11 }} stroke="#64748b" />
-                        <YAxis tick={{ fontSize: 12 }} stroke="#64748b" />
-                        <Tooltip
-                          formatter={(value: any) => [`${value} នាក់`, 'ចំនួនសិស្ស']}
-                          contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                        />
-                        <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                          {scoreDistributionData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 4: Budget */}
-              {analyticsSubTab === 'budget' && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
-                  <div className="lg:col-span-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white font-kantumruy">
-                        ប្រភពថវិកាសាលា (Budget by Source)
-                      </h3>
-                      <PieChartIcon className="w-4 h-4 text-slate-400" />
-                    </div>
-                    <p className="text-xs text-slate-500 mb-4">សមាមាត្រចំណូលតាមប្រភពថវិការដ្ឋ និងដៃគូអភិវឌ្ឍន៍</p>
-                    <div className="h-64 w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={budgetSourceData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={55}
-                            outerRadius={85}
-                            paddingAngle={3}
-                            dataKey="value"
-                          >
-                            {budgetSourceData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            formatter={(value) => [`${(Number(value) / 1000000).toFixed(1)} លានរៀល`, 'ចំនួន']}
-                            contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col justify-center space-y-3 border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-slate-800 pt-4 lg:pt-0 lg:pl-6">
-                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase">បញ្ជីប្រភពថវិកា</h4>
-                    <div className="space-y-2">
-                      {budgetSourceData.map((item, idx) => (
-                        <div key={idx} className="flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
-                            <span className="text-slate-600 dark:text-slate-300">{item.name}</span>
-                          </div>
-                          <span className="font-bold text-slate-900 dark:text-white font-mono">
-                            {(item.value / 1000000).toFixed(1)}M ៛
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      onClick={() => setActiveTab('finance')}
-                      className="mt-3 w-full py-2 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-xs font-bold rounded-xl border border-blue-200 dark:border-blue-900/60 hover:bg-blue-100 cursor-pointer"
-                    >
-                      គ្រប់គ្រងបញ្ជីថវិកាពេញលេញ
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 5: Trimester Analysis */}
-              {analyticsSubTab === 'trimesters' && (
-                <div className="space-y-4">
-                  <AcademicTrendAnalysis />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* SECTION C: ALL TOOLS & ACTIONS (Categorized, Comprehensive & Clean) */}
-          {activeSection === 'tools' && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white font-moul">
-                  ឧបករណ៍ និងប្រព័ន្ធគ្រប់គ្រងសាលារៀនកម្រិតអាជីព
-                </h3>
-                <p className="text-xs text-slate-500">
-                  ជ្រើសរើសផ្នែកការងាររដ្ឋបាល ការបង្រៀន វត្តមាន និងហិរញ្ញវត្ថុដើម្បីចូលប្រើប្រាស់ដោយផ្ទាល់
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {quickActionGroups.map((grp) => (
-                  <div
-                    key={grp.category}
-                    className={`rounded-2xl p-5 border ${grp.color} bg-white dark:bg-slate-900 shadow-xs space-y-4`}
-                  >
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white font-moul">
-                          {grp.title}
-                        </h4>
-                        <p className="text-xs text-slate-500 mt-0.5">{grp.description}</p>
-                      </div>
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${grp.badgeColor}`}>
-                        ៤ មុខងារ
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {grp.actions.map((act) => {
-                        const Icon = act.icon;
-                        return (
-                          <button
-                            key={act.id}
-                            onClick={() => {
-                              if (act.onClick) act.onClick();
-                              else if (act.tab) setActiveTab(act.tab);
-                            }}
-                            className="flex items-center gap-3 p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/70 dark:border-slate-700/60 text-left transition-all active:scale-95 group cursor-pointer"
-                          >
-                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-700 shadow-2xs border border-slate-200 dark:border-slate-600 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:scale-105 transition-transform shrink-0">
-                              <Icon className="w-5 h-5" />
-                            </div>
-                            <div className="min-w-0">
-                              <span className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1">
-                                {act.label}
-                              </span>
-                              <span className="text-[10px] text-slate-400 block mt-0.5 truncate">
-                                {act.sub}
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* SECTION D: ACTIVITY & AUDIT TRAILS */}
-          {activeSection === 'activity' && (
-            <div className="space-y-6 animate-fade-in">
-              <SchoolActivityFeed />
-              <RecentActivityDashboard />
-            </div>
-          )}
-
-          {/* SECTION E: ACADEMIC YEAR CONTROLS & ARCHIVES */}
-          {activeSection === 'academic_years' && (
-            <div className="space-y-6 animate-fade-in">
-              <DirectorAcademicYearControl />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 4. TEACHER HUB DASHBOARD VIEW */}
-      {/* ========================================================================= */}
-      {dashboardMode === 'teacher' && (
-        <div className="space-y-6 animate-fade-in">
-          {/* Teacher Welcome Banner */}
-          <div className="bg-gradient-to-r from-slate-900 via-sky-950 to-blue-950 rounded-2xl p-5 sm:p-6 text-white shadow-md border border-sky-900/60">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="bg-sky-500/30 text-sky-200 border border-sky-400/40 px-3 py-0.5 rounded-full font-bold flex items-center gap-1.5">
-                    <Award className="w-3.5 h-3.5 text-sky-300" />
-                    <span>កន្លែងការងារលោកគ្រូ-អ្នកគ្រូ (Teacher Hub)</span>
-                  </span>
-                  {teacherGrade && (
-                    <span className="bg-amber-400 text-slate-950 font-bold px-3 py-0.5 rounded-full text-xs">
-                      ទទួលបន្ទុកថ្នាក់ទី {toKhmerNum(teacherGrade)} {teacherSection ? `«${teacherSection}»` : ''}
-                    </span>
-                  )}
-                </div>
-
-                <h2 className="text-xl sm:text-2xl font-bold font-moul text-white">
-                  សូមស្វាគមន៍, {currentUser?.nameKhmer || 'លោកគ្រូ / អ្នកគ្រូ'}
-                </h2>
-                <p className="text-sky-200 text-xs">
-                  គ្រប់គ្រងវត្តមាន សិស្សក្នុងបន្ទុក បញ្ចូលពិន្ទុ និងរៀបចំកិច្ចតែងការបង្រៀន AI ដោយភាពងាយស្រួល
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setActiveTab('homeroom_dashboard')}
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-sm transition-transform active:scale-95 flex items-center gap-2 cursor-pointer"
-                >
-                  <Award className="w-4 h-4" />
-                  <span>ចូលបន្ទុកថ្នាក់</span>
-                </button>
-                <button
-                  onClick={() => setIsQuickAttOpen(true)}
-                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-sm transition-transform active:scale-95 flex items-center gap-2 cursor-pointer"
-                >
-                  <QrCode className="w-4 h-4" />
-                  <span>កត់វត្តមានថ្ងៃនេះ</span>
-                </button>
-              </div>
+      {/* Metric Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Students */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">ចំនួនសិស្សសរុប</span>
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <Users className="w-5 h-5" />
             </div>
           </div>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-slate-900">{totalStudents}</span>
+            <span className="text-xs text-slate-500">នាក់</span>
+          </div>
+          <div className="mt-2 text-xs text-slate-600 flex items-center justify-between border-t border-slate-100 pt-2">
+            <span>ស្រី: <strong className="text-rose-600">{femaleStudents}</strong> ({femalePercent}%)</span>
+            <span>ប្រុស: <strong className="text-blue-600">{maleStudents}</strong></span>
+          </div>
+        </div>
 
-          {/* Teacher Class Stat Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-            <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] sm:text-xs font-medium text-slate-500">សិស្សក្នុងបន្ទុក</span>
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center">
-                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
-              </div>
-              <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5">
-                <span className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-mono">{assignedClassStudents.length}</span>
-                <span className="text-[10px] sm:text-xs text-slate-500">នាក់</span>
-              </div>
-              <div className="mt-2 sm:mt-2.5 text-[9.5px] sm:text-xs text-slate-500 border-t border-slate-100 dark:border-slate-800 pt-1.5 sm:pt-2 flex justify-between">
-                <span>ស្រី៖ <strong className="text-rose-600">{classFemaleStudents}</strong></span>
-                <span>ប្រុស៖ <strong className="text-blue-600">{classMaleStudents}</strong></span>
-              </div>
+        {/* Teachers and Staff */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">គ្រូបង្រៀន និងបុគ្គលិក</span>
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <GraduationCap className="w-5 h-5" />
             </div>
+          </div>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-slate-900">{totalTeachers}</span>
+            <span className="text-xs text-slate-500">រូប</span>
+          </div>
+          <div className="mt-2 text-xs text-slate-600 flex items-center justify-between border-t border-slate-100 pt-2">
+            <span>គ្រូស្រី: <strong className="text-indigo-700">{femaleTeachers}</strong> រូប</span>
+            <span className="text-emerald-600 font-medium">ពេញម៉ោង ១០០%</span>
+          </div>
+        </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] sm:text-xs font-medium text-slate-500">កិច្ចការមិនទាន់ចប់</span>
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        {/* Total Classrooms */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">បន្ទប់ថ្នាក់រៀន (ថ្នាក់ទី១ - ទី៦)</span>
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <School className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-slate-900">{classrooms.length}</span>
+            <span className="text-xs text-slate-500">បន្ទប់</span>
+          </div>
+          <div className="mt-2 text-xs text-slate-600 flex items-center justify-between border-t border-slate-100 pt-2">
+            <span>សមាមាត្រសិស្ស/ថ្នាក់: ~{Math.round(totalStudents / (classrooms.length || 1))}</span>
+            <span className="text-blue-600 font-medium">គ្រប់គ្រងបានល្អ</span>
+          </div>
+        </div>
+
+        {/* Budget Balance */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">សមតុល្យថវិកាសាលា</span>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <CircleDollarSign className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-emerald-700">
+              {(balanceRiel / 1000000).toFixed(1)}M
+            </span>
+            <span className="text-xs font-medium text-slate-600">រៀល</span>
+          </div>
+          <div className="mt-2 text-xs text-slate-600 flex items-center justify-between border-t border-slate-100 pt-2">
+            <span>ស្មើនឹង: <strong>~${balanceUsd.toLocaleString()}</strong></span>
+            <span className="text-emerald-700 font-semibold">ស្ថិរភាពហិរញ្ញវត្ថុ</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Analytics Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Student Enrollment by Grade */}
+        <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 font-kantumruy">ស្ថិតិសិស្សតាមកម្រិតថ្នាក់ (ថ្នាក់ទី១ ដល់ទី៦)</h3>
+              <p className="text-xs text-slate-500">ការបែងចែកសិស្សប្រុស និងសិស្សស្រីតាមកម្រិតថ្នាក់នីមួយៗ</p>
+            </div>
+            <button
+              onClick={() => setActiveTab('students')}
+              className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1"
+            >
+              មើលបញ្ជីសិស្ស <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={gradeDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#64748b" />
+                <YAxis tick={{ fontSize: 12 }} stroke="#64748b" />
+                <Tooltip
+                  formatter={(value, name) => [`${value} នាក់`, name]}
+                  contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                <Bar dataKey="សិស្សប្រុស" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="សិស្សស្រី" fill="#ec4899" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Budget Sources Pie Chart */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold text-slate-900 font-kantumruy">ប្រភពថវិកាសាលា (Budget by Source)</h3>
+              <PieChartIcon className="w-4 h-4 text-slate-400" />
+            </div>
+            <p className="text-xs text-slate-500 mb-4">សមាមាត្រចំណូលតាមប្រភពថវិការដ្ឋ និងដៃគូអភិវឌ្ឍន៍</p>
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={budgetSourceData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={45}
+                    outerRadius={75}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {budgetSourceData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value) => [`${(Number(value) / 1000000).toFixed(1)} លានរៀល`, 'ចំនួន']}
+                    contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div className="space-y-1.5 mt-2 border-t border-slate-100 pt-3">
+            {budgetSourceData.slice(0, 3).map((item, idx) => (
+              <div key={idx} className="flex items-center justify-between text-xs text-slate-600">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                  <span className="truncate max-w-[150px]">{item.name}</span>
                 </div>
-              </div>
-              <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5">
-                <span className="text-xl sm:text-2xl font-bold text-amber-600 font-mono">
-                  {teacherDailyTasks.filter(t => !t.isCompleted).length}
+                <span className="font-semibold text-slate-900">
+                  {(item.value / 1000000).toFixed(1)}M ៛
                 </span>
-                <span className="text-[10px] sm:text-xs text-slate-500">កិច្ចការ</span>
               </div>
-              <div className="mt-2 sm:mt-2.5 text-[9.5px] sm:text-xs text-slate-500 border-t border-slate-100 dark:border-slate-800 pt-1.5 sm:pt-2 truncate">
-                <span>កិច្ចការបន្ទាន់សប្តាហ៍នេះ</span>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] sm:text-xs font-medium text-slate-500">វត្តមានមធ្យម</span>
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                  <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
-              </div>
-              <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5">
-                <span className="text-xl sm:text-2xl font-bold text-emerald-600 font-mono">៩៨.៤%</span>
-                <span className="text-[9.5px] sm:text-xs text-emerald-500 font-bold">ល្អ</span>
-              </div>
-              <div className="mt-2 sm:mt-2.5 text-[9.5px] sm:text-xs text-slate-500 border-t border-slate-100 dark:border-slate-800 pt-1.5 sm:pt-2 truncate">
-                <span>វត្តមានទៀងទាត់</span>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] sm:text-xs font-medium text-slate-500">ជំនួយការ AI</span>
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                  <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
-              </div>
-              <div className="mt-1.5 sm:mt-2 flex items-baseline gap-1.5">
-                <span className="text-xs sm:text-sm font-bold text-purple-700 dark:text-purple-300">AI Teacher Ready</span>
-              </div>
-              <button
-                onClick={() => setActiveTab('ai_teacher')}
-                className="mt-2 text-[11px] sm:text-xs text-purple-600 hover:text-purple-700 font-bold flex items-center gap-1 border-t border-slate-100 dark:border-slate-800 pt-1.5 sm:pt-2 w-full cursor-pointer"
-              >
-                <span>បង្កើតកិច្ចតែងការ</span>
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
+            ))}
           </div>
-
-          {/* Teacher Daily Tasks & Agenda */}
-          <TeacherDailyTasks />
-          <TeacherDailyAgendaPanel />
         </div>
-      )}
+      </div>
 
-      {/* ========================================================================= */}
-      {/* 5. STUDENT & GUARDIAN DASHBOARD VIEW */}
-      {/* ========================================================================= */}
-      {dashboardMode === 'student' && (
-        <div className="space-y-6 animate-fade-in">
-          {/* Student Banner */}
-          <div className="bg-gradient-to-r from-emerald-950 via-teal-950 to-slate-950 rounded-2xl p-5 sm:p-6 text-white shadow-md border border-emerald-900/60">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 px-3 py-0.5 rounded-full font-bold flex items-center gap-1.5">
-                    <GraduationCap className="w-3.5 h-3.5 text-emerald-300" />
-                    <span>ព័ត៌មានសិស្ស & អាណាព្យាបាល (Student & Guardian Portal)</span>
-                  </span>
-                </div>
-
-                <h2 className="text-xl sm:text-2xl font-bold font-moul text-white">
-                  សាលាបឋមសិក្សា {schoolProfile.nameKhmer}
-                </h2>
-                <p className="text-emerald-200 text-xs">
-                  «ការសិក្សាដើម្បីអភិវឌ្ឍចំណេះដឹង ជំនាញ វិន័យ និងគុណធម៌» • ឆ្នាំសិក្សា {selectedAcademicYear}
-                </p>
-              </div>
-
-              <button
-                onClick={() => setActiveTab('student_portal')}
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-sm transition-transform active:scale-95 flex items-center gap-2 shrink-0 cursor-pointer"
-              >
-                <GraduationCap className="w-4 h-4" />
-                <span>ចូលមើលលទ្ធផលសិក្សាផ្ទាល់ខ្លួន</span>
-              </button>
+      {/* Secondary Analytics: Subject Achievement & Top Students */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Subject Average Scores */}
+        <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 font-kantumruy">មធ្យមភាគពិន្ទុសិក្សាតាមមុខវិជ្ជា</h3>
+              <p className="text-xs text-slate-500">ការវាយតម្លៃគុណផលសិក្សារបស់សិស្សតាមមុខវិជ្ជាគោល</p>
             </div>
+            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              ពិន្ទុពេញ ១០
+            </span>
           </div>
 
-          {/* Upcoming Events & Guidelines */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-rose-500" />
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white font-moul">កាលបរិច្ឆេទសំខាន់ៗ</h3>
+          <div className="space-y-3">
+            {subjectAverages.map((item, idx) => {
+              const pct = (item.average / 10) * 100;
+              return (
+                <div key={idx} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-slate-700">{item.subject}</span>
+                    <span className="font-bold text-slate-900">{item.average} / 10</span>
+                  </div>
+                  <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-500"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
                 </div>
-                <button
-                  onClick={() => setActiveTab('calendar')}
-                  className="text-xs text-rose-600 hover:underline font-bold cursor-pointer"
-                >
-                  ប្រតិទិនពេញ
-                </button>
-              </div>
+              );
+            })}
+          </div>
+        </div>
 
-              <div className="space-y-2">
-                {calendarEvents.slice(0, 3).map((event, idx) => (
-                  <div key={idx} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-start justify-between gap-3 text-xs">
-                    <div>
-                      <h5 className="font-bold text-slate-800 dark:text-slate-200">{event.title}</h5>
-                      <p className="text-slate-500 text-[11px] mt-0.5">{event.description || 'ព្រឹត្តិការណ៍សាលា'}</p>
+        {/* Top Outstanding Students (សិស្សពូកែប្រចាំខែ) */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
+                  <Award className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 font-kantumruy">តារាងកិត្តិយសសិស្សពូកែ</h3>
+                  <p className="text-xs text-slate-500">លទ្ធផលប្រឡងឆ្នើមប្រចាំខែ</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {topStudents.map((item, idx) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100 hover:bg-blue-50/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                        idx === 0
+                          ? 'bg-amber-400 text-amber-950 shadow-sm'
+                          : idx === 1
+                          ? 'bg-slate-300 text-slate-800'
+                          : idx === 2
+                          ? 'bg-amber-700 text-amber-100'
+                          : 'bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {idx + 1}
                     </div>
-                    <span className="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 font-mono text-[10px] whitespace-nowrap font-bold">
-                      {event.date}
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900">{item.studentNameKhmer}</h4>
+                      <p className="text-[11px] text-slate-500">
+                        ថ្នាក់ទី {item.grade}{item.section} • {item.studentCode}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-blue-700">{item.averageScore}</span>
+                    <span className="block text-[10px] text-emerald-600 font-semibold">
+                      និទ្ទេស {item.gradeLetter}
                     </span>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <BadgeCheck className="w-4 h-4 text-emerald-600" />
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white font-moul">គោលការណ៍សិស្សល្អ និងវិន័យ</h3>
                 </div>
-              </div>
-
-              <div className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
-                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>មកសាលារៀនឱ្យបានទៀងទាត់មុនម៉ោង ៧:០០ ព្រឹក និងម៉ោង ១:០០ រសៀល។</span>
-                </div>
-                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40">
-                  <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                  <span>ស្លៀកពាក់ឯកសណ្ឋានសិស្សឱ្យបានត្រឹមត្រូវ និងរក្សាអនាម័យខ្លួនប្រាណជានិច្ច។</span>
-                </div>
-                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40">
-                  <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                  <span>ខិតខំរៀនសូត្រ ធ្វើកិច្ចការផ្ទះ និងគោរពលោកគ្រូអ្នកគ្រូ និងមិត្តភក្តិ។</span>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Modals */}
-      <QuickAttendanceModal isOpen={isQuickAttOpen} onClose={() => setIsQuickAttOpen(false)} />
-      <NewClassroomWizardModal isOpen={isNewClassOpen} onClose={() => setIsNewClassOpen(false)} />
+          <button
+            onClick={() => setActiveTab('scores')}
+            className="w-full mt-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-colors text-center"
+          >
+            មើលតារាងចំណាត់ថ្នាក់ពេញលេញ
+          </button>
+        </div>
+      </div>
+
+      {/* School News & Recent Announcements Card Layout Component */}
+      <SchoolNews />
+
+      {/* Recent Activity Tracking & Data Changes Audit Feed */}
+      <RecentActivityDashboard />
+
+      {/* Nutrition, Health & Quick Administrative Tools */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Academic Calendar & Exam Schedule Card */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-xs text-slate-500 font-medium">ប្រតិទិនសិក្សា MoEYS</span>
+            <h4 className="text-base font-bold text-slate-900 mt-1">កាលវិភាគប្រឡង & ឈប់</h4>
+            <p className="text-xs text-blue-600 font-semibold mt-1 font-times">{calendarEvents.length} Events Synced</p>
+          </div>
+          <button
+            onClick={() => setActiveTab('calendar')}
+            className="w-12 h-12 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-colors"
+            title="បើកប្រតិទិនសិក្សា"
+          >
+            <Calendar className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Health & Nutrition Quick Card */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-xs text-slate-500 font-medium">ស្ថានភាពអាហារូបត្ថម្ភ (BMI)</span>
+            <h4 className="text-base font-bold text-slate-900 mt-1">សុខភាពសិស្សបឋម</h4>
+            <div className="flex gap-1.5 mt-1.5 text-[11px]">
+              <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">
+                ធម្មតា: {normalNutrition}
+              </span>
+              <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">
+                ស្គម: {underweightNutrition}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => setActiveTab('attendance_health')}
+            className="w-12 h-12 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-500 flex items-center justify-center transition-colors"
+          >
+            <HeartPulse className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* QR Code Identification Card */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-xs text-slate-500 font-medium">ប្រព័ន្ធ QR Code</span>
+            <h4 className="text-base font-bold text-slate-900 mt-1">បោះពុម្ពកាតសិស្ស & គ្រូ</h4>
+            <p className="text-xs text-slate-500 mt-1">ស្កេនពិនិត្យវត្តមាន និងអត្តសញ្ញាណ</p>
+          </div>
+          <button
+            onClick={() => setActiveTab('reports_qr')}
+            className="w-12 h-12 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 flex items-center justify-center transition-colors"
+          >
+            <QrCode className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* MoEYS Official Reports Link */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-xs text-slate-500 font-medium">ស្តង់ដារក្រសួង MoEYS</span>
+            <h4 className="text-base font-bold text-slate-900 mt-1">របាយការណ៍ស្ថិតិដើមឆ្នាំ</h4>
+            <p className="text-xs text-slate-500 mt-1">ទាញយកជា Excel / PDF ផ្លូវការ</p>
+          </div>
+          <button
+            onClick={() => setActiveTab('reports_qr')}
+            className="w-12 h-12 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 flex items-center justify-center transition-colors"
+          >
+            <FileSpreadsheet className="w-6 h-6" />
+          </button>
+        </div>
+      </div>
+
+      {/* Banner Customizer Modal */}
+      <BannerCustomizerModal
+        isOpen={isBannerCustomizerOpen}
+        onClose={() => setIsBannerCustomizerOpen(false)}
+      />
+
+      {/* Dashboard Summary Print Modal */}
+      <DashboardSummaryPrintModal
+        isOpen={isPrintSummaryOpen}
+        onClose={() => setIsPrintSummaryOpen(false)}
+      />
     </div>
   );
 };

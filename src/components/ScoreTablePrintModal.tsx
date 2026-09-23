@@ -436,7 +436,7 @@ export const ScoreTablePrintModal: React.FC<ScoreTablePrintModalProps> = ({
             </div>
 
             {/* Official Primary School Score Matrix Table */}
-            <div className="relative z-1 overflow-x-auto print:overflow-visible no-scrollbar">
+            <div className="relative z-1 overflow-x-auto print:overflow-visible">
               <table className={`w-full text-center border-collapse border border-slate-900 text-slate-950 font-battambang ${
                 compactFont ? 'text-[10px] leading-tight' : 'text-xs'
               }`}>
@@ -721,12 +721,12 @@ export const ScoreTablePrintModal: React.FC<ScoreTablePrintModalProps> = ({
             {/* Official Signatures & Round Red Seal */}
             {showSignatures && (
               <MoEYSOfficialDualSignatures
-                schoolLocation={schoolProfile.district || schoolProfile.addressKhmer || 'ភ្នំពុំ'}
+                schoolLocation={schoolProfile.district || schoolProfile.addressKhmer || 'ភ្នំពេញ'}
                 principalTitle="នាយកសាលា"
-                principalName={schoolProfile.principalName || 'លោក លីម សន'}
+                principalName={schoolProfile.principalName}
                 reviewerTitle="បានឃើញ និងឯកភាព"
                 teacherRoleTitle="គ្រូបន្ទុកថ្នាក់"
-                teacherName={homeroomTeacher?.nameKhmer || ''}
+                teacherName={homeroomTeacher?.nameKhmer || 'សែម ស្រីភឿន'}
                 teacherNameColor="blue"
                 showStampPlaceholder={showOfficialStamp}
                 className="mt-8 pt-4 border-t-2 border-slate-800 page-break-inside-avoid"

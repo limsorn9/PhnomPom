@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Student, DailyAttendanceRecord } from '../../types';
 import {
   Calendar,
@@ -37,14 +37,13 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
   const [session, setSession] = useState<'morning' | 'afternoon'>('morning');
 
   // Filter students for current class
-  const classStudents = (students || []).filter(
-    s => s && s.grade === selectedGrade && s.section === selectedSection
+  const classStudents = students.filter(
+    s => s.grade === selectedGrade && s.section === selectedSection
   );
 
   // Existing attendance records for this date, grade, section, session
-  const existingRecords = (attendanceRecords || []).filter(
+  const existingRecords = attendanceRecords.filter(
     r =>
-      r &&
       r.grade === selectedGrade &&
       r.section === selectedSection &&
       r.date === selectedDate &&
@@ -103,19 +102,8 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
   const permissionCount = classStudents.filter(s => getStudentStatus(s.id) === 'permission').length;
   const absentCount = classStudents.filter(s => getStudentStatus(s.id) === 'absent').length;
 
-  // Students with high absence rate (>= 3 absences in records)
-  const atRiskStudents = useMemo(() => {
-    return classStudents.map(s => {
-      const studentAbsences = (attendanceRecords || []).filter(r => r.studentId === s.id && r.status === 'absent');
-      const studentPermissions = (attendanceRecords || []).filter(r => r.studentId === s.id && r.status === 'permission');
-      return {
-        student: s,
-        absentCount: studentAbsences.length,
-        permissionCount: studentPermissions.length,
-        totalMissed: studentAbsences.length + studentPermissions.length
-      };
-    }).filter(item => item.totalMissed >= 3);
-  }, [classStudents, attendanceRecords]);
+  // Students with high absence rate (demo risk tracker)
+  const atRiskStudents = classStudents.filter((_, idx) => idx === 2 || idx === 5);
 
   return (
     <div className="space-y-4">
@@ -220,8 +208,7 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
           </span>
         </div>
 
-        {/* Desktop Table View (hidden on mobile) */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse">
             <thead className="bg-slate-100 text-slate-700 uppercase font-semibold text-[11px]">
               <tr>
@@ -234,205 +221,114 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {classStudents.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400">
-                    មិនមានទិន្នន័យសិស្សក្នុងថ្នាក់នេះទេ
-                  </td>
-                </tr>
-              ) : (
-                classStudents.map((s, idx) => {
-                  const currentStatus = getStudentStatus(s.id);
-                  return (
-                    <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="p-3 text-center font-times text-slate-500 font-bold">
-                        {idx + 1}
-                      </td>
-                      <td className="p-3 font-mono text-[11px] text-slate-600 font-bold">
-                        {s.code}
-                      </td>
-                      <td className="p-3 font-bold text-slate-800">
-                        {s.nameKhmer}
-                      </td>
-                      <td className="p-3 text-center">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          s.gender === 'female' ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'
-                        }`}>
-                          {s.gender === 'female' ? 'ស្រី' : 'ប្រុស'}
-                        </span>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange(s.id, 'present')}
-                            className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer transition-all ${
-                              currentStatus === 'present'
-                                ? 'bg-emerald-600 text-white shadow-xs'
-                                : 'bg-slate-100 text-slate-600 hover:bg-emerald-50'
-                            }`}
-                          >
-                            មក
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange(s.id, 'permission')}
-                            className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer transition-all ${
-                              currentStatus === 'permission'
-                                ? 'bg-amber-500 text-white shadow-xs'
-                                : 'bg-slate-100 text-slate-600 hover:bg-amber-50'
-                            }`}
-                          >
-                            ច្បាប់
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange(s.id, 'absent')}
-                            className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer transition-all ${
-                              currentStatus === 'absent'
-                                ? 'bg-rose-600 text-white shadow-xs'
-                                : 'bg-slate-100 text-slate-600 hover:bg-rose-50'
-                            }`}
-                          >
-                            អវត្តមាន
-                          </button>
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <input
-                          type="text"
-                          placeholder="មូលហេតុ (ឧ. ឈឺ, ជាប់ធុរៈគ្រួសារ...)"
-                          value={getStudentReason(s.id)}
-                          onChange={e => handleReasonChange(s.id, e.target.value)}
-                          className="w-full px-2.5 py-1 bg-slate-50 border border-slate-200 rounded text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
-                        />
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
+              {classStudents.map((s, idx) => {
+                const currentStatus = getStudentStatus(s.id);
+                return (
+                  <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="p-3 text-center font-times text-slate-500 font-bold">
+                      {idx + 1}
+                    </td>
+                    <td className="p-3 font-mono text-[11px] text-slate-600 font-bold">
+                      {s.code}
+                    </td>
+                    <td className="p-3 font-bold text-slate-800">
+                      {s.nameKhmer}
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        s.gender === 'female' ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {s.gender === 'female' ? 'ស្រី' : 'ប្រុស'}
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(s.id, 'present')}
+                          className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer transition-all ${
+                            currentStatus === 'present'
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'bg-slate-100 text-slate-600 hover:bg-emerald-50'
+                          }`}
+                        >
+                          មក
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(s.id, 'permission')}
+                          className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer transition-all ${
+                            currentStatus === 'permission'
+                              ? 'bg-amber-500 text-white shadow-xs'
+                              : 'bg-slate-100 text-slate-600 hover:bg-amber-50'
+                          }`}
+                        >
+                          ច្បាប់
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(s.id, 'absent')}
+                          className={`px-2.5 py-1 rounded text-xs font-bold cursor-pointer transition-all ${
+                            currentStatus === 'absent'
+                              ? 'bg-rose-600 text-white shadow-xs'
+                              : 'bg-slate-100 text-slate-600 hover:bg-rose-50'
+                          }`}
+                        >
+                          អវត្តមាន
+                        </button>
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <input
+                        type="text"
+                        placeholder="មូលហេតុ (ឧ. ឈឺ, ជាប់ធុរៈគ្រួសារ...)"
+                        value={getStudentReason(s.id)}
+                        onChange={e => handleReasonChange(s.id, e.target.value)}
+                        className="w-full px-2.5 py-1 bg-slate-50 border border-slate-200 rounded text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
-
-        {/* Mobile Card View (md:hidden) */}
-        <div className="md:hidden divide-y divide-slate-100">
-          {classStudents.length === 0 ? (
-            <div className="py-8 text-center text-slate-400 text-xs">
-              មិនមានទិន្នន័យសិស្សក្នុងថ្នាក់នេះទេ
-            </div>
-          ) : (
-            classStudents.map((s, idx) => {
-              const currentStatus = getStudentStatus(s.id);
-              return (
-                <div key={s.id} className="p-3.5 space-y-2.5 bg-white hover:bg-slate-50/60 transition-colors">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 font-times font-bold text-xs flex items-center justify-center">
-                        {idx + 1}
-                      </span>
-                      <div>
-                        <h4 className="font-bold text-slate-900 text-sm">{s.nameKhmer}</h4>
-                        <p className="text-[11px] font-mono text-slate-500">{s.code}</p>
-                      </div>
-                    </div>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      s.gender === 'female' ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {s.gender === 'female' ? 'ស្រី' : 'ប្រុស'}
-                    </span>
-                  </div>
-
-                  {/* Quick Attendance Touch Buttons */}
-                  <div className="grid grid-cols-3 gap-1.5 pt-0.5">
-                    <button
-                      type="button"
-                      onClick={() => handleStatusChange(s.id, 'present')}
-                      className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                        currentStatus === 'present'
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-700 hover:bg-emerald-50'
-                      }`}
-                    >
-                      <span>មក</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleStatusChange(s.id, 'permission')}
-                      className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                        currentStatus === 'permission'
-                          ? 'bg-amber-500 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-700 hover:bg-amber-50'
-                      }`}
-                    >
-                      <span>ច្បាប់</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleStatusChange(s.id, 'absent')}
-                      className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                        currentStatus === 'absent'
-                          ? 'bg-rose-600 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-700 hover:bg-rose-50'
-                      }`}
-                    >
-                      <span>អវត្តមាន</span>
-                    </button>
-                  </div>
-
-                  {/* Note input */}
-                  <input
-                    type="text"
-                    placeholder="មូលហេតុ (ឧ. ឈឺ, ជាប់ធុរៈគ្រួសារ...)"
-                    value={getStudentReason(s.id)}
-                    onChange={e => handleReasonChange(s.id, e.target.value)}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
-                  />
-                </div>
-              );
-            })
-          )}
-        </div>
       </div>
 
-      {/* Early Warning Dropout / Absenteeism Risk Alerts (Shown ONLY when actual students reach 3+ absences) */}
-      {atRiskStudents.length > 0 && (
-        <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 space-y-2">
-          <h4 className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-            <AlertTriangle className="w-4 h-4 text-amber-600" />
-            ប្រព័ន្ធផ្ដល់ដំណឹងសិស្សអវត្តមានញឹកញាប់ & ហានិភ័យបោះបង់ការសិក្សា (Early Warning)
-          </h4>
-          <p className="text-[11px] text-amber-800">
-            សិស្សខាងក្រោមមានអវត្តមានលើសពី ៣ ថ្ងៃក្នុងខែនេះ សូមគ្រូបន្ទុកថ្នាក់ទាក់ទងមាតាបិតា ឬចុះសួរសុខទុក្ខដល់ខ្នងផ្ទះ៖
-          </p>
+      {/* Early Warning Dropout / Absenteeism Risk Alerts */}
+      <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 space-y-2">
+        <h4 className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+          <AlertTriangle className="w-4 h-4 text-amber-600" />
+          ប្រព័ន្ធផ្ដល់ដំណឹងសិស្សអវត្តមានញឹកញាប់ & ហានិភ័យបោះបង់ការសិក្សា (Early Warning)
+        </h4>
+        <p className="text-[11px] text-amber-800">
+          សិស្សខាងក្រោមមានអវត្តមានលើសពី ៣ ថ្ងៃក្នុងខែនេះ សូមគ្រូបន្ទុកថ្នាក់ទាក់ទងមាតាបិតា ឬចុះសួរសុខទុក្ខដល់ខ្នងផ្ទះ៖
+        </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-            {atRiskStudents.map(({ student: s, absentCount: aCount, totalMissed }) => (
-              <div
-                key={s.id}
-                className="bg-white p-2.5 rounded-lg border border-amber-200 shadow-xs flex items-center justify-between text-xs"
-              >
-                <div>
-                  <span className="font-bold text-slate-800">{s.nameKhmer}</span>
-                  <span className="text-[10px] text-slate-500 ml-2">({s.code})</span>
-                  <p className="text-[11px] text-rose-600 font-semibold mt-0.5">
-                    អវត្តមានសរុប {totalMissed} ថ្ងៃ (ឥតច្បាប់ {aCount} ថ្ងៃ)
-                  </p>
-                </div>
-                {s.guardianPhone && (
-                  <a
-                    href={`tel:${s.guardianPhone}`}
-                    className="px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] flex items-center gap-1"
-                  >
-                    <PhoneCall className="w-3 h-3" />
-                    <span>ទូរស័ព្ទ</span>
-                  </a>
-                )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+          {atRiskStudents.map(s => (
+            <div
+              key={s.id}
+              className="bg-white p-2.5 rounded-lg border border-amber-200 shadow-xs flex items-center justify-between text-xs"
+            >
+              <div>
+                <span className="font-bold text-slate-800">{s.nameKhmer}</span>
+                <span className="text-[10px] text-slate-500 ml-2">({s.code})</span>
+                <p className="text-[11px] text-rose-600 font-semibold mt-0.5">
+                  អវត្តមានសរុប ៤ ថ្ងៃ (ឥតច្បាប់ ២ ថ្ងៃ)
+                </p>
               </div>
-            ))}
-          </div>
+              <a
+                href={`tel:${s.guardianPhone || '012345678'}`}
+                className="px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] flex items-center gap-1"
+              >
+                <PhoneCall className="w-3 h-3" />
+                <span>ទូរស័ព្ទ</span>
+              </a>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 };

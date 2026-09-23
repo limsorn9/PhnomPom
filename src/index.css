@@ -2,40 +2,32 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
 @layer base {
   html {
-    font-size: 20px;
+    font-size: 14.5px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
 
-  @media (min-width: 1280px) {
-    html {
-      font-size: 21px;
-    }
-  }
-
   body {
     font-family: 'Kantumruy Pro', 'Khmer OS Battambang', 'Battambang', 'Siemreap', 'Noto Serif Khmer', system-ui, sans-serif;
-    font-size: 1rem;
-    line-height: 1.7;
-    letter-spacing: 0.015em;
+    line-height: 1.65;
+    letter-spacing: 0.01em;
+  }
+
+  /* Smooth Theme Transition for Dark/Light Mode Switching */
+  html.theme-transition,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition: background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.25s ease,
+                fill 0.25s ease,
+                stroke 0.25s ease,
+                box-shadow 0.35s ease !important;
+    transition-delay: 0s !important;
   }
 
   /* Dark Theme Default Overrides */
@@ -53,20 +45,18 @@
   /* Khmer Heading Fonts */
   .font-moul {
     font-family: 'Khmer OS Muol Light', 'Khmer OS Muol', 'Moul', 'Noto Serif Khmer', serif;
-    line-height: 2.2;
-    padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
-    letter-spacing: 0.025em;
+    line-height: 1.6;
+    letter-spacing: 0.02em;
   }
 
   .font-battambang {
     font-family: 'Kantumruy Pro', 'Khmer OS Battambang', 'Battambang', 'Siemreap', sans-serif;
-    line-height: 1.7;
+    line-height: 1.65;
   }
 
   .font-kantumruy {
     font-family: 'Kantumruy Pro', 'Khmer OS Battambang', 'Battambang', 'Siemreap', sans-serif;
-    line-height: 1.7;
+    line-height: 1.65;
   }
 
   .font-times {
@@ -80,14 +70,7 @@
 
   input, select, textarea {
     font-family: 'Kantumruy Pro', 'Khmer OS Battambang', 'Battambang', sans-serif;
-    font-size: 0.95rem;
-    line-height: 1.65;
-  }
-
-  /* Enhance small text badges and labels in Khmer */
-  .text-xs {
-    font-size: 0.8rem;
-    line-height: 1.45;
+    line-height: 1.6;
   }
 }
 
@@ -403,156 +386,6 @@ html.dark .border-indigo-200 {
     border: 4px double #d97706 !important;
     padding: 12mm !important;
   }
-
-  /* -------------------------------------------------------------
-     Specialized A4 Print Utility Classes for Student Report Cards
-     & Teacher Schedules (ធានាទម្រង់ A4 ត្រឹមត្រូវ និងលាក់ UI មិនចាំបាច់)
-     ------------------------------------------------------------- */
-  .print-a4-portrait {
-    width: 210mm !important;
-    max-width: 210mm !important;
-    min-height: 297mm !important;
-    margin: 0 auto !important;
-    padding: 8mm 10mm !important;
-    background: #ffffff !important;
-    color: #000000 !important;
-    box-sizing: border-box !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  .print-a4-landscape {
-    width: 297mm !important;
-    max-width: 297mm !important;
-    min-height: 210mm !important;
-    margin: 0 auto !important;
-    padding: 8mm 10mm !important;
-    background: #ffffff !important;
-    color: #000000 !important;
-    box-sizing: border-box !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  /* Student Report Cards (ព្រឹត្តិបត្រពិន្ទុ និងចំណាត់ថ្នាក់សិស្ស) */
-  .report-card-print {
-    width: 100% !important;
-    max-width: 210mm !important;
-    background: #ffffff !important;
-    color: #000000 !important;
-    font-family: 'Kantumruy Pro', 'Khmer OS Battambang', 'Noto Serif Khmer', serif !important;
-    padding: 6mm 8mm !important;
-    border: 1.5px solid #0f172a !important;
-    box-shadow: none !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    margin-bottom: 8mm !important;
-  }
-
-  .report-card-print .report-card-header {
-    border-bottom: 2px solid #0f172a !important;
-    padding-bottom: 4mm !important;
-    margin-bottom: 4mm !important;
-    text-align: center !important;
-  }
-
-  .report-card-print table {
-    border: 1.5px solid #000000 !important;
-    border-collapse: collapse !important;
-    width: 100% !important;
-    margin: 3mm 0 !important;
-  }
-
-  .report-card-print table th,
-  .report-card-print table td {
-    border: 1px solid #000000 !important;
-    padding: 3px 5px !important;
-    font-size: 8.5pt !important;
-    line-height: 1.35 !important;
-    color: #000000 !important;
-  }
-
-  .report-card-print table th {
-    background-color: #f1f5f9 !important;
-    font-weight: 700 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  /* Teacher Schedules & Timetables (កាលវិភាគបង្រៀនរបស់គ្រូ) */
-  .teacher-schedule-print {
-    width: 100% !important;
-    max-width: 297mm !important;
-    background: #ffffff !important;
-    color: #000000 !important;
-    padding: 6mm 10mm !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    font-family: 'Kantumruy Pro', 'Khmer OS Battambang', serif !important;
-  }
-
-  .teacher-schedule-print table {
-    width: 100% !important;
-    border-collapse: collapse !important;
-    border: 1.5px solid #0f172a !important;
-  }
-
-  .teacher-schedule-print th,
-  .teacher-schedule-print td {
-    border: 1px solid #334155 !important;
-    padding: 4px 6px !important;
-    font-size: 9pt !important;
-    text-align: center !important;
-  }
-
-  .teacher-schedule-print th {
-    background-color: #e2e8f0 !important;
-    font-weight: bold !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  /* Hide UI elements during print */
-  .print-hide-ui,
-  .no-print,
-  .print-hidden,
-  .btn,
-  .toggle-switch,
-  .toast-container,
-  .dropdown-menu,
-  .action-bar,
-  .search-bar {
-    display: none !important;
-  }
-
-  /* Specific Signature and Stamp Block */
-  .print-signature-box {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: flex-start !important;
-    margin-top: 6mm !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    font-size: 9pt !important;
-  }
-
-  .print-signature-col {
-    text-align: center !important;
-    width: 30% !important;
-    min-height: 25mm !important;
-  }
-
-  .print-clean-border {
-    border: 1px solid #000000 !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-  }
-
-  .print-exact-colors {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
-  }
 }
 
 /* Custom smooth scrollbar */
@@ -807,281 +640,4 @@ html.dark .border-indigo-200 {
   animation: musicNoteFloat 1.8s ease-out infinite;
 }
 
-/* -------------------------------------------------------------
-   Print & PDF Export Global Styles (Zero Scrollbars & A4 Alignment)
-   ------------------------------------------------------------- */
-.no-scrollbar {
-  -ms-overflow-style: none !important;
-  scrollbar-width: none !important;
-}
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-
-/* Dedicated Print-Friendly Class that overrides all scroll-related styles */
-.print-view,
-.print-view *,
-.app-print-active,
-.app-print-active * {
-  overflow: visible !important;
-  overflow-x: visible !important;
-  overflow-y: visible !important;
-  height: auto !important;
-  max-height: none !important;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-
-.print-view::-webkit-scrollbar,
-.print-view *::-webkit-scrollbar,
-.app-print-active::-webkit-scrollbar,
-.app-print-active *::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-
-.pdf-export-active {
-  overflow: visible !important;
-  height: auto !important;
-  max-height: none !important;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-
-.pdf-export-active * {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-
-.pdf-export-active *::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-
-.pdf-export-active .overflow-x-auto,
-.pdf-export-active .overflow-y-auto,
-.pdf-export-active .overflow-auto,
-.pdf-export-active [class*="overflow-"] {
-  overflow: visible !important;
-  height: auto !important;
-  max-height: none !important;
-  max-width: none !important;
-}
-
-/* Specific Media Query Block for @media print */
-@media print {
-  @page {
-    size: A4 portrait;
-    margin: 8mm;
-  }
-
-  @page landscape {
-    size: A4 landscape;
-    margin: 6mm;
-  }
-
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
-    box-shadow: none !important;
-    text-shadow: none !important;
-  }
-
-  *::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-  }
-
-  /* Globally force overflow visible on all scroll containers and body */
-  html,
-  body,
-  #root,
-  main,
-  div,
-  section,
-  article,
-  .overflow-x-auto,
-  .overflow-y-auto,
-  .overflow-auto,
-  .overflow-hidden,
-  .overflow-scroll,
-  [class*="overflow-"] {
-    overflow: visible !important;
-    overflow-x: visible !important;
-    overflow-y: visible !important;
-    height: auto !important;
-    max-height: none !important;
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
-  }
-
-  body, html {
-    background: #ffffff !important;
-    color: #000000 !important;
-    font-family: 'Battambang', 'Kantumruy Pro', sans-serif !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  .no-print,
-  .print\:hidden,
-  [data-no-print="true"],
-  nav,
-  aside,
-  button:not(.print\:inline-block),
-  .fixed:not(.print\:static),
-  .sticky {
-    display: none !important;
-  }
-
-  /* Activity logs and tables clean rendering */
-  table {
-    width: 100% !important;
-    max-width: 100% !important;
-    border-collapse: collapse !important;
-    page-break-inside: auto;
-  }
-
-  /* Compact typography and padding during print to prevent horizontal overflow on A4 */
-  .activity-log-table th,
-  .activity-log-table td,
-  table.print-compact th,
-  table.print-compact td {
-    padding: 3px 4px !important;
-    font-size: 9.5px !important;
-    line-height: 1.25 !important;
-  }
-
-  .activity-log-table th {
-    font-size: 10px !important;
-    font-weight: bold !important;
-  }
-
-  tr {
-    page-break-inside: avoid !important;
-    page-break-after: auto;
-    break-inside: avoid !important;
-  }
-
-  /* Page break every 20 items in print output */
-  .print-page-break,
-  tr.print-break-after-20 {
-    page-break-after: always !important;
-    break-after: page !important;
-  }
-
-  thead {
-    display: table-header-group !important;
-  }
-
-  tfoot {
-    display: table-footer-group !important;
-  }
-
-  .page-break-before {
-    page-break-before: always !important;
-    break-before: page !important;
-  }
-
-  .page-break-inside-avoid {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  /* -------------------------------------------------------------
-     Official MoEYS Report Card Print Layout (.report-card-print)
-     Ensures high contrast, crisp black and white printing
-     ------------------------------------------------------------- */
-  .report-card-print {
-    width: 100% !important;
-    max-width: 210mm !important;
-    margin: 0 auto !important;
-    padding: 6mm 8mm !important;
-    background: #ffffff !important;
-    color: #000000 !important;
-    font-family: 'Battambang', 'Kantumruy Pro', sans-serif !important;
-    box-sizing: border-box !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  .report-card-print table {
-    border-collapse: collapse !important;
-    width: 100% !important;
-  }
-
-  .report-card-print th,
-  .report-card-print td {
-    border: 1px solid #000000 !important;
-    color: #000000 !important;
-  }
-
-  .report-card-print thead th {
-    background-color: #f3f4f6 !important;
-    color: #000000 !important;
-    font-weight: bold !important;
-  }
-
-  /* Dedicated Principal Signature QR Code Slot in Black & White */
-  .report-card-print .principal-signature-qr-slot,
-  .principal-signature-qr-slot {
-    border: 1.5px solid #000000 !important;
-    background-color: #ffffff !important;
-    color: #000000 !important;
-    box-shadow: none !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    display: inline-flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-
-  .report-card-print .principal-signature-qr-slot img,
-  .report-card-print .principal-signature-qr-slot svg,
-  .principal-signature-qr-slot .qr-code-bw-img,
-  .qr-code-bw-img {
-    image-rendering: -moz-crisp-edges !important;
-    image-rendering: -webkit-optimize-contrast !important;
-    image-rendering: crisp-edges !important;
-    image-rendering: pixelated !important;
-    filter: contrast(200%) grayscale(100%) brightness(0%) invert(0) !important;
-    background-color: #ffffff !important;
-    border: none !important;
-  }
-
-  .report-card-print .principal-signature-qr-slot p,
-  .principal-signature-qr-slot p {
-    color: #000000 !important;
-    font-weight: 700 !important;
-  }
-
-  .report-card-print .signatures-container {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-}
-
-/* Standalone Report Card Print Mode Utilities */
-.report-card-print {
-  color: #0f172a;
-}
-
-.report-card-print .principal-signature-qr-slot {
-  border: 1.5px solid #0f172a;
-  background-color: #ffffff;
-}
-
-.report-card-print .principal-signature-qr-slot .qr-code-bw-img {
-  image-rendering: pixelated;
-}

@@ -50,13 +50,13 @@ export const GradesTab: React.FC<GradesTabProps> = ({
   ];
 
   // Class students
-  const classStudents = (students || []).filter(
-    s => s && s.grade === selectedGrade && s.section === selectedSection
+  const classStudents = students.filter(
+    s => s.grade === selectedGrade && s.section === selectedSection
   );
 
   // Score records for class and month
-  const classScores = (scores || []).filter(
-    s => s && s.grade === selectedGrade && s.section === selectedSection && s.monthOrSemester === selectedMonth
+  const classScores = scores.filter(
+    s => s.grade === selectedGrade && s.section === selectedSection && s.monthOrSemester === selectedMonth
   );
 
   // Local draft scores state for smooth editing
@@ -109,19 +109,17 @@ export const GradesTab: React.FC<GradesTabProps> = ({
   };
 
   // Compute calculated table with rankings
-  const studentRows = classStudents
-    .filter(Boolean)
-    .map(s => {
-      const current = getStudentScore(s.id);
-      const total = current.khmer + current.math + current.science + current.social + current.pe;
-      const average = parseFloat((total / 5).toFixed(2));
-      return {
-        student: s,
-        scores: current,
-        total,
-        average
-      };
-    });
+  const studentRows = classStudents.map(s => {
+    const current = getStudentScore(s.id);
+    const total = current.khmer + current.math + current.science + current.social + current.pe;
+    const average = parseFloat((total / 5).toFixed(2));
+    return {
+      student: s,
+      scores: current,
+      total,
+      average
+    };
+  });
 
   // Sort descending by average to compute ranks
   studentRows.sort((a, b) => b.average - a.average);
@@ -133,7 +131,7 @@ export const GradesTab: React.FC<GradesTabProps> = ({
   const released = isResultReleased(selectedGrade, selectedSection, selectedMonth);
 
   // Top 3 students
-  const topStudents = rankedRows.filter(r => r && r.student).slice(0, 3);
+  const topStudents = rankedRows.slice(0, 3);
 
   return (
     <div className="space-y-4">
@@ -239,8 +237,7 @@ export const GradesTab: React.FC<GradesTabProps> = ({
           </span>
         </div>
 
-        {/* Desktop Table View (hidden on mobile) */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="overflow-x-auto">
           <table className="w-full text-xs text-left border-collapse">
             <thead className="bg-slate-100 text-slate-700 font-semibold text-[11px]">
               <tr>
@@ -335,109 +332,6 @@ export const GradesTab: React.FC<GradesTabProps> = ({
               })}
             </tbody>
           </table>
-        </div>
-
-        {/* Mobile Card View (md:hidden) */}
-        <div className="md:hidden divide-y divide-slate-100">
-          {rankedRows.length === 0 ? (
-            <div className="py-8 text-center text-slate-400 text-xs">
-              មិនមានទិន្នន័យសិស្សក្នុងថ្នាក់នេះទេ
-            </div>
-          ) : (
-            rankedRows.map(row => {
-              const s = row.student;
-              const mention = row.average >= 9 ? 'A' : row.average >= 8 ? 'B' : row.average >= 7 ? 'C' : row.average >= 6 ? 'D' : row.average >= 5 ? 'E' : 'F';
-              const pass = row.average >= 5.0;
-
-              const subjectsList: { key: 'khmer' | 'math' | 'science' | 'social' | 'pe'; label: string }[] = [
-                { key: 'khmer', label: 'ភាសាខ្មែរ' },
-                { key: 'math', label: 'គណិតវិទ្យា' },
-                { key: 'science', label: 'វិទ្យាសាស្ត្រ' },
-                { key: 'social', label: 'សិក្សាសង្គម' },
-                { key: 'pe', label: 'អប់រំកាយ' },
-              ];
-
-              return (
-                <div key={s.id} className="p-3.5 space-y-3 bg-white hover:bg-slate-50/50 transition-colors">
-                  {/* Top Header: Rank, Name, Gender, Badges */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-times font-bold text-sm shrink-0 shadow-2xs ${
-                        row.rank === 1 ? 'bg-amber-100 text-amber-800 border border-amber-300' :
-                        row.rank === 2 ? 'bg-slate-200 text-slate-800 border border-slate-300' :
-                        row.rank === 3 ? 'bg-orange-100 text-orange-800 border border-orange-300' : 'bg-slate-100 text-slate-600 border border-slate-200'
-                      }`}>
-                        #{row.rank}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <h4 className="font-bold text-slate-900 text-sm">{s.nameKhmer}</h4>
-                          <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
-                            s.gender === 'female' ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'
-                          }`}>
-                            {s.gender === 'female' ? 'ស្រី' : 'ប្រុស'}
-                          </span>
-                        </div>
-                        <p className="text-[11px] font-mono text-slate-500">{s.code}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <span className={`px-2 py-0.5 rounded text-[11px] font-bold font-times ${
-                        mention === 'A' ? 'bg-emerald-100 text-emerald-800' :
-                        mention === 'B' ? 'bg-blue-100 text-blue-800' :
-                        mention === 'C' ? 'bg-teal-100 text-teal-800' :
-                        mention === 'D' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
-                      }`}>
-                        និទ្ទេស {mention}
-                      </span>
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                        pass ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                      }`}>
-                        {pass ? 'ជាប់' : 'ធ្លាក់'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Summary Metric Strip */}
-                  <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500 font-medium">ពិន្ទុសរុប (50)៖</span>
-                      <span className="font-times font-bold text-slate-800">{row.total.toFixed(1)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500 font-medium">មធ្យមភាគ (10)៖</span>
-                      <span className="font-times font-bold text-blue-700">{row.average.toFixed(2)}</span>
-                    </div>
-                  </div>
-
-                  {/* Subject Scores Inputs / Badges Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-0.5">
-                    {subjectsList.map(sub => (
-                      <div key={sub.key} className="bg-white border border-slate-200 rounded-lg p-2 flex items-center justify-between">
-                        <span className="text-[11px] text-slate-600 font-medium">{sub.label}</span>
-                        {isEditing ? (
-                          <input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            max="10"
-                            value={row.scores[sub.key]}
-                            onChange={e => handleScoreChange(s.id, sub.key, parseFloat(e.target.value) || 0)}
-                            className="w-12 text-center py-0.5 bg-blue-50 border border-blue-300 rounded font-times font-bold text-xs text-blue-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          />
-                        ) : (
-                          <span className="font-times font-bold text-xs text-slate-800">
-                            {row.scores[sub.key].toFixed(1)}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })
-          )}
         </div>
       </div>
     </div>

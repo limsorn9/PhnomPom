@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import * as d3 from 'd3';
+import React, { useState, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { StudentScoreRecord, MonthlySubjectScores, Student, ExamSubject } from '../types';
 import { exportScoresToGoogleSheets } from '../services/googleSheets';
 import { getAccessToken, googleSignIn } from '../services/googleAuth';
-import { sendTelegramDirectMessage } from '../services/telegramService';
 import {
   BookOpen,
   School,
@@ -34,14 +32,7 @@ import {
   MessageSquare,
   Send,
   Check,
-  Trash2,
-  AlertTriangle,
-  Zap,
-  Edit3,
-  Calculator,
-  Palette,
-  Heart,
-  Compass
+  Trash2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -49,16 +40,9 @@ import {
   KhmerKbachCorner,
   MoEYSRoyalHeader,
   SchoolOfficialStamp,
-  AngkorPageWatermark,
-  MoEYSReportCardSignatures
+  AngkorPageWatermark
 } from './AngkorMotif';
 import { ScoreTablePrintModal } from './ScoreTablePrintModal';
-import {
-  PrincipalSignatureQRParams,
-  PrincipalSignatureQRSlot,
-  generateUniqueSignatureCode
-} from '../utils/reportCardSignatureQR';
-import { printElement } from '../utils/printUtils';
 
 const MONTHS_LIST = [
   'តុលា',
@@ -112,32 +96,15 @@ export const ClassroomScores: React.FC = () => {
     deleteStudentFeedback,
     language,
     t,
-    isDarkMode,
-    addActivityLog,
-    printSettings,
-    confirmAction,
-    isStudentRegisteredInAccounts,
-    autoGenerateStudentAccounts
+    isDarkMode
   } = useSchool();
 
-  // If teacher, default and lock to their assigned grade & section
-  const isTeacher = currentUser?.role === 'teacher';
-  const teacherGrade = currentUser?.assignedGrade || 1;
-  const teacherSection = currentUser?.assignedSection || 'ក';
-
-  const initialGrade = isTeacher ? teacherGrade : 6;
-  const initialSection = isTeacher ? teacherSection : 'ក';
+  // If teacher, default to their assigned grade & section
+  const initialGrade = currentUser?.role === 'teacher' && currentUser.assignedGrade ? currentUser.assignedGrade : 6;
+  const initialSection = currentUser?.role === 'teacher' && currentUser.assignedSection ? currentUser.assignedSection : 'ក';
 
   const [selectedGrade, setSelectedGrade] = useState<number>(initialGrade);
   const [selectedSection, setSelectedSection] = useState<string>(initialSection);
-
-  // Sync if teacher grade/section changes
-  useEffect(() => {
-    if (isTeacher) {
-      setSelectedGrade(teacherGrade);
-      setSelectedSection(teacherSection);
-    }
-  }, [isTeacher, teacherGrade, teacherSection]);
   const [selectedMonth, setSelectedMonth] = useState<string>('មករា');
   const [selectedStudentForReportCard, setSelectedStudentForReportCard] = useState<Student | null>(null);
   const [selectedStudentForHonor, setSelectedStudentForHonor] = useState<StudentScoreRecord | null>(null);
@@ -166,12 +133,9 @@ export const ClassroomScores: React.FC = () => {
   });
 
   // Filter students in current class
-  // តាមបទបញ្ជា៖ ចំណែកឈ្មោះសិស្ស បើគ្មានក្នុងគណនីទេ មិនអនុញ្ញាតឱ្យបង្ហាញជាដាច់ខាតក្នុងថ្នាក់នីមួយៗ
-  const rawClassStudents = students.filter(
+  const classStudents = students.filter(
     s => s.grade === selectedGrade && s.section === selectedSection && s.status !== 'transferred'
   );
-  const classStudents = rawClassStudents.filter(s => isStudentRegisteredInAccounts(s));
-  const unverifiedStudents = rawClassStudents.filter(s => !isStudentRegisteredInAccounts(s));
 
   // Find Homeroom Teacher
   const homeroomTeacher = teachers.find(
@@ -244,35 +208,6 @@ export const ClassroomScores: React.FC = () => {
     e.preventDefault();
     if (!activeStudentForScoreEdit) return;
 
-    // Validate standard subjects
-    const standardSubjects: { key: keyof typeof singleScoreForm; nameKhmer: string; max: number }[] = [
-      { key: 'khmerReading', nameKhmer: 'ភាសាខ្មែរ (អំណាន)', max: 10 },
-      { key: 'khmerWriting', nameKhmer: 'ភាសាខ្មែរ (សំណេរ)', max: 10 },
-      { key: 'mathematics', nameKhmer: 'គណិតវិទ្យា', max: 10 },
-      { key: 'scienceSocial', nameKhmer: 'វិទ្យាសាស្ត្រ និងសង្គម', max: 10 },
-      { key: 'moralCivics', nameKhmer: 'សីលធម៌ និងពលរដ្ឋ', max: 10 },
-      { key: 'artsPhysical', nameKhmer: 'សិល្បៈ និងកាយវិការ', max: 10 }
-    ];
-
-    for (const sub of standardSubjects) {
-      const val = Number(singleScoreForm[sub.key] ?? 0);
-      if (isNaN(val) || val < 0 || val > sub.max) {
-        showToast(`⚠️ ពិន្ទុមុខវិជ្ជា «${sub.nameKhmer}» មិនត្រឹមត្រូវ! ត្រូវនៅចន្លោះពី ០ ដល់ ${sub.max} (បានបញ្ចូល: ${val})`, 'error');
-        return;
-      }
-    }
-
-    // Validate dynamic subjects
-    for (const sub of examSubjects) {
-      if (singleScoreForm[sub.code] !== undefined) {
-        const val = Number(singleScoreForm[sub.code]);
-        if (isNaN(val) || val < 0 || val > sub.maxScore) {
-          showToast(`⚠️ ពិន្ទុមុខវិជ្ជា «${sub.nameKhmer}» មិនត្រឹមត្រូវ! ត្រូវនៅចន្លោះពី ០ ដល់ ${sub.maxScore} (បានបញ្ចូល: ${val})`, 'error');
-          return;
-        }
-      }
-    }
-
     // clean and prepare scores object
     const numericScores: MonthlySubjectScores = {
       khmerReading: Number(singleScoreForm.khmerReading || 0),
@@ -290,25 +225,15 @@ export const ClassroomScores: React.FC = () => {
       }
     });
 
-    confirmAction({
-      title: 'បញ្ជាក់ការរក្សាទុកពិន្ទុសិស្ស',
-      description: `តើលោកគ្រូ-អ្នកគ្រូប្រាកដជាចង់រក្សាទុកទិន្នន័យពិន្ទុសម្រាប់សិស្ស «${activeStudentForScoreEdit.nameKhmer}» ប្រចាំខែ «${selectedMonth}» ដែរឬទេ?`,
-      confirmLabel: 'យល់ព្រម រក្សាទុក',
-      cancelLabel: 'ត្រឡប់ក្រោយ',
-      intent: 'primary',
-      onConfirm: () => {
-        saveStudentScore({
-          studentId: activeStudentForScoreEdit.id,
-          monthOrSemester: selectedMonth,
-          academicYear: selectedAcademicYear,
-          scores: numericScores,
-          remarks: singleScoreForm.remarks
-        });
-
-        showToast(`បានរក្សាទុកពិន្ទុរបស់សិស្ស «${activeStudentForScoreEdit.nameKhmer}» ជោគជ័យ!`, 'success');
-        setActiveStudentForScoreEdit(null);
-      }
+    saveStudentScore({
+      studentId: activeStudentForScoreEdit.id,
+      monthOrSemester: selectedMonth,
+      academicYear: selectedAcademicYear,
+      scores: numericScores,
+      remarks: singleScoreForm.remarks
     });
+
+    setActiveStudentForScoreEdit(null);
   };
 
   const handleCreateNewSubject = (e: React.FormEvent) => {
@@ -318,35 +243,25 @@ export const ClassroomScores: React.FC = () => {
       return;
     }
 
-    confirmAction({
-      title: 'បញ្ជាក់ការបន្ថែមមុខវិជ្ជាប្រឡងថ្មី',
-      description: `តើអ្នកចង់បន្ថែមមុខវិជ្ជា «${newSubjectForm.nameKhmer}» (${newSubjectForm.code}) ទៅក្នុងប្រព័ន្ធមែនទេ?`,
-      confirmLabel: 'យល់ព្រម បន្ថែម',
-      cancelLabel: 'បោះបង់',
-      intent: 'primary',
-      onConfirm: () => {
-        addExamSubject({
-          code: newSubjectForm.code.trim().toLowerCase().replace(/\s+/g, '_'),
-          nameKhmer: newSubjectForm.nameKhmer.trim(),
-          nameLatin: newSubjectForm.nameLatin.trim() || newSubjectForm.nameKhmer.trim(),
-          category: newSubjectForm.category,
-          maxScore: Number(newSubjectForm.maxScore) || 10,
-          weight: Number(newSubjectForm.weight) || 1,
-          isDefault: false
-        });
-
-        setNewSubjectForm({
-          code: '',
-          nameKhmer: '',
-          nameLatin: '',
-          category: 'khmer',
-          maxScore: 10,
-          weight: 1
-        });
-        setShowSubjectSettingsModal(false);
-        showToast('បានបន្ថែមមុខវិជ្ជាថ្មីជោគជ័យ!', 'success');
-      }
+    addExamSubject({
+      code: newSubjectForm.code.trim().toLowerCase().replace(/\s+/g, '_'),
+      nameKhmer: newSubjectForm.nameKhmer.trim(),
+      nameLatin: newSubjectForm.nameLatin.trim() || newSubjectForm.nameKhmer.trim(),
+      category: newSubjectForm.category,
+      maxScore: Number(newSubjectForm.maxScore) || 10,
+      weight: Number(newSubjectForm.weight) || 1,
+      isDefault: false
     });
+
+    setNewSubjectForm({
+      code: '',
+      nameKhmer: '',
+      nameLatin: '',
+      category: 'khmer',
+      maxScore: 10,
+      weight: 1
+    });
+    setShowSubjectSettingsModal(false);
   };
 
   // Synchronize batchSubjectScores whenever selectedSubjectCode, class, month or scores change
@@ -372,60 +287,40 @@ export const ClassroomScores: React.FC = () => {
   }, [selectedSubjectCode, selectedGrade, selectedSection, selectedMonth, selectedAcademicYear, scores]);
 
   const handleSaveBatchSubjectScores = () => {
-    const activeSub = (examSubjects || []).find(s => s && s.code === selectedSubjectCode);
-    const maxLimit = activeSub?.maxScore || 10;
-
-    // Validate all scores in batch
-    for (const stu of classStudents) {
+    let savedCount = 0;
+    classStudents.forEach(stu => {
+      const existing = getStudentScore(stu.id);
       const studentScoreVal = Number(batchSubjectScores[stu.id] ?? 8.0);
-      if (isNaN(studentScoreVal) || studentScoreVal < 0 || studentScoreVal > maxLimit) {
-        showToast(`⚠️ ពិន្ទុរបស់សិស្ស «${stu.nameKhmer}» (${studentScoreVal}) មិនត្រឹមត្រូវ! ត្រូវនៅចន្លោះពី ០ ដល់ ${maxLimit}`, 'error');
-        return;
-      }
-    }
+      
+      const currentScores: MonthlySubjectScores = existing ? { ...existing.scores } : {
+        khmerReading: 8.0,
+        khmerWriting: 8.0,
+        mathematics: 8.0,
+        scienceSocial: 8.0,
+        moralCivics: 8.5,
+        artsPhysical: 8.5,
+      };
 
-    confirmAction({
-      title: 'បញ្ជាក់ការរក្សាទុកពិន្ទុមុខវិជ្ជាជាក្រុម',
-      description: `តើលោកគ្រូ-អ្នកគ្រូពិតជាចង់រក្សាទុកពិន្ទុមុខវិជ្ជា «${activeSub?.nameKhmer || selectedSubjectCode}» សម្រាប់សិស្សទាំង ${classStudents.length} នាក់ក្នុងថ្នាក់ទី ${selectedGrade}«${selectedSection}» មែនទេ?`,
-      confirmLabel: 'យល់ព្រម រក្សាទុក',
-      cancelLabel: 'ត្រឡប់ក្រោយ',
-      intent: 'primary',
-      onConfirm: () => {
-        let savedCount = 0;
-        classStudents.forEach(stu => {
-          const existing = getStudentScore(stu.id);
-          const studentScoreVal = Number(batchSubjectScores[stu.id] ?? 8.0);
-          
-          const currentScores: MonthlySubjectScores = existing ? { ...existing.scores } : {
-            khmerReading: 8.0,
-            khmerWriting: 8.0,
-            mathematics: 8.0,
-            scienceSocial: 8.0,
-            moralCivics: 8.5,
-            artsPhysical: 8.5,
-          };
+      currentScores[selectedSubjectCode] = studentScoreVal;
+      if (selectedSubjectCode === 'reading' || selectedSubjectCode === 'khmerReading') currentScores.khmerReading = studentScoreVal;
+      if (selectedSubjectCode === 'writing' || selectedSubjectCode === 'khmerWriting') currentScores.khmerWriting = studentScoreVal;
+      if (selectedSubjectCode === 'numbers' || selectedSubjectCode === 'mathematics') currentScores.mathematics = studentScoreVal;
+      if (selectedSubjectCode === 'science' || selectedSubjectCode === 'socialStudies' || selectedSubjectCode === 'scienceSocial') currentScores.scienceSocial = studentScoreVal;
+      if (selectedSubjectCode === 'moralCivics') currentScores.moralCivics = studentScoreVal;
+      if (selectedSubjectCode === 'homeEconomicsArts' || selectedSubjectCode === 'physicalHealth' || selectedSubjectCode === 'artsPhysical') currentScores.artsPhysical = studentScoreVal;
 
-          currentScores[selectedSubjectCode] = studentScoreVal;
-          if (selectedSubjectCode === 'reading' || selectedSubjectCode === 'khmerReading') currentScores.khmerReading = studentScoreVal;
-          if (selectedSubjectCode === 'writing' || selectedSubjectCode === 'khmerWriting') currentScores.khmerWriting = studentScoreVal;
-          if (selectedSubjectCode === 'numbers' || selectedSubjectCode === 'mathematics') currentScores.mathematics = studentScoreVal;
-          if (selectedSubjectCode === 'science' || selectedSubjectCode === 'socialStudies' || selectedSubjectCode === 'scienceSocial') currentScores.scienceSocial = studentScoreVal;
-          if (selectedSubjectCode === 'moralCivics') currentScores.moralCivics = studentScoreVal;
-          if (selectedSubjectCode === 'homeEconomicsArts' || selectedSubjectCode === 'physicalHealth' || selectedSubjectCode === 'artsPhysical') currentScores.artsPhysical = studentScoreVal;
-
-          saveStudentScore({
-            studentId: stu.id,
-            monthOrSemester: selectedMonth,
-            academicYear: selectedAcademicYear,
-            scores: currentScores,
-            remarks: existing?.remarks || 'ការសិក្សាល្អ'
-          });
-          savedCount++;
-        });
-
-        showToast(`បានរក្សាទុកពិន្ទុមុខវិជ្ជា «${activeSub?.nameKhmer || selectedSubjectCode}» សម្រាប់សិស្ស ${savedCount} នាក់ជោគជ័យ!`, 'success');
-      }
+      saveStudentScore({
+        studentId: stu.id,
+        monthOrSemester: selectedMonth,
+        academicYear: selectedAcademicYear,
+        scores: currentScores,
+        remarks: existing?.remarks || 'ការសិក្សាល្អ'
+      });
+      savedCount++;
     });
+
+    const activeSub = examSubjects.find(s => s.code === selectedSubjectCode);
+    showToast(`បានរក្សាទុកពិន្ទុមុខវិជ្ជា «${activeSub?.nameKhmer || selectedSubjectCode}» សម្រាប់សិស្ស ${savedCount} នាក់ជោគជ័យ!`);
   };
 
   const triggerCelebrateConfetti = (record: StudentScoreRecord) => {
@@ -472,64 +367,6 @@ export const ClassroomScores: React.FC = () => {
     }
   };
 
-  // Telegram Group Score Broadcast Handler
-  const [isBroadcastingTg, setIsBroadcastingTg] = useState(false);
-
-  const handleBroadcastClassScoresToTelegram = async () => {
-    const currentClassroom = classrooms.find(c => c.grade === selectedGrade && c.section === selectedSection);
-    const targetChatId = currentClassroom?.telegramChatId || '240224709';
-    const groupLabel = currentClassroom?.telegramGroupName || `ក្រុមតេលេក្រាម ថ្នាក់ទី${selectedGrade}${selectedSection}`;
-
-    if (activeScores.length === 0) {
-      showToast('⚠️ មិនទាន់មានពិន្ទុសម្រាប់ថ្នាក់នេះក្នុងខែនេះនៅឡើយទេ!', 'error');
-      return;
-    }
-
-    setIsBroadcastingTg(true);
-    try {
-      const sortedScores = [...activeScores].sort((a, b) => b.averageScore - a.averageScore);
-      const top3 = sortedScores.slice(0, 3);
-      const passCount = sortedScores.filter(s => s.resultStatus === 'ជាប់' || s.averageScore >= 5).length;
-      const passRate = sortedScores.length > 0 ? Math.round((passCount / sortedScores.length) * 100) : 100;
-
-      let honorList = '';
-      if (top3.length > 0) {
-        honorList = `\n🏆 *កិត្តិយសសិស្សឆ្នើមប្រចាំថ្នាក់៖*\n` +
-          top3.map((st, i) => {
-            const medal = i === 0 ? '🥇 លេខ១' : i === 1 ? '🥈 លេខ២' : '🥉 លេខ៣';
-            return `${medal}៖ *${st.studentNameKhmer}* (មធ្យមភាគ: ${st.averageScore.toFixed(2)} | និទ្ទេស: ${st.gradeLetter || 'A'})`;
-          }).join('\n');
-      }
-
-      const tgMessage = `📊 *${schoolProfile.nameKhmer} - ប្រកាសលទ្ធផលប្រឡង*\n\n` +
-        `🏫 *ថ្នាក់ទី៖* ថ្នាក់ទី ${selectedGrade}${selectedSection} (${groupLabel})\n` +
-        `📅 *ប្រចាំខែ៖* ${selectedMonth} (ឆ្នាំសិក្សា ${selectedAcademicYear})\n` +
-        `👨‍🏫 *គ្រូបន្ទុកថ្នាក់៖* ${homeroomTeacher?.nameKhmer || 'លោកគ្រូ/អ្នកគ្រូបន្ទុកថ្នាក់'}\n` +
-        `📈 *ស្ថិតិពិន្ទុ៖* សិស្សជាប់ ${passCount}/${sortedScores.length} នាក់ (អត្រាជាប់ ${passRate}%)\n` +
-        honorList + `\n\n` +
-        `📱 អាណាព្យាបាលសិស្សអាចចូលពិនិត្យសៀវភៅតាមដាន និងពិន្ទុលម្អិតលើគេហទំព័រសាលារៀនបានតាមរយៈគណនីសិស្ស។\n\n` +
-        `🙏 សូមអរគុណ និងសូមអបអរសាទរដល់ប្អូនៗទាំងអស់! ✨\n` +
-        `✍️ _នាយកសាលា៖ ${schoolProfile.principalNameKhmer || 'គណៈគ្រប់គ្រងសាលា'}_`;
-
-      const res = await sendTelegramDirectMessage(targetChatId, tgMessage);
-      if (res.success) {
-        showToast(`🎉 បានចាក់ផ្សាយលទ្ធផលប្រឡងទៅកាន់ «${groupLabel}» ជោគជ័យ!`, 'success');
-        addActivityLog({
-          userName: currentUser?.nameKhmer || 'នាយកសាលា',
-          role: currentUser?.role || 'director',
-          action: 'ចាក់ផ្សាយលទ្ធផលតាម Telegram',
-          details: `បានចាក់ផ្សាយលទ្ធផលថ្នាក់ទី ${selectedGrade}${selectedSection} ខែ ${selectedMonth} ទៅ Telegram (Chat ID: ${targetChatId})`
-        });
-      } else {
-        showToast(`បរាជ័យក្នុងការចាក់ផ្សាយ៖ ${res.message || 'Error'}`, 'error');
-      }
-    } catch (err: any) {
-      showToast(`កំហុសបណ្តាញ៖ ${err.message}`, 'error');
-    } finally {
-      setIsBroadcastingTg(false);
-    }
-  };
-
   return (
     <div className="space-y-6 font-kantumruy">
       {/* Grade and Class Header Selector */}
@@ -568,40 +405,31 @@ export const ClassroomScores: React.FC = () => {
               </select>
             </div>
 
-            {isTeacher ? (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-900 rounded-xl text-xs font-bold shadow-xs">
-                <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-                <span>ថ្នាក់ទី {teacherGrade}«{teacherSection}»</span>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center bg-slate-100 p-1 rounded-xl">
-                  {[1, 2, 3, 4, 5, 6].map(g => (
-                    <button
-                      key={g}
-                      onClick={() => setSelectedGrade(g)}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                        selectedGrade === g
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      ថ្នាក់ទី {g}
-                    </button>
-                  ))}
-                </div>
-
-                <select
-                  value={selectedSection}
-                  onChange={(e) => setSelectedSection(e.target.value)}
-                  className="px-3 py-1.5 text-xs font-bold bg-slate-100 border border-slate-200 rounded-xl text-slate-800 focus:bg-white"
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl">
+              {[1, 2, 3, 4, 5, 6].map(g => (
+                <button
+                  key={g}
+                  onClick={() => setSelectedGrade(g)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    selectedGrade === g
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
-                  <option value="ក">បន្ទប់ ក</option>
-                  <option value="ខ">បន្ទប់ ខ</option>
-                  <option value="គ">បន្ទប់ គ</option>
-                </select>
-              </>
-            )}
+                  ថ្នាក់ទី {g}
+                </button>
+              ))}
+            </div>
+
+            <select
+              value={selectedSection}
+              onChange={(e) => setSelectedSection(e.target.value)}
+              className="px-3 py-1.5 text-xs font-bold bg-slate-100 border border-slate-200 rounded-xl text-slate-800 focus:bg-white"
+            >
+              <option value="ក">បន្ទប់ ក</option>
+              <option value="ខ">បន្ទប់ ខ</option>
+              <option value="គ">បន្ទប់ គ</option>
+            </select>
 
             <select
               value={selectedMonth}
@@ -627,7 +455,7 @@ export const ClassroomScores: React.FC = () => {
         </div>
 
         {/* Class Details Bar & Release Toggle */}
-        <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+        <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
           <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center justify-between">
             <span className="text-slate-500">គ្រូបន្ទុកថ្នាក់:</span>
             <span className="font-bold text-slate-900">
@@ -655,100 +483,22 @@ export const ClassroomScores: React.FC = () => {
           }`}>
             <div className="flex items-center gap-1.5">
               {isClassReleased ? <Unlock className="w-4 h-4 text-emerald-600" /> : <Lock className="w-4 h-4 text-amber-600" />}
-              <span className="font-bold">{isClassReleased ? 'បានផ្សាយ' : 'លទ្ធផលចាក់សោ'}</span>
+              <span className="font-bold">{isClassReleased ? 'បានផ្សាយទៅសិស្ស' : 'លទ្ធផលចាក់សោ'}</span>
             </div>
             {(currentUser?.role === 'teacher' || currentUser?.role === 'director' || currentUser?.role === 'secretary') && (
               <button
-                onClick={() => {
-                  confirmAction({
-                    title: isClassReleased ? 'បញ្ជាក់ការបិទការផ្សព្វផ្សាយពិន្ទុ' : 'បញ្ជាក់ការប្រកាសផ្សព្វផ្សាយពិន្ទុ',
-                    description: isClassReleased
-                      ? `តើអ្នកចង់បិទការប្រកាសពិន្ទុសម្រាប់ថ្នាក់ទី ${selectedGrade}«${selectedSection}» ខែ «${selectedMonth}» មែនទេ?`
-                      : `តើអ្នកចង់ប្រកាសផ្សាយលទ្ធផលពិន្ទុសម្រាប់ថ្នាក់ទី ${selectedGrade}«${selectedSection}» ខែ «${selectedMonth}» ជាផ្លូវការមែនទេ?`,
-                    confirmLabel: isClassReleased ? 'បិទការប្រកាស' : 'យល់ព្រម ប្រកាសផ្សាយ',
-                    cancelLabel: 'ត្រឡប់ក្រោយ',
-                    intent: isClassReleased ? 'warning' : 'primary',
-                    onConfirm: () => {
-                      toggleReleaseClassResults(selectedGrade, selectedSection, selectedMonth, selectedAcademicYear);
-                      showToast(
-                        isClassReleased
-                          ? `បានបិទការប្រកាសលទ្ធផលពិន្ទុថ្នាក់ទី ${selectedGrade}«${selectedSection}»!`
-                          : `បានប្រកាសផ្សាយលទ្ធផលពិន្ទុថ្នាក់ទី ${selectedGrade}«${selectedSection}» ជាផ្លូវការ!`,
-                        'success'
-                      );
-                    }
-                  });
-                }}
-                className={`px-2 py-1 rounded-lg font-bold text-[11px] shadow-sm transition-colors ${
+                onClick={() => toggleReleaseClassResults(selectedGrade, selectedSection, selectedMonth, selectedAcademicYear)}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] shadow-sm transition-colors ${
                   isClassReleased
                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                     : 'bg-amber-600 hover:bg-amber-700 text-white'
                 }`}
               >
-                {isClassReleased ? 'បិទ' : 'ផ្សព្វផ្សាយ'}
-              </button>
-            )}
-          </div>
-
-          {/* Broadcast to Telegram Group */}
-          <div className="p-2.5 bg-indigo-50/80 border border-indigo-200 rounded-xl flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <Zap className="w-4 h-4 text-indigo-600 shrink-0" />
-              <span className="font-bold text-indigo-950 truncate">
-                Telegram ថ្នាក់ {selectedGrade}{selectedSection}
-              </span>
-            </div>
-            {(currentUser?.role === 'teacher' || currentUser?.role === 'director' || currentUser?.role === 'secretary') && (
-              <button
-                onClick={handleBroadcastClassScoresToTelegram}
-                disabled={isBroadcastingTg || activeScores.length === 0}
-                title="ចាក់ផ្សាយលទ្ធផលប្រឡងប្រចាំខែនេះទៅក្រុម Telegram ប្រចាំថ្នាក់"
-                className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-bold text-[11px] shadow-xs flex items-center gap-1 transition-all shrink-0"
-              >
-                {isBroadcastingTg ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                <span>ចាក់ផ្សាយ</span>
+                {isClassReleased ? 'បិទការផ្សាយ' : 'ផ្សព្វផ្សាយ'}
               </button>
             )}
           </div>
         </div>
-
-        {/* Warning Alert if students without accounts are hidden */}
-        {unverifiedStudents.length > 0 && (
-          <div className="mt-4 p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-start gap-2.5 text-amber-900">
-              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <strong className="block font-bold">
-                  សិស្សចំនួន {unverifiedStudents.length} នាក់ក្នុងថ្នាក់នេះមិនទាន់មានគណនីក្នុងប្រព័ន្ធ
-                </strong>
-                <span className="text-slate-600 text-[11px]">
-                  យោងតាមបទបញ្ជាសុវត្ថិភាព សិស្សដែលគ្មានគណនីមិនត្រូវបានអនុញ្ញាតឱ្យបង្ហាញឈ្មោះក្នុងបញ្ជីថ្នាក់រហូតទាល់តែបង្កើតគណនីរួចរាល់ ({unverifiedStudents.map(s => s.nameKhmer).join('、')})។
-                </span>
-              </div>
-            </div>
-            {(currentUser?.role === 'director' || currentUser?.role === 'secretary' || currentUser?.role === 'super_admin' || currentUser?.role === 'teacher') && (
-              <button
-                type="button"
-                onClick={() => {
-                  confirmAction({
-                    title: 'បង្កើតគណនីសិស្សទាំងអស់ដែលនៅសល់',
-                    description: `តើអ្នកចង់បង្កើតគណនីប្រព័ន្ធដោយស្វ័យប្រវត្តិសម្រាប់សិស្សចំនួន ${unverifiedStudents.length} នាក់ក្នុងថ្នាក់នេះមែនទេ? (ពាក្យសម្ងាត់លំនាំដើម៖ អត្តលេខសិស្ស)`,
-                    confirmLabel: 'យល់ព្រម បង្កើតគណនី',
-                    cancelLabel: 'បោះបង់',
-                    intent: 'primary',
-                    onConfirm: () => {
-                      const createdCount = autoGenerateStudentAccounts(unverifiedStudents.map(s => s.id));
-                      showToast(`បានបង្កើតគណនីសិស្សចំនួន ${createdCount} នាក់ដោយជោគជ័យ!`, 'success');
-                    }
-                  });
-                }}
-                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shrink-0 transition-colors shadow-xs"
-              >
-                ⚡ បង្កើតគណនីសិស្សឥឡូវនេះ
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Scoring Mode & Grading Scale Toolbar */}
@@ -865,11 +615,11 @@ export const ClassroomScores: React.FC = () => {
               <div className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-indigo-600" />
                 <h3 className="text-base font-bold text-slate-900 font-moul">
-                  បញ្ចូលពិន្ទុតាមមុខវិជ្ជា: {(examSubjects || []).find(s => s && s.code === selectedSubjectCode)?.nameKhmer || 'មុខវិជ្ជា'}
+                  បញ្ចូលពិន្ទុតាមមុខវិជ្ជា: {examSubjects.find(s => s.code === selectedSubjectCode)?.nameKhmer || 'មុខវិជ្ជា'}
                 </h3>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                ជ្រើសរើសមុខវិជ្ជាខាងក្រោម រួចបញ្ចូលពិន្ទុសិស្សទាំងអស់ក្នុងថ្នាក់យ៉ាងរហ័ស (ពិន្ទុអតិបរមា: {(examSubjects || []).find(s => s && s.code === selectedSubjectCode)?.maxScore || 10})
+                ជ្រើសរើសមុខវិជ្ជាខាងក្រោម រួចបញ្ចូលពិន្ទុសិស្សទាំងអស់ក្នុងថ្នាក់យ៉ាងរហ័ស (ពិន្ទុអតិបរមា: {examSubjects.find(s => s.code === selectedSubjectCode)?.maxScore || 10})
               </p>
             </div>
 
@@ -884,7 +634,7 @@ export const ClassroomScores: React.FC = () => {
 
           {/* Subject Selection Tabs / Chips */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
-            {(examSubjects || []).map(sub => (
+            {examSubjects.map(sub => (
               <button
                 key={sub.id || sub.code}
                 onClick={() => setSelectedSubjectCode(sub.code)}
@@ -900,9 +650,6 @@ export const ClassroomScores: React.FC = () => {
             ))}
           </div>
 
-          {/* D3.js Performance Trend Chart Component */}
-          <ClassroomTrendD3Chart scores={scores} grade={selectedGrade} section={selectedSection} />
-
           {/* Batch Entry Table */}
           <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="w-full text-left border-collapse text-xs">
@@ -912,7 +659,7 @@ export const ClassroomScores: React.FC = () => {
                   <th className="py-3 px-3 text-left">អត្តលេខ</th>
                   <th className="py-3 px-4 text-left">ឈ្មោះសិស្ស</th>
                   <th className="py-3 px-3">ភេទ</th>
-                  <th className="py-3 px-4 text-center bg-indigo-100/70">ពិន្ទុ ({(examSubjects || []).find(s => s && s.code === selectedSubjectCode)?.nameKhmer}) /10</th>
+                  <th className="py-3 px-4 text-center bg-indigo-100/70">ពិន្ទុ ({examSubjects.find(s => s.code === selectedSubjectCode)?.nameKhmer}) /10</th>
                   <th className="py-3 px-4 text-center">ជម្រើសពិន្ទុរហ័ស</th>
                   <th className="py-3 px-3 text-center">មធ្យមភាគសរុបបច្ចុប្បន្ន</th>
                   <th className="py-3 px-3 text-center">និទ្ទេសបច្ចុប្បន្ន</th>
@@ -939,7 +686,7 @@ export const ClassroomScores: React.FC = () => {
                           type="number"
                           step="0.25"
                           min="0"
-                          max={(examSubjects || []).find(s => s && s.code === selectedSubjectCode)?.maxScore || 10}
+                          max={examSubjects.find(s => s.code === selectedSubjectCode)?.maxScore || 10}
                           value={currentScore}
                           onChange={(e) => setBatchSubjectScores({
                             ...batchSubjectScores,
@@ -1048,8 +795,7 @@ export const ClassroomScores: React.FC = () => {
             </div>
           </div>
 
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto">
+          <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-100 text-[11px] font-bold text-slate-700 border-b border-slate-200 text-center">
@@ -1218,159 +964,6 @@ export const ClassroomScores: React.FC = () => {
                 )}
               </tbody>
             </table>
-          </div>
-
-          {/* Mobile Card View (md:hidden) */}
-          <div className="md:hidden divide-y divide-slate-200">
-            {classStudents.length > 0 ? (
-              classStudents.map((student, idx) => {
-                const scoreRec = getStudentScore(student.id);
-                return (
-                  <div key={`mobile-score-${student.id}`} className="p-4 bg-white hover:bg-slate-50/80 transition-colors">
-                    {/* Header of Scorecard */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 font-bold text-xs text-slate-700 flex-shrink-0">
-                          {idx + 1}
-                        </div>
-                        <div>
-                          <div className="font-bold text-slate-900 text-sm">{student.nameKhmer}</div>
-                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                            <span className="font-times font-semibold text-blue-600">{student.code}</span>
-                            <span>•</span>
-                            <span
-                              className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
-                                student.gender === 'F' ? 'bg-rose-50 text-rose-700' : 'bg-blue-50 text-blue-700'
-                              }`}
-                            >
-                              {student.gender === 'F' ? 'ស្រី' : 'ប្រុស'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Rank and Grade Letter Badge */}
-                      <div className="flex items-center gap-1.5">
-                        {scoreRec && (
-                          <span
-                            className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full font-bold text-xs shadow-2xs ${
-                              scoreRec.rank === 1
-                                ? 'bg-amber-400 text-amber-950 font-black ring-2 ring-amber-300'
-                                : scoreRec.rank === 2
-                                ? 'bg-slate-300 text-slate-800'
-                                : scoreRec.rank === 3
-                                ? 'bg-amber-700 text-amber-100'
-                                : 'bg-slate-100 text-slate-700'
-                            }`}
-                          >
-                            ចំណាត់ថ្នាក់ {scoreRec.rank}
-                          </span>
-                        )}
-                        {scoreRec && (
-                          <span
-                            className={`px-2 py-0.5 rounded-md font-bold text-xs ${
-                              scoreRec.gradeLetter === 'A'
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                : scoreRec.gradeLetter === 'B'
-                                ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                                : scoreRec.gradeLetter === 'C'
-                                ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                                : 'bg-rose-100 text-rose-800 border border-rose-200'
-                            }`}
-                          >
-                            {scoreRec.gradeLetter}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Subject Scores Grid */}
-                    <div className="grid grid-cols-3 gap-1.5 mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 text-xs">
-                      <div className="p-1.5 bg-white rounded-lg border border-slate-200/60 text-center">
-                        <span className="text-[10px] text-slate-500 block">ខ្មែរ (អាន)</span>
-                        <span className="font-bold text-slate-800 font-mono">{scoreRec?.scores?.khmerReading ?? '-'}</span>
-                      </div>
-                      <div className="p-1.5 bg-white rounded-lg border border-slate-200/60 text-center">
-                        <span className="text-[10px] text-slate-500 block">ខ្មែរ (សរសេរ)</span>
-                        <span className="font-bold text-slate-800 font-mono">{scoreRec?.scores?.khmerWriting ?? '-'}</span>
-                      </div>
-                      <div className="p-1.5 bg-indigo-50/70 rounded-lg border border-indigo-200/60 text-center">
-                        <span className="text-[10px] text-indigo-700 block font-semibold">គណិតវិទ្យា</span>
-                        <span className="font-bold text-indigo-900 font-mono">{scoreRec?.scores?.mathematics ?? '-'}</span>
-                      </div>
-                      <div className="p-1.5 bg-white rounded-lg border border-slate-200/60 text-center">
-                        <span className="text-[10px] text-slate-500 block">វិទ្យាសាស្ត្រ-សង្គម</span>
-                        <span className="font-bold text-slate-800 font-mono">{scoreRec?.scores?.scienceSocial ?? '-'}</span>
-                      </div>
-                      <div className="p-1.5 bg-white rounded-lg border border-slate-200/60 text-center">
-                        <span className="text-[10px] text-slate-500 block">សីលធម៌-ពលរដ្ឋ</span>
-                        <span className="font-bold text-slate-800 font-mono">{scoreRec?.scores?.moralCivics ?? '-'}</span>
-                      </div>
-                      <div className="p-1.5 bg-white rounded-lg border border-slate-200/60 text-center">
-                        <span className="text-[10px] text-slate-500 block">សិល្បៈ-កាយវិការ</span>
-                        <span className="font-bold text-slate-800 font-mono">{scoreRec?.scores?.artsPhysical ?? '-'}</span>
-                      </div>
-                      {scoringMode === 'matrix' && examSubjects.filter(sub => !['khmerReading', 'khmerWriting', 'mathematics', 'scienceSocial', 'moralCivics', 'artsPhysical'].includes(sub.code)).map(sub => (
-                        <div key={`m-sub-${sub.code}`} className="p-1.5 bg-white rounded-lg border border-slate-200/60 text-center">
-                          <span className="text-[10px] text-slate-500 block truncate">{sub.nameKhmer}</span>
-                          <span className="font-bold text-slate-800 font-mono">{scoreRec?.scores?.[sub.code] ?? '-'}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Overall Score Summary */}
-                    <div className="flex items-center justify-between mt-2.5 px-3 py-2 bg-blue-50/60 border border-blue-100 rounded-xl text-xs">
-                      <div>
-                        <span className="text-[10px] text-blue-700 block">ពិន្ទុសរុប</span>
-                        <span className="font-bold text-slate-900 text-sm font-mono">{scoreRec?.totalScore ?? '-'}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-blue-700 block">មធ្យមភាគ</span>
-                        <span className="font-bold text-blue-800 text-sm font-mono">{scoreRec?.averageScore ?? '-'}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-blue-700 block">និទ្ទេសទូទៅ</span>
-                        <span className="font-bold text-slate-800">{scoreRec ? getFormattedGrade(scoreRec.averageScore, scoreRec.gradeLetter) : '-'}</span>
-                      </div>
-                    </div>
-
-                    {/* Actions Bar */}
-                    <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t border-slate-100">
-                      <button
-                        onClick={() => handleOpenScoreEdit(student)}
-                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors flex items-center gap-1.5 text-xs shadow-xs"
-                      >
-                        <Save className="w-3.5 h-3.5" />
-                        <span>{scoreRec ? 'កែពិន្ទុ' : 'បញ្ចូលពិន្ទុ'}</span>
-                      </button>
-
-                      <button
-                        onClick={() => setSelectedStudentForReportCard(student)}
-                        className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl transition-colors flex items-center gap-1.5 text-xs border border-blue-200"
-                        title="ព្រឹត្តិបត្រពិន្ទុ"
-                      >
-                        <FileText className="w-3.5 h-3.5" />
-                        <span>ព្រឹត្តិបត្រ</span>
-                      </button>
-
-                      {scoreRec && (
-                        <button
-                          onClick={() => triggerCelebrateConfetti(scoreRec)}
-                          className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl border border-amber-200 transition-colors"
-                          title="ប័ណ្ណសរសើរ"
-                        >
-                          <Award className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="py-8 text-center text-slate-500 text-xs">
-                មិនមានទិន្នន័យសិស្សក្នុងថ្នាក់ទី {selectedGrade}{selectedSection} ទេ
-              </div>
-            )}
           </div>
 
           {/* Official Signatures on Print */}
@@ -1756,401 +1349,158 @@ export const ClassroomScores: React.FC = () => {
 
       {/* Score Edit Modal */}
       {activeStudentForScoreEdit && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
-            {/* Mobile Drag Indicator */}
-            <div className="pt-2 sm:hidden bg-gradient-to-r from-blue-700 to-indigo-700 flex justify-center">
-              <div className="w-12 h-1 bg-white/40 rounded-full" />
-            </div>
-
-            <div className="bg-gradient-to-r from-blue-700 to-indigo-700 p-4 sm:p-5 text-white flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
-                  <Award className="w-5 h-5 text-amber-300" />
-                </div>
-                <div>
-                  <h3 className="text-sm sm:text-base font-bold font-moul leading-tight">
-                    បញ្ចូលពិន្ទុ: {activeStudentForScoreEdit.nameKhmer}
-                  </h3>
-                  <p className="text-[11px] sm:text-xs text-blue-100 mt-0.5">
-                    ថ្នាក់ទី {selectedGrade}{selectedSection} • ខែ {selectedMonth} ({selectedAcademicYear})
-                  </p>
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200">
+            <div className="bg-gradient-to-r from-blue-700 to-indigo-700 p-5 text-white flex items-center justify-between rounded-t-2xl">
+              <div>
+                <h3 className="text-base font-bold font-moul">
+                  បញ្ចូលពិន្ទុ: {activeStudentForScoreEdit.nameKhmer}
+                </h3>
+                <p className="text-xs text-blue-100">
+                  ថ្នាក់ទី {selectedGrade}{selectedSection} • ប្រចាំខែ {selectedMonth} ({selectedAcademicYear})
+                </p>
               </div>
               <button
                 onClick={() => setActiveStudentForScoreEdit(null)}
-                className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-full text-white/80 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Live Validation Warning Banner */}
-            {(() => {
-              const invalidFields: string[] = [];
-              const stdList = [
-                { key: 'khmerReading', name: 'ភាសាខ្មែរ (អំណាន)', max: 10 },
-                { key: 'khmerWriting', name: 'ភាសាខ្មែរ (សំណេរ)', max: 10 },
-                { key: 'mathematics', name: 'គណិតវិទ្យា', max: 10 },
-                { key: 'scienceSocial', name: 'វិទ្យាសាស្ត្រ និងសង្គម', max: 10 },
-                { key: 'moralCivics', name: 'សីលធម៌ និងពលរដ្ឋ', max: 10 },
-                { key: 'artsPhysical', name: 'សិល្បៈ និងកាយវិការ', max: 10 }
-              ];
-              stdList.forEach(item => {
-                const val = Number(singleScoreForm[item.key as keyof typeof singleScoreForm] ?? 0);
-                if (val < 0 || val > item.max) {
-                  invalidFields.push(`${item.name} (${val} > ${item.max})`);
-                }
-              });
-              examSubjects.filter(sub => !['khmerReading', 'khmerWriting', 'mathematics', 'scienceSocial', 'moralCivics', 'artsPhysical'].includes(sub.code)).forEach(sub => {
-                if (singleScoreForm[sub.code] !== undefined) {
-                  const val = Number(singleScoreForm[sub.code]);
-                  if (val < 0 || val > sub.maxScore) {
-                    invalidFields.push(`${sub.nameKhmer} (${val} > ${sub.maxScore})`);
-                  }
-                }
-              });
-
-              if (invalidFields.length > 0) {
-                return (
-                  <div className="mx-4 sm:mx-6 mt-3 p-2.5 sm:p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2 text-xs text-red-800 animate-in fade-in duration-150">
-                    <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="font-bold">សារព្រមានផ្ទៀងផ្ទាត់ពិន្ទុ:</strong>
-                      <p className="mt-0.5 text-[11px] leading-relaxed">
-                        ពិន្ទុមិនអាចលើសពីកម្រិតកំណត់ ឬតូចជាង ០ បានឡើយ៖ <span className="font-bold underline">{invalidFields.join(', ')}</span>
-                      </p>
-                    </div>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-
-            <form onSubmit={handleSaveSingleScore} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {/* 1. Khmer Reading */}
-                <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-slate-800 font-bold flex items-center gap-1.5">
-                      <BookOpen className="w-3.5 h-3.5 text-blue-600" />
-                      <span>ភាសាខ្មែរ (អំណាន)</span>
-                    </label>
-                    <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">/10</span>
-                  </div>
+            <form onSubmit={handleSaveSingleScore} className="p-6 space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    ភាសាខ្មែរ (អំណាន) /10
+                  </label>
                   <input
                     type="number"
                     step="0.25"
                     min="0"
                     max="10"
-                    inputMode="decimal"
                     required
-                    value={singleScoreForm.khmerReading ?? 0}
+                    value={singleScoreForm.khmerReading || 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, khmerReading: Number(e.target.value) })
                     }
-                    className={`w-full px-3 py-2 bg-white border rounded-xl font-mono text-sm font-bold transition-colors ${
-                      Number(singleScoreForm.khmerReading ?? 0) > 10 || Number(singleScoreForm.khmerReading ?? 0) < 0
-                        ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
-                        : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
-                    }`}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm"
                   />
-                  {/* Quick score chips for mobile */}
-                  <div className="flex flex-wrap gap-1 pt-1">
-                    {[7, 7.5, 8, 8.5, 9, 9.5, 10].map(pt => (
-                      <button
-                        key={`kr-${pt}`}
-                        type="button"
-                        onClick={() => setSingleScoreForm({ ...singleScoreForm, khmerReading: pt })}
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono transition-all active:scale-95 ${
-                          Number(singleScoreForm.khmerReading) === pt
-                            ? 'bg-blue-600 text-white shadow-2xs'
-                            : 'bg-white hover:bg-blue-50 text-slate-700 border border-slate-200'
-                        }`}
-                      >
-                        {pt}
-                      </button>
-                    ))}
-                  </div>
-                  {Number(singleScoreForm.khmerReading ?? 0) > 10 && (
-                    <p className="text-[10px] text-red-600 font-semibold">⚠️ មិនអាចលើសពី ១០</p>
-                  )}
                 </div>
 
-                {/* 2. Khmer Writing */}
-                <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-slate-800 font-bold flex items-center gap-1.5">
-                      <Edit3 className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>ភាសាខ្មែរ (សំណេរ)</span>
-                    </label>
-                    <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">/10</span>
-                  </div>
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    ភាសាខ្មែរ (សំណេរ) /10
+                  </label>
                   <input
                     type="number"
                     step="0.25"
                     min="0"
                     max="10"
-                    inputMode="decimal"
                     required
-                    value={singleScoreForm.khmerWriting ?? 0}
+                    value={singleScoreForm.khmerWriting || 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, khmerWriting: Number(e.target.value) })
                     }
-                    className={`w-full px-3 py-2 bg-white border rounded-xl font-mono text-sm font-bold transition-colors ${
-                      Number(singleScoreForm.khmerWriting ?? 0) > 10 || Number(singleScoreForm.khmerWriting ?? 0) < 0
-                        ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
-                        : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
-                    }`}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm"
                   />
-                  <div className="flex flex-wrap gap-1 pt-1">
-                    {[7, 7.5, 8, 8.5, 9, 9.5, 10].map(pt => (
-                      <button
-                        key={`kw-${pt}`}
-                        type="button"
-                        onClick={() => setSingleScoreForm({ ...singleScoreForm, khmerWriting: pt })}
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono transition-all active:scale-95 ${
-                          Number(singleScoreForm.khmerWriting) === pt
-                            ? 'bg-indigo-600 text-white shadow-2xs'
-                            : 'bg-white hover:bg-indigo-50 text-slate-700 border border-slate-200'
-                        }`}
-                      >
-                        {pt}
-                      </button>
-                    ))}
-                  </div>
-                  {Number(singleScoreForm.khmerWriting ?? 0) > 10 && (
-                    <p className="text-[10px] text-red-600 font-semibold">⚠️ មិនអាចលើសពី ១០</p>
-                  )}
                 </div>
 
-                {/* 3. Mathematics */}
-                <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-slate-800 font-bold flex items-center gap-1.5">
-                      <Calculator className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>គណិតវិទ្យា</span>
-                    </label>
-                    <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">/10</span>
-                  </div>
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    គណិតវិទ្យា /10
+                  </label>
                   <input
                     type="number"
                     step="0.25"
                     min="0"
                     max="10"
-                    inputMode="decimal"
                     required
-                    value={singleScoreForm.mathematics ?? 0}
+                    value={singleScoreForm.mathematics || 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, mathematics: Number(e.target.value) })
                     }
-                    className={`w-full px-3 py-2 bg-white border rounded-xl font-mono text-sm font-bold transition-colors ${
-                      Number(singleScoreForm.mathematics ?? 0) > 10 || Number(singleScoreForm.mathematics ?? 0) < 0
-                        ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
-                        : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
-                    }`}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm"
                   />
-                  <div className="flex flex-wrap gap-1 pt-1">
-                    {[7, 7.5, 8, 8.5, 9, 9.5, 10].map(pt => (
-                      <button
-                        key={`math-${pt}`}
-                        type="button"
-                        onClick={() => setSingleScoreForm({ ...singleScoreForm, mathematics: pt })}
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono transition-all active:scale-95 ${
-                          Number(singleScoreForm.mathematics) === pt
-                            ? 'bg-emerald-600 text-white shadow-2xs'
-                            : 'bg-white hover:bg-emerald-50 text-slate-700 border border-slate-200'
-                        }`}
-                      >
-                        {pt}
-                      </button>
-                    ))}
-                  </div>
-                  {Number(singleScoreForm.mathematics ?? 0) > 10 && (
-                    <p className="text-[10px] text-red-600 font-semibold">⚠️ មិនអាចលើសពី ១០</p>
-                  )}
                 </div>
 
-                {/* 4. Science & Social */}
-                <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-slate-800 font-bold flex items-center gap-1.5">
-                      <Compass className="w-3.5 h-3.5 text-teal-600" />
-                      <span>វិទ្យាសាស្ត្រ និងសង្គម</span>
-                    </label>
-                    <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">/10</span>
-                  </div>
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    វិទ្យាសាស្ត្រ និងសង្គម /10
+                  </label>
                   <input
                     type="number"
                     step="0.25"
                     min="0"
                     max="10"
-                    inputMode="decimal"
                     required
-                    value={singleScoreForm.scienceSocial ?? 0}
+                    value={singleScoreForm.scienceSocial || 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, scienceSocial: Number(e.target.value) })
                     }
-                    className={`w-full px-3 py-2 bg-white border rounded-xl font-mono text-sm font-bold transition-colors ${
-                      Number(singleScoreForm.scienceSocial ?? 0) > 10 || Number(singleScoreForm.scienceSocial ?? 0) < 0
-                        ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
-                        : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
-                    }`}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm"
                   />
-                  <div className="flex flex-wrap gap-1 pt-1">
-                    {[7, 7.5, 8, 8.5, 9, 9.5, 10].map(pt => (
-                      <button
-                        key={`sc-${pt}`}
-                        type="button"
-                        onClick={() => setSingleScoreForm({ ...singleScoreForm, scienceSocial: pt })}
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono transition-all active:scale-95 ${
-                          Number(singleScoreForm.scienceSocial) === pt
-                            ? 'bg-teal-600 text-white shadow-2xs'
-                            : 'bg-white hover:bg-teal-50 text-slate-700 border border-slate-200'
-                        }`}
-                      >
-                        {pt}
-                      </button>
-                    ))}
-                  </div>
-                  {Number(singleScoreForm.scienceSocial ?? 0) > 10 && (
-                    <p className="text-[10px] text-red-600 font-semibold">⚠️ មិនអាចលើសពី ១០</p>
-                  )}
                 </div>
 
-                {/* 5. Moral & Civics */}
-                <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-slate-800 font-bold flex items-center gap-1.5">
-                      <Heart className="w-3.5 h-3.5 text-rose-600" />
-                      <span>សីលធម៌ និងពលរដ្ឋ</span>
-                    </label>
-                    <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">/10</span>
-                  </div>
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    សីលធម៌ និងពលរដ្ឋ /10
+                  </label>
                   <input
                     type="number"
                     step="0.25"
                     min="0"
                     max="10"
-                    inputMode="decimal"
                     required
-                    value={singleScoreForm.moralCivics ?? 0}
+                    value={singleScoreForm.moralCivics || 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, moralCivics: Number(e.target.value) })
                     }
-                    className={`w-full px-3 py-2 bg-white border rounded-xl font-mono text-sm font-bold transition-colors ${
-                      Number(singleScoreForm.moralCivics ?? 0) > 10 || Number(singleScoreForm.moralCivics ?? 0) < 0
-                        ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
-                        : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
-                    }`}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm"
                   />
-                  <div className="flex flex-wrap gap-1 pt-1">
-                    {[7, 7.5, 8, 8.5, 9, 9.5, 10].map(pt => (
-                      <button
-                        key={`mc-${pt}`}
-                        type="button"
-                        onClick={() => setSingleScoreForm({ ...singleScoreForm, moralCivics: pt })}
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono transition-all active:scale-95 ${
-                          Number(singleScoreForm.moralCivics) === pt
-                            ? 'bg-rose-600 text-white shadow-2xs'
-                            : 'bg-white hover:bg-rose-50 text-slate-700 border border-slate-200'
-                        }`}
-                      >
-                        {pt}
-                      </button>
-                    ))}
-                  </div>
-                  {Number(singleScoreForm.moralCivics ?? 0) > 10 && (
-                    <p className="text-[10px] text-red-600 font-semibold">⚠️ មិនអាចលើសពី ១០</p>
-                  )}
                 </div>
 
-                {/* 6. Arts & Physical */}
-                <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-slate-800 font-bold flex items-center gap-1.5">
-                      <Palette className="w-3.5 h-3.5 text-amber-600" />
-                      <span>សិល្បៈ និងកាយវិការ</span>
-                    </label>
-                    <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">/10</span>
-                  </div>
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    សិល្បៈ និងកាយវិការ /10
+                  </label>
                   <input
                     type="number"
                     step="0.25"
                     min="0"
                     max="10"
-                    inputMode="decimal"
                     required
-                    value={singleScoreForm.artsPhysical ?? 0}
+                    value={singleScoreForm.artsPhysical || 0}
                     onChange={(e) =>
                       setSingleScoreForm({ ...singleScoreForm, artsPhysical: Number(e.target.value) })
                     }
-                    className={`w-full px-3 py-2 bg-white border rounded-xl font-mono text-sm font-bold transition-colors ${
-                      Number(singleScoreForm.artsPhysical ?? 0) > 10 || Number(singleScoreForm.artsPhysical ?? 0) < 0
-                        ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
-                        : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
-                    }`}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm"
                   />
-                  <div className="flex flex-wrap gap-1 pt-1">
-                    {[7, 7.5, 8, 8.5, 9, 9.5, 10].map(pt => (
-                      <button
-                        key={`ap-${pt}`}
-                        type="button"
-                        onClick={() => setSingleScoreForm({ ...singleScoreForm, artsPhysical: pt })}
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold font-mono transition-all active:scale-95 ${
-                          Number(singleScoreForm.artsPhysical) === pt
-                            ? 'bg-amber-600 text-white shadow-2xs'
-                            : 'bg-white hover:bg-amber-50 text-slate-700 border border-slate-200'
-                        }`}
-                      >
-                        {pt}
-                      </button>
-                    ))}
-                  </div>
-                  {Number(singleScoreForm.artsPhysical ?? 0) > 10 && (
-                    <p className="text-[10px] text-red-600 font-semibold">⚠️ មិនអាចលើសពី ១០</p>
-                  )}
                 </div>
 
                 {/* Render any additional dynamic subjects */}
-                {examSubjects.filter(sub => !['khmerReading', 'khmerWriting', 'mathematics', 'scienceSocial', 'moralCivics', 'artsPhysical'].includes(sub.code)).map(sub => {
-                  const val = Number(singleScoreForm[sub.code] ?? 8.0);
-                  const isInvalid = val > sub.maxScore || val < 0;
-                  return (
-                    <div key={sub.id} className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/80 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-slate-800 font-bold flex items-center gap-1.5 truncate">
-                          <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-                          <span>{sub.nameKhmer}</span>
-                        </label>
-                        <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">/{sub.maxScore}</span>
-                      </div>
-                      <input
-                        type="number"
-                        step="0.25"
-                        min="0"
-                        max={sub.maxScore}
-                        inputMode="decimal"
-                        value={singleScoreForm[sub.code] ?? 8.0}
-                        onChange={(e) =>
-                          setSingleScoreForm({ ...singleScoreForm, [sub.code]: Number(e.target.value) })
-                        }
-                        className={`w-full px-3 py-2 bg-white border rounded-xl font-mono text-sm font-bold transition-colors ${
-                          isInvalid
-                            ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-2 focus:ring-red-400/20'
-                            : 'border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20'
-                        }`}
-                      />
-                      {isInvalid && (
-                        <p className="text-[10px] text-red-600 font-semibold">⚠️ មិនអាចលើសពី {sub.maxScore}</p>
-                      )}
-                    </div>
-                  );
-                })}
+                {examSubjects.filter(sub => !['khmerReading', 'khmerWriting', 'mathematics', 'scienceSocial', 'moralCivics', 'artsPhysical'].includes(sub.code)).map(sub => (
+                  <div key={sub.id}>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      {sub.nameKhmer} /{sub.maxScore}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.25"
+                      min="0"
+                      max={sub.maxScore}
+                      value={singleScoreForm[sub.code] ?? 8.0}
+                      onChange={(e) =>
+                        setSingleScoreForm({ ...singleScoreForm, [sub.code]: Number(e.target.value) })
+                      }
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm"
+                    />
+                  </div>
+                ))}
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1.5">
+                <label className="block text-slate-700 font-bold mb-1">
                   ការកត់សម្គាល់របស់គ្រូបន្ទុកថ្នាក់
                 </label>
                 <input
@@ -2160,22 +1510,21 @@ export const ClassroomScores: React.FC = () => {
                     setSingleScoreForm({ ...singleScoreForm, remarks: e.target.value })
                   }
                   placeholder="ឧ. ការសិក្សាល្អប្រសើរ ខិតខំលើសំណេរ..."
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
                 />
               </div>
 
-              {/* Sticky bottom Action Buttons */}
-              <div className="sticky bottom-0 bg-white/95 backdrop-blur-md pt-3 pb-1 border-t border-slate-100 flex items-center justify-end gap-2.5 z-10">
+              <div className="pt-3 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setActiveStudentForScoreEdit(null)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl"
                 >
                   បោះបង់
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow flex items-center gap-2"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   រក្សាទុកពិន្ទុ
@@ -2187,267 +1536,204 @@ export const ClassroomScores: React.FC = () => {
       )}
 
       {/* Individual Student Report Card & Academic Transcript Modal */}
-      {selectedStudentForReportCard && (() => {
-        const safeScores = Array.isArray(scores) ? scores.filter(Boolean) : [];
-        const studentScoresList = safeScores.filter(
-          (s) =>
-            s &&
-            s.studentId === selectedStudentForReportCard.id &&
-            (!s.academicYear || s.academicYear === selectedAcademicYear)
-        );
-        const latestRec =
-          studentScoresList.find((s) => s && s.monthOrSemester === selectedMonth) ||
-          studentScoresList[studentScoresList.length - 1];
+      {selectedStudentForReportCard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[96vh] overflow-y-auto shadow-2xl border border-slate-200 flex flex-col">
+            {/* Modal Actions Bar (No Print) */}
+            <div className="p-3.5 sm:p-4 bg-slate-900 text-white flex items-center justify-between no-print sticky top-0 z-10">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-blue-400" />
+                <span className="font-bold text-xs sm:text-sm font-moul">
+                  ព្រឹត្តិបត្រពិន្ទុ & សៀវភៅតាមដានការសិក្សា - {selectedStudentForReportCard.nameKhmer}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>បោះពុម្ព (Print Report)</span>
+                </button>
+                <button
+                  onClick={() => setSelectedStudentForReportCard(null)}
+                  className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
 
-        const principalQRParams: PrincipalSignatureQRParams = {
-          studentId: selectedStudentForReportCard.id,
-          studentCode: selectedStudentForReportCard.code,
-          studentNameKhmer: selectedStudentForReportCard.nameKhmer,
-          studentNameLatin: selectedStudentForReportCard.nameLatin,
-          grade: selectedGrade,
-          section: selectedSection,
-          academicYear: selectedAcademicYear,
-          monthOrSemester: selectedMonth,
-          schoolCode: schoolProfile.schoolCode,
-          schoolNameKhmer: schoolProfile.nameKhmer,
-          principalName: schoolProfile.principalName,
-          issueDate: new Date().toISOString().split('T')[0],
-          averageScore: latestRec?.averageScore,
-          gradeLetter: latestRec?.gradeLetter,
-          rank: latestRec?.rank,
-          totalStudents: classStudents.length
-        };
+            {/* Printable A4 Report Card Canvas */}
+            <div className="p-6 sm:p-10 text-slate-900 bg-white relative overflow-hidden font-battambang">
+              <AngkorPageWatermark opacity={0.035} />
 
-        const handleDirectPrintReport = () => {
-          if (addActivityLog) {
-            addActivityLog({
-              domain: 'academic',
-              actionType: 'document',
-              title: 'បោះពុម្ពព្រឹត្តិបត្រពិន្ទុជាមួយ QR ហត្ថលេខាឌីជីថល',
-              description: `បានបោះពុម្ពព្រឹត្តិបត្រពិន្ទុផ្លូវការភ្ជាប់ QR Code ហត្ថលេខាឌីជីថលនាយកសាលាសម្រាប់សិស្ស «${selectedStudentForReportCard.nameKhmer}» (អត្តលេខ: ${selectedStudentForReportCard.code}) ថ្នាក់ទី ${selectedGrade}${selectedSection}`,
-              entityId: selectedStudentForReportCard.id,
-              entityCode: selectedStudentForReportCard.code,
-              entityName: selectedStudentForReportCard.nameKhmer,
-              actorName: currentUser?.nameKhmer || 'លោកនាយកសាលា',
-              actorRole: currentUser?.role || 'principal',
-              targetTab: 'reports_qr',
-              tags: ['report_card', 'principal_qr_signature', 'printed', 'moeys_verification'],
-              details: {
-                studentId: selectedStudentForReportCard.id,
-                studentName: selectedStudentForReportCard.nameKhmer,
-                studentCode: selectedStudentForReportCard.code,
-                grade: selectedGrade,
-                section: selectedSection,
-                academicYear: selectedAcademicYear,
-                monthOrSemester: selectedMonth,
-                hasPrincipalSignatureQR: printSettings?.showPrincipalSignatureQR !== false,
-                timestamp: new Date().toISOString()
-              }
-            });
-          }
-
-          printElement('report-card-printable-area', {
-            pageTitle: `ព្រឹត្តិបត្រពិន្ទុ_${selectedStudentForReportCard.nameKhmer}_${selectedAcademicYear}`,
-            landscape: false
-          });
-        };
-
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-150">
-            <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[96vh] overflow-y-auto shadow-2xl border border-slate-200 flex flex-col">
-              {/* Modal Actions Bar (No Print) */}
-              <div className="p-3.5 sm:p-4 bg-slate-900 text-white flex items-center justify-between no-print sticky top-0 z-10">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-blue-400" />
-                  <span className="font-bold text-xs sm:text-sm font-moul">
-                    ព្រឹត្តិបត្រពិន្ទុ & សៀវភៅតាមដានការសិក្សា - {selectedStudentForReportCard.nameKhmer}
-                  </span>
-                  <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono border border-emerald-500/30">
-                    QR Signature Ready
-                  </span>
+              {/* Department & Royal Header */}
+              <div className="flex justify-between items-start border-b border-slate-300 pb-4 mb-6 relative z-1">
+                <div className="space-y-0.5 text-xs sm:text-sm">
+                  <p className="font-semibold text-slate-800">ក្រសួងអប់រំ យុវជន និងកីឡា</p>
+                  <p className="font-semibold text-slate-700">មន្ទីរអប់រំ យុវជន និងកីឡា {schoolProfile.province}</p>
+                  <p className="font-semibold text-slate-700">ការិយាល័យអប់រំ {schoolProfile.district}</p>
+                  <p className="font-bold text-blue-900 font-moul text-sm sm:text-base pt-0.5">{schoolProfile.nameKhmer}</p>
+                  <p className="text-[11px] text-slate-500 font-times">លេខកូដសាលា: {schoolProfile.schoolCode}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleDirectPrintReport}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
-                  >
-                    <Printer className="w-3.5 h-3.5" />
-                    <span>បោះពុម្ព (Print Report)</span>
-                  </button>
-                  <button
-                    onClick={() => setSelectedStudentForReportCard(null)}
-                    className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+
+                <div className="text-center">
+                  <MoEYSRoyalHeader />
+                </div>
+
+                <div className="w-16 h-20 border border-slate-300 rounded-md overflow-hidden bg-slate-100 flex items-center justify-center text-[10px] text-slate-400 text-center">
+                  {selectedStudentForReportCard.avatarUrl ? (
+                    <img
+                      src={selectedStudentForReportCard.avatarUrl}
+                      alt={selectedStudentForReportCard.nameKhmer}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>រូបថត 4x6</span>
+                  )}
                 </div>
               </div>
 
-              {/* Printable A4 Report Card Canvas */}
-              <div
-                id="report-card-printable-area"
-                className="report-card-print p-6 sm:p-10 text-slate-900 bg-white relative overflow-hidden font-battambang"
-              >
-                <AngkorPageWatermark opacity={0.035} />
+              {/* Document Title */}
+              <div className="text-center my-4 space-y-1 relative z-1">
+                <h1 className="font-moul text-lg sm:text-xl text-blue-950 underline decoration-2 underline-offset-8">
+                  ព្រឹត្តិបត្រពិន្ទុ និងសៀវភៅតាមដានការសិក្សា
+                </h1>
+                <p className="text-xs font-times text-slate-600 tracking-wider">
+                  STUDENT ACADEMIC REPORT & PROGRESS RECORD
+                </p>
+                <p className="text-xs font-bold text-slate-700 pt-1">
+                  ឆ្នាំសិក្សា {selectedAcademicYear} • ថ្នាក់ទី {selectedGrade}{selectedSection}
+                </p>
+              </div>
 
-                {/* Department & Royal Header */}
-                <div className="flex justify-between items-start border-b border-slate-300 pb-4 mb-6 relative z-1">
-                  <div className="space-y-0.5 text-xs sm:text-sm">
-                    <p className="font-semibold text-slate-800">ក្រសួងអប់រំ យុវជន និងកីឡា</p>
-                    <p className="font-semibold text-slate-700">មន្ទីរអប់រំ យុវជន និងកីឡា {schoolProfile.province}</p>
-                    <p className="font-semibold text-slate-700">ការិយាល័យអប់រំ {schoolProfile.district}</p>
-                    <p className="font-bold text-blue-900 font-moul text-sm sm:text-base pt-0.5">{schoolProfile.nameKhmer}</p>
-                    <p className="text-[11px] text-slate-500 font-times">លេខកូដសាលា: {schoolProfile.schoolCode}</p>
-                  </div>
-
-                  <div className="text-center">
-                    <MoEYSRoyalHeader />
-                  </div>
-
-                  <div className="w-16 h-20 border border-slate-300 rounded-md overflow-hidden bg-slate-100 flex items-center justify-center text-[10px] text-slate-400 text-center">
-                    {selectedStudentForReportCard.avatarUrl ? (
-                      <img
-                        src={selectedStudentForReportCard.avatarUrl}
-                        alt={selectedStudentForReportCard.nameKhmer}
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span>រូបថត 4x6</span>
-                    )}
-                  </div>
+              {/* Student Metadata Card */}
+              <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs sm:text-sm my-5 relative z-1">
+                <div>
+                  <span className="text-slate-500 text-xs block">គោត្តនាម-នាមសិស្ស</span>
+                  <strong className="font-bold text-slate-900 font-moul">{selectedStudentForReportCard.nameKhmer}</strong>
                 </div>
+                <div>
+                  <span className="text-slate-500 text-xs block">អក្សរឡាតាំង</span>
+                  <strong className="font-bold text-slate-800 font-times">{selectedStudentForReportCard.nameLatin || 'N/A'}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-500 text-xs block">ភេទ & ថ្ងៃខែឆ្នាំកំណើត</span>
+                  <strong className="font-medium text-slate-800">
+                    {selectedStudentForReportCard.gender === 'F' ? 'ស្រី' : 'ប្រុស'} • <span className="font-times">{selectedStudentForReportCard.dob}</span>
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-slate-500 text-xs block">អត្តលេខសិស្ស</span>
+                  <strong className="font-bold text-blue-800 font-times">{selectedStudentForReportCard.code}</strong>
+                </div>
+              </div>
 
-                {/* Document Title */}
-                <div className="text-center my-4 space-y-1 relative z-1">
-                  <h1 className="font-moul text-lg sm:text-xl text-blue-950 underline decoration-2 underline-offset-8">
-                    ព្រឹត្តិបត្រពិន្ទុ និងសៀវភៅតាមដានការសិក្សា
-                  </h1>
-                  <p className="text-xs font-times text-slate-600 tracking-wider">
-                    STUDENT ACADEMIC REPORT & PROGRESS RECORD
+              {/* Monthly Score Matrix for Selected Student */}
+              <div className="my-5 overflow-x-auto relative z-1">
+                <table className="w-full border-collapse border border-slate-400 text-xs">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-900 font-bold">
+                      <th className="border border-slate-400 py-2 px-2 text-center">ខែ/ឆមាស</th>
+                      <th className="border border-slate-400 py-2 px-2 text-center">ភាសាខ្មែរ (អាន)</th>
+                      <th className="border border-slate-400 py-2 px-2 text-center">ភាសាខ្មែរ (សរសេរ)</th>
+                      <th className="border border-slate-400 py-2 px-2 text-center">គណិតវិទ្យា</th>
+                      <th className="border border-slate-400 py-2 px-2 text-center">វិទ្យាសាស្ត្រ-សង្គម</th>
+                      <th className="border border-slate-400 py-2 px-2 text-center">សីលធម៌-ពលរដ្ឋ</th>
+                      <th className="border border-slate-400 py-2 px-2 text-center">សិល្បៈ-កាយ</th>
+                      <th className="border border-slate-400 py-2 px-2 text-center bg-blue-50 text-blue-900 font-moul">សរុប</th>
+                      <th className="border border-slate-400 py-2 px-2 text-center bg-emerald-50 text-emerald-900 font-moul">ម.ភាគ</th>
+                      <th className="border border-slate-400 py-2 px-2 text-center">ចំណាត់ថ្នាក់</th>
+                      <th className="border border-slate-400 py-2 px-2 text-center">និទ្ទេស</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {MONTHS_LIST.map((month) => {
+                      const rec = scores.find(
+                        (s) =>
+                          s.studentId === selectedStudentForReportCard.id &&
+                          s.monthOrSemester === month &&
+                          (!s.academicYear || s.academicYear === selectedAcademicYear)
+                      );
+                      const isSemester = month.includes('ឆមាស');
+                      return (
+                        <tr
+                          key={month}
+                          className={`text-center ${isSemester ? 'bg-amber-50/70 font-bold' : 'hover:bg-slate-50'}`}
+                        >
+                          <td className="border border-slate-400 py-1.5 px-2 font-semibold">{month}</td>
+                          <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.khmerReading : '-'}</td>
+                          <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.khmerWriting : '-'}</td>
+                          <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.mathematics : '-'}</td>
+                          <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.scienceSocial : '-'}</td>
+                          <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.moralCivics : '-'}</td>
+                          <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.artsPhysical : '-'}</td>
+                          <td className="border border-slate-400 py-1.5 px-2 font-times font-bold bg-blue-50/40 text-blue-900">
+                            {rec ? rec.totalScore : '-'}
+                          </td>
+                          <td className="border border-slate-400 py-1.5 px-2 font-times font-bold bg-emerald-50/40 text-emerald-800">
+                            {rec ? rec.averageScore : '-'}
+                          </td>
+                          <td className="border border-slate-400 py-1.5 px-2 font-semibold">
+                            {rec ? `${rec.rank}/${classStudents.length}` : '-'}
+                          </td>
+                          <td className="border border-slate-400 py-1.5 px-2 font-bold font-times">
+                            {rec ? rec.gradeLetter : '-'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Behavior and Teacher Remarks */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-5 relative z-1 text-xs">
+                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                  <span className="font-bold text-slate-800 block">ការវាយតម្លៃអត្តចរិត និងវិន័យ (Conduct & Discipline)</span>
+                  <p className="text-slate-700 leading-relaxed">
+                    សិស្សមានវិន័យល្អ គោរពបទបញ្ជាផ្ទៃក្នុងសាលា ឧស្សាហ៍ព្យាយាម និងរួសរាយរាក់ទាក់ជាមួយមិត្តរួមថ្នាក់។
                   </p>
-                  <p className="text-xs font-bold text-slate-700 pt-1">
-                    ឆ្នាំសិក្សា {selectedAcademicYear} • ថ្នាក់ទី {selectedGrade}{selectedSection}
+                </div>
+                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                  <span className="font-bold text-slate-800 block">យោបល់គ្រូបន្ទុកថ្នាក់ (Teacher Recommendations)</span>
+                  <p className="text-slate-700 leading-relaxed">
+                    ត្រូវបន្តខិតខំរៀនសូត្របន្ថែមលើមុខវិជ្ជាគណិតវិទ្យា និងអានអត្ថបទភាសាខ្មែរនៅផ្ទះឱ្យបានច្រើន។
+                  </p>
+                </div>
+              </div>
+
+              {/* Dual Signatures & MoEYS Red Stamp on Print */}
+              <div className="mt-8 pt-4 border-t border-slate-300 grid grid-cols-3 gap-4 text-center text-xs relative z-1">
+                <div>
+                  <p className="font-semibold text-slate-700">បានឃើញ និងយល់ព្រម</p>
+                  <p className="font-bold text-slate-900 font-moul mt-1">អាណាព្យាបាលសិស្ស</p>
+                  <div className="h-16" />
+                  <p className="font-bold text-slate-800">
+                    {selectedStudentForReportCard.guardianName || selectedStudentForReportCard.fatherName || '...............................'}
                   </p>
                 </div>
 
-                {/* Student Metadata Card */}
-                <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs sm:text-sm my-5 relative z-1">
-                  <div>
-                    <span className="text-slate-500 text-xs block">គោត្តនាម-នាមសិស្ស</span>
-                    <strong className="font-bold text-slate-900 font-moul">{selectedStudentForReportCard.nameKhmer}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 text-xs block">អក្សរឡាតាំង</span>
-                    <strong className="font-bold text-slate-800 font-times">{selectedStudentForReportCard.nameLatin || 'N/A'}</strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 text-xs block">ភេទ & ថ្ងៃខែឆ្នាំកំណើត</span>
-                    <strong className="font-medium text-slate-800">
-                      {selectedStudentForReportCard.gender === 'F' ? 'ស្រី' : 'ប្រុស'} • <span className="font-times">{selectedStudentForReportCard.dob}</span>
-                    </strong>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 text-xs block">អត្តលេខសិស្ស</span>
-                    <strong className="font-bold text-blue-800 font-times">{selectedStudentForReportCard.code}</strong>
-                  </div>
+                <div>
+                  <p className="font-semibold text-slate-700">ថ្ងៃទី {new Date().getDate()} ខែ {selectedMonth} ឆ្នាំ២០២៤</p>
+                  <p className="font-bold text-slate-900 font-moul mt-1">គ្រូបន្ទុកថ្នាក់</p>
+                  <div className="h-16" />
+                  <p className="font-bold text-slate-800">{homeroomTeacher?.nameKhmer || 'គ្រូបន្ទុកថ្នាក់'}</p>
                 </div>
 
-                {/* Monthly Score Matrix for Selected Student */}
-                <div className="my-5 overflow-x-auto relative z-1">
-                  <table className="w-full border-collapse border border-slate-400 text-xs">
-                    <thead>
-                      <tr className="bg-slate-100 text-slate-900 font-bold">
-                        <th className="border border-slate-400 py-2 px-2 text-center">ខែ/ឆមាស</th>
-                        <th className="border border-slate-400 py-2 px-2 text-center">ភាសាខ្មែរ (អាន)</th>
-                        <th className="border border-slate-400 py-2 px-2 text-center">ភាសាខ្មែរ (សរសេរ)</th>
-                        <th className="border border-slate-400 py-2 px-2 text-center">គណិតវិទ្យា</th>
-                        <th className="border border-slate-400 py-2 px-2 text-center">វិទ្យាសាស្ត្រ-សង្គម</th>
-                        <th className="border border-slate-400 py-2 px-2 text-center">សីលធម៌-ពលរដ្ឋ</th>
-                        <th className="border border-slate-400 py-2 px-2 text-center">សិល្បៈ-កាយ</th>
-                        <th className="border border-slate-400 py-2 px-2 text-center bg-blue-50 text-blue-900 font-moul">សរុប</th>
-                        <th className="border border-slate-400 py-2 px-2 text-center bg-emerald-50 text-emerald-900 font-moul">ម.ភាគ</th>
-                        <th className="border border-slate-400 py-2 px-2 text-center">ចំណាត់ថ្នាក់</th>
-                        <th className="border border-slate-400 py-2 px-2 text-center">និទ្ទេស</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {MONTHS_LIST.map((month) => {
-                        const rec = (Array.isArray(scores) ? scores : []).find(
-                          (s) =>
-                            s &&
-                            s.studentId === selectedStudentForReportCard.id &&
-                            s.monthOrSemester === month &&
-                            (!s.academicYear || s.academicYear === selectedAcademicYear)
-                        );
-                        const isSemester = month.includes('ឆមាស');
-                        return (
-                          <tr
-                            key={month}
-                            className={`text-center ${isSemester ? 'bg-amber-50/70 font-bold' : 'hover:bg-slate-50'}`}
-                          >
-                            <td className="border border-slate-400 py-1.5 px-2 font-semibold">{month}</td>
-                            <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.khmerReading : '-'}</td>
-                            <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.khmerWriting : '-'}</td>
-                            <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.mathematics : '-'}</td>
-                            <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.scienceSocial : '-'}</td>
-                            <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.moralCivics : '-'}</td>
-                            <td className="border border-slate-400 py-1.5 px-2 font-times">{rec ? rec.scores.artsPhysical : '-'}</td>
-                            <td className="border border-slate-400 py-1.5 px-2 font-times font-bold bg-blue-50/40 text-blue-900">
-                              {rec ? rec.totalScore : '-'}
-                            </td>
-                            <td className="border border-slate-400 py-1.5 px-2 font-times font-bold bg-emerald-50/40 text-emerald-800">
-                              {rec ? rec.averageScore : '-'}
-                            </td>
-                            <td className="border border-slate-400 py-1.5 px-2 font-semibold">
-                              {rec ? `${rec.rank}/${classStudents.length}` : '-'}
-                            </td>
-                            <td className="border border-slate-400 py-1.5 px-2 font-bold font-times">
-                              {rec ? rec.gradeLetter : '-'}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div>
+                  <p className="font-semibold text-slate-700">បានឃើញ និងឯកភាព</p>
+                  <p className="font-bold text-slate-900 font-moul mt-1">នាយិកាសាលា</p>
+                  <div className="h-16" />
+                  <p className="font-bold font-moul text-blue-950">{schoolProfile.principalName}</p>
                 </div>
-
-                {/* Behavior and Teacher Remarks */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-5 relative z-1 text-xs">
-                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
-                    <span className="font-bold text-slate-800 block">ការវាយតម្លៃអត្តចរិត និងវិន័យ (Conduct & Discipline)</span>
-                    <p className="text-slate-700 leading-relaxed">
-                      សិស្សមានវិន័យល្អ គោរពបទបញ្ជាផ្ទៃក្នុងសាលា ឧស្សាហ៍ព្យាយាម និងរួសរាយរាក់ទាក់ជាមួយមិត្តរួមថ្នាក់។
-                    </p>
-                  </div>
-                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
-                    <span className="font-bold text-slate-800 block">យោបល់គ្រូបន្ទុកថ្នាក់ (Teacher Recommendations)</span>
-                    <p className="text-slate-700 leading-relaxed">
-                      ត្រូវបន្តខិតខំរៀនសូត្របន្ថែមលើមុខវិជ្ជាគណិតវិទ្យា និងអានអត្ថបទភាសាខ្មែរនៅផ្ទះឱ្យបានច្រើន។
-                    </p>
-                  </div>
-                </div>
-
-                {/* Official 3-Column Signatures with Dedicated Principal Signature QR Code Slot */}
-                <MoEYSReportCardSignatures
-                  guardianName={
-                    selectedStudentForReportCard.guardianName ||
-                    selectedStudentForReportCard.fatherName ||
-                    '...............................'
-                  }
-                  teacherName={homeroomTeacher?.nameKhmer || 'គ្រូបន្ទុកថ្នាក់'}
-                  principalName={schoolProfile.principalName}
-                  schoolLocation={schoolProfile.province || 'បាត់ដំបង'}
-                  currentMonthName={selectedMonth}
-                  signatureQRParams={principalQRParams}
-                  showSignatureQR={printSettings?.showPrincipalSignatureQR !== false}
-                />
               </div>
             </div>
           </div>
-        );
-      })()}
-
+        </div>
+      )}
 
       {/* Honor Certificate Modal Preview with Authentic Angkor Motifs */}
       {selectedStudentForHonor && (
@@ -2561,137 +1847,6 @@ export const ClassroomScores: React.FC = () => {
         onSelectGrade={setSelectedGrade}
         onSelectSection={setSelectedSection}
       />
-    </div>
-  );
-};
-
-// D3.js Line Chart Component for Classroom Performance Trends
-const ClassroomTrendD3Chart: React.FC<{ scores: StudentScoreRecord[]; grade: number; section: string }> = ({ scores, grade, section }) => {
-  const chartRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!chartRef.current) return;
-    const container = chartRef.current;
-    d3.select(container).selectAll('*').remove();
-
-    const months = ['តុលា', 'វិច្ឆិកា', 'ធ្នូ', 'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា'];
-    const data = months.map((m, idx) => {
-      const base = 6.8 + Math.sin(idx * 0.5) * 1.1 + (idx * 0.12);
-      return { month: m, avgScore: Number(Math.min(9.5, Math.max(5.0, base)).toFixed(2)) };
-    });
-
-    const margin = { top: 25, right: 30, bottom: 35, left: 45 };
-    const width = container.clientWidth || 650;
-    const height = 240;
-    const innerWidth = width - margin.left - margin.right;
-    const innerHeight = height - margin.top - margin.bottom;
-
-    const svg = d3.select(container)
-      .append('svg')
-      .attr('width', '100%')
-      .attr('height', height)
-      .attr('viewBox', `0 0 ${width} ${height}`)
-      .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
-
-    const x = d3.scalePoint()
-      .domain(months)
-      .range([0, innerWidth])
-      .padding(0.4);
-
-    const y = d3.scaleLinear()
-      .domain([0, 10])
-      .range([innerHeight, 0]);
-
-    // X Axis
-    svg.append('g')
-      .attr('transform', `translate(0,${innerHeight})`)
-      .call(d3.axisBottom(x))
-      .selectAll('text')
-      .attr('font-size', '10px')
-      .attr('fill', '#475569')
-      .attr('font-family', 'Battambang, sans-serif');
-
-    // Y Axis
-    svg.append('g')
-      .call(d3.axisLeft(y).ticks(5))
-      .selectAll('text')
-      .attr('font-size', '10px')
-      .attr('fill', '#475569');
-
-    // Grid lines
-    svg.append('g')
-      .attr('opacity', 0.12)
-      .call(d3.axisLeft(y).ticks(5).tickSize(-innerWidth).tickFormat(() => ''));
-
-    const line = d3.line<{ month: string; avgScore: number }>()
-      .x(d => x(d.month) || 0)
-      .y(d => y(d.avgScore))
-      .curve(d3.curveMonotoneX);
-
-    const area = d3.area<{ month: string; avgScore: number }>()
-      .x(d => x(d.month) || 0)
-      .y0(innerHeight)
-      .y1(d => y(d.avgScore))
-      .curve(d3.curveMonotoneX);
-
-    const defs = svg.append('defs');
-    const gradient = defs.append('linearGradient')
-      .attr('id', 'd3-classroom-trend-gradient')
-      .attr('x1', '0%').attr('y1', '0%')
-      .attr('x2', '0%').attr('y2', '100%');
-    gradient.append('stop').attr('offset', '0%').attr('stop-color', '#4f46e5').attr('stop-opacity', 0.3);
-    gradient.append('stop').attr('offset', '100%').attr('stop-color', '#4f46e5').attr('stop-opacity', 0.0);
-
-    svg.append('path')
-      .datum(data)
-      .attr('fill', 'url(#d3-classroom-trend-gradient)')
-      .attr('d', area);
-
-    svg.append('path')
-      .datum(data)
-      .attr('fill', 'none')
-      .attr('stroke', '#4f46e5')
-      .attr('stroke-width', 3)
-      .attr('d', line);
-
-    svg.selectAll('.dot')
-      .data(data)
-      .enter()
-      .append('circle')
-      .attr('cx', d => x(d.month) || 0)
-      .attr('cy', d => y(d.avgScore))
-      .attr('r', 5)
-      .attr('fill', '#ffffff')
-      .attr('stroke', '#4f46e5')
-      .attr('stroke-width', 2.5);
-
-    svg.selectAll('.label')
-      .data(data)
-      .enter()
-      .append('text')
-      .attr('x', d => x(d.month) || 0)
-      .attr('y', d => y(d.avgScore) - 10)
-      .attr('text-anchor', 'middle')
-      .attr('font-size', '10px')
-      .attr('font-weight', 'bold')
-      .attr('fill', '#312e81')
-      .text(d => d.avgScore);
-
-  }, [scores, grade, section]);
-
-  return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3 font-battambang">
-      <div className="flex items-center justify-between">
-        <h4 className="font-bold text-xs sm:text-sm text-slate-800 flex items-center gap-2">
-          <BarChart2 className="w-4 h-4 text-indigo-600" />
-          <span>និន្នាការមធ្យមភាគពិន្ទុសិស្សតាមខែ និងឆមាស (D3.js Line Chart - ថ្នាក់ទី {grade}{section})</span>
-        </h4>
-        <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-bold">
-          D3.js Visualizer
-        </span>
-      </div>
-      <div ref={chartRef} className="w-full overflow-hidden" />
     </div>
   );
 };

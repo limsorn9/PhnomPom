@@ -173,8 +173,6 @@ export const ClassroomDuckRace: React.FC<Props> = ({
   const [remainingSeconds, setRemainingSeconds] = useState<number>(10);
   const [isRacing, setIsRacing] = useState<boolean>(false);
   const [raceFinished, setRaceFinished] = useState<boolean>(false);
-  const [isKeypadOpen, setIsKeypadOpen] = useState<boolean>(false);
-  const raceIntervalRef = useRef<any>(null);
 
   // Audio settings
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -185,30 +183,6 @@ export const ClassroomDuckRace: React.FC<Props> = ({
   const [duckPositions, setDuckPositions] = useState<{ [id: string]: number }>({});
   const [winner, setWinner] = useState<PickerCandidate | null>(null);
   const [removeWinnerOnNext, setRemoveWinnerOnNext] = useState<boolean>(true);
-
-  // Dynamic Camera Tracking (ដូច Duck Racing ពិតៗ)
-  // Track world is 300% width of the visible screen.
-  // Finish line is at ~94.8%, initially offscreen (hidden).
-  // Camera smoothly glides forward following the leading duck!
-  const currentLeadProgress = useMemo(() => {
-    if (!isRacing && !raceFinished) return 0;
-    if (raceFinished) return 100;
-    const vals = Object.values(duckPositions) as number[];
-    if (vals.length === 0) return 0;
-    return Math.max(...vals, 0);
-  }, [isRacing, raceFinished, duckPositions]);
-
-  const cameraWorldX = useMemo(() => {
-    if (!isRacing && !raceFinished) return 0;
-    // Lead duck position in world coordinates (from 2.2% to 94.8%)
-    const leadDuckWorldX = 2.2 + (currentLeadProgress / 100) * 92.6;
-    
-    // Position lead duck at ~42% of the viewport (viewport width = 33.333% of world)
-    const targetCameraX = leadDuckWorldX - 14.0;
-    
-    // Clamp camera between 0% (at start) and 66.667% (at finish, showing finish line)
-    return Math.max(0, Math.min(66.667, targetCameraX));
-  }, [isRacing, raceFinished, currentLeadProgress]);
 
   // Joyful winner duck quack phrase rotation ("យំកាប កាប យ៉ាងសប្បាយរីករាយ")
   const WINNER_QUACK_PHRASES = [
@@ -273,6 +247,7 @@ export const ClassroomDuckRace: React.FC<Props> = ({
   const [fastestTimeFilter, setFastestTimeFilter] = useState<number | 'all'>('all');
   const [latestFinishTime, setLatestFinishTime] = useState<number | null>(null);
   const [isNewSpeedRecord, setIsNewSpeedRecord] = useState<boolean>(false);
+  const [showCelebrationModal, setShowCelebrationModal] = useState<boolean>(false);
 
   // Container Ref & Fullscreen Handler
   const arenaContainerRef = useRef<HTMLDivElement>(null);
@@ -354,10 +329,6 @@ export const ClassroomDuckRace: React.FC<Props> = ({
   useEffect(() => {
     return () => {
       soundManager.stopBGM();
-      if (raceIntervalRef.current) {
-        clearInterval(raceIntervalRef.current);
-        raceIntervalRef.current = null;
-      }
     };
   }, []);
 
@@ -458,16 +429,11 @@ export const ClassroomDuckRace: React.FC<Props> = ({
       return;
     }
 
-    if (raceIntervalRef.current) {
-      clearInterval(raceIntervalRef.current);
-      raceIntervalRef.current = null;
-    }
-    setIsKeypadOpen(false);
-
     const durationSec = targetSeconds > 0 ? targetSeconds : 10;
     setRemainingSeconds(durationSec);
     setIsRacing(true);
     setRaceFinished(false);
+    setShowCelebrationModal(false);
     setWinner(null);
 
     // Initial Duck Positions at 0%
@@ -491,7 +457,7 @@ export const ClassroomDuckRace: React.FC<Props> = ({
     const intervalTickMs = 80;
     let tickCount = 0;
 
-    raceIntervalRef.current = setInterval(() => {
+    const timerInterval = setInterval(() => {
       const elapsed = performance.now() - startTime;
       const progressRatio = Math.min(elapsed / totalDurationMs, 1);
       tickCount++;
@@ -538,45 +504,17 @@ export const ClassroomDuckRace: React.FC<Props> = ({
 
       // Finish Race when time expires or duck crosses
       if (elapsed >= totalDurationMs) {
-        if (raceIntervalRef.current) {
-          clearInterval(raceIntervalRef.current);
-          raceIntervalRef.current = null;
-        }
+        clearInterval(timerInterval);
         finishRace(chosenWinner);
       }
     }, intervalTickMs);
   };
 
-  // Stop Race Handler
-  const handleStopRace = () => {
-    if (raceIntervalRef.current) {
-      clearInterval(raceIntervalRef.current);
-      raceIntervalRef.current = null;
-    }
-    soundManager.stopBGM();
-    setIsRacing(false);
-    setRaceFinished(false);
-    setWinner(null);
-    const secs = targetSeconds > 0 ? targetSeconds : 10;
-    setRemainingSeconds(secs);
-    const hrs = Math.floor(secs / 3600);
-    const mins = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    setTimerDigits(`${String(hrs).padStart(2, '0')}${String(mins).padStart(2, '0')}${String(s).padStart(2, '0')}`);
-    const initPos: { [id: string]: number } = {};
-    activeCandidates.forEach(c => { initPos[c.id] = 0; });
-    setDuckPositions(initPos);
-    showToast('⏹️ បានបញ្ឈប់ការប្រណាំង!');
-  };
-
   // Finish Race Handler
   const finishRace = (winnerCandidate: PickerCandidate) => {
-    if (raceIntervalRef.current) {
-      clearInterval(raceIntervalRef.current);
-      raceIntervalRef.current = null;
-    }
     setIsRacing(false);
     setRaceFinished(true);
+    setShowCelebrationModal(true);
     setRemainingSeconds(0);
     setTimerDigits('000000');
     setWinner(winnerCandidate);
@@ -700,13 +638,10 @@ export const ClassroomDuckRace: React.FC<Props> = ({
 
   // Reset or Race Again
   const handleRaceAgain = () => {
-    if (raceIntervalRef.current) {
-      clearInterval(raceIntervalRef.current);
-      raceIntervalRef.current = null;
-    }
     soundManager.stopBGM();
     setIsRacing(false);
     setRaceFinished(false);
+    setShowCelebrationModal(false);
 
     if (gameMode === 'duel_2p') {
       handleDuelNextRound();
@@ -1296,299 +1231,13 @@ export const ClassroomDuckRace: React.FC<Props> = ({
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* 2. DEDICATED RACE CONTROL & LIVE HUD BAR (របាបញ្ជា & ដំណើរការប្រណាំង) */}
-      {/* ------------------------------------------------------------- */}
-      <div className="bg-slate-950 text-white px-3 sm:px-6 py-2 border-b-2 border-slate-800 shadow-xl z-20">
-        {!isRacing ? (
-          /* PRE-RACE CONTROLS DECK */
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* Left: Candidate List & Mode */}
-            <div className="flex items-center gap-2">
-              {gameMode === 'classroom' ? (
-                <>
-                  <button
-                    onClick={() => setIsEditListOpen(true)}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl border border-slate-700 shadow-sm flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
-                    title="កែសម្រួលបញ្ជីឈ្មោះកូនទា"
-                  >
-                    <Users className="w-3.5 h-3.5" />
-                    <span className="font-moul text-[11px] sm:text-xs">កែបញ្ជីឈ្មោះ៖</span>
-                    <span className="px-1.5 py-0.5 bg-amber-400 text-slate-950 rounded-full font-black text-[10px] sm:text-[11px]">
-                      {activeCandidates.length} 🦆
-                    </span>
-                  </button>
-
-                  <div className="flex items-center bg-slate-900 p-0.5 rounded-lg border border-slate-700">
-                    <button
-                      onClick={() => setDisplayMode('names')}
-                      className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-                        displayMode === 'names' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      ឈ្មោះ (Names)
-                    </button>
-                    <button
-                      onClick={() => setDisplayMode('numbers')}
-                      className={`px-2 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-                        displayMode === 'numbers' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      លេខ (Numbers)
-                    </button>
-                  </div>
-                </>
-              ) : (
-                /* Duel 2P Info */
-                <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-xl border border-amber-500/50">
-                  <span className="text-xs font-bold text-blue-300">🔵 {player1.name} ({player1.wins})</span>
-                  <span className="text-xs font-black text-amber-400 font-moul">VS</span>
-                  <span className="text-xs font-bold text-purple-300">🟣 {player2.name} ({player2.wins})</span>
-                  <span className="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded-md border border-slate-700">
-                    ជុំទី {duelCurrentRound}/{duelMaxRounds}
-                  </span>
-                  <button
-                    onClick={handleResetDuelScore}
-                    className="ml-1 text-[10px] text-slate-400 hover:text-rose-300 underline cursor-pointer"
-                  >
-                    Reset
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Center: Digital Timer Display & Quick Presets & Keypad Toggle */}
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center">
-              {/* LCD Digital Timer */}
-              <div 
-                onClick={() => setIsKeypadOpen(!isKeypadOpen)}
-                className="bg-indigo-950/90 border-2 border-cyan-400/70 rounded-xl px-3 sm:px-4 py-1 flex items-center gap-2 shadow-inner cursor-pointer hover:border-cyan-300 hover:shadow-cyan-500/20 transition-all"
-                title="ចុចដើម្បីបើក ឃីផេតកំណត់ម៉ោង (Click to open keypad)"
-              >
-                <Clock className="w-4 h-4 text-cyan-400 shrink-0" />
-                <span className="font-mono text-xl sm:text-2xl font-black text-cyan-300 tracking-wider">
-                  {formatTime(targetSeconds)}
-                </span>
-                <Bell className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              </div>
-
-              {/* Quick Time Presets */}
-              <div className="flex items-center gap-1">
-                {[
-                  { label: '5s', val: 5 },
-                  { label: '10s', val: 10 },
-                  { label: '20s', val: 20 },
-                  { label: '30s', val: 30 },
-                  { label: '1m', val: 60 }
-                ].map(p => (
-                  <button
-                    key={p.val}
-                    onClick={() => handleQuickTime(p.val)}
-                    className={`px-2 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
-                      targetSeconds === p.val 
-                        ? 'bg-amber-400 border-amber-500 text-slate-950 shadow-xs font-black' 
-                        : 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-
-                <button
-                  onClick={() => setIsKeypadOpen(!isKeypadOpen)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1 cursor-pointer transition-all ${
-                    isKeypadOpen 
-                      ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-black shadow-xs' 
-                      : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800'
-                  }`}
-                  title="កំណត់ម៉ោងដោយវាយលេខផ្ទាល់ (Custom Timer Keypad)"
-                >
-                  <span>⌨️ Keypad</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Right: BIG PROMINENT START BUTTON */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleStartRace}
-                disabled={activeCandidates.length === 0}
-                className="px-5 sm:px-8 py-2 sm:py-2.5 bg-gradient-to-r from-lime-400 via-emerald-400 to-lime-500 hover:from-lime-300 hover:to-emerald-300 text-slate-950 font-black font-moul text-xs sm:text-base rounded-2xl shadow-xl hover:shadow-lime-400/40 border-2 border-lime-600 active:scale-95 transition-all flex items-center gap-2 cursor-pointer ring-4 ring-lime-400/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="ចុចដើម្បីចាប់ផ្តើមប្រណាំងទា!"
-              >
-                <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current text-slate-950 animate-pulse" />
-                <span>ចាប់ផ្តើមប្រណាំង (START)</span>
-              </button>
-            </div>
-          </div>
-        ) : (
-          /* RACING LIVE HUD BAR (NO LONGER COVERS THE DUCKS IN THE WATER!) */
-          <div className="flex items-center justify-between gap-3 animate-fadeIn flex-wrap">
-            {/* Left: Live Countdown Digital Clock */}
-            <div className="flex items-center gap-2 bg-indigo-950/90 border-2 border-cyan-400/80 rounded-xl px-3 sm:px-4 py-1 shadow-lg shrink-0">
-              <Clock className="w-4 h-4 text-cyan-400 animate-spin" />
-              <div className="flex flex-col">
-                <span className="font-mono text-xl sm:text-2xl font-black text-cyan-300 tracking-wider">
-                  {formatTime(remainingSeconds)}
-                </span>
-                <span className="text-[8px] font-bold text-cyan-400 uppercase tracking-widest -mt-1">
-                  រាប់ថយក្រោយ (Countdown)
-                </span>
-              </div>
-              <Bell className="w-4 h-4 text-amber-400 animate-bounce" />
-            </div>
-
-            {/* Center: Full-width Race Progress Bar HUD */}
-            <div className="flex-1 min-w-[200px] max-w-2xl flex items-center gap-2 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-cyan-400/40 shadow-inner">
-              <span className="text-[10px] sm:text-xs font-black text-amber-300 whitespace-nowrap flex items-center gap-1 font-moul shrink-0">
-                <Gauge className="w-3.5 h-3.5 text-amber-400 animate-spin" />
-                <span className="hidden md:inline">ចម្ងាយដល់គោលដៅ៖</span>
-              </span>
-
-              {/* Progress Track */}
-              <div className="relative flex-1 h-3.5 bg-slate-950 rounded-full border border-cyan-500/40 overflow-visible flex items-center">
-                {/* 25%, 50%, 75% tick marks */}
-                <span className="absolute left-1/4 top-0 bottom-0 w-[1px] bg-white/20"></span>
-                <span className="absolute left-2/4 top-0 bottom-0 w-[1px] bg-white/20"></span>
-                <span className="absolute left-3/4 top-0 bottom-0 w-[1px] bg-white/20"></span>
-
-                {/* Markers for top ducks */}
-                {activeCandidates.slice(0, 8).map(cand => {
-                  const progressVal = Math.max(0, Math.min(100, duckPositions[cand.id] || 0));
-                  const isLead = Math.max(...activeCandidates.map(c => duckPositions[c.id] || 0)) === progressVal;
-                  return (
-                    <div 
-                      key={cand.id}
-                      className="absolute -top-2 transform -translate-x-1/2 transition-all duration-150 ease-out z-20 flex flex-col items-center"
-                      style={{ left: `${progressVal}%` }}
-                    >
-                      <span className={`text-[11px] leading-none select-none drop-shadow-md ${isLead ? 'scale-125 z-30' : 'opacity-80'}`}>
-                        {isLead ? '👑' : '🦆'}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Leader stats badge & Goal Visibility Indicator */}
-              {(() => {
-                const leadDuck = [...activeCandidates].sort((a, b) => (duckPositions[b.id] || 0) - (duckPositions[a.id] || 0))[0];
-                const leadProgress = Math.round(duckPositions[leadDuck?.id] || 0);
-                const distanceRemaining = Math.max(0, 100 - leadProgress);
-                const isGoalInSight = leadProgress >= 78;
-                return (
-                  <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-black whitespace-nowrap shrink-0">
-                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border transition-all ${
-                      isGoalInSight 
-                        ? 'bg-amber-400 text-slate-950 border-amber-300 font-black animate-pulse shadow-xs' 
-                        : 'bg-cyan-950/90 text-cyan-200 border-cyan-400/50'
-                    }`}>
-                      {isGoalInSight ? (
-                        <>
-                          <span>🏁 ឃើញគោលដៅហើយ!</span>
-                          <span className="text-[9px] opacity-90">({distanceRemaining}%)</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-amber-300">🎥 កាមេរ៉ារត់តាម៖</span>
-                          <span>នៅសល់ {distanceRemaining}%</span>
-                          <span className="text-[9px] opacity-60 hidden sm:inline">(លាក់គោលដៅ)</span>
-                        </>
-                      )}
-                    </div>
-                    {leadDuck && (
-                      <span className="hidden lg:inline text-amber-300 font-bold bg-slate-950/60 px-2 py-0.5 rounded-lg border border-white/10">
-                        👑 «{leadDuck.name}»
-                      </span>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Right: Quick Stop / Reset Buttons */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                onClick={handleStopRace}
-                className="px-3 sm:px-4 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer transition-all active:scale-95 flex items-center gap-1 font-moul"
-                title="បញ្ឈប់ការប្រណាំង"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Stop</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Collapsible Keypad Panel (Opens smoothly when user clicks Keypad, without covering water) */}
-        {isKeypadOpen && !isRacing && (
-          <div className="mt-2.5 pt-2.5 border-t border-slate-800 flex flex-col items-center gap-2 animate-fadeIn bg-slate-900/90 p-3 rounded-2xl border border-cyan-500/30">
-            <div className="flex items-center justify-between w-full max-w-md px-2">
-              <span className="text-xs font-bold text-cyan-300 font-moul flex items-center gap-1">
-                <span>⌨️ វាយបញ្ចូលម៉ោងកំណត់ (HH:MM:SS)៖</span>
-                <span className="font-mono text-white text-sm bg-slate-950 px-2 py-0.5 rounded-md border border-cyan-500/40">
-                  {formatTime(digitsToSeconds(timerDigits))}
-                </span>
-              </span>
-              <button
-                onClick={() => setIsKeypadOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg cursor-pointer text-xs"
-              >
-                ✕ បិទ
-              </button>
-            </div>
-
-            {/* Row 1: 5 6 7 8 9 Set */}
-            <div className="flex items-center gap-1.5">
-              {['5', '6', '7', '8', '9'].map(num => (
-                <button
-                  key={num}
-                  onClick={() => handleKeypadPress(num)}
-                  className="w-9 h-8 sm:w-11 sm:h-9 bg-lime-500 hover:bg-lime-400 text-slate-950 font-bold text-sm sm:text-base rounded-xl border border-lime-700 shadow-md cursor-pointer transition-all active:scale-90 flex items-center justify-center"
-                >
-                  {num}
-                </button>
-              ))}
-              <button
-                onClick={() => {
-                  handleKeypadPress('Set');
-                  setIsKeypadOpen(false);
-                }}
-                className="px-3 sm:px-4 h-8 sm:h-9 bg-lime-500 hover:bg-lime-400 text-slate-950 font-bold text-xs sm:text-sm rounded-xl border border-lime-700 shadow-md cursor-pointer transition-all active:scale-90 flex items-center justify-center font-moul"
-              >
-                Set
-              </button>
-            </div>
-
-            {/* Row 2: 0 1 2 3 4 Clear */}
-            <div className="flex items-center gap-1.5">
-              {['0', '1', '2', '3', '4'].map(num => (
-                <button
-                  key={num}
-                  onClick={() => handleKeypadPress(num)}
-                  className="w-9 h-8 sm:w-11 sm:h-9 bg-lime-500 hover:bg-lime-400 text-slate-950 font-bold text-sm sm:text-base rounded-xl border border-lime-700 shadow-md cursor-pointer transition-all active:scale-90 flex items-center justify-center"
-                >
-                  {num}
-                </button>
-              ))}
-              <button
-                onClick={() => handleKeypadPress('Clear')}
-                className="px-3 sm:px-4 h-8 sm:h-9 bg-slate-400 hover:bg-slate-300 text-slate-950 font-bold text-xs sm:text-sm rounded-xl border border-slate-600 shadow-md cursor-pointer transition-all active:scale-90 flex items-center justify-center font-bold"
-              >
-                Clear
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ------------------------------------------------------------- */}
-      {/* 2. THE MAIN ARENA CANVAS WITH DYNAMIC CAMERA TRACKING */}
+      {/* 2. THE MAIN ARENA CANVAS (SKY, RIVERBANK, FLOWING RIVER & FINISH LINE) */}
       {/* ------------------------------------------------------------- */}
       <div className="relative w-full overflow-hidden bg-sky-300 min-h-[480px] sm:min-h-[540px] flex flex-col justify-between">
         
-        {/* --- A. STATIC SKY, SUN & CLOUDS (PARALLAX DEPTH) --- */}
-        <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-sky-300 via-sky-200 to-emerald-200 pointer-events-none z-0">
-          {/* Golden Sun */}
+        {/* --- A. SKY, SUN & CLOUDS --- */}
+        <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-sky-300 via-sky-200 to-emerald-200 pointer-events-none">
+          {/* Golden Sun in top left corner */}
           <div className="absolute -top-8 -left-8 w-28 h-28 rounded-full bg-yellow-300 border-4 border-yellow-400 shadow-[0_0_40px_rgba(250,204,21,0.8)]">
             <div className="absolute inset-0 rounded-full bg-yellow-200 animate-ping opacity-25"></div>
           </div>
@@ -1607,218 +1256,434 @@ export const ClassroomDuckRace: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* --- CAMERA TRACKING SCROLLING WORLD (300% WIDTH CONTAINER) --- */}
-        <div className="relative z-10 flex-1 w-full overflow-hidden flex flex-col justify-between">
-          <div 
-            className="w-[300%] flex flex-col flex-1 transition-transform duration-200 ease-out will-change-transform select-none"
-            style={{ transform: `translateX(-${cameraWorldX}%)` }}
-          >
-            {/* --- B. SCROLLING GREEN GRASSY RIVERBANK & MILESTONES (300% WIDTH) --- */}
-            <div className="relative z-10 w-full pt-1 sm:pt-2">
-              <div className="w-full h-12 sm:h-14 bg-gradient-to-b from-emerald-500 to-green-600 relative border-b-4 border-amber-900 shadow-inner flex items-center justify-between px-4">
-                
-                {/* 0m Start Dock Bank */}
-                <div className="absolute left-[1.5%] flex items-center gap-2">
-                  <span className="text-xl">🏁</span>
-                  <div className="bg-emerald-700 text-white font-black text-[10px] px-2 py-0.5 rounded-md border border-emerald-400 shadow-xs whitespace-nowrap">
-                    🚩 ចំណុចចេញដំណើរ (0m START)
-                  </div>
-                  <span className="text-lg">🌳</span>
-                </div>
-
-                {/* 25m Lily Pond Bank */}
-                <div className="absolute left-[25%] flex items-center gap-2 opacity-90">
-                  <span className="text-lg">🌿</span>
-                  <div className="bg-emerald-800/80 text-emerald-100 font-bold text-[9px] px-2 py-0.5 rounded-md border border-emerald-600/60 whitespace-nowrap">
-                    🪷 ២៥ ម៉ែត្រ (25m Pond)
-                  </div>
-                  <span className="text-xl">🌳</span>
-                </div>
-
-                {/* 50m Midpoint Island Bank */}
-                <div className="absolute left-[50%] flex items-center gap-2 opacity-95">
-                  <span className="text-xl">🌴</span>
-                  <div className="bg-amber-600 text-white font-black text-[10px] px-2.5 py-0.5 rounded-md border border-amber-300 shadow-xs whitespace-nowrap flex items-center gap-1">
-                    <span>⚡ ៥០ ម៉ែត្រ (50m Midpoint)</span>
-                  </div>
-                  <span className="text-xl">🌴</span>
-                  <span className="text-sm">🐸</span>
-                </div>
-
-                {/* 75m Sprint Zone Bank */}
-                <div className="absolute left-[73%] flex items-center gap-2">
-                  <span className="text-xl">🔥</span>
-                  <div className="bg-rose-600 text-white font-black text-[10px] px-2.5 py-0.5 rounded-md border border-rose-300 shadow-md whitespace-nowrap animate-pulse flex items-center gap-1">
-                    <span>⚡ ៧៥ ម៉ែត្រ • ជិតដល់គោលដៅ! (Sprint!)</span>
-                  </div>
-                  <span className="text-xl">🌳</span>
-                </div>
-
-                {/* 95% - 100% Finish Stadium Grandstand Bank */}
-                <div className="absolute left-[92%] right-2 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-black text-[11px] px-3 py-1 rounded-lg border-2 border-slate-900 shadow-xl whitespace-nowrap animate-bounce">
-                    <span>🏆</span>
-                    <span className="font-moul">វេទិកាជ័យលាភី (FINISH STADIUM)</span>
-                    <span>🏁</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-base select-none">
-                    <span>🎈</span>
-                    <span>👏</span>
-                    <span>🇰🇭</span>
-                    <span>🎉</span>
-                  </div>
-                </div>
-
-              </div>
-              {/* Muddy Shore Edge */}
-              <div className="w-full h-2.5 bg-amber-900 border-b border-amber-950"></div>
+        {/* --- B. GREEN GRASSY RIVERBANK & MUD SHORELINE --- */}
+        <div className="relative z-10 w-full pt-1 sm:pt-2">
+          {/* Green Grass Bank */}
+          <div className="w-full h-12 sm:h-14 bg-gradient-to-b from-emerald-500 to-green-600 relative border-b-4 border-amber-900 shadow-inner flex items-center justify-between px-6">
+            {/* Bushes on Riverbank */}
+            <div className="flex items-center gap-10 opacity-70">
+              <span className="text-xl">🌳</span>
+              <span className="text-lg">🌿</span>
+              <span className="text-xl">🌳</span>
             </div>
-
-            {/* --- C. BLUE WATER RIVER RACETRACK (300% WIDTH WORLD) --- */}
-            <div className="relative flex-1 w-full bg-gradient-to-b from-cyan-600 via-blue-600 to-sky-700 min-h-[310px] overflow-hidden flex flex-col justify-around py-3 px-2">
-              
-              {/* Ambient Flowing River Wave Lines */}
-              <div className="absolute inset-0 opacity-20 pointer-events-none flex flex-col justify-around">
-                <div className="w-full h-3 border-b-2 border-white/40"></div>
-                <div className="w-full h-3 border-b-2 border-white/40"></div>
-                <div className="w-full h-3 border-b-2 border-white/40"></div>
-                <div className="w-full h-3 border-b-2 border-white/40"></div>
-              </div>
-
-              {/* 1. STARTING DOCK ON THE FAR LEFT (1.2% of world) */}
-              <div className="absolute left-[1.2%] top-0 bottom-0 w-6 bg-amber-800/90 border-r-3 border-amber-950 z-10 flex flex-col justify-around items-center shadow-lg">
-                <div className="absolute -top-1 left-0 bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-br-md shadow-xs border border-emerald-400 whitespace-nowrap">
-                  START
-                </div>
-                {activeCandidates.slice(0, 8).map((_, idx) => (
-                  <span key={idx} className="text-[10px] font-bold text-amber-200 opacity-80">
-                    ⚓
-                  </span>
-                ))}
-              </div>
-
-              {/* 2. DISTANCE BUOYS IN RIVER WATER (25m, 50m, 75m) */}
-              <div className="absolute left-[25.35%] top-0 bottom-0 w-[2px] bg-white/15 pointer-events-none z-0 flex flex-col justify-around items-center">
-                <span className="text-[10px] bg-slate-900/60 text-cyan-200 px-1 py-0.5 rounded-sm font-bold opacity-75">🛟 25m</span>
-              </div>
-              <div className="absolute left-[48.5%] top-0 bottom-0 w-[2px] bg-white/20 pointer-events-none z-0 flex flex-col justify-around items-center">
-                <span className="text-[10px] bg-slate-900/70 text-amber-300 px-1 py-0.5 rounded-sm font-bold opacity-80">🛟 50m</span>
-              </div>
-              <div className="absolute left-[71.65%] top-0 bottom-0 w-[2px] bg-white/25 pointer-events-none z-0 flex flex-col justify-around items-center">
-                <span className="text-[10px] bg-rose-950/80 text-rose-300 px-1 py-0.5 rounded-bold border border-rose-500/40 opacity-90">⚠️ 75m</span>
-              </div>
-
-              {/* 3. SLANTED CHECKERED FINISH LINE (AT 94.8% OF WORLD - INITIALLY HIDDEN OFFSCREEN) */}
-              <div 
-                className="absolute left-[94.8%] top-0 bottom-0 w-12 z-20 pointer-events-none transform -skew-x-12 flex flex-col justify-around border-r-4 border-l-4 border-black shadow-2xl"
-                style={{
-                  backgroundImage: `repeating-linear-gradient(0deg, #000, #000 16px, #fff 16px, #fff 32px)`
-                }}
-              >
-                {/* Giant Top Finish Arch / Marker */}
-                <div className="absolute -top-7 -left-12 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-slate-950 font-black text-xs sm:text-sm px-3 py-1 rounded-xl border-2 border-black shadow-2xl whitespace-nowrap transform skew-x-12 flex items-center gap-1.5 animate-bounce">
-                  <span className="text-base">🏁</span>
-                  <span className="font-moul text-[11px] sm:text-xs">គោលដៅ • FINISH</span>
-                  <span className="text-base">🏆</span>
-                </div>
-
-                {/* Red Finish Tape Ribbon across the goal (breaks when race ends) */}
-                <div className={`absolute -left-1.5 inset-y-0 w-1.5 transition-all duration-300 ${
-                  raceFinished ? 'opacity-30 border-dashed border-red-500 bg-transparent' : 'bg-red-600 shadow-md ring-1 ring-red-400'
-                }`}>
-                  {!raceFinished && (
-                    <span className="absolute top-1/2 -left-3 transform -translate-y-1/2 -rotate-90 text-[8px] font-black text-white bg-red-700 px-1 py-0.5 rounded-sm uppercase tracking-widest whitespace-nowrap shadow-sm">
-                      FINISH TAPE
-                    </span>
-                  )}
-                </div>
-
-                {/* Lane Numbers marked in bold black italics on the goal line */}
-                {activeCandidates.slice(0, 8).map((_, idx) => (
-                  <div 
-                    key={idx} 
-                    className="absolute text-slate-950 font-black text-2xl sm:text-3xl italic drop-shadow-md select-none transform skew-x-12"
-                    style={{
-                      right: '-34px',
-                      top: `${(idx / Math.max(1, activeCandidates.length - 1)) * 75 + 5}%`
-                    }}
-                  >
-                    {idx + 1}
-                  </div>
-                ))}
-              </div>
-
-              {/* 4. DUCK LANES (Swimming Ducks across the 300% World Track) */}
-              {activeCandidates.slice(0, 10).map((cand, idx) => {
-                const laneNumber = idx + 1;
-                const progress = isRacing ? (duckPositions[cand.id] || 0) : (raceFinished && winner?.id === cand.id ? 100 : 0);
-                const clampedProgress = Math.max(0, Math.min(100, Math.round(progress)));
-                const costume = gameMode === 'duel_2p'
-                  ? (cand.id === 'p1' ? player1.costume : player2.costume)
-                  : (candidateCostumes[cand.id] || DUCK_COSTUMES[idx % DUCK_COSTUMES.length].id);
-                const isWinnerDuck = winner?.id === cand.id;
-                const isDuel = gameMode === 'duel_2p';
-
-                // Duck position in 300% world (from 2.2% at start to 94.8% at finish)
-                const duckWorldX = 2.2 + (clampedProgress / 100) * 92.6;
-
-                return (
-                  <div 
-                    key={cand.id}
-                    className={`relative w-full flex items-center border-b border-cyan-400/20 ${
-                      isDuel ? 'h-20 sm:h-24 bg-cyan-900/10' : 'h-14 sm:h-16'
-                    }`}
-                  >
-                    {/* Lane Marker on Left */}
-                    {isDuel && (
-                      <div className="absolute left-[2%] top-2 z-0 flex items-center gap-1.5 opacity-80 pointer-events-none">
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-md border ${
-                          cand.id === 'p1' ? 'bg-blue-600/80 text-white border-blue-400' : 'bg-purple-600/80 text-white border-purple-400'
-                        }`}>
-                          {cand.id === 'p1' ? '🔵 LANE 1 (P1)' : '🟣 LANE 2 (P2)'}
-                        </span>
-                        <span className="text-xs font-bold text-white/70 truncate hidden sm:inline">
-                          {cand.id === 'p1' ? `"${player1.motto}"` : `"${player2.motto}"`}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Subdued Lane Progress Track Bar across the full world course */}
-                    <div className="absolute left-[2.2%] w-[92.6%] bottom-1.5 h-1.5 bg-black/25 rounded-full overflow-hidden pointer-events-none z-0 border border-white/15">
-                      <div 
-                        className={`h-full transition-all duration-150 ease-out rounded-full ${
-                          isWinnerDuck && raceFinished 
-                            ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 shadow-sm' 
-                            : cand.id === 'p1'
-                            ? 'bg-gradient-to-r from-blue-400 to-cyan-300'
-                            : cand.id === 'p2'
-                            ? 'bg-gradient-to-r from-purple-400 to-pink-300'
-                            : 'bg-gradient-to-r from-cyan-400 to-emerald-300'
-                        }`}
-                        style={{ width: `${clampedProgress}%` }}
-                      />
-                    </div>
-
-                    {/* Animated Duck Position swimming along the World River */}
-                    <div 
-                      className={`absolute transition-all duration-150 ease-linear z-20 ${
-                        isWinnerDuck && raceFinished ? 'animate-winner-duck z-40' : ''
-                      }`}
-                      style={{
-                        left: isRacing 
-                          ? `${duckWorldX}%` 
-                          : raceFinished 
-                          ? `${isWinnerDuck ? 95.3 : Math.min(94.0, duckWorldX)}%`
-                          : `${2.0 + (idx % 3) * 0.3}%` // starting dock line
-                      }}
-                    >
-                      {renderDuckCharacter(cand, laneNumber, costume, false, progress)}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="flex items-center gap-8 opacity-70">
+              <span className="text-lg">🌿</span>
+              <span className="text-xl">🌳</span>
+              <span className="text-lg">🌿</span>
             </div>
           </div>
+          {/* Muddy Shore Edge */}
+          <div className="w-full h-2.5 bg-amber-900 border-b border-amber-950"></div>
+        </div>
+
+        {/* --- C. TOP CENTER: BIG DIGITAL LCD TIMER DISPLAY & KEYPAD --- */}
+        <div className="relative z-20 flex flex-col items-center justify-center -mt-8 sm:-mt-10 px-3">
+          
+          {/* 1. BIG DIGITAL LCD TIMER BOX (Exact match to 00:20:00 style in Image 1 & 2) */}
+          <div className="relative bg-indigo-50/95 border-4 border-slate-900 rounded-2xl sm:rounded-3xl px-6 sm:px-10 py-2 sm:py-3 shadow-2xl backdrop-blur-md flex items-center justify-between gap-4 sm:gap-6 min-w-[280px] sm:min-w-[420px]">
+            {/* Clock Icon on Left */}
+            <div className="text-slate-400 flex items-center">
+              <Clock className="w-6 h-6 sm:w-8 sm:h-8" />
+            </div>
+
+            {/* Center: BIG DIGITAL DIGITS */}
+            <div className="flex flex-col items-center">
+              <span className="font-mono text-3xl sm:text-5xl md:text-6xl font-black text-slate-950 tracking-wider drop-shadow-xs">
+                {isRacing ? formatTime(remainingSeconds) : formatTime(targetSeconds)}
+              </span>
+              <span className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest -mt-1">
+                {isRacing ? 'កំពុងប្រណាំង (RACING)' : 'ម៉ោងកំណត់ (HH:MM:SS)'}
+              </span>
+            </div>
+
+            {/* Alarm Bell on Right */}
+            <div className="text-slate-400 flex flex-col items-center">
+              <Bell className={`w-6 h-6 sm:w-8 sm:h-8 ${isRacing ? 'animate-bounce text-amber-500' : ''}`} />
+              <span className="text-[8px] font-bold text-slate-400 mt-0.5">HH:MM:SS</span>
+            </div>
+
+            {/* Quick Action Start / Clear next to timer */}
+            <div className="absolute -right-24 top-1/2 -translate-y-1/2 hidden md:flex flex-col gap-1.5">
+              {!isRacing ? (
+                <button
+                  onClick={handleStartRace}
+                  disabled={activeCandidates.length === 0}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer transition-all active:scale-95 flex items-center gap-1"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>Start</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleRaceAgain}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer transition-all active:scale-95 flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Stop</span>
+                </button>
+              )}
+              <button
+                onClick={() => handleKeypadPress('Clear')}
+                disabled={isRacing}
+                className="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          {/* 2. GREEN KEYPAD (5 6 7 8 9 Set / 0 1 2 3 4 Clear) - Shown before race */}
+          {!isRacing && !raceFinished && (
+            <div className="mt-3 flex flex-col items-center gap-1.5 bg-slate-900/60 p-2.5 rounded-2xl backdrop-blur-md border border-white/20 shadow-xl">
+              {/* Row 1: 5 6 7 8 9 Set */}
+              <div className="flex items-center gap-1.5">
+                {['5', '6', '7', '8', '9'].map(num => (
+                  <button
+                    key={num}
+                    onClick={() => handleKeypadPress(num)}
+                    className="w-9 h-8 sm:w-12 sm:h-10 bg-lime-500 hover:bg-lime-400 text-slate-950 font-bold text-sm sm:text-base rounded-xl border-2 border-lime-700 shadow-md cursor-pointer transition-all active:scale-90 flex items-center justify-center"
+                  >
+                    {num}
+                  </button>
+                ))}
+                <button
+                  onClick={() => handleKeypadPress('Set')}
+                  className="px-3 sm:px-5 h-8 sm:h-10 bg-lime-500 hover:bg-lime-400 text-slate-950 font-bold text-xs sm:text-sm rounded-xl border-2 border-lime-700 shadow-md cursor-pointer transition-all active:scale-90 flex items-center justify-center font-moul"
+                >
+                  Set
+                </button>
+              </div>
+
+              {/* Row 2: 0 1 2 3 4 Clear */}
+              <div className="flex items-center gap-1.5">
+                {['0', '1', '2', '3', '4'].map(num => (
+                  <button
+                    key={num}
+                    onClick={() => handleKeypadPress(num)}
+                    className="w-9 h-8 sm:w-12 sm:h-10 bg-lime-500 hover:bg-lime-400 text-slate-950 font-bold text-sm sm:text-base rounded-xl border-2 border-lime-700 shadow-md cursor-pointer transition-all active:scale-90 flex items-center justify-center"
+                  >
+                    {num}
+                  </button>
+                ))}
+                <button
+                  onClick={() => handleKeypadPress('Clear')}
+                  className="px-3 sm:px-4 h-8 sm:h-10 bg-slate-400 hover:bg-slate-300 text-slate-950 font-bold text-xs sm:text-sm rounded-xl border-2 border-slate-600 shadow-md cursor-pointer transition-all active:scale-90 flex items-center justify-center"
+                >
+                  Clear
+                </button>
+              </div>
+
+              {/* Quick Time Preset Pills */}
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap justify-center">
+                {[
+                  { label: '5s', val: 5 },
+                  { label: '10s', val: 10 },
+                  { label: '20s', val: 20 },
+                  { label: '30s', val: 30 },
+                  { label: '1mn', val: 60 },
+                  { label: '2mn', val: 120 }
+                ].map(p => (
+                  <button
+                    key={p.val}
+                    onClick={() => handleQuickTime(p.val)}
+                    className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                      targetSeconds === p.val 
+                        ? 'bg-amber-400 border-amber-500 text-slate-950 shadow-xs' 
+                        : 'bg-white/20 border-white/30 text-white hover:bg-white/30'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 3. CENTER ACTION AREA: 2-Player Match Status or Classroom Tabs */}
+          {!isRacing && !raceFinished && (
+            <div className="mt-2.5 flex flex-col items-center gap-2 w-full max-w-xl px-2">
+              {gameMode === 'duel_2p' ? (
+                /* 2-Player Duel Matchup Banner */
+                <div className="w-full bg-slate-950/85 backdrop-blur-md rounded-2xl border-2 border-amber-400/70 p-3 shadow-2xl flex flex-col items-center gap-2.5">
+                  <div className="flex items-center justify-between w-full gap-2">
+                    {/* Player 1 Card */}
+                    <div className="flex items-center gap-2 bg-gradient-to-r from-blue-950 to-blue-900/80 border-2 border-blue-400/60 rounded-xl p-2 flex-1 shadow-md">
+                      <div className="w-9 h-9 rounded-full bg-blue-500/30 border border-blue-300 flex items-center justify-center text-base shadow-inner">
+                        🦆
+                      </div>
+                      <div className="flex flex-col text-left truncate flex-1">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-black text-blue-300 uppercase tracking-wider">🔵 កីឡាករ P1</span>
+                          <span className="text-[9px] bg-blue-500/30 text-blue-200 px-1 rounded-sm">{DUCK_COSTUMES.find(c => c.id === player1.costume)?.nameKh}</span>
+                        </div>
+                        <span className="text-xs sm:text-sm font-bold text-white truncate font-moul">{player1.name}</span>
+                        <div className="flex items-center gap-1 text-amber-400 text-xs">
+                          {Array.from({ length: Math.min(5, player1.wins) }).map((_, i) => (
+                            <span key={i}>⭐</span>
+                          ))}
+                          <span className="text-[10px] text-amber-300 font-black">ឈ្នះ {player1.wins} ជុំ</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* VS Center Badge */}
+                    <div className="flex flex-col items-center px-1 shrink-0">
+                      <div className="flex items-center gap-1 text-amber-400 font-black text-sm sm:text-base font-moul drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]">
+                        <Swords className="w-5 h-5 text-amber-400 animate-pulse" />
+                        <span>VS</span>
+                      </div>
+                      <span className="text-[9px] font-bold text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700 whitespace-nowrap mt-0.5">
+                        ជុំទី {duelCurrentRound} (Best of {duelMaxRounds})
+                      </span>
+                    </div>
+
+                    {/* Player 2 Card */}
+                    <div className="flex items-center gap-2 bg-gradient-to-l from-purple-950 to-purple-900/80 border-2 border-purple-400/60 rounded-xl p-2 flex-1 shadow-md justify-end">
+                      <div className="flex flex-col text-right truncate flex-1">
+                        <div className="flex items-center justify-end gap-1">
+                          <span className="text-[9px] bg-purple-500/30 text-purple-200 px-1 rounded-sm">{DUCK_COSTUMES.find(c => c.id === player2.costume)?.nameKh}</span>
+                          <span className="text-[10px] font-black text-purple-300 uppercase tracking-wider">🟣 កីឡាករ P2</span>
+                        </div>
+                        <span className="text-xs sm:text-sm font-bold text-white truncate font-moul">{player2.name}</span>
+                        <div className="flex items-center justify-end gap-1 text-amber-400 text-xs">
+                          {Array.from({ length: Math.min(5, player2.wins) }).map((_, i) => (
+                            <span key={i}>⭐</span>
+                          ))}
+                          <span className="text-[10px] text-amber-300 font-black">ឈ្នះ {player2.wins} ជុំ</span>
+                        </div>
+                      </div>
+                      <div className="w-9 h-9 rounded-full bg-purple-500/30 border border-purple-300 flex items-center justify-center text-base shadow-inner">
+                        🦆
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Duel Action Buttons */}
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap justify-center">
+                    <button
+                      onClick={handleOpenTwoPlayerSetup}
+                      className="px-4 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shadow-md cursor-pointer transition-all active:scale-95 flex items-center gap-1.5 font-moul"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>កែប្រែឈ្មោះ & ម៉ូតទា (Race Setup)</span>
+                    </button>
+                    <button
+                      onClick={handleResetDuelScore}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl border border-slate-600 shadow-xs cursor-pointer transition-all active:scale-95 flex items-center gap-1"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Reset ពិន្ទុ (0-0)</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Classroom Tabs & Edit List Button */
+                <>
+                  <div className="flex items-center bg-white rounded-full p-1 border-2 border-black shadow-md">
+                    <button
+                      onClick={() => setDisplayMode('numbers')}
+                      className={`px-4 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                        displayMode === 'numbers' ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      Numbers
+                    </button>
+                    <button
+                      onClick={() => setDisplayMode('names')}
+                      className={`px-4 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                        displayMode === 'names' ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      Names
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col items-center">
+                    <button
+                      onClick={() => setIsEditListOpen(true)}
+                      className="px-8 sm:px-12 py-2 bg-lime-500 hover:bg-lime-400 text-slate-950 font-bold text-sm sm:text-base rounded-full border-2 border-black shadow-lg cursor-pointer transition-all active:scale-95 font-moul"
+                    >
+                      Edit List (កែសម្រួលបញ្ជីឈ្មោះ)
+                    </button>
+                    <span className="text-[11px] font-bold text-slate-900 bg-white/80 px-3 py-0.5 rounded-full border border-black/30 mt-1 shadow-xs">
+                      Names in list: {activeCandidates.length}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* --- D. BLUE WATER RIVER RACETRACK (SWIMMING FROM LEFT START TO RIGHT FINISH GOAL) --- */}
+        <div className="relative flex-1 w-full bg-gradient-to-b from-cyan-600 via-blue-600 to-sky-700 min-h-[310px] overflow-hidden flex flex-col justify-around py-3 px-2">
+          
+          {/* Ambient River Wave Lines */}
+          <div className="absolute inset-0 opacity-20 pointer-events-none flex flex-col justify-around">
+            <div className="w-full h-3 border-b-2 border-white/40"></div>
+            <div className="w-full h-3 border-b-2 border-white/40"></div>
+            <div className="w-full h-3 border-b-2 border-white/40"></div>
+            <div className="w-full h-3 border-b-2 border-white/40"></div>
+          </div>
+
+          {/* TOP RACING LEADERBOARD / DISTANCE-TO-GOAL PROGRESS BAR HUD */}
+          {isRacing && (
+            <div className="absolute top-1.5 left-10 right-28 sm:right-36 z-30 pointer-events-none flex items-center gap-2 bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-cyan-400/40 shadow-lg animate-fadeIn">
+              <span className="text-[10px] font-black text-amber-300 whitespace-nowrap flex items-center gap-1 font-moul">
+                <Gauge className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+                <span>ចម្ងាយដល់គោលដៅ (Race Progress):</span>
+              </span>
+
+              {/* Progress Track with Duck Heads */}
+              <div className="relative flex-1 h-3 bg-slate-800/90 rounded-full border border-cyan-500/30 overflow-visible flex items-center">
+                {/* 25%, 50%, 75% tick marks */}
+                <span className="absolute left-1/4 top-0 bottom-0 w-[1px] bg-white/20"></span>
+                <span className="absolute left-2/4 top-0 bottom-0 w-[1px] bg-white/20"></span>
+                <span className="absolute left-3/4 top-0 bottom-0 w-[1px] bg-white/20"></span>
+
+                {/* Markers for top ducks on the overall bar */}
+                {activeCandidates.slice(0, 8).map((cand, idx) => {
+                  const progressVal = Math.max(0, Math.min(100, duckPositions[cand.id] || 0));
+                  const isLead = Math.max(...activeCandidates.map(c => duckPositions[c.id] || 0)) === progressVal;
+                  return (
+                    <div 
+                      key={cand.id}
+                      className="absolute -top-1 transform -translate-x-1/2 transition-all duration-150 ease-out z-20 flex flex-col items-center"
+                      style={{ left: `${progressVal}%` }}
+                    >
+                      <span className={`text-[10px] leading-none select-none drop-shadow-md ${isLead ? 'scale-125 z-30' : 'opacity-80'}`}>
+                        {isLead ? '👑' : '🦆'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Leader stats badge */}
+              {(() => {
+                const leadDuck = [...activeCandidates].sort((a, b) => (duckPositions[b.id] || 0) - (duckPositions[a.id] || 0))[0];
+                const leadProgress = Math.round(duckPositions[leadDuck?.id] || 0);
+                const distanceRemaining = Math.max(0, 100 - leadProgress);
+                return (
+                  <div className="flex items-center gap-1 text-[10px] font-black text-cyan-200 bg-cyan-950/80 px-2 py-0.5 rounded-lg border border-cyan-400/50 whitespace-nowrap">
+                    <span>🏁 នៅសល់៖ {distanceRemaining}%</span>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* 1. STARTING DOCK & BUOY POST ON THE FAR LEFT (ចំណុចចេញដំណើរ) */}
+          <div className="absolute left-1 top-0 bottom-0 w-4 bg-amber-800/80 border-r-2 border-amber-950 z-10 flex flex-col justify-around items-center">
+            <div className="absolute -top-1 left-0 bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-br-md shadow-xs border border-emerald-400">
+              START
+            </div>
+            {activeCandidates.slice(0, 8).map((_, idx) => (
+              <span key={idx} className="text-[10px] font-bold text-amber-200 opacity-60">
+                •
+              </span>
+            ))}
+          </div>
+
+          {/* 2. SLANTED CHECKERED FINISH LINE ON THE FAR RIGHT (គោលដៅនៅខាងស្តាំ) */}
+          <div 
+            className="absolute right-12 sm:right-20 top-0 bottom-0 w-8 z-10 pointer-events-none transform -skew-x-12 flex flex-col justify-around border-r-2 border-l-2 border-black shadow-xl"
+            style={{
+              backgroundImage: `repeating-linear-gradient(0deg, #000, #000 14px, #fff 14px, #fff 28px)`
+            }}
+          >
+            {/* Top Finish Flag Marker */}
+            <div className="absolute -top-4 -left-3 bg-amber-400 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded-md border border-black shadow-md whitespace-nowrap transform skew-x-12 flex items-center gap-1">
+              <span>🏁</span>
+              <span>FINISH / គោលដៅ</span>
+            </div>
+
+            {/* Lane Numbers marked in bold black italics on the goal line */}
+            {activeCandidates.slice(0, 8).map((_, idx) => (
+              <div 
+                key={idx} 
+                className="absolute text-slate-950 font-black text-2xl sm:text-3xl italic drop-shadow-md select-none transform skew-x-12"
+                style={{
+                  right: '-32px',
+                  top: `${(idx / Math.max(1, activeCandidates.length - 1)) * 75 + 5}%`
+                }}
+              >
+                {idx + 1}
+              </div>
+            ))}
+          </div>
+
+          {/* 3. DUCK LANES (Swimming Ducks on Water from Left to Right) */}
+          {activeCandidates.slice(0, 10).map((cand, idx) => {
+            const laneNumber = idx + 1;
+            const progress = isRacing ? (duckPositions[cand.id] || 0) : (raceFinished && winner?.id === cand.id ? 100 : 0);
+            const clampedProgress = Math.max(0, Math.min(100, Math.round(progress)));
+            const remainingToFinish = Math.max(0, 100 - clampedProgress);
+            const costume = gameMode === 'duel_2p'
+              ? (cand.id === 'p1' ? player1.costume : player2.costume)
+              : (candidateCostumes[cand.id] || DUCK_COSTUMES[idx % DUCK_COSTUMES.length].id);
+            const isWinnerDuck = winner?.id === cand.id;
+            const isDuel = gameMode === 'duel_2p';
+
+            return (
+              <div 
+                key={cand.id}
+                className={`relative w-full flex items-center border-b border-cyan-400/20 ${
+                  isDuel ? 'h-20 sm:h-24 bg-cyan-900/10' : 'h-14 sm:h-16'
+                }`}
+              >
+                {/* Lane Marker on Left */}
+                {isDuel && (
+                  <div className="absolute left-6 top-2 z-0 flex items-center gap-1.5 opacity-80 pointer-events-none">
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-md border ${
+                      cand.id === 'p1' ? 'bg-blue-600/80 text-white border-blue-400' : 'bg-purple-600/80 text-white border-purple-400'
+                    }`}>
+                      {cand.id === 'p1' ? '🔵 LANE 1 (P1)' : '🟣 LANE 2 (P2)'}
+                    </span>
+                    <span className="text-xs font-bold text-white/70 truncate hidden sm:inline">
+                      {cand.id === 'p1' ? `"${player1.motto}"` : `"${player2.motto}"`}
+                    </span>
+                  </div>
+                )}
+
+                {/* Subdued Lane Progress Track Bar (Shows exact path from start to finish line) */}
+                <div className="absolute left-6 right-20 sm:right-28 bottom-1.5 h-1.5 bg-black/25 rounded-full overflow-hidden pointer-events-none z-0 border border-white/15">
+                  <div 
+                    className={`h-full transition-all duration-150 ease-out rounded-full ${
+                      isWinnerDuck && raceFinished 
+                        ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 shadow-sm' 
+                        : cand.id === 'p1'
+                        ? 'bg-gradient-to-r from-blue-400 to-cyan-300'
+                        : cand.id === 'p2'
+                        ? 'bg-gradient-to-r from-purple-400 to-pink-300'
+                        : 'bg-gradient-to-r from-cyan-400 to-emerald-300'
+                    }`}
+                    style={{ width: `${clampedProgress}%` }}
+                  />
+                </div>
+
+                {/* Animated Duck Position swimming along the River from Left to Right */}
+                <div 
+                  className={`absolute transition-all duration-150 ease-linear z-20 ${
+                    isWinnerDuck && raceFinished ? 'animate-winner-cruise z-40' : ''
+                  }`}
+                  style={
+                    isWinnerDuck && raceFinished
+                      ? undefined
+                      : {
+                          left: isRacing 
+                            ? `calc(${progress * 0.84}% + 14px)` 
+                            : raceFinished 
+                            ? `calc(${Math.min(72, (duckPositions[cand.id] || (45 + (idx % 4) * 6)) * 0.78)}% + 14px)`
+                            : `${12 + (idx % 3) * 10}px` // starting dock line on left
+                        }
+                  }
+                >
+                  {renderDuckCharacter(cand, laneNumber, costume, false, progress)}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* --- E. BOTTOM LEFT COSTUME SELECTOR CARD (From Image 1) --- */}
@@ -1971,6 +1836,74 @@ export const ClassroomDuckRace: React.FC<Props> = ({
         >
           <Trophy className="w-7 h-7 sm:w-8 sm:h-8 text-slate-950 fill-amber-400 group-hover:rotate-12 transition-transform" />
         </button>
+
+        {/* --- H. PROMINENT CELEBRATION MODAL IN FULLSCREEN & NORMAL MODES --- */}
+        {showCelebrationModal && winner && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
+            <div className="relative bg-gradient-to-br from-amber-400 via-yellow-300 to-orange-400 text-slate-950 rounded-3xl w-full max-w-lg border-4 border-yellow-100 shadow-2xl p-6 md:p-8 space-y-6 text-center animate-bounce-short">
+              
+              {/* Close Button */}
+              <button
+                onClick={() => setShowCelebrationModal(false)}
+                className="absolute top-4 right-4 p-2 rounded-full bg-black/10 hover:bg-black/20 text-slate-950 transition-all cursor-pointer"
+                title="បិទផ្ទាំងអបអរសាទរ"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Big Trophy & Duck Costume Icon */}
+              <div className="relative inline-block">
+                <div className="w-24 h-24 bg-white/95 rounded-full flex items-center justify-center mx-auto text-5xl shadow-xl border-4 border-amber-300 animate-pulse">
+                  🦆
+                </div>
+                <div className="absolute -top-2 -right-2 w-10 h-10 bg-amber-400 rounded-full flex items-center justify-center text-xl shadow-lg border-2 border-slate-950 animate-bounce">
+                  👑
+                </div>
+              </div>
+
+              {/* Salutation Title */}
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-slate-950 text-amber-300 rounded-full text-xs font-bold uppercase tracking-wider font-moul shadow-md">
+                  <span>🎉 សូមអបអរសាទរជើងឯកការប្រណាំងទា! 🎉</span>
+                </div>
+
+                {/* Huge Student Winner Name */}
+                <h2 className="text-3xl sm:text-4xl font-bold font-moul text-slate-950 drop-shadow-sm tracking-wide">
+                  « {winner.name} »
+                </h2>
+
+                <p className="text-xs sm:text-sm font-medium text-slate-900">
+                  {gameMode === 'duel_2p' 
+                    ? `បានយកឈ្នះក្នុងជុំទី ${duelCurrentRound} (ការប្រកួតទ្វេភាគី)!` 
+                    : `បានហែលមកដល់ទីព្រ័ត្រលេខ ១ ក្នុងចំណោមសិស្ស ${activeCandidates.length} នាក់!`
+                  }
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={handleRaceAgain}
+                  className="w-full sm:w-auto px-6 py-3 bg-slate-950 hover:bg-slate-900 text-lime-400 rounded-2xl text-xs sm:text-sm font-bold font-moul shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+                >
+                  <RotateCcw className="w-4 h-4 text-lime-400" />
+                  <span>🔄 ប្រណាំងម្តងទៀត</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowCelebrationModal(false);
+                    setIsLeaderboardOpen(true);
+                  }}
+                  className="w-full sm:w-auto px-6 py-3 bg-blue-950 hover:bg-blue-900 text-white rounded-2xl text-xs sm:text-sm font-bold font-moul shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+                >
+                  <Trophy className="w-4 h-4 text-amber-400" />
+                  <span>🏆 តារាងជ័យលាភី</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ------------------------------------------------------------- */}
@@ -2143,7 +2076,7 @@ export const ClassroomDuckRace: React.FC<Props> = ({
 
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] text-slate-500">{item.time}</span>
-                      {onAwardScore && item?.candidate?.id && (
+                      {onAwardScore && (
                         <button
                           onClick={() => {
                             onAwardScore(item.candidate.id, item.candidate.name, 50);

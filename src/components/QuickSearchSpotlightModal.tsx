@@ -14,10 +14,7 @@ import {
   BookOpen,
   Eye,
   CornerDownLeft,
-  Command,
-  CalendarCheck,
-  FileText,
-  ClipboardList
+  Command
 } from 'lucide-react';
 
 interface QuickSearchSpotlightModalProps {
@@ -25,15 +22,13 @@ interface QuickSearchSpotlightModalProps {
   onClose: () => void;
   onSelectStudent?: (student: Student) => void;
   onSelectTeacher?: (teacher: Teacher) => void;
-  onQuickAction?: (actionType: 'attendance' | 'score' | 'note', student: Student) => void;
 }
 
 export const QuickSearchSpotlightModal: React.FC<QuickSearchSpotlightModalProps> = ({
   isOpen,
   onClose,
   onSelectStudent,
-  onSelectTeacher,
-  onQuickAction
+  onSelectTeacher
 }) => {
   const { students, teachers, setActiveTab } = useSchool();
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,6 +49,7 @@ export const QuickSearchSpotlightModal: React.FC<QuickSearchSpotlightModalProps>
 
   const searchResults = useMemo(() => {
     if (!searchTerm.trim()) {
+      // Default recommended results (recent items)
       const topStudents: UnifiedSearchResult[] = students.slice(0, 5).map(s => ({
         type: 'student',
         id: s.id,
@@ -129,17 +125,6 @@ export const QuickSearchSpotlightModal: React.FC<QuickSearchSpotlightModalProps>
     onClose();
   };
 
-  const handleQuickActionClick = (e: React.MouseEvent, actionType: 'attendance' | 'score' | 'note', student: Student) => {
-    e.stopPropagation();
-    if (onQuickAction) {
-      onQuickAction(actionType, student);
-    } else {
-      setActiveTab('students');
-      if (onSelectStudent) onSelectStudent(student);
-    }
-    onClose();
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -157,7 +142,7 @@ export const QuickSearchSpotlightModal: React.FC<QuickSearchSpotlightModalProps>
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="ស្វែងរកសិស្ស ឬលោកគ្រូ/អ្នកគ្រូ (fuzzy search, ឈ្មោះ អត្តលេខ លេខទូរស័ព្ទ...)"
+            placeholder="ស្វែងរកសិស្ស ឬលោកគ្រូ/អ្នកគ្រូ (ឈ្មោះ អត្តលេខ លេខទូរស័ព្ទ...)"
             className="flex-1 bg-transparent text-sm sm:text-base text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none"
           />
           {searchTerm && (
@@ -212,7 +197,7 @@ export const QuickSearchSpotlightModal: React.FC<QuickSearchSpotlightModalProps>
 
           <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-sans">
             <Sparkles className="w-3 h-3 text-amber-500" />
-            <span>Fuzzy Search Active</span>
+            <span>Fuzzy Index Active</span>
           </div>
         </div>
 
@@ -232,7 +217,6 @@ export const QuickSearchSpotlightModal: React.FC<QuickSearchSpotlightModalProps>
             searchResults.map((res, index) => {
               const isSelected = index === selectedIndex;
               const isStudent = res.type === 'student';
-              const studentObj = isStudent ? (res.raw as Student) : null;
 
               return (
                 <div
@@ -261,7 +245,7 @@ export const QuickSearchSpotlightModal: React.FC<QuickSearchSpotlightModalProps>
                               : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300'
                           }`}
                         >
-                          {res.nameKhmer ? res.nameKhmer.slice(0, 2) : ''}
+                          {res.nameKhmer.slice(0, 2)}
                         </div>
                       )}
                       <span
@@ -307,33 +291,6 @@ export const QuickSearchSpotlightModal: React.FC<QuickSearchSpotlightModalProps>
                   </div>
 
                   <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                    {/* Quick action buttons for students */}
-                    {isStudent && studentObj && (
-                      <div className="hidden sm:flex items-center gap-1.5 mr-1" onClick={e => e.stopPropagation()}>
-                        <button
-                          title="កត់ត្រាវត្តមាន (Add Attendance)"
-                          onClick={e => handleQuickActionClick(e, 'attendance', studentObj)}
-                          className="p-1.5 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 rounded-lg transition-colors"
-                        >
-                          <CalendarCheck className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          title="បញ្ចូលពិន្ទុ (Record Score)"
-                          onClick={e => handleQuickActionClick(e, 'score', studentObj)}
-                          className="p-1.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-950 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-lg transition-colors"
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          title="កត់ត្រាកំណត់ចំណាំ (Quick Note)"
-                          onClick={e => handleQuickActionClick(e, 'note', studentObj)}
-                          className="p-1.5 bg-amber-100 hover:bg-amber-200 dark:bg-amber-950 dark:hover:bg-amber-900 text-amber-700 dark:text-amber-300 rounded-lg transition-colors"
-                        >
-                          <ClipboardList className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-
                     {isSelected && (
                       <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 font-semibold">
                         <span>ជ្រើសរើស</span>
