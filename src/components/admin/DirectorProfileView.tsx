@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useSchool } from '../../context/SchoolContext';
 import { Edit2, QrCode, Download, CheckCircle2, User, Phone, MapPin, Briefcase, GraduationCap, Users } from 'lucide-react';
+import { EditDirectorProfileModal } from './EditDirectorProfileModal';
 
 export const DirectorProfileView: React.FC = () => {
   const { currentUser } = useSchool();
   const [activeTab, setActiveTab] = useState('personal_info');
+  const [isEditing, setIsEditing] = useState(false);
 
   const tabs = [
     { id: 'personal_info', label: 'ផ្លាស់ប្ដូរព័ត៌មានផ្ទាល់ខ្លួន' },
@@ -23,7 +25,10 @@ export const DirectorProfileView: React.FC = () => {
             <h1 className="text-2xl font-bold text-slate-900 font-kantumruy">ព័ត៌មានផ្ទាល់ខ្លួន</h1>
             <p className="text-sm text-slate-500 font-kantumruy">ធ្វើបច្ចុប្បន្នភាពនៃព័ត៌មានរបស់លោកអ្នក</p>
           </div>
-          <button className="flex items-center justify-center gap-2 bg-[#2563eb] hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition shadow-sm font-kantumruy shrink-0">
+          <button 
+            onClick={() => setIsEditing(true)}
+            className="flex items-center justify-center gap-2 bg-[#2563eb] hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition shadow-sm font-kantumruy shrink-0"
+          >
             <Edit2 className="w-4 h-4" />
             កែប្រែ
           </button>
@@ -279,6 +284,10 @@ export const DirectorProfileView: React.FC = () => {
           នាយកដ្ឋានបឋមសិក្សា © ២០២៦
         </div>
       </footer>
+
+      {isEditing && (
+        <EditDirectorProfileModal onClose={() => setIsEditing(false)} />
+      )}
     </div>
   );
 };
