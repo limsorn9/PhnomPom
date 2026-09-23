@@ -3,7 +3,7 @@ import { SchoolProvider, useSchool } from './context/SchoolContext';
 import { HomeroomTeacherDashboard } from './components/HomeroomTeacherDashboard';
 import { LoginPage } from './components/LoginPage';
 import { SuperAdminHub } from './components/SuperAdminHub';
-import { SchoolAdminDashboard } from './components/SchoolAdminDashboard';
+import { AdminLayout } from './components/AdminLayout';
 import { VersionMismatchModal } from './components/VersionMismatchModal';
 import { DirectorPinModal } from './components/DirectorPinModal';
 import { initAuth, googleSignIn, logout } from './services/googleAuth';
@@ -35,12 +35,8 @@ const MainLayout: React.FC = () => {
   }
 
   // Render based on role
-  if (currentUser.role === 'super_admin') {
-    return <SuperAdminHub />;
-  }
-
-  if (currentUser.role === 'director' || currentUser.role === 'secretary') {
-    return <SchoolAdminDashboard />;
+  if (currentUser.role === 'super_admin' || currentUser.role === 'director' || currentUser.role === 'secretary') {
+    return <AdminLayout />;
   }
 
   // Pure KrouDigital 4.0 Teacher Layout (Bypassing old bloat)
