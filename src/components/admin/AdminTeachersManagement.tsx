@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Plus, SlidersHorizontal, MoreVertical, Eye, Edit, Key, UserMinus, Lock } from 'lucide-react';
 import { useSchool } from '../../context/SchoolContext';
+import { TeacherDetailModal } from './TeacherDetailModal';
 
 export const AdminTeachersManagement: React.FC = () => {
   const { teachers } = useSchool();
@@ -26,6 +27,7 @@ export const AdminTeachersManagement: React.FC = () => {
 
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [selectedTeacher, setSelectedTeacher] = useState<any | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -150,7 +152,13 @@ export const AdminTeachersManagement: React.FC = () => {
                     
                     {activeDropdown === staff.id && (
                       <div ref={dropdownRef} className="absolute right-8 top-10 bg-white border border-slate-200 rounded-xl shadow-xl py-1 w-48 z-50 text-xs font-medium text-slate-700 font-sans overflow-hidden text-left">
-                        <button className="w-full px-4 py-2 text-left hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 transition">
+                        <button 
+                          onClick={() => {
+                            setSelectedTeacher(staff);
+                            setActiveDropdown(null);
+                          }}
+                          className="w-full px-4 py-2 text-left hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 transition"
+                        >
                           <Eye className="w-3.5 h-3.5 text-slate-500" />
                           មើលលម្អិត
                         </button>
@@ -188,6 +196,12 @@ export const AdminTeachersManagement: React.FC = () => {
           </table>
         </div>
       </div>
+      {selectedTeacher && (
+        <TeacherDetailModal 
+          teacher={selectedTeacher}
+          onClose={() => setSelectedTeacher(null)}
+        />
+      )}
     </div>
   );
 };
