@@ -778,6 +778,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
   const [confirmModalConfig, setConfirmModalConfig] = useState<ConfirmActionConfig | null>(null);
+  const [isSuperAdminHub, setIsSuperAdminHub] = useState(true);
 
   const confirmAction = (config: ConfirmActionConfig) => {
     setConfirmModalConfig(config);

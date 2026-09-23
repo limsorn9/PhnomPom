@@ -164,7 +164,7 @@ export const AdminLayout: React.FC = () => {
         {/* Dynamic Main Workspace Container */}
         <main className={`flex-1 w-full mx-auto ${activeTab === 'dashboard' ? '' : 'pb-20 lg:pb-8 max-w-7xl p-3 sm:p-5 lg:p-6 space-y-6'}`}>
           {/* Render based on RBAC & Active Tab */}
-          {activeTab === 'super_admin_hub' && canAccessTab('super_admin_hub') && <SuperAdminHub />}
+          
           {activeTab === 'telegram_bot' && canAccessTab('telegram_bot') && <TelegramBotStudio />}
           {activeTab === 'secretary_dashboard' && canAccessTab('secretary_dashboard') && <SecretaryDashboard />}
           {activeTab === 'librarian_dashboard' && canAccessTab('librarian_dashboard') && <LibraryManagement />}

@@ -93,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     teachingResources,
     language,
     openDirectorPinModal
-  } = useSchool();
+  , setIsSuperAdminHub } = useSchool();
 
   // State to track favorite/pinned MoEYS learning resources
   const [savedFavoriteIds, setSavedFavoriteIds] = useState<string[]>(() => {
