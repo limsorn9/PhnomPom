@@ -198,9 +198,26 @@ export const TeacherManagement: React.FC = () => {
     }
 
     // Step 2: Filter by Role
-    return candidateTeachers.filter(teacher => {
+    let filtered = candidateTeachers.filter(teacher => {
       return selectedRole === 'all' || teacher.role.includes(selectedRole);
     });
+
+    // Step 3: SSOT Deduplication by name & gender to prevent UI duplication
+    const uniqueMap = new Map<string, Teacher>();
+    filtered.forEach(t => {
+      const key = `${t.nameKhmer}-${t.gender}`.trim();
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, t);
+      } else {
+        // Keep the one that looks most complete (e.g., has an assigned class or longer profile)
+        const existing = uniqueMap.get(key)!;
+        if (!existing.assignedGrade && t.assignedGrade) {
+          uniqueMap.set(key, t);
+        }
+      }
+    });
+
+    return Array.from(uniqueMap.values());
   }, [teachers, selectedAcademicYear, appUsers, teacherSearchIndex, searchQuery, localSearch, selectedRole]);
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -1457,6 +1474,36 @@ export const TeacherManagement: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Account Information (SSOT Integration) */}
+              {editingTeacher && (
+                <div className="space-y-4">
+                  <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-2">
+                    <UserCheck className="w-4 h-4 text-purple-600" />
+                    ព័ត៌មានគណនីប្រើប្រាស់ (System Account)
+                  </h4>
+                  {(() => {
+                    const linkedAccount = appUsers.find(u => u.staffCode === editingTeacher.staffCode || (u.nameKhmer === editingTeacher.nameKhmer && u.role !== 'student'));
+                    return linkedAccount ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 bg-purple-50 p-4 rounded-xl border border-purple-100">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">ឈ្មោះគណនី (Username)</label>
+                          <input type="text" value={linkedAccount.username} readOnly className="w-full px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs sm:text-sm text-slate-500 font-mono shadow-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">ពាក្យសម្ងាត់ (Password)</label>
+                          <input type="text" value={linkedAccount.password || '******'} readOnly className="w-full px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs sm:text-sm text-slate-500 font-mono shadow-sm" />
+                          <p className="text-[10px] text-purple-700 mt-1 font-semibold">* ព័ត៌មាននេះធ្វើសមកាលកម្មដោយស្វ័យប្រវត្តិរាល់ការកែប្រែប្រវត្តិរូប។</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-amber-50 text-amber-800 text-xs rounded-xl border border-amber-200 font-semibold">
+                        មិនទាន់មានគណនីភ្ជាប់នៅឡើយទេ។ ប្រព័ន្ធនឹងបង្កើតគណនីស្វ័យប្រវត្តិពេលរក្សាទុកការកែប្រែនេះ។
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
 
               {/* Form Action Buttons */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
