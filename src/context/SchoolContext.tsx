@@ -7357,6 +7357,41 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     students: students.filter(s => s.grade === currentAssignedClass.grade && s.section === currentAssignedClass.section)
   } : null;
 
+
+  // SSOT & RBAC Data Scoping
+  const scopedStudents = useMemo(() => {
+    if (!currentUser) return [];
+    if (['super_admin', 'director', 'secretary', 'librarian'].includes(currentUser.role)) {
+      return students; // Admins get all students
+    }
+    if (currentUser.role === 'teacher') {
+      return students.filter(
+        (s) => s.grade === currentUser.assignedGrade && s.section === currentUser.assignedSection
+      );
+    }
+    if (currentUser.role === 'student' || currentUser.role === 'parent') {
+      return students.filter((s) => s.code === currentUser.studentCode);
+    }
+    return [];
+  }, [students, currentUser]);
+
+  const scopedScores = useMemo(() => {
+    if (!currentUser) return [];
+    if (['super_admin', 'director', 'secretary', 'librarian'].includes(currentUser.role)) {
+      return scores;
+    }
+    if (currentUser.role === 'teacher') {
+      return scores.filter(
+        (s) => s.grade === currentUser.assignedGrade && s.section === currentUser.assignedSection
+      );
+    }
+    if (currentUser.role === 'student' || currentUser.role === 'parent') {
+      const studentInfo = students.find((s) => s.code === currentUser.studentCode);
+      return studentInfo ? scores.filter((s) => s.studentId === studentInfo.id) : [];
+    }
+    return [];
+  }, [scores, currentUser, students]);
+
   return (
     <SchoolContext.Provider
       value={{
@@ -7432,7 +7467,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         syncRealSchoolNotifications,
         schoolProfile,
         updateSchoolProfile,
-        students,
+        students: scopedStudents,
         addStudent,
         updateStudent,
         deleteStudent,
@@ -7453,7 +7488,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         addClassroom,
         updateClassroom,
         deleteClassroom,
-        scores,
+        scores: scopedScores,
         saveStudentScore,
         calculateClassRankings,
         getScoresForClassMonth,
