@@ -177,14 +177,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           icon: LayoutDashboard,
         },
         {
-          id: 'secretary_dashboard' as ActiveTab,
-          labelKh: '📑 ផ្ទាំងគ្រប់គ្រងលេខាធិការ',
-          labelEn: 'Secretary Dashboard',
-          icon: FileSpreadsheet,
-          badge: 'Secretary',
-          badgeColor: 'bg-indigo-100 text-indigo-800 font-bold border border-indigo-300'
-        },
-        {
           id: 'librarian_dashboard' as ActiveTab,
           labelKh: '📚 ផ្ទាំងគ្រប់គ្រងបណ្ណារក្ស',
           labelEn: 'Librarian Dashboard',

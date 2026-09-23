@@ -16,7 +16,6 @@ import { TeacherReportsHubWrapper } from './TeacherReportsHubWrapper';
 import { GoogleWorkspaceHub } from './GoogleWorkspaceHub';
 import { AcademicCalendar } from './AcademicCalendar';
 import { AccountsManagement } from './AccountsManagement';
-import { SecretaryDashboard } from './SecretaryDashboard';
 import { HomeroomTeacherDashboard } from './HomeroomTeacherDashboard';
 import { MyClasses } from './MyClasses';
 import { TeacherProfile } from './TeacherProfile';
@@ -164,8 +163,7 @@ export const AdminLayout: React.FC = () => {
           {/* Render based on RBAC & Active Tab */}
           
           {activeTab === 'telegram_bot' && canAccessTab('telegram_bot') && <TelegramBotStudio />}
-          {activeTab === 'secretary_dashboard' && canAccessTab('secretary_dashboard') && <SecretaryDashboard />}
-          {activeTab === 'librarian_dashboard' && canAccessTab('librarian_dashboard') && <LibraryManagement />}
+                    {activeTab === 'librarian_dashboard' && canAccessTab('librarian_dashboard') && <LibraryManagement />}
           {activeTab === 'dashboard' && canAccessTab('dashboard') && (
             <PrincipalDashboard 
               onNavigate={setActiveTab} 

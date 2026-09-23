@@ -47,7 +47,7 @@ import {
   Cell
 } from 'recharts';
 
-export const SecretaryDashboard: React.FC = () => {
+export const StudentStatsAndRoster: React.FC = () => {
   const {
     students,
     addStudent,

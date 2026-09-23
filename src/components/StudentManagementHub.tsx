@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Users, UserCircle } from 'lucide-react';
+import { Users, UserCircle, BarChart3 } from 'lucide-react';
 import { StudentManagement } from './StudentManagement';
 import { StudentPortal } from './StudentPortal';
+import { StudentStatsAndRoster } from './StudentStatsAndRoster';
 
 export const StudentManagementHub: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'students' | 'portal'>('students');
+  const [activeTab, setActiveTab] = useState<'students' | 'portal' | 'stats'>('students');
 
   return (
     <div className="min-h-screen bg-[#07191d] flex flex-col font-sans">
@@ -43,6 +44,17 @@ export const StudentManagementHub: React.FC = () => {
               <UserCircle className="w-4 h-4" />
               គណនីសិស្ស & អាណាព្យាបាល
             </button>
+            <button
+              onClick={() => setActiveTab('stats')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
+                activeTab === 'stats'
+                  ? 'bg-blue-500 text-white shadow-lg'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              ស្ថិតិ & បញ្ជីសិស្សបញ្ជូលដោយដៃ
+            </button>
           </div>
         </div>
       </div>
@@ -50,6 +62,7 @@ export const StudentManagementHub: React.FC = () => {
       <div className="flex-1 overflow-hidden relative bg-slate-50">
         {activeTab === 'students' && <StudentManagement />}
         {activeTab === 'portal' && <StudentPortal />}
+        {activeTab === 'stats' && <StudentStatsAndRoster />}
       </div>
     </div>
   );
