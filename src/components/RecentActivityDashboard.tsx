@@ -64,11 +64,11 @@ import {
 } from 'lucide-react';
 import { Activity7DayChart } from './activity/Activity7DayChart';
 import { ActivityQuickActionModal } from './activity/ActivityQuickActionModal';
-import { ActivityPrintReportModal } from './activity/ActivityPrintReportModal';
+
 import { ActivityRetentionModal } from './activity/ActivityRetentionModal';
 import { ActivityDiffModal } from './activity/ActivityDiffModal';
 import { ActivityAnomalySidePanel } from './activity/ActivityAnomalySidePanel';
-import { PrintOptimizedBadge } from './activity/PrintOptimizedBadge';
+
 import { LastSynchronizedBadge } from './activity/LastSynchronizedBadge';
 import { ActivityTableView } from './activity/ActivityTableView';
 import { ActivityBulkActionModal } from './activity/ActivityBulkActionModal';
@@ -698,7 +698,7 @@ export const RecentActivityDashboard: React.FC<RecentActivityDashboardProps> = (
                 isSyncing={isCloudSyncing}
                 onManualSync={syncAllToCloud}
               />
-              <PrintOptimizedBadge />
+              
               {totalAnomaliesCount > 0 && (
                 <button
                   id="activity-header-anomalies-badge"
@@ -2200,19 +2200,7 @@ export const RecentActivityDashboard: React.FC<RecentActivityDashboardProps> = (
       )}
 
       {/* Printable / PDF Report Generator Modal */}
-      {isPrintReportModalOpen && (
-        <ActivityPrintReportModal
-          logs={filteredLogs}
-          appliedFilters={{
-            domain: selectedDomain,
-            action: selectedAction,
-            role: selectedRole,
-            date: dateFilter,
-            search: searchQuery
-          }}
-          onClose={() => setIsPrintReportModalOpen(false)}
-        />
-      )}
+      
 
       {/* Retention Policy & Storage Management Modal */}
       {isRetentionModalOpen && (

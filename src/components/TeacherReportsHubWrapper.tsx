@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { FileText, Printer, FileSpreadsheet } from 'lucide-react';
 import { TeacherReportsHub } from './TeacherReportsHub';
-import { OfficialDocumentCenter } from './OfficialDocumentCenter';
+
 import { ReportsAndSyncModule } from './ReportsAndSyncModule';
 
 export const TeacherReportsHubWrapper: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'reports' | 'documents' | 'plp_sync'>('plp_sync');
+  const [activeTab, setActiveTab] = useState<'reports' | 'plp_sync'>('plp_sync');
 
   return (
     <div className="min-h-screen bg-[#07191d] flex flex-col font-sans">
@@ -44,17 +44,7 @@ export const TeacherReportsHubWrapper: React.FC = () => {
               <FileText className="w-4 h-4" />
               របាយការណ៍ & QR កាត
             </button>
-            <button
-              onClick={() => setActiveTab('documents')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
-                activeTab === 'documents'
-                  ? 'bg-purple-500 text-white shadow-lg'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-              }`}
-            >
-              <Printer className="w-4 h-4" />
-              ទម្រង់ឯកសារបោះពុម្ព
-            </button>
+            
           </div>
         </div>
       </div>
@@ -62,7 +52,7 @@ export const TeacherReportsHubWrapper: React.FC = () => {
       <div className="flex-1 overflow-y-auto bg-slate-50 relative">
         {activeTab === 'plp_sync' && <ReportsAndSyncModule />}
         {activeTab === 'reports' && <TeacherReportsHub />}
-        {activeTab === 'documents' && <OfficialDocumentCenter />}
+        
       </div>
     </div>
   );

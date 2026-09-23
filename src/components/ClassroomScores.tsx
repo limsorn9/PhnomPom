@@ -52,7 +52,7 @@ import {
   AngkorPageWatermark,
   MoEYSReportCardSignatures
 } from './AngkorMotif';
-import { ScoreTablePrintModal } from './ScoreTablePrintModal';
+
 import {
   PrincipalSignatureQRParams,
   PrincipalSignatureQRSlot,
@@ -2542,24 +2542,7 @@ export const ClassroomScores: React.FC = () => {
       )}
 
       {/* Official Score Table Print Modal */}
-      <ScoreTablePrintModal
-        isOpen={showScoreTablePrintModal}
-        onClose={() => setShowScoreTablePrintModal(false)}
-        selectedGrade={selectedGrade}
-        selectedSection={selectedSection}
-        selectedMonth={selectedMonth}
-        selectedAcademicYear={selectedAcademicYear}
-        classStudents={classStudents}
-        scores={scores}
-        examSubjects={examSubjects}
-        homeroomTeacher={homeroomTeacher}
-        schoolProfile={schoolProfile}
-        gradingScaleType={gradingScaleType}
-        getFormattedGrade={getFormattedGrade}
-        onSelectMonth={setSelectedMonth}
-        onSelectGrade={setSelectedGrade}
-        onSelectSection={setSelectedSection}
-      />
+      
     </div>
   );
 };

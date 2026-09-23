@@ -35,7 +35,7 @@ import {
   List
 } from 'lucide-react';
 import { AngkorPageWatermark, MoEYSRoyalHeader } from './AngkorMotif';
-import { UniversalPrintModal } from './UniversalPrintModal';
+
 import { StudentHouseholdMap } from './StudentHouseholdMap';
 
 export const HouseholdCensus: React.FC = () => {
@@ -1771,12 +1771,7 @@ export const HouseholdCensus: React.FC = () => {
       )}
 
       {/* Universal Print Modal */}
-      <UniversalPrintModal
-        isOpen={isPrintModalOpen}
-        onClose={() => setIsPrintModalOpen(false)}
-        titleKhmer="សៀវភៅស្ថិតិជំរឿនខ្នងផ្ទះសិស្សក្នុងតំបន់សេវា"
-        documentSubtitle={`តំបន់សេវា ${schoolProfile.nameKhmer} • ${selectedVillage === 'all' ? 'គ្រប់ភូមិទាំងអស់' : selectedVillage}`}
-      />
+      
     </div>
   );
 };

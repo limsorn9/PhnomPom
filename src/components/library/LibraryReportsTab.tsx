@@ -11,7 +11,7 @@ import {
   Layers,
   Sparkles
 } from 'lucide-react';
-import { UniversalPrintModal } from '../UniversalPrintModal';
+
 
 export const LibraryReportsTab: React.FC = () => {
   const { schoolProfile, libraryBooks, readingLogs, libraryVisitors } = useSchool();
@@ -123,12 +123,7 @@ export const LibraryReportsTab: React.FC = () => {
       </div>
 
       {/* Universal Print Modal Integration */}
-      <UniversalPrintModal
-        isOpen={isPrintModalOpen}
-        onClose={() => setIsPrintModalOpen(false)}
-        titleKhmer={reportTitle || 'របាយការណ៍បណ្ណាល័យសាលាបឋមសិក្សា'}
-        documentSubtitle={`បណ្ណាល័យ ${schoolProfile.nameKhmer} • ឆ្នាំសិក្សា ${schoolProfile.academicYear}`}
-      />
+      
     </div>
   );
 };

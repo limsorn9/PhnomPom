@@ -9,7 +9,7 @@ import { DailyAttendanceTracker } from './homeroom/DailyAttendanceTracker';
 import { TeacherScoresHub } from './homeroom/TeacherScoresHub';
 import { GeipDashboardHub } from './homeroom/GeipDashboardHub';
 
-import { ClassCommitteePrintModal } from './ClassCommitteePrintModal';
+
 import { ClassStudentStatisticsPriModal } from './ClassStudentStatisticsPriModal';
 import { StudentHealthBookletModal } from './StudentHealthBookletModal';
 import { GoogleDriveSyncModal } from './GoogleDriveSyncModal';
@@ -1060,18 +1060,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
       )}
 
       {/* CLASS COMMITTEE (គ.ក.ថ.) PRINT & ORG CHART MODAL */}
-      {showClassCommitteeModal && (
-        <ClassCommitteePrintModal
-          isOpen={showClassCommitteeModal}
-          onClose={() => setShowClassCommitteeModal(false)}
-          selectedGrade={selectedGrade}
-          selectedSection={selectedSection}
-          selectedAcademicYear={selectedAcademicYear || schoolProfile.academicYear}
-          schoolProfile={schoolProfile}
-          homeroomTeacher={currentTeacher}
-          classStudents={classStudents}
-        />
-      )}
+      
 
       {/* CLASS STUDENT STATISTICS (PRI) MODAL */}
       {showPriModal && (
