@@ -1448,33 +1448,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [atRiskStudents]);
 
   // Activity & Data Change Audit Logs State (កំណត់ត្រាសកម្មភាព និងការកែប្រែទិន្នន័យ)
-  const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>(() => {
-    let stored = getStoredActivities();
-    if (!stored || stored.length === 0) {
-      stored = generateSeedActivities(
-        initialStudents,
-        initialTeachers,
-        initialBudgetTransactions,
-        initialTransfers,
-        initialScores
-      );
-    }
-    // Auto-run cleanup on initial load if enabled
-    const retentionCfg = getRetentionConfig();
-    if (retentionCfg.autoCleanupEnabled && retentionCfg.retentionDays > 0) {
-      const { remainingLogs, deletedCount } = performRetentionCleanup(stored, retentionCfg.retentionDays);
-      if (deletedCount > 0) {
-        saveRetentionConfig({
-          ...retentionCfg,
-          lastCleanedAt: new Date().toISOString(),
-          lastCleanedCount: deletedCount
-        });
-        saveActivitiesToStorage(remainingLogs);
-        return remainingLogs;
-      }
-    }
-    return stored;
-  });
+  const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>([]);
 
   useEffect(() => {
     saveActivitiesToStorage(activityLogs);
