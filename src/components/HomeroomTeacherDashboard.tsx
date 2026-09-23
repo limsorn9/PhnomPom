@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSchool } from '../context/SchoolContext';
+import { TeacherLayout } from './TeacherLayout';
 import { Student } from '../types';
 import { HomeroomHeader } from './homeroom/HomeroomHeader';
 import { MyClassTab } from './homeroom/MyClassTab';
@@ -364,100 +365,9 @@ export const HomeroomTeacherDashboard: React.FC = () => {
   const failedStudentsCount = rankedStudents.length - passedStudentsCount;
   const passRate = rankedStudents.length > 0 ? Math.round((passedStudentsCount / rankedStudents.length) * 100) : 100;
 
-  const renderSidebarItem = (id: TeacherNavigationTab, icon: React.ReactNode, label: string) => {
-    const isActive = activeTabSub === id;
-    return (
-      <button
-        onClick={() => setActiveTabSub(id)}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-          isActive
-            ? 'bg-[#0d3b45] text-cyan-300 border-l-4 border-cyan-400'
-            : 'text-slate-400 hover:bg-[#0a2328] hover:text-slate-200 border-l-4 border-transparent'
-        }`}
-      >
-        {icon}
-        <span>{label}</span>
-      </button>
-    );
-  };
-
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-[#081b20] font-kantumruy animate-fadeIn">
-      
-      {/* ============================================================= */}
-      {/* DESKTOP SIDEBAR (KROUDIGITAL 4.0 NAVIGATION)                    */}
-      {/* ============================================================= */}
-      <aside className="hidden lg:flex flex-col w-72 bg-[#0a2126] border-r border-[#164049]/50 shadow-2xl z-10 shrink-0">
-        <div className="p-5">
-          {/* Header Profile Card */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white shadow-md">
-              {currentTeacher?.nameKhmer ? currentTeacher.nameKhmer.charAt(0) : 'ល'}
-            </div>
-            <div>
-              <h3 className="font-moul text-sm text-slate-100">{currentTeacher?.nameKhmer || 'លីម សន'}</h3>
-              <p className="text-[11px] text-emerald-400">គ្រូបង្រៀន</p>
-            </div>
-          </div>
-          
-          {/* Class Dropdown */}
-          <button className="w-full flex items-center justify-between bg-[#081b20] border border-[#164049] rounded-xl px-4 py-2.5 text-sm text-slate-300 hover:bg-[#0c2a30] transition-colors cursor-pointer mb-6">
-            <span>ថ្នាក់ទី{selectedGrade}{selectedSection} · {selectedAcademicYear || schoolProfile.academicYear}</span>
-            <ChevronDown className="w-4 h-4 text-slate-500" />
-          </button>
-          
-          {/* Menu Items */}
-          <nav className="space-y-1">
-            {renderSidebarItem('overview', <LayoutDashboard className="w-5 h-5" />, 'ផ្ទាំងរបស់គ្រូ')}
-            {renderSidebarItem('roster', <Users className="w-5 h-5" />, 'ថ្នាក់ និងសិស្ស')}
-            {renderSidebarItem('attendance', <Calendar className="w-5 h-5" />, 'ស្រង់អវត្តមាន')}
-            {renderSidebarItem('grades', <PenTool className="w-5 h-5" />, 'ស្រង់ពិន្ទុ')}
-            {renderSidebarItem('lesson_plans', <ClipboardList className="w-5 h-5" />, 'គម្រោង GEIP')}
-            {renderSidebarItem('ranking', <Award className="w-5 h-5" />, 'លទ្ធផលសិក្សា')}
-            {renderSidebarItem('leave_requests', <FileCheck2 className="w-5 h-5" />, 'សំណើសុំច្បាប់សិស្ស')}
-            {renderSidebarItem('reports', <Printer className="w-5 h-5" />, 'របាយការណ៍')}
-          </nav>
-        </div>
-      </aside>
-
-      {/* ============================================================= */}
-      {/* MAIN CONTENT AREA                                               */}
-      {/* ============================================================= */}
-      <main className="flex-1 w-full p-4 lg:p-8 overflow-y-auto overflow-x-hidden relative h-screen">
+    <TeacherLayout activeTabSub={activeTabSub} setActiveTabSub={setActiveTabSub}>
         
-        {/* MOBILE TOP BAR NAVIGATION (Fallback for mobile) */}
-        <div className="lg:hidden flex items-center gap-2 overflow-x-auto pb-4 scrollbar-thin mb-4">
-          <button
-            onClick={() => setActiveTabSub('overview')}
-            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
-              activeTabSub === 'overview'
-                ? 'bg-[#0d3b45] text-cyan-300 border border-cyan-500/30'
-                : 'bg-[#0d282e]/80 text-slate-400 border border-[#164049]/70'
-            }`}
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            <span>ផ្ទាំងរបស់គ្រូ</span>
-          </button>
-          
-          <button
-            onClick={() => setActiveTabSub('roster')}
-            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
-              activeTabSub === 'roster'
-                ? 'bg-[#0d3b45] text-cyan-300 border border-cyan-500/30'
-                : 'bg-[#0d282e]/80 text-slate-400 border border-[#164049]/70'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>សិស្ស</span>
-          </button>
-          <button
-            onClick={() => setIsCreateClassModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 bg-[#0d282e]/80 text-cyan-400 border border-[#164049]/70"
-          >
-            <FolderPlus className="w-4 h-4" />
-            <span>បង្កើតថ្នាក់</span>
-          </button>
-        </div>
 
         {activeTabSub === 'overview' && (
           <div className="space-y-6 max-w-5xl mx-auto">
@@ -1312,7 +1222,6 @@ export const HomeroomTeacherDashboard: React.FC = () => {
           onGoogleAuthClick={() => {}}
         />
       )}
-      </main>
-    </div>
+    </TeacherLayout>
   );
 };
