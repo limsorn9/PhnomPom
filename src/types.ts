@@ -161,7 +161,8 @@ export interface Teacher {
   dob: string; // ថ្ងៃខែឆ្នាំកំណើត
   nationality?: string; // សញ្ជាតិ (ខ្មែរ)
   ethnicity?: string; // ជនជាតិ (ខ្មែរ / ផ្សេងៗ)
-  disabilityStatus?: string; // ពិការភាព
+  disabilityStatus?: string; // ស្ថានភាពពិការភាព
+  disabilityType?: string; // ប្រភេទពិការភាព
   
   // Addresses & Contacts (ទីលំនៅ និងទំនាក់ទំនង)
   phone: string; // លេខទូរស័ព្ទ
@@ -183,26 +184,41 @@ export interface Teacher {
   distanceToSchoolKm?: number; // ចម្ងាយទៅសាលា (គ.ម)
   
   // National ID Card (អត្តសញ្ញាណប័ណ្ណ)
+  idCardType?: 'valid' | 'permanent'; // ប្រភេទប័ណ្ណសពុលភាព
   nationalIdNumber?: string; // លេខអត្តសញ្ញាណប័ណ្ណ
   nationalIdIssueDate?: string; // ថ្ងៃចេញ
   nationalIdExpiryDate?: string; // ថ្ងៃអស់សុពលភាព
   nationalIdPhotoUrl?: string; // រូបថតអត្តសញ្ញាណប័ណ្ណ
   
   // Professional Details (ព័ត៌មានវិជ្ជាជីវៈ និងក្របខ័ណ្ឌ)
+  teacherId?: string; // អត្តលេខគ្រូបង្រៀន
   role: string; // តួនាទី (នាយក, នាយករង, គ្រូបន្ទុកថ្នាក់, គ្រូឯកទេស, បណ្ណារក្ស, លេខាធិការ)
   responsibilities?: string; // ភារកិច្ច
   startDate: string; // ថ្ងៃខែចូលបម្រើការងារ
+  endDate?: string; // ថ្ងៃខែបញ្ចប់ការងារ (បើមាន)
   civilServiceEntryDate?: string; // ថ្ងៃតាំងស៊ប់ក្នុងក្របខណ្ឌ
   yearsOfService: number; // ចំនួនឆ្នាំបម្រើការងារ
   framework?: string; // ក្របខណ្ឌ
+  civilId?: string; // អត្តលេខមន្ត្រីរាជការស៊ីវិល
   civilServiceFramework?: string; // ក្របខ័ណ្ឌ (ឧ. ក្របខ័ណ្ឌគ្រូបឋម, ក្របខ័ណ្ឌមន្ត្រីរដ្ឋបាល)
+  cadre?: string; // ក្របខណ្ឌ
   frameworkLevel?: string; // កម្រិតក្របខ័ណ្ឌ (ឧ. ក.១.១, ក.២, ខ.១)
+  salaryGrade?: string; // ឋានន្តរស័ក្តិ / កាំប្រាក់
+  rankType?: string; // ប្រភេទថ្នាក់ (ឧ. ថ្នាក់លេខ១)
   qualification: string; // សញ្ញាបត្រគ្រូ / គរុកោសល្យ
   specialization?: string; // ឯកទេស
   teachingSubject?: string; // មុខវិជ្ជាបង្រៀន
+  teachingType?: string; // ប្រភេទបង្រៀន
   appointmentLetterRef?: string; // លិខិតតែងតាំង / ប្រកាសលេខ
+  decreeNumber?: string; // លេខប្រកាស
+  decreeDate?: string; // ថ្ងៃប្រកាស
   salaryIndex?: string; // កាំប្រាក់
+  jobType?: string; // ប្រភេទការងារ
+  functionRole?: string; // មុខងារ
   specializedDegreeLevel?: string; // កម្រិតសញ្ញាបត្រឯកទេស
+  educationLevel?: string; // កម្រិតវប្បធម៌ទូទៅ
+  trainingLevel?: string; // កម្រិតបណ្តុះបណ្តាលវិជ្ជាជីវៈ
+  certificate?: string; // សញ្ញាបត្រ
   schoolPostingDate?: string; // ថ្ងៃខែឆ្នាំទទួលគ្រឹះស្ថានសិក្សា
   pedagogicalTrainingCourse?: string; // វគ្គបណ្តុះបណ្តាលគរុកោសល្យ
   trainingCohort?: string; // វគ្គសិក្សា
@@ -235,8 +251,10 @@ export interface Teacher {
   child1Name?: string; // ឈ្មោះកូនទី១
   child2Name?: string; // ឈ្មោះកូនទី២
   child3Name?: string; // ឈ្មោះកូនទី៣
+  childrenList?: string[]; // បញ្ជីកូន
   documentsNote?: string; // ឯកសារ និងប្រភេទបណ្ណផ្សេងៗ
   avatarUrl?: string; // រូបថត
+  signatureUrl?: string; // ហត្ថលេខា
   schedule: DutyScheduleItem[];
   academicYear?: string; // ឆ្នាំសិក្សា
 }
@@ -485,6 +503,10 @@ export interface SchoolProfile {
   establishedYear: string;
   cluster: string;
   email: string;
+  directorTitle?: string;
+  headerFormat?: string;
+  poeOffice?: string;
+  doeOffice?: string;
   logoUrl?: string;
   principalSignatureUrl?: string; // Digital signature image file URL or data URL
   principalStampUrl?: string; // Official stamp image file URL

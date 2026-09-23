@@ -574,10 +574,15 @@ interface SchoolContextType {
   triggerDriveAutoSyncAll: () => Promise<void>;
   clearDriveSyncHistory: () => void;
 
-  // 7. Universal Action Confirmation & Student Account Verification
+  // Universal Action Confirmation & Student Account Verification
   confirmAction: (config: ConfirmActionConfig) => void;
   isStudentRegisteredInAccounts: (student: Student) => boolean;
   autoGenerateStudentAccounts: (targetStudentIds?: string[]) => { createdCount: number; existingCount: number };
+
+  // KrouDigital 4.0 Standardized Core State
+  kdTeacherProfile: Teacher | null;
+  kdSchoolInfo: SchoolProfile;
+  kdClassInfo: { currentClass: string; academicYear: string; students: Student[] } | null;
 }
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
@@ -3817,113 +3822,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // Auto-sync debounced changes to Cloud whenever local user mutates data
-  useEffect(() => {
-    // CRITICAL: Do NOT push to Cloud before initial Cloud data fetch has resolved!
-    // This prevents a new device or cleared cache from wiping existing cloud database.
-    if (!isInitialCloudLoadCompleteRef.current) {
-      return;
-    }
 
-    if (isRemoteUpdateRef.current) {
-      isRemoteUpdateRef.current = false;
-      return;
-    }
-
-    // Mark local mutation timestamp
-    localStorage.setItem(LAST_LOCAL_MUTATION_KEY, Date.now().toString());
-
-    const timer = setTimeout(() => {
-      const payload = getFullSchoolPayload();
-      syncSchoolDataToFirestore(payload).catch(err => console.warn('Background firestore sync notice:', err));
-    }, 1200);
-
-    return () => clearTimeout(timer);
-  }, [
-    schoolProfile,
-    students,
-    teachers,
-    classrooms,
-    scores,
-    budgetTransactions,
-    attendanceRecords,
-    calendarEvents,
-    transfers,
-    schoolGroups,
-    activityLogs,
-    appUsers,
-    academicYears,
-    examSubjects,
-    profileEditRequests,
-    releasedResults,
-    villages,
-    households,
-    libraryBooks,
-    readingLogs,
-    printSettings,
-    studentFeedbacks,
-    lessonPlans,
-    parentMeetings,
-    parentRequests,
-    classCouncils,
-    atRiskStudents,
-    dailyClassLogs,
-    studentBadgeDefinitions,
-    studentBadgeAssignments,
-    correspondences,
-    staffAdminRecords,
-    schoolCommittees,
-    schoolStrategicPlans,
-    modelSchoolStandards,
-    schoolAssets,
-    equipmentItems,
-    equipmentLoans,
-    teacherDailyTasks,
-    teacherMeetings,
-    teachingResources,
-    dailyHealthChecks,
-    qrScanVerificationLogs
-  ]);
-
-  // Flush to Firestore on page hide / unload
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (!isInitialCloudLoadCompleteRef.current) return;
-      const payload = getFullSchoolPayload();
-      syncSchoolDataToFirestore(payload).catch(() => {});
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        handleBeforeUnload();
-      }
-    });
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [
-    schoolProfile,
-    students,
-    teachers,
-    classrooms,
-    scores,
-    budgetTransactions,
-    attendanceRecords,
-    calendarEvents,
-    transfers,
-    schoolGroups,
-    activityLogs,
-    appUsers,
-    equipmentItems,
-    equipmentLoans,
-    teacherDailyTasks,
-    teacherMeetings,
-    teachingResources,
-    dailyHealthChecks,
-    qrScanVerificationLogs
-  ]);
 
   // Initial Real-time Listener & Cloud pull on mount with timestamp conflict resolution
   useEffect(() => {
@@ -7449,6 +7348,16 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     showToast('បានសម្អាតទិន្នន័យប្រឌិតទាំងអស់រួចរាល់! លោកអ្នកអាចចាប់ផ្តើមបញ្ចូលទិន្នន័យពិតដោយដៃផ្ទាល់។', 'success');
   };
 
+  // KrouDigital 4.0 Standardized Core State Mappings
+  const kdSchoolInfo = schoolProfile;
+  const kdTeacherProfile = currentUser && currentUser.role === 'teacher' ? (teachers.find(t => t.id === currentUser.id) || null) : null;
+  const currentAssignedClass = getTeacherAssignedClass();
+  const kdClassInfo = currentAssignedClass ? {
+    currentClass: `ថ្នាក់ទី${currentAssignedClass.grade}${currentAssignedClass.section}`,
+    academicYear: selectedAcademicYear,
+    students: students.filter(s => s.grade === currentAssignedClass.grade && s.section === currentAssignedClass.section)
+  } : null;
+
   return (
     <SchoolContext.Provider
       value={{
@@ -7729,7 +7638,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         clearDriveSyncHistory,
         confirmAction,
         isStudentRegisteredInAccounts,
-        autoGenerateStudentAccounts
+        autoGenerateStudentAccounts,
+        kdSchoolInfo,
+        kdTeacherProfile,
+        kdClassInfo
       }}
     >
       {children}

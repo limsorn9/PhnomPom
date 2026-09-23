@@ -11,6 +11,7 @@ import { ClassroomScores } from './components/ClassroomScores';
 import { HealthAttendance } from './components/HealthAttendance';
 import { BudgetFinance } from './components/BudgetFinance';
 import { ReportsAndQR } from './components/ReportsAndQR';
+import TeacherReportsHub from './components/TeacherReportsHub';
 import { GoogleWorkspaceHub } from './components/GoogleWorkspaceHub';
 import { AcademicCalendar } from './components/AcademicCalendar';
 import { AccountsManagement } from './components/AccountsManagement';
@@ -198,7 +199,7 @@ const MainLayout: React.FC = () => {
             />
           )}
           {activeTab === 'finance' && canAccessTab('finance') && <BudgetFinance />}
-          {activeTab === 'reports_qr' && canAccessTab('reports_qr') && <ReportsAndQR />}
+          {activeTab === 'reports_qr' && canAccessTab('reports_qr') && <TeacherReportsHub />}
           {activeTab === 'accounts' && canAccessTab('accounts') && <AccountsManagement />}
           {activeTab === 'workspace' && canAccessTab('workspace') && <GoogleWorkspaceHub />}
         </main>

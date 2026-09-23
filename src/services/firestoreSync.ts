@@ -88,6 +88,8 @@ let isWriting = false;
 let pendingPayload: Partial<CloudSchoolData> | null = null;
 let lastSyncedDataHash = '';
 let quotaExhaustedUntil = 0;
+let debounceTimeout: any = null;
+export const OFFLINE_CACHE_KEY = 'krou_digital_offline_cache';
 
 const QUOTA_STORAGE_KEY = 'school_firestore_quota_exhausted_until';
 
@@ -281,101 +283,131 @@ const getQuickHash = (obj: any): string => {
  * Save school data to Firestore with write serialization, timeout protection, partition safety, circuit breaker and loop prevention
  */
 export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, force = false): Promise<{success: boolean, error?: string}> => {
-  // If Firestore quota is currently exhausted, avoid flooding requests
+  // 1. Offline-First Cache: Save to localStorage immediately
+  try {
+    const existingCache = JSON.parse(localStorage.getItem(OFFLINE_CACHE_KEY) || '{}');
+    const newCache = { ...existingCache, ...data, lastUpdated: new Date().toISOString() };
+    localStorage.setItem(OFFLINE_CACHE_KEY, JSON.stringify(newCache));
+  } catch (e) {
+    console.warn("Failed to save to offline cache", e);
+  }
+
   if (isFirestoreQuotaExhausted()) {
-    return { success: false, error: 'Firestore Free Tier write quota temporarily exhausted. Local storage and Google Drive are active.' };
+    return { success: false, error: 'Firestore Free Tier write quota temporarily exhausted. Local storage is active.' };
   }
 
   const currentHash = getQuickHash(data);
   if (!force && currentHash === lastSyncedDataHash) {
-    // Data has not changed since last successful sync
     return { success: true };
   }
 
-  // If already writing, queue this payload and return
-  if (isWriting) {
-    pendingPayload = data;
-    return { success: true };
-  }
+  // Combine with pending payload for debounce
+  pendingPayload = { ...(pendingPayload || {}), ...data };
 
-  isWriting = true;
-  try {
-    const sanitized = sanitizePayload(data);
-    const nowIso = new Date().toISOString();
-    const partitions = partitionPayload(sanitized, nowIso, CURRENT_CLIENT_ID, sanitized.updatedBy);
-
-    // Safe single document writer with quota detection
-    const writeDocSafely = async (docKey: string, partitionData: any) => {
-      try {
-        await setDoc(doc(db, 'schools', docKey), partitionData, { merge: true });
-        return { success: true };
-      } catch (err: any) {
-        if (err?.code === 'resource-exhausted' || err?.message?.toLowerCase().includes('quota')) {
-          markFirestoreQuotaExhausted(30);
-        }
-        throw err;
-      }
-    };
-
-    // Write all partition documents in parallel with merge: true
-    const writePromises = [
-      writeDocSafely(CLOUD_DOCS.MAIN, partitions.main),
-      writeDocSafely(CLOUD_DOCS.STUDENTS, partitions.students),
-      writeDocSafely(CLOUD_DOCS.ACADEMICS, partitions.academics),
-      writeDocSafely(CLOUD_DOCS.RESOURCES, partitions.resources),
-      writeDocSafely(CLOUD_DOCS.STAFF_USERS, partitions.staffUsers)
-    ];
-
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Firestore write timeout')), 30000)
-    );
-
-    const results = await Promise.race([Promise.allSettled(writePromises), timeoutPromise]) as PromiseSettledResult<any>[];
-    const errors = results.filter(r => r.status === 'rejected');
-    if (errors.length > 0) {
-      const isQuotaError = errors.some((e: any) => 
-        e.reason?.code === 'resource-exhausted' || e.reason?.message?.toLowerCase().includes('quota')
-      );
-      if (isQuotaError) {
-        markFirestoreQuotaExhausted(30);
-        console.warn('[Firestore] Spark Free Tier daily write quota reached. System switched seamlessly to Local Storage & Google Drive mode.');
-        return { success: false, error: 'Firestore Free Tier daily write quota reached. Using Local/Drive storage.' };
-      }
-      throw new Error('Partition write failed: ' + errors.map((e: any) => e.reason?.message || 'Unknown').join(', '));
+  return new Promise((resolve) => {
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
     }
-
-    lastSyncedDataHash = currentHash;
-    isWriting = false;
-
-    // If another mutation occurred while writing, trigger next write cleanly
-    if (pendingPayload && !isFirestoreQuotaExhausted()) {
-      const next = pendingPayload;
+    
+    // Debounce 4 seconds
+    debounceTimeout = setTimeout(async () => {
+      const payloadToSync = pendingPayload;
+      if (!payloadToSync) {
+        resolve({ success: true });
+        return;
+      }
       pendingPayload = null;
-      setTimeout(() => {
-        syncSchoolDataToFirestore(next).catch(() => {});
-      }, 500);
-    }
-    return { success: true };
-  } catch (error: any) {
-    isWriting = false;
-    if (error?.code === 'resource-exhausted' || error?.message?.toLowerCase().includes('quota')) {
-      markFirestoreQuotaExhausted(30);
-      console.warn('[Firestore] Spark Free Tier daily write quota reached. System switched seamlessly to Local Storage & Google Drive mode.');
-    } else if (error?.code === 'permission-denied' || error?.message?.includes('permissions')) {
-      console.warn('Firestore cloud sync notice (requires authorized authentication):', error?.message || error);
-    } else {
-      console.warn('Firestore sync status notice:', error?.message || error);
-    }
-    return { success: false, error: error?.message || String(error) };
-  }
+      
+      if (isWriting) {
+        pendingPayload = { ...(pendingPayload || {}), ...payloadToSync };
+        resolve({ success: true });
+        return;
+      }
+      
+      isWriting = true;
+      try {
+        const sanitized = sanitizePayload(payloadToSync);
+        const nowIso = new Date().toISOString();
+        const partitions = partitionPayload(sanitized, nowIso, CURRENT_CLIENT_ID, sanitized.updatedBy);
+
+        const writeDocSafely = async (docKey: string, partitionData: any) => {
+          try {
+            await setDoc(doc(db, 'schools', docKey), partitionData, { merge: true });
+            return { success: true };
+          } catch (err: any) {
+            if (err?.code === 'resource-exhausted' || err?.message?.toLowerCase().includes('quota')) {
+              markFirestoreQuotaExhausted(30);
+            }
+            throw err;
+          }
+        };
+
+        const writePromises = [
+          writeDocSafely(CLOUD_DOCS.MAIN, partitions.main),
+          writeDocSafely(CLOUD_DOCS.STUDENTS, partitions.students),
+          writeDocSafely(CLOUD_DOCS.ACADEMICS, partitions.academics),
+          writeDocSafely(CLOUD_DOCS.RESOURCES, partitions.resources),
+          writeDocSafely(CLOUD_DOCS.STAFF_USERS, partitions.staffUsers)
+        ];
+
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Firestore write timeout')), 30000)
+        );
+
+        const results = await Promise.race([Promise.allSettled(writePromises), timeoutPromise]) as PromiseSettledResult<any>[];
+        const errors = results.filter(r => r.status === 'rejected');
+        
+        if (errors.length > 0) {
+          const isQuotaError = errors.some((e: any) => 
+            e.reason?.code === 'resource-exhausted' || e.reason?.message?.toLowerCase().includes('quota')
+          );
+          if (isQuotaError) {
+            markFirestoreQuotaExhausted(30);
+            console.warn('[Firestore] Spark Free Tier daily write quota reached. System switched to Local Storage.');
+            resolve({ success: false, error: 'Firestore Free Tier daily write quota reached. Using Local storage.' });
+            return;
+          }
+          throw new Error('Partition write failed: ' + errors.map((e: any) => e.reason?.message || 'Unknown').join(', '));
+        }
+
+        lastSyncedDataHash = getQuickHash(payloadToSync);
+        isWriting = false;
+
+        if (pendingPayload && !isFirestoreQuotaExhausted()) {
+          const next = pendingPayload;
+          pendingPayload = null;
+          syncSchoolDataToFirestore(next).catch(() => {});
+        }
+        resolve({ success: true });
+      } catch (error: any) {
+        isWriting = false;
+        if (error?.code === 'resource-exhausted' || error?.message?.toLowerCase().includes('quota')) {
+          markFirestoreQuotaExhausted(30);
+          console.warn('[Firestore] Spark Free Tier daily write quota reached. System switched to Local Storage.');
+        }
+        resolve({ success: false, error: error?.message || String(error) });
+      }
+    }, 4000); // 4 seconds debounce
+  });
 };
 
 /**
  * Fetch complete school data from all Firestore partitions and merge seamlessly
  */
 export const fetchSchoolDataFromFirestore = async (): Promise<CloudSchoolData | null> => {
+  // 1. Try to load from local offline cache first to ensure immediate data availability
+  let localData: CloudSchoolData | null = null;
+  try {
+    const cached = localStorage.getItem(OFFLINE_CACHE_KEY);
+    if (cached) {
+      localData = JSON.parse(cached);
+    }
+  } catch (e) {
+    console.warn("Error reading from offline cache", e);
+  }
+
   if (isFirestoreQuotaExhausted()) {
-    return null;
+    return localData;
   }
 
   try {
@@ -412,20 +444,31 @@ export const fetchSchoolDataFromFirestore = async (): Promise<CloudSchoolData | 
     }
 
     if (!hasFoundAnyDoc) {
-      return null;
+      return localData;
     }
 
     if (latestTimestamp) {
       combinedData.lastUpdated = latestTimestamp;
     }
 
-    return combinedData;
+    // Merge remote data over local data to ensure we don't lose local offline edits if remote is older
+    // Ideally we should compare timestamps per field, but this is a simplified merge
+    const finalData = localData && localData.lastUpdated && combinedData.lastUpdated && (localData.lastUpdated > combinedData.lastUpdated) 
+      ? { ...combinedData, ...localData } 
+      : { ...localData, ...combinedData };
+      
+    // Update local cache with remote data
+    try {
+      localStorage.setItem(OFFLINE_CACHE_KEY, JSON.stringify(finalData));
+    } catch (e) {}
+
+    return finalData;
   } catch (error: any) {
     if (error?.code === 'resource-exhausted' || error?.message?.toLowerCase().includes('quota')) {
       markFirestoreQuotaExhausted(30);
     }
     console.warn('Firestore data fetch notice:', error?.message || error);
-    return null;
+    return localData;
   }
 };
 
