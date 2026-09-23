@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, Plus, SlidersHorizontal, MoreVertical, Edit2, KeyRound, ArrowRightLeft, Ban, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, Plus, SlidersHorizontal, MoreVertical, Eye, Edit, Key, UserMinus, Lock } from 'lucide-react';
 import { useSchool } from '../../context/SchoolContext';
 
 export const AdminTeachersManagement: React.FC = () => {
@@ -25,8 +25,20 @@ export const AdminTeachersManagement: React.FC = () => {
     }));
 
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const toggleDropdown = (id: string) => {
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setActiveDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleDropdown = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (activeDropdown === id) {
       setActiveDropdown(null);
     } else {
@@ -130,30 +142,34 @@ export const AdminTeachersManagement: React.FC = () => {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-center relative">
                     <button 
-                      onClick={() => toggleDropdown(staff.id)}
+                      onClick={(e) => toggleDropdown(staff.id, e)}
                       className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"
                     >
                       <MoreVertical className="w-4 h-4" />
                     </button>
                     
                     {activeDropdown === staff.id && (
-                      <div className="absolute right-8 top-10 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-10 py-1.5 overflow-hidden text-left">
-                        <button className="w-full px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition">
-                          <Edit2 className="w-3.5 h-3.5 text-blue-500" />
-                          កែប្រែព័ត៌មានគ្រូ
+                      <div ref={dropdownRef} className="absolute right-8 top-10 bg-white border border-slate-200 rounded-xl shadow-xl py-1 w-48 z-50 text-xs font-medium text-slate-700 font-sans overflow-hidden text-left">
+                        <button className="w-full px-4 py-2 text-left hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 transition">
+                          <Eye className="w-3.5 h-3.5 text-slate-500" />
+                          មើលលម្អិត
                         </button>
-                        <button className="w-full px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition">
-                          <KeyRound className="w-3.5 h-3.5 text-amber-500" />
-                          កំណត់លេខសម្ងាត់ឡើងវិញ
+                        <button className="w-full px-4 py-2 text-left hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 transition">
+                          <Edit className="w-3.5 h-3.5 text-blue-500" />
+                          កែប្រែគ្រូ
                         </button>
-                        <button className="w-full px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition">
-                          <ArrowRightLeft className="w-3.5 h-3.5 text-emerald-500" />
-                          ប្ដូរបន្ទុកថ្នាក់
+                        <button className="w-full px-4 py-2 text-left hover:bg-slate-50 hover:text-amber-600 flex items-center gap-2 transition">
+                          <Key className="w-3.5 h-3.5 text-amber-500" />
+                          ផ្លាស់ប្ដូរលេខសម្ងាត់ថ្មី
                         </button>
                         <div className="border-t border-slate-100 my-1"></div>
-                        <button className="w-full px-4 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 transition">
-                          <Ban className="w-3.5 h-3.5" />
-                          ផ្អាកដំណើរការ
+                        <button className="w-full px-4 py-2 text-left hover:bg-slate-50 hover:text-rose-600 flex items-center gap-2 transition">
+                          <UserMinus className="w-3.5 h-3.5 text-slate-500" />
+                          ចូលនិវត្តន៍គ្រូបង្រៀន
+                        </button>
+                        <button className="w-full px-4 py-2 text-left hover:bg-rose-50 text-rose-600 flex items-center gap-2 transition">
+                          <Lock className="w-3.5 h-3.5 text-rose-500" />
+                          បិទគណនីគ្រូបង្រៀន
                         </button>
                       </div>
                     )}
