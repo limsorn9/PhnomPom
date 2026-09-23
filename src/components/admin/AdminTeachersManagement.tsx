@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, Plus, SlidersHorizontal, MoreVertical, Eye, Edit, Key, UserMinus, Lock } from 'lucide-react';
 import { useSchool } from '../../context/SchoolContext';
 import { TeacherDetailModal } from './TeacherDetailModal';
+import { TeacherEditPage } from './TeacherEditPage';
 
 export const AdminTeachersManagement: React.FC = () => {
   const { teachers } = useSchool();
@@ -28,6 +29,7 @@ export const AdminTeachersManagement: React.FC = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [selectedTeacher, setSelectedTeacher] = useState<any | null>(null);
+  const [editingTeacherId, setEditingTeacherId] = useState<string | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -47,6 +49,10 @@ export const AdminTeachersManagement: React.FC = () => {
       setActiveDropdown(id);
     }
   };
+
+  if (editingTeacherId) {
+    return <TeacherEditPage teacherId={editingTeacherId} onBack={() => setEditingTeacherId(null)} />;
+  }
 
   return (
     <div className="bg-slate-50 min-h-screen text-slate-800 font-sans p-4 sm:p-6 font-kantumruy">
@@ -162,7 +168,13 @@ export const AdminTeachersManagement: React.FC = () => {
                           <Eye className="w-3.5 h-3.5 text-slate-500" />
                           មើលលម្អិត
                         </button>
-                        <button className="w-full px-4 py-2 text-left hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 transition">
+                        <button 
+                          onClick={() => {
+                            setEditingTeacherId(staff.id);
+                            setActiveDropdown(null);
+                          }}
+                          className="w-full px-4 py-2 text-left hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 transition"
+                        >
                           <Edit className="w-3.5 h-3.5 text-blue-500" />
                           កែប្រែគ្រូ
                         </button>
