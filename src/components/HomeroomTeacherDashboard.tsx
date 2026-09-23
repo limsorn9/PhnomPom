@@ -5,7 +5,7 @@ import { Student } from '../types';
 import { HomeroomHeader } from './homeroom/HomeroomHeader';
 import { MyClassTab } from './homeroom/MyClassTab';
 import { DailyAttendanceTracker } from './homeroom/DailyAttendanceTracker';
-import { GradesTab } from './homeroom/GradesTab';
+import { TeacherScoresHub } from './homeroom/TeacherScoresHub';
 import { LessonPlansTab } from './homeroom/LessonPlansTab';
 import { ParentMeetingsTab } from './homeroom/ParentMeetingsTab';
 import { HomeroomNotificationsTab } from './homeroom/HomeroomNotificationsTab';
@@ -529,15 +529,12 @@ export const HomeroomTeacherDashboard: React.FC = () => {
 
       {/* VIEW D: MONTHLY GRADE ENTRY (ស្រង់ពិន្ទុ) */}
       {activeTabSub === 'grades' && (
-        <GradesTab
+        <TeacherScoresHub
           students={students}
           selectedGrade={selectedGrade}
           selectedSection={selectedSection}
           scores={scores}
           onSaveScore={saveStudentScore}
-          isResultReleased={isResultReleased}
-          onToggleRelease={toggleReleaseClassResults}
-          onPrintScoreSheet={() => window.print()}
         />
       )}
 
