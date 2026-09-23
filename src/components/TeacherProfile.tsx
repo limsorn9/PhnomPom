@@ -130,6 +130,7 @@ export const TeacherProfile: React.FC = () => {
   const [khmerExcellent, setKhmerExcellent] = useState<number>(80);
   const [khmerVeryGood, setKhmerVeryGood] = useState<number>(65);
   const [khmerAverage, setKhmerAverage] = useState<number>(50);
+  const [khmerPoor, setKhmerPoor] = useState<number>(0);
 
   const [intlA, setIntlA] = useState<number>(90);
   const [intlB, setIntlB] = useState<number>(80);
@@ -237,7 +238,7 @@ export const TeacherProfile: React.FC = () => {
     localStorage.setItem(
       'krou_digital_grading_scale',
       JSON.stringify({
-        khmer: { excellent: khmerExcellent, veryGood: khmerVeryGood, average: khmerAverage },
+        khmer: { excellent: khmerExcellent, veryGood: khmerVeryGood, average: khmerAverage, poor: khmerPoor },
         intl: { A: intlA, B: intlB, C: intlC, D: intlD, E: intlE }
       })
     );
@@ -606,7 +607,7 @@ export const TeacherProfile: React.FC = () => {
               <h3 className="font-kantumruy font-bold text-slate-300 mb-3 pb-2 border-b border-slate-800">និទ្ទេសខ្មែរ (៤ ថ្នាក់)</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-kantumruy text-slate-400">ល្អណាស់ (Excellent) ≥</span>
+                  <span className="text-sm font-kantumruy text-slate-400">ល្អ (Excellent) ≥</span>
                   <input type="number" className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-sm text-center text-slate-200" value={khmerExcellent} onChange={e => setKhmerExcellent(Number(e.target.value))} />
                 </div>
                 <div className="flex items-center justify-between">
@@ -616,6 +617,10 @@ export const TeacherProfile: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-kantumruy text-slate-400">មធ្យម (Average) ≥</span>
                   <input type="number" className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-sm text-center text-slate-200" value={khmerAverage} onChange={e => setKhmerAverage(Number(e.target.value))} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-kantumruy text-slate-400">ខ្សោយ (Poor) ≥</span>
+                  <input type="number" className="w-20 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-sm text-center text-slate-200" value={khmerPoor} onChange={e => setKhmerPoor(Number(e.target.value))} />
                 </div>
               </div>
             </div>

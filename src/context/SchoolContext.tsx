@@ -3867,9 +3867,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // If local data exists and was modified after the cloud snapshot (by more than 2.5s)
       // OR local data has custom records while cloud is empty, retain local data and push to cloud
       if (hasLocalCustomData && (isLocalNewer || isCloudEmptyWhileLocalHasData)) {
-        console.info('Local data has custom records or is newer than Cloud Firestore. Retaining local data and syncing to Cloud.');
-        const payload = getFullSchoolPayload();
-        syncSchoolDataToFirestore(payload, true).catch(console.warn);
+        console.info('Local data has custom records or is newer than Cloud Firestore. Retaining local data but WILL NOT auto-sync to Cloud (Manual sync only).');
         return;
       }
 
@@ -3904,9 +3902,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             }
           }
           if (merged.length > cloudUsers.length) {
-            setTimeout(() => {
-              syncSchoolDataToFirestore({ ...getFullSchoolPayload(), appUsers: merged }, true).catch(console.warn);
-            }, 1000);
+            console.info('Local appUsers contains offline records. Retaining local appUsers.');
           }
           return merged;
         });
@@ -3968,8 +3964,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (cloudData && Object.keys(cloudData).length > 0 && cloudData.lastUpdated) {
         applyCloudDataIfNewer(cloudData, true);
       } else if (!isFirestoreQuotaExhausted()) {
-        console.info('Cloud database is empty on first startup, initializing cloud...');
-        syncSchoolDataToFirestore(getFullSchoolPayload(), true).catch(console.warn);
+        console.info('Cloud database is empty on first startup. Retaining local initial state.');
       }
       isInitialCloudLoadCompleteRef.current = true;
     }).catch(err => {
