@@ -6,34 +6,31 @@ import { MobileBottomNav } from './MobileBottomNav';
 import { PrincipalDashboard } from './admin/PrincipalDashboard';
 import { DirectorProfileView } from './admin/DirectorProfileView';
 import { MobileAppCenter } from './MobileAppCenter';
-import { StudentManagement } from './StudentManagement';
+import { StudentManagementHub } from './StudentManagementHub';
 import { AdminTeachersManagement } from './admin/AdminTeachersManagement';
 import { ClassroomScores } from './ClassroomScores';
 import { HealthAttendance } from './HealthAttendance';
 import { BudgetFinance } from './BudgetFinance';
 import { ReportsAndQR } from './ReportsAndQR';
-import { TeacherReportsHub } from './TeacherReportsHub';
+import { TeacherReportsHubWrapper } from './TeacherReportsHubWrapper';
 import { GoogleWorkspaceHub } from './GoogleWorkspaceHub';
 import { AcademicCalendar } from './AcademicCalendar';
 import { AccountsManagement } from './AccountsManagement';
-import { StudentPortal } from './StudentPortal';
 import { SecretaryDashboard } from './SecretaryDashboard';
 import { HomeroomTeacherDashboard } from './HomeroomTeacherDashboard';
 import { MyClasses } from './MyClasses';
 import { TeacherProfile } from './TeacherProfile';
 import { SchoolAdmin } from './SchoolAdmin';
 import { SchoolManagement } from './SchoolManagement';
-import { OfficialDocumentCenter } from './OfficialDocumentCenter';
 import { StudentTransferManagement } from './StudentTransferManagement';
 import { HouseholdCensus } from './HouseholdCensus';
 import { LibraryManagement } from './LibraryManagement';
-import { OtherLearningResources } from './OtherLearningResources';
+import { OtherLearningResourcesHub } from './OtherLearningResourcesHub';
 import { RecentActivityDashboard } from './RecentActivityDashboard';
 import { AITeacherHub } from './ai-teacher/AITeacherHub';
 import { SchoolEquipmentLoanManager } from './SchoolEquipmentLoanManager';
 import { TeacherDailyAgendaPanel } from './TeacherDailyAgendaPanel';
 import { TeacherMeetingMinutesManager } from './TeacherMeetingMinutesManager';
-import { TeachingResourceHub } from './TeachingResourceHub';
 import { BulkDataImportExportModal } from './BulkDataImportExportModal';
 import { GoogleDriveSyncModal } from './GoogleDriveSyncModal';
 import { VersionMismatchModal } from './VersionMismatchModal';
@@ -185,16 +182,13 @@ export const AdminLayout: React.FC = () => {
           {activeTab === 'teacher_agenda' && canAccessTab('teacher_agenda') && <TeacherDailyAgendaPanel />}
           {activeTab === 'equipment_loans' && canAccessTab('equipment_loans') && <SchoolEquipmentLoanManager />}
           {activeTab === 'teacher_meetings' && canAccessTab('teacher_meetings') && <TeacherMeetingMinutesManager />}
-          {activeTab === 'teaching_resources' && canAccessTab('teaching_resources') && <TeachingResourceHub />}
-          {activeTab === 'school_admin' && canAccessTab('school_admin') && <SchoolAdmin />}
+                    {activeTab === 'school_admin' && canAccessTab('school_admin') && <SchoolAdmin />}
           {activeTab === 'school_management' && canAccessTab('school_management') && <SchoolManagement />}
-          {activeTab === 'official_documents' && canAccessTab('official_documents') && <OfficialDocumentCenter />}
-          {activeTab === 'student_portal' && canAccessTab('student_portal') && <StudentPortal />}
-          {activeTab === 'students' && canAccessTab('students') && <StudentManagement />}
+                              {activeTab === 'students' && canAccessTab('students') && <StudentManagementHub />}
           {activeTab === 'transfers' && canAccessTab('transfers') && <StudentTransferManagement />}
           {activeTab === 'household_census' && canAccessTab('household_census') && <HouseholdCensus />}
           {activeTab === 'library' && canAccessTab('library') && <LibraryManagement />}
-          {activeTab === 'learning_resources' && canAccessTab('learning_resources') && <OtherLearningResources />}
+          {activeTab === 'learning_resources' && canAccessTab('learning_resources') && <OtherLearningResourcesHub />}
           {activeTab === 'teachers' && canAccessTab('teachers') && <AdminTeachersManagement />}
           {(activeTab === 'classrooms' || activeTab === 'scores') && canAccessTab(activeTab) && <ClassroomScores />}
           {activeTab === 'attendance_health' && canAccessTab('attendance_health') && <HealthAttendance />}
@@ -205,7 +199,7 @@ export const AdminLayout: React.FC = () => {
             />
           )}
           {activeTab === 'finance' && canAccessTab('finance') && <BudgetFinance />}
-          {activeTab === 'reports_qr' && canAccessTab('reports_qr') && <TeacherReportsHub />}
+          {activeTab === 'reports_qr' && canAccessTab('reports_qr') && <TeacherReportsHubWrapper />}
           {activeTab === 'accounts' && canAccessTab('accounts') && <AccountsManagement />}
           {activeTab === 'workspace' && canAccessTab('workspace') && <GoogleWorkspaceHub />}
         </main>

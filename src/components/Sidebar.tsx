@@ -281,14 +281,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           badgeColor: 'bg-indigo-100 text-indigo-700 font-bold',
         },
         {
-          id: 'teachers',
-          labelKh: 'គ្រូបង្រៀន & បុគ្គលិក',
-          labelEn: 'Teaching Staff',
-          icon: GraduationCap,
-          badge: teachers.length,
-          badgeColor: 'bg-indigo-100 text-indigo-700 font-semibold',
-        },
-        {
           id: 'scores',
           labelKh: 'ស្រង់ពិន្ទុ & ចំណាត់ថ្នាក់',
           labelEn: 'Academic Scores',
@@ -317,14 +309,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           badgeColor: 'bg-amber-100 text-amber-800 font-bold border border-amber-300',
         },
         {
-          id: 'teaching_resources',
-          labelKh: 'ធនធានបង្រៀន (Google Drive)',
-          labelEn: 'Teaching Resource Center',
-          icon: FolderKanban,
-          badge: teachingResources.length,
-          badgeColor: 'bg-sky-100 text-sky-700 font-semibold',
-        },
-        {
           id: 'teacher_meetings',
           labelKh: 'កំណត់ត្រាការប្រជុំគ្រូ (Minutes)',
           labelEn: 'Teacher Meeting Minutes',
@@ -350,14 +334,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       colorClass: 'text-emerald-400',
       badgeBg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
       items: [
-        {
-          id: 'student_portal',
-          labelKh: 'គណនីសិស្ស & អាណាព្យាបាល',
-          labelEn: 'Student Portal',
-          icon: GraduationCap,
-          badge: 'STU',
-          badgeColor: 'bg-purple-100 text-purple-700 font-bold',
-        },
         {
           id: 'students',
           labelKh: 'គ្រប់គ្រងសិស្សានុសិស្ស',
@@ -411,14 +387,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           labelKh: 'របាយការណ៍ & QR កាត',
           labelEn: 'MoEYS Reports & QR',
           icon: FileSpreadsheet,
-        },
-        {
-          id: 'official_documents',
-          labelKh: 'ទម្រង់ឯកសារ & បោះពុម្ព',
-          labelEn: 'Document Center & Print',
-          icon: Printer,
-          badge: 'Print',
-          badgeColor: 'bg-emerald-100 text-emerald-800 font-bold',
         },
         {
           id: 'telegram_bot' as ActiveTab,
