@@ -9,7 +9,6 @@ import { MobileAppCenter } from './MobileAppCenter';
 import { StudentManagementHub } from './StudentManagementHub';
 import { AdminTeachersManagement } from './admin/AdminTeachersManagement';
 import { ClassroomScores } from './ClassroomScores';
-import { HealthAttendance } from './HealthAttendance';
 import { BudgetFinance } from './BudgetFinance';
 import { ReportsAndQR } from './ReportsAndQR';
 import { TeacherReportsHubWrapper } from './TeacherReportsHubWrapper';
@@ -189,8 +188,7 @@ export const AdminLayout: React.FC = () => {
           {activeTab === 'learning_resources' && canAccessTab('learning_resources') && <OtherLearningResourcesHub />}
           {activeTab === 'teachers' && canAccessTab('teachers') && <AdminTeachersManagement />}
           {(activeTab === 'classrooms' || activeTab === 'scores') && canAccessTab(activeTab) && <ClassroomScores />}
-          {activeTab === 'attendance_health' && canAccessTab('attendance_health') && <HealthAttendance />}
-          {activeTab === 'calendar' && canAccessTab('calendar') && (
+                    {activeTab === 'calendar' && canAccessTab('calendar') && (
             <AcademicCalendar
               googleUser={googleUser}
               onGoogleAuthClick={handleGoogleAuthAction}

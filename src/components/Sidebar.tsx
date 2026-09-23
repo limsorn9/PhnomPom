@@ -149,6 +149,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     icon: React.ComponentType<{ className?: string }>;
     badge?: number | string;
     badgeColor?: string;
+    externalUrl?: string;
   }
 
   interface NavCategory {
@@ -170,6 +171,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       colorClass: 'text-amber-400',
       badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
       items: [
+        {
+          id: 'teacher_attendance_ext' as any,
+          labelKh: 'វត្តមានគ្រូបង្រៀន',
+          labelEn: 'Teacher Attendance',
+          icon: CalendarCheck,
+          externalUrl: 'https://plp-sms.moeys.gov.kh/teacher-attendance',
+        },
         {
           id: 'dashboard',
           labelKh: 'ផ្ទាំងគ្រប់គ្រងទូទៅ',
@@ -265,6 +273,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
       badgeBg: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
       items: [
         {
+          id: 'my_attendance_ext' as any,
+          labelKh: 'វត្តមានផ្ទាល់ខ្លួន',
+          labelEn: 'My Attendance',
+          icon: CalendarCheck,
+          externalUrl: 'https://plp-sms.moeys.gov.kh/my-attendance',
+        },
+        {
+          id: 'student_attendance_ext' as any,
+          labelKh: 'វត្តមានសិស្ស',
+          labelEn: 'Student Attendance',
+          icon: Users,
+          externalUrl: 'https://plp-sms.moeys.gov.kh/student-attendance-view',
+        },
+        {
           id: 'homeroom_dashboard',
           labelKh: 'ការងារគ្រូបន្ទុកថ្នាក់',
           labelEn: 'Homeroom Teacher Hub',
@@ -277,12 +299,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           labelKh: 'ស្រង់ពិន្ទុ & ចំណាត់ថ្នាក់',
           labelEn: 'Academic Scores',
           icon: BookOpen,
-        },
-        {
-          id: 'attendance_health',
-          labelKh: 'វត្តមាន & សុខភាព (BMI)',
-          labelEn: 'Attendance & Health',
-          icon: CalendarCheck,
         },
         {
           id: 'teacher_agenda',
@@ -734,7 +750,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     const secondaryTitle = language === 'en' ? item.labelKh : item.labelEn;
 
                     return (
-                      <button
+                      item.externalUrl ? (
+                        <a
+                          key={item.id}
+                          href={item.externalUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={isCollapsed ? primaryTitle : undefined}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all duration-150 relative min-h-[44px] cursor-pointer active:scale-[0.98] text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium ${isCollapsed ? 'justify-center px-2' : 'justify-between'}`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <Icon className={`w-4 h-4 shrink-0 text-slate-400`} />
+                            {!isCollapsed && (
+                              <div className="text-left min-w-0 truncate">
+                                <span className="truncate block leading-tight font-medium">{primaryTitle}</span>
+                                <span className={`text-[10px] block leading-none font-times mt-0.5 text-slate-400`}>
+                                  {secondaryTitle}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          {!isCollapsed && item.badge !== undefined && (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-times shrink-0 ${item.badgeColor || 'bg-slate-800 text-slate-300'}`}>
+                              {item.badge}
+                            </span>
+                          )}
+                          <ExternalLink className={`w-3.5 h-3.5 shrink-0 text-slate-500 ${isCollapsed ? 'hidden' : 'block'}`} />
+                        </a>
+                      ) : (
+                        <button
                         key={item.id}
                         id={`sidebar-nav-${item.id}`}
                         onClick={() => handleNavClick(item.id)}
@@ -768,6 +812,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-amber-400 rounded-r-full shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
                         )}
                       </button>
+                      )
                     );
                   })}
                 </div>
