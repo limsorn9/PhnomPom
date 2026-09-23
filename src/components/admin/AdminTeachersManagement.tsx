@@ -4,6 +4,7 @@ import { useSchool } from '../../context/SchoolContext';
 import { TeacherDetailModal } from './TeacherDetailModal';
 import { TeacherEditPage } from './TeacherEditPage';
 import { ChangeTeacherPasswordModal } from './ChangeTeacherPasswordModal';
+import { RetireTeacherModal } from './RetireTeacherModal';
 
 export const AdminTeachersManagement: React.FC = () => {
   const { teachers } = useSchool();
@@ -32,6 +33,7 @@ export const AdminTeachersManagement: React.FC = () => {
   const [selectedTeacher, setSelectedTeacher] = useState<any | null>(null);
   const [editingTeacherId, setEditingTeacherId] = useState<string | null>(null);
   const [passwordTeacher, setPasswordTeacher] = useState<any | null>(null);
+  const [retireTeacher, setRetireTeacher] = useState<any | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -191,7 +193,13 @@ export const AdminTeachersManagement: React.FC = () => {
                           ផ្លាស់ប្ដូរលេខសម្ងាត់ថ្មី
                         </button>
                         <div className="border-t border-slate-100 my-1"></div>
-                        <button className="w-full px-4 py-2 text-left hover:bg-slate-50 hover:text-rose-600 flex items-center gap-2 transition">
+                        <button 
+                          onClick={() => {
+                            setRetireTeacher(staff);
+                            setActiveDropdown(null);
+                          }}
+                          className="w-full px-4 py-2 text-left hover:bg-slate-50 hover:text-rose-600 flex items-center gap-2 transition"
+                        >
                           <UserMinus className="w-3.5 h-3.5 text-slate-500" />
                           ចូលនិវត្តន៍គ្រូបង្រៀន
                         </button>
@@ -216,6 +224,13 @@ export const AdminTeachersManagement: React.FC = () => {
           </table>
         </div>
       </div>
+      {retireTeacher && (
+        <RetireTeacherModal 
+          teacher={retireTeacher}
+          onClose={() => setRetireTeacher(null)}
+        />
+      )}
+
       {passwordTeacher && (
         <ChangeTeacherPasswordModal 
           teacher={passwordTeacher}
