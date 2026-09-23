@@ -56,7 +56,7 @@ import {
   Mail
 } from 'lucide-react';
 import { User } from 'firebase/auth';
-import { GmailManager } from './GmailManager';
+
 
 export const GoogleWorkspaceHub: React.FC = () => {
   const {

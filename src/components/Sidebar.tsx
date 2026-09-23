@@ -396,14 +396,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           labelEn: 'MoEYS Reports & QR',
           icon: FileSpreadsheet,
         },
-        {
-          id: 'telegram_bot' as ActiveTab,
-          labelKh: '🤖 Telegram Bot Studio',
-          labelEn: 'Telegram Bot',
-          icon: Bot,
-          badge: 'Bot 💬',
-          badgeColor: 'bg-sky-100 text-sky-800 font-bold border border-sky-300'
-        },
+        
       ]
     }
   ];

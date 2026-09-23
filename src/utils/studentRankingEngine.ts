@@ -1,5 +1,5 @@
 import { Student, StudentScoreRecord, SchoolProfile, MonthlySubjectScores } from '../types';
-import { sendTelegramNotification, TelegramSendResult } from '../services/telegramService';
+
 
 // Canonical Khmer Academic Month Order
 export const KHMER_MONTHS_SEQUENCE = [

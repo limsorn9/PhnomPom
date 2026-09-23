@@ -38,7 +38,7 @@ import { StandaloneHtmlExportModal } from './StandaloneHtmlExportModal';
 import { SchoolProfileModal } from './SchoolProfileModal';
 import { DirectorPinModal } from './DirectorPinModal';
 import { SuperAdminHub } from './SuperAdminHub';
-import { TelegramBotStudio } from './TelegramBotStudio';
+
 import { initAuth, googleSignIn, logout } from '../services/googleAuth';
 import { User } from 'firebase/auth';
 import {
@@ -161,7 +161,7 @@ export const AdminLayout: React.FC = () => {
         <main className={`flex-1 w-full mx-auto ${activeTab === 'dashboard' ? '' : 'pb-20 lg:pb-8 max-w-7xl p-3 sm:p-5 lg:p-6 space-y-6'}`}>
           {/* Render based on RBAC & Active Tab */}
           
-          {activeTab === 'telegram_bot' && canAccessTab('telegram_bot') && <TelegramBotStudio />}
+          
                     {activeTab === 'librarian_dashboard' && canAccessTab('librarian_dashboard') && <LibraryManagement />}
           {activeTab === 'dashboard' && canAccessTab('dashboard') && (
             <PrincipalDashboard 

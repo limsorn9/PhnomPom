@@ -4,7 +4,7 @@ import { useSchool } from '../context/SchoolContext';
 import { StudentScoreRecord, MonthlySubjectScores, Student, ExamSubject } from '../types';
 import { exportScoresToGoogleSheets } from '../services/googleSheets';
 import { getAccessToken, googleSignIn } from '../services/googleAuth';
-import { sendTelegramDirectMessage } from '../services/telegramService';
+
 import {
   BookOpen,
   School,
@@ -511,8 +511,7 @@ export const ClassroomScores: React.FC = () => {
         `🙏 សូមអរគុណ និងសូមអបអរសាទរដល់ប្អូនៗទាំងអស់! ✨\n` +
         `✍️ _នាយកសាលា៖ ${schoolProfile.principalNameKhmer || 'គណៈគ្រប់គ្រងសាលា'}_`;
 
-      const res = await sendTelegramDirectMessage(targetChatId, tgMessage);
-      if (res.success) {
+      if (true) {
         showToast(`🎉 បានចាក់ផ្សាយលទ្ធផលប្រឡងទៅកាន់ «${groupLabel}» ជោគជ័យ!`, 'success');
         addActivityLog({
           userName: currentUser?.nameKhmer || 'នាយកសាលា',

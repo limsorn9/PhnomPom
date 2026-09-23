@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ShieldCheck, Lock, AlertTriangle, CheckCircle2, ArrowRight, RefreshCw, KeyRound } from 'lucide-react';
-import { generateTelegramVerificationCode, verifyTelegramCode } from '../services/telegramService';
+
 
 interface VerifyActionsModalProps {
   isOpen: boolean;

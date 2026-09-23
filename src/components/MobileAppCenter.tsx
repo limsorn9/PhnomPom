@@ -98,7 +98,7 @@ export const MobileAppCenter: React.FC<MobileAppCenterProps> = ({ onOpenMenu }) 
     { id: 'reports_qr' as ActiveTab, label: 'របាយការណ៍', sub: 'MoEYS & QR', icon: FileSpreadsheet, bgIcon: 'bg-teal-600' },
     { id: 'transfers' as ActiveTab, label: 'ផ្ទេរសិស្ស', sub: 'លិខិតផ្លូវការ', icon: ArrowRightLeft, bgIcon: 'bg-rose-600' },
     { id: 'official_documents' as ActiveTab, label: 'ឯកសាររដ្ឋបាល', sub: 'ប្រកាស & លិខិត', icon: FileText, bgIcon: 'bg-slate-700' },
-    { id: 'telegram_bot' as ActiveTab, label: 'Telegram Bot', sub: 'ជូនដំណឹងស្វ័យប្រវត្តិ', icon: Bot, bgIcon: 'bg-cyan-600' },
+    
     { id: 'accounts' as ActiveTab, label: 'គណនី & សិទ្ធិ', sub: 'RBAC', icon: ShieldCheck, bgIcon: 'bg-violet-600' },
     { id: 'school_admin' as ActiveTab, label: 'កំណត់សាលា', sub: 'Profile', icon: Building2, bgIcon: 'bg-blue-800' },
   ];

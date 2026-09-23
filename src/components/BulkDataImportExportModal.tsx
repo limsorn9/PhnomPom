@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { Student, StudentScore, HealthRecord } from '../types';
-import { notifyTelegramBulkStudents } from '../services/telegramService';
+
 import {
   FileSpreadsheet,
   Download,
@@ -269,11 +269,7 @@ export const BulkDataImportExportModal: React.FC<BulkDataImportExportModalProps>
     });
 
     if (isBulk) {
-      notifyTelegramBulkStudents(
-        parsedPreview.length,
-        parsedPreview[0]?.grade,
-        parsedPreview[0]?.section
-      ).catch(err => console.warn('Bulk student telegram notification error:', err));
+      
     }
 
     showToast(`បានបញ្ចូលសិស្សចំនួន ${parsedPreview.length} នាក់ ទៅក្នុងប្រព័ន្ធដោយជោគជ័យ!`);

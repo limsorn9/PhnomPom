@@ -23,9 +23,7 @@ import {
   CalendarCheck,
   Calendar,
   CircleDollarSign,
-  FileSpreadsheet,
-  Bell,
-  LogOut,
+  FileSpreadsheet, LogOut,
   Shield,
   User as UserIcon,
   ChevronDown,
@@ -58,7 +56,7 @@ import {
   Database,
   X
 } from 'lucide-react';
-import { NotificationsModal } from './NotificationsModal';
+
 import { OfflineSyncStatusBadge } from './OfflineSyncStatusBadge';
 import { InactivityTimeoutCountdown } from './InactivityTimeoutCountdown';
 import { ThemeToggleSwitch } from './common/ThemeToggleSwitch';
@@ -125,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({
     currentUser?.email?.toLowerCase() === 'limsorn9@gmail.com' ||
     Boolean(currentUser?.nameKhmer && (currentUser.nameKhmer.includes('លីម សន') || currentUser.nameKhmer.includes('នាយក')));
 
-  const [showNotifModal, setShowNotifModal] = useState(false);
+  
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showMobileSyncModal, setShowMobileSyncModal] = useState(false);
@@ -575,20 +573,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* ALWAYS VISIBLE CONTROLS ON TOP-RIGHT (Notifications, Settings, Profile) */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          {/* Notifications Bell */}
-          <button
-            type="button"
-            onClick={() => setShowNotifModal(true)}
-            className="relative w-8 h-8 sm:w-auto sm:h-auto p-1.5 sm:p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors border border-slate-200 dark:border-slate-700 shadow-2xs active:scale-95 cursor-pointer flex items-center justify-center"
-            title={language === 'en' ? 'System Notifications' : 'សារដំណឹងប្រព័ន្ធ'}
-          >
-            <Bell className="w-4 h-4" />
-            {unreadNotifCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 px-0.5 rounded-full bg-rose-600 text-white text-[8px] sm:text-[9px] font-bold flex items-center justify-center ring-1.5 ring-white dark:ring-slate-900 animate-pulse">
-                {unreadNotifCount}
-              </span>
-            )}
-          </button>
+
 
           {/* Quick Settings Button & Dropdown (Always visible on Top Right for Mobile & Desktop) */}
           <div className="relative">
