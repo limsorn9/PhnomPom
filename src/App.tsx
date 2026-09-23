@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { SchoolProvider, useSchool } from './context/SchoolContext';
 import { HomeroomTeacherDashboard } from './components/HomeroomTeacherDashboard';
-import { AuthScreen } from './components/AuthScreen';
+import { LoginPage } from './components/LoginPage';
 import { VersionMismatchModal } from './components/VersionMismatchModal';
 import { DirectorPinModal } from './components/DirectorPinModal';
 import { initAuth, googleSignIn, logout } from './services/googleAuth';
@@ -26,9 +26,9 @@ const MainLayout: React.FC = () => {
     return () => unsub();
   }, []);
 
-  // If user is not logged in, show AuthScreen
+  // If user is not logged in, show LoginPage
   if (!currentUser) {
-    return <AuthScreen />;
+    return <LoginPage />;
   }
 
   // Pure KrouDigital 4.0 Teacher Layout (Bypassing old bloat)
