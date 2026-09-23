@@ -3,7 +3,7 @@ import { SchoolProvider, useSchool } from '../context/SchoolContext';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { MobileBottomNav } from './MobileBottomNav';
-import { PrincipalDashboard } from './PrincipalDashboard';
+import { PrincipalDashboard } from './admin/PrincipalDashboard';
 import { MobileAppCenter } from './MobileAppCenter';
 import { StudentManagement } from './StudentManagement';
 import { TeacherManagement } from './TeacherManagement';
@@ -37,7 +37,7 @@ import { BulkDataImportExportModal } from './BulkDataImportExportModal';
 import { GoogleDriveSyncModal } from './GoogleDriveSyncModal';
 import { VersionMismatchModal } from './VersionMismatchModal';
 import { QuickSearchSpotlightModal } from './QuickSearchSpotlightModal';
-import { AuthScreen } from './AuthScreen';
+
 import { StandaloneHtmlExportModal } from './StandaloneHtmlExportModal';
 import { SchoolProfileModal } from './SchoolProfileModal';
 import { DirectorPinModal } from './DirectorPinModal';
@@ -127,10 +127,7 @@ export const AdminLayout: React.FC = () => {
     updateSchoolProfile(updatedProfile);
   };
 
-  // If user is not logged in, show AuthScreen
-  if (!currentUser) {
-    return <AuthScreen />;
-  }
+
 
   return (
     <div className="min-h-screen bg-slate-100 flex font-battambang text-slate-800 antialiased selection:bg-blue-600 selection:text-white">
@@ -171,7 +168,11 @@ export const AdminLayout: React.FC = () => {
           {activeTab === 'secretary_dashboard' && canAccessTab('secretary_dashboard') && <SecretaryDashboard />}
           {activeTab === 'librarian_dashboard' && canAccessTab('librarian_dashboard') && <LibraryManagement />}
           {activeTab === 'dashboard' && canAccessTab('dashboard') && (
-            <PrincipalDashboard onNavigate={setActiveTab} />
+            <PrincipalDashboard 
+              onNavigate={setActiveTab} 
+              onOpenBulkImport={() => setIsBulkImportOpen(true)}
+              onOpenSettings={handleOpenSettings}
+            />
           )}
           {activeTab === 'ai_teacher' && canAccessTab('ai_teacher') && <AITeacherHub />}
           {activeTab === 'activity_logs' && canAccessTab('activity_logs') && <RecentActivityDashboard />}

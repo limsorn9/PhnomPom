@@ -1,11 +1,19 @@
-import React from 'react';
-import { useSchool } from '../context/SchoolContext';
-import { useAuth } from '../context/AuthContext';
-import { Menu, Search, LogOut, ChevronDown, User, Users, School, MapPin, Activity, LayoutDashboard, QrCode, ClipboardList, BookOpen, UserCheck, Shield } from 'lucide-react';
+import React, { useState } from 'react';
+import { useSchool } from '../../context/SchoolContext';
+import { useAuth } from '../../context/AuthContext';
+import { Menu, Search, LogOut, ChevronDown, User, Users, School, MapPin, Activity, LayoutDashboard, QrCode, ClipboardList, BookOpen, UserCheck, Shield, IdCard, Upload, Settings, ExternalLink, X } from 'lucide-react';
 
-export const PrincipalDashboard: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigate }) => {
+interface PrincipalDashboardProps {
+  onNavigate?: (tab: string) => void;
+  onOpenBulkImport?: () => void;
+  onOpenSettings?: () => void;
+}
+
+export const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ onNavigate, onOpenBulkImport, onOpenSettings }) => {
   const { currentUser } = useSchool();
   const { logout } = useAuth();
+  
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const handleNavigation = (tabId: string) => {
     if (onNavigate) {
@@ -60,12 +68,47 @@ export const PrincipalDashboard: React.FC<{ onNavigate?: (tab: string) => void }
           <ChevronDown className="w-4 h-4 text-slate-400" />
 
           {/* Dropdown */}
-          <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-            <div className="p-2">
-              <button onClick={logout} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition">
+          <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col z-50">
+            <div className="p-4 border-b border-slate-100 flex items-center gap-3">
+              <div className="w-12 h-12 bg-slate-200 rounded-full border-2 border-white shadow-sm overflow-hidden shrink-0">
+                {currentUser?.photoUrl ? (
+                  <img src={currentUser.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-400">
+                    <User className="w-7 h-7" />
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="text-base font-bold text-slate-800">{currentUser?.nameKhmer || 'លីម សន'}</p>
+                <p className="text-xs font-medium text-blue-600 mb-0.5">នាយកសាលារៀន</p>
+                <p className="text-xs text-slate-400">@{currentUser?.username || 'limsorn2'}</p>
+              </div>
+            </div>
+            <div className="p-2 flex flex-col gap-1">
+              <button onClick={() => setIsProfileModalOpen(true)} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 rounded-xl transition">
+                <IdCard className="w-4 h-4 text-slate-400" />
+                ព័ត៌មានផ្ទាល់ខ្លួន
+              </button>
+              <button onClick={onOpenBulkImport} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 rounded-xl transition">
+                <Upload className="w-4 h-4 text-slate-400" />
+                នាំចូលសិស្សច្រើន
+              </button>
+              <button onClick={onOpenSettings} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 rounded-xl transition">
+                <Settings className="w-4 h-4 text-slate-400" />
+                ការកំណត់សាលារៀន
+              </button>
+              <div className="h-px bg-slate-100 my-1"></div>
+              <button onClick={logout} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition">
                 <LogOut className="w-4 h-4" />
                 ចាកចេញ
               </button>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-b-2xl border-t border-slate-100 text-center">
+              <a href="#" className="text-xs text-blue-600 hover:underline flex items-center justify-center gap-1.5">
+                ត្រូវការជំនួយ? ចូលក្រុមតេលេក្រាម
+                <ExternalLink className="w-3 h-3" />
+              </a>
             </div>
           </div>
         </div>
@@ -207,6 +250,44 @@ export const PrincipalDashboard: React.FC<{ onNavigate?: (tab: string) => void }
           នាយកដ្ឋានបឋមសិក្សា © ២០២៦
         </div>
       </footer>
+
+      {/* Profile Modal */}
+      {isProfileModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <IdCard className="w-5 h-5 text-blue-600" />
+                ព័ត៌មានផ្ទាល់ខ្លួន
+              </h3>
+              <button onClick={() => setIsProfileModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 rounded-lg transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">ឈ្មោះពេញ</label>
+                <input type="text" defaultValue={currentUser?.nameKhmer || 'លីម សន'} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">ឈ្មោះអ្នកប្រើប្រាស់ (Username)</label>
+                <input type="text" defaultValue={currentUser?.username || 'limsorn2'} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" />
+              </div>
+              <div className="pt-2">
+                <button className="text-sm font-medium text-blue-600 hover:underline">ផ្លាស់ប្តូរពាក្យសម្ងាត់ (Change Password)</button>
+              </div>
+            </div>
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+              <button onClick={() => setIsProfileModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-xl transition">
+                បោះបង់
+              </button>
+              <button onClick={() => setIsProfileModalOpen(false)} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition">
+                រក្សាទុក
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
