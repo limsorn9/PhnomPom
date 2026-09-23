@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { SchoolProvider, useSchool } from './context/SchoolContext';
 import { HomeroomTeacherDashboard } from './components/HomeroomTeacherDashboard';
 import { LoginPage } from './components/LoginPage';
+import { SuperAdminHub } from './components/SuperAdminHub';
+import { SchoolAdminDashboard } from './components/SchoolAdminDashboard';
 import { VersionMismatchModal } from './components/VersionMismatchModal';
 import { DirectorPinModal } from './components/DirectorPinModal';
 import { initAuth, googleSignIn, logout } from './services/googleAuth';
 import { User } from 'firebase/auth';
+import { AuthProvider } from './context/AuthContext';
 
 const MainLayout: React.FC = () => {
   const {
@@ -31,6 +34,15 @@ const MainLayout: React.FC = () => {
     return <LoginPage />;
   }
 
+  // Render based on role
+  if (currentUser.role === 'super_admin') {
+    return <SuperAdminHub />;
+  }
+
+  if (currentUser.role === 'director' || currentUser.role === 'secretary') {
+    return <SchoolAdminDashboard />;
+  }
+
   // Pure KrouDigital 4.0 Teacher Layout (Bypassing old bloat)
   return (
     <>
@@ -53,7 +65,9 @@ const MainLayout: React.FC = () => {
 export default function App() {
   return (
     <SchoolProvider>
-      <MainLayout />
+      <AuthProvider>
+        <MainLayout />
+      </AuthProvider>
     </SchoolProvider>
   );
 }

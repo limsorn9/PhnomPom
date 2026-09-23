@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSchool } from '../context/SchoolContext';
+import { useAuth } from '../context/AuthContext';
 import { TeacherNavigationTab } from './HomeroomTeacherDashboard';
 import {
   Users,
@@ -25,7 +26,8 @@ interface TeacherLayoutProps {
 }
 
 export const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, activeTabSub, setActiveTabSub }) => {
-  const { currentTeacher, selectedGrade, selectedSection, selectedAcademicYear, schoolProfile, logout } = useSchool();
+  const { currentTeacher, selectedGrade, selectedSection, selectedAcademicYear, schoolProfile } = useSchool();
+  const { logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const renderSidebarItem = (id: TeacherNavigationTab, icon: React.ReactNode, label: string) => {

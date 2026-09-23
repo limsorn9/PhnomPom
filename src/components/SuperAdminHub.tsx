@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
+import { useAuth } from '../context/AuthContext';
 import { LogOut, Plus, Building2, UserPlus, ChevronRight, School, Save, X } from 'lucide-react';
 import { SchoolProfile } from '../types';
 
@@ -8,7 +9,8 @@ interface SchoolEntry extends Partial<SchoolProfile> {
 }
 
 export const SuperAdminHub: React.FC = () => {
-  const { logout, currentUser, updateSchoolProfile, showToast } = useSchool();
+  const { currentUser, updateSchoolProfile, showToast } = useSchool();
+  const { logout } = useAuth();
   
   // Manage list of schools
   const [schools, setSchools] = useState<SchoolEntry[]>([]);
