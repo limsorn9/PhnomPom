@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { Student, Gender } from '../types';
-import { AddressSelector } from './common/AddressSelector';
+import { AdministrativeAddressSelect, AddressState } from './common/AdministrativeAddressSelect';
 import {
   X,
   UserPlus,
@@ -412,14 +412,14 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                 ទីកន្លែងកំណើត (ខេត្ត/ក្រុង ➔ ស្រុក/ខណ្ឌ ➔ ឃុំ/សង្កាត់ ➔ ភូមិ)
               </label>
-              <AddressSelector
-                prefix="pob"
-                province={pobProvince}
-                district={pobDistrict}
-                commune={pobCommune}
-                village={pobVillage}
-                showSchoolSelector={false}
-                onChange={(addr) => {
+              <AdministrativeAddressSelect
+                value={{
+                  province: pobProvince,
+                  district: pobDistrict,
+                  commune: pobCommune,
+                  village: pobVillage
+                }}
+                onChange={(addr: AddressState) => {
                   setPobProvince(addr.province);
                   setPobDistrict(addr.district);
                   setPobCommune(addr.commune);
@@ -433,14 +433,14 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
               <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                 អាសយដ្ឋានបច្ចុប្បន្ន (ខេត្ត/ក្រុង ➔ ស្រុក/ខណ្ឌ ➔ ឃុំ/សង្កាត់ ➔ ភូមិ)
               </label>
-              <AddressSelector
-                prefix="curr"
-                province={currProvince}
-                district={currDistrict}
-                commune={currCommune}
-                village={currVillage}
-                showSchoolSelector={false}
-                onChange={(addr) => {
+              <AdministrativeAddressSelect
+                value={{
+                  province: currProvince,
+                  district: currDistrict,
+                  commune: currCommune,
+                  village: currVillage
+                }}
+                onChange={(addr: AddressState) => {
                   setCurrProvince(addr.province);
                   setCurrDistrict(addr.district);
                   setCurrCommune(addr.commune);

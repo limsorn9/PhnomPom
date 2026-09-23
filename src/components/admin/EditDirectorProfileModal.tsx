@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, UploadCloud, Plus, Trash2 } from 'lucide-react';
 import { useSchool } from '../../context/SchoolContext';
+import { AdministrativeAddressSelect, AddressState } from '../common/AdministrativeAddressSelect';
 
 interface EditDirectorProfileModalProps {
   onClose: () => void;
@@ -15,6 +16,20 @@ export const EditDirectorProfileModal: React.FC<EditDirectorProfileModalProps> =
     { id: '2', name: 'ផល ពុទ្ធិរាជ្យ', status: 'កំពុងរៀន' },
     { id: '3', name: 'ផល ចរិយា', status: 'កំពុងរៀន' },
   ]);
+
+  const [currentAddress, setCurrentAddress] = useState<AddressState>({
+    province: 'ខេត្តបាត់ដំបង',
+    district: 'ភ្នំព្រឹក',
+    commune: 'ភ្នំព្រឹក',
+    village: 'ស្រឡៅ'
+  });
+
+  const [birthAddress, setBirthAddress] = useState<AddressState>({
+    province: 'ខេត្តបន្ទាយមានជ័យ',
+    district: 'សិរីសោភ័ណ',
+    commune: 'អូរអំបិល',
+    village: 'សែសិន'
+  });
 
   const handleSave = () => {
     // Save logic goes here (mock for now)
@@ -321,63 +336,19 @@ export const EditDirectorProfileModal: React.FC<EditDirectorProfileModalProps> =
           {/* 7. Current Address */}
           <section className="space-y-4">
             <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 pb-2">៧. ទីកន្លែងស្នាក់នៅបច្ចុប្បន្ន</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">ខេត្ត/រាជធានី</label>
-                <select className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white">
-                  <option>ខេត្តបាត់ដំបង</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">ស្រុក/ខណ្ឌ</label>
-                <select className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white">
-                  <option>ភ្នំព្រឹក</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">ឃុំ/សង្កាត់</label>
-                <select className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white">
-                  <option>ភ្នំព្រឹក</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">ភូមិ</label>
-                <select className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white">
-                  <option>ស្រឡៅ</option>
-                </select>
-              </div>
-            </div>
+            <AdministrativeAddressSelect 
+              value={currentAddress}
+              onChange={setCurrentAddress}
+            />
           </section>
 
           {/* 8. Birthplace */}
           <section className="space-y-4">
             <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 pb-2">៨. ទីកន្លែងកំណើត</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">ខេត្ត/រាជធានី</label>
-                <select className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white">
-                  <option>ខេត្តបន្ទាយមានជ័យ</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">ស្រុក/ខណ្ឌ</label>
-                <select className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white">
-                  <option>សិរីសោភ័ណ</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">ឃុំ/សង្កាត់</label>
-                <select className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white">
-                  <option>អូរអំបិល</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">ភូមិ</label>
-                <select className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white">
-                  <option>សែសិន</option>
-                </select>
-              </div>
-            </div>
+            <AdministrativeAddressSelect 
+              value={birthAddress}
+              onChange={setBirthAddress}
+            />
           </section>
 
         </div>
