@@ -3,7 +3,7 @@ import { useSchool } from '../context/SchoolContext';
 import { TeacherLayout } from './TeacherLayout';
 import { Student } from '../types';
 import { HomeroomHeader } from './homeroom/HomeroomHeader';
-import { MyClassTab } from './homeroom/MyClassTab';
+import { TeacherClassroomHub } from './homeroom/TeacherClassroomHub';
 import { DailyAttendanceTracker } from './homeroom/DailyAttendanceTracker';
 import { TeacherScoresHub } from './homeroom/TeacherScoresHub';
 import { GeipDashboardHub } from './homeroom/GeipDashboardHub';
@@ -478,41 +478,11 @@ export const HomeroomTeacherDashboard: React.FC = () => {
         )}
       {/* VIEW B: CLASS & STUDENT ROSTER (ថ្នាក់ និងសិស្ស) */}
       {activeTabSub === 'roster' && (
-        <div className="space-y-4">
-          <div className="bg-white p-3 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-3 shadow-xs">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-800 text-sm">
-                គ្រប់គ្រងថ្នាក់ទី {selectedGrade} «{selectedSection}»
-              </span>
-              <span className="text-xs text-slate-500">• សរុប {totalStudents} នាក់</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsBulkImportOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition-all border border-indigo-200 cursor-pointer"
-              >
-                <UploadCloud className="w-3.5 h-3.5" />
-                <span>📥 នាំចូលសិស្សច្រើននាក់</span>
-              </button>
-              <button
-                onClick={() => setIsAddStudentOpen(true)}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>+ បន្ថែមសិស្ស</span>
-              </button>
-            </div>
-          </div>
-
-          <MyClassTab
-            students={students}
-            selectedGrade={selectedGrade}
-            selectedSection={selectedSection}
-            classCouncil={currentCouncil}
-            onUpdateCouncil={(updated) => updateClassCouncil(selectedGrade, selectedSection, updated)}
-            onSelectStudent={(s) => setSelectedStudentDetail(s)}
-          />
-        </div>
+        <TeacherClassroomHub
+          students={students}
+          selectedGrade={selectedGrade}
+          selectedSection={selectedSection}
+        />
       )}
 
       {/* VIEW C: DAILY ATTENDANCE TRACKER (ស្រង់អវត្តមាន) */}
