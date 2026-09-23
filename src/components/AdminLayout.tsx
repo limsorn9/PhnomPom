@@ -54,6 +54,7 @@ import {
 export const AdminLayout: React.FC = () => {
   const {
     activeTab,
+    setActiveTab,
     schoolProfile,
     updateSchoolProfile,
     showToast,
