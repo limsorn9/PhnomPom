@@ -6,10 +6,13 @@ import { TeacherEditPage } from './TeacherEditPage';
 import { ChangeTeacherPasswordModal } from './ChangeTeacherPasswordModal';
 import { RetireTeacherModal } from './RetireTeacherModal';
 import { DeactivateTeacherModal } from './DeactivateTeacherModal';
+import { TeacherFilterDrawer } from './TeacherFilterDrawer';
 
 export const AdminTeachersManagement: React.FC = () => {
   const { teachers } = useSchool();
   const [searchTerm, setSearchTerm] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filters, setFilters] = useState({ role: 'ALL', status: 'ALL' });
 
   const displayData = teachers
     .filter(t => 
@@ -232,6 +235,13 @@ export const AdminTeachersManagement: React.FC = () => {
           </table>
         </div>
       </div>
+      <TeacherFilterDrawer 
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        filters={filters}
+        setFilters={setFilters}
+      />
+
       {deactivateTeacher && (
         <DeactivateTeacherModal 
           teacher={deactivateTeacher}

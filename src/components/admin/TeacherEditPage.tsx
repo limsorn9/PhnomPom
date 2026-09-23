@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Save, X } from 'lucide-react';
 import { useSchool } from '../../context/SchoolContext';
 import { AdministrativeAddressSelect } from '../common/AdministrativeAddressSelect';
+import { SCHOOL_STAFF_ROLES } from '../../data/schoolStaffRoles';
 
 interface TeacherEditPageProps {
   teacherId: string;
@@ -224,7 +225,15 @@ export const TeacherEditPage: React.FC<TeacherEditPageProps> = ({ teacherId, onB
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-slate-600 mb-1">តួនាទី</label>
-              <input type="text" value={formData.role || 'គ្រូបង្រៀន'} readOnly className="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs bg-slate-50 text-slate-500" />
+              <select 
+                value={formData.role || 'TEACHER'} 
+                onChange={e => handleChange('role', e.target.value)} 
+                className="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-blue-500 bg-white"
+              >
+                {SCHOOL_STAFF_ROLES.filter(r => r.value !== 'ALL').map(role => (
+                  <option key={role.value} value={role.label}>{role.label}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-slate-600 mb-1">ប្រភេទការងារ</label>
