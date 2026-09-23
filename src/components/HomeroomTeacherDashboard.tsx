@@ -362,302 +362,118 @@ export const HomeroomTeacherDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fadeIn font-battambang">
-      {/* ------------------------------------------------------------- */}
-      {/* 1. KROUDIGITAL 4.0 TOP HEADER & SUMMARY BANNER                */}
-      {/* ------------------------------------------------------------- */}
-      <HomeroomHeader
-        selectedGrade={selectedGrade}
-        setSelectedGrade={setSelectedGrade}
-        selectedSection={selectedSection}
-        setSelectedSection={setSelectedSection}
-        classrooms={classrooms}
-        teachers={teachers}
-        currentTeacher={currentTeacher}
-        totalStudents={totalStudents}
-        femaleStudents={femaleStudents}
-        todayPresentCount={todayPresentCount}
-        todayAbsentCount={todayAbsentCount}
-        classAvgScore={classAvgScore}
-        totalLessonPlans={classPlans.length}
-        totalParentMeetings={classMeetings.length}
-        totalTeacherMeetings={teacherMeetings.length}
-        pendingNotificationsCount={totalNotificationsCount}
-        urgentNotificationsCount={urgentRequests.length}
-        onOpenNotifications={() => setActiveTabSub('notifications')}
-        onOpenTeacherMeetings={() => setActiveTabSub('teacher_meetings')}
-        onOpenDriveSync={() => setShowDriveSyncModal(true)}
-        onPrintClassSummary={() => setShowClassSummaryPrint(true)}
-        onOpenClassCommitteePrint={() => setShowClassCommitteeModal(true)}
-        onOpenPriStatistics={() => setShowPriModal(true)}
-        onOpenHealthBooklet={() => setShowHealthBookletModal(true)}
-        isTeacherRole={currentUser?.role === 'teacher'}
-      />
-
-      {/* ------------------------------------------------------------- */}
-      {/* 2. GRADING FRAMEWORK BANNER (បដាជ្រើសរើសទម្រង់គ្រោងនិទ្ទេស)   */}
-      {/* ------------------------------------------------------------- */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 p-5 text-white shadow-xl border border-indigo-500/30">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -left-10 bottom-0 w-60 h-60 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
-          <div className="space-y-2 max-w-2xl">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-xs">
-                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                <span>KrouDigital 4.0 • ក្របខ័ណ្ឌវាយតម្លៃលទ្ធផលសិក្សា</span>
-              </span>
-              <span className="px-2.5 py-0.5 rounded-md bg-slate-800/90 text-slate-300 text-xs font-mono border border-slate-700">
-                ឆ្នាំសិក្សា {selectedAcademicYear || schoolProfile.academicYear}
-              </span>
-            </div>
-
-            <h2 className="text-lg sm:text-xl font-bold font-moul tracking-wide text-white flex items-center gap-2">
-              <Award className="w-6 h-6 text-amber-400 shrink-0" />
-              <span>
-                {gradingFramework === 'geip'
-                  ? 'គម្រោងលើកកម្ពស់គុណភាពការអប់រំទូទៅ (GEIP)'
-                  : 'កិច្ចព្រមព្រៀងសមិទ្ធកម្មសិក្សា (School Performance Agreement)'}
-              </span>
-            </h2>
-
-            <p className="text-xs text-slate-300 leading-relaxed">
-              {gradingFramework === 'geip'
-                ? 'អនុវត្តតាមស្តង់ដារបឋមសិក្សាគំរូទាំង៥ របស់ក្រសួងអប់រំ យុវជន និងកីឡា ផ្តោតលើការអាន-សរសេរ និងគណិតវិទ្យាដំបូង ព្រមទាំងការគាំទ្រសិស្សរៀនយឺត។'
-                : 'តាមដានការអនុវត្តកិច្ចព្រមព្រៀងសមិទ្ធកម្មសិក្សារវាងនាយកសាលា និងគ្រូបង្រៀន ដើម្បីធានាអត្រាឡើងថ្នាក់ និងកាត់បន្ថយអត្រាបោះបង់ការសិក្សា។'}
-            </p>
-          </div>
-
-          {/* Interactive Framework Selector Toggle Buttons */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-slate-900/80 p-1.5 rounded-2xl border border-indigo-400/30 backdrop-blur-md shrink-0 w-full sm:w-auto">
-            <button
-              onClick={() => {
-                setGradingFramework('geip');
-                showToast('បានជ្រើសរើសក្របខ័ណ្ឌ៖ «គម្រោង GEIP»', 'info');
-              }}
-              className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                gradingFramework === 'geip'
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-900/40 border border-blue-400/40'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <CheckCircle2 className={`w-4 h-4 ${gradingFramework === 'geip' ? 'text-cyan-300' : 'text-slate-500'}`} />
-              <div className="text-left">
-                <p className="leading-tight">គម្រោង GEIP</p>
-                <p className="text-[10px] font-normal opacity-80">ស្តង់ដារបឋមសិក្សាគំរូ</p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => {
-                setGradingFramework('agreement');
-                showToast('បានជ្រើសរើសក្របខ័ណ្ឌ៖ «កិច្ចព្រមព្រៀងសមិទ្ធកម្មសិក្សា»', 'info');
-              }}
-              className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                gradingFramework === 'agreement'
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-900/40 border border-emerald-400/40'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <CheckCircle2 className={`w-4 h-4 ${gradingFramework === 'agreement' ? 'text-emerald-300' : 'text-slate-500'}`} />
-              <div className="text-left">
-                <p className="leading-tight">កិច្ចព្រមព្រៀងសមិទ្ធកម្ម</p>
-                <p className="text-[10px] font-normal opacity-80">SBM & សូចនាករ KPI</p>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ------------------------------------------------------------- */}
-      {/* 3. QUICK STATS & ONBOARDING (កាតសង្ខេប និងជំហានចាប់ផ្ដើម)      */}
-      {/* ------------------------------------------------------------- */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left: Teacher Info Profile Card */}
-        <div className="lg:col-span-4 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between relative overflow-hidden">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-3">
-                <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-900 text-white flex items-center justify-center font-bold text-xl shadow-md border-2 border-white">
-                  {currentTeacher?.avatarUrl ? (
-                    <img src={currentTeacher.avatarUrl} alt="Avatar" className="w-full h-full object-cover rounded-2xl" />
-                  ) : (
-                    currentTeacher?.nameKhmer ? currentTeacher.nameKhmer.charAt(0) : 'គ'
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="font-bold text-slate-900 text-base font-moul">
-                      {currentTeacher?.nameKhmer || 'លោកគ្រូ/អ្នកគ្រូ'}
-                    </h3>
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" title="Online" />
+      {/* ============================================================= */}
+      {/* KROUDIGITAL 4.0 TEACHER DASHBOARD (CLEAN & MODERN)            */}
+      {/* ============================================================= */}
+      {activeTabSub === 'overview' && (
+        <div className="space-y-6">
+          {/* 1. PROFILE HEADER */}
+          <div className="bg-[#090d16] rounded-2xl p-4 shadow-xl border border-slate-800/80 flex items-center justify-between">
+            <div className="flex items-center gap-3.5">
+              <div className="w-14 h-14 rounded-full overflow-hidden bg-slate-800 border-2 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+                {currentTeacher?.avatarUrl ? (
+                  <img src={currentTeacher.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center font-bold text-slate-300 font-moul text-lg">
+                    {currentTeacher?.nameKhmer ? currentTeacher.nameKhmer.charAt(0) : 'គ'}
                   </div>
-                  <p className="text-xs text-slate-500">
-                    គ្រូបន្ទុកថ្នាក់ទី {selectedGrade} «{selectedSection}» • {currentTeacher?.staffCode || 'T-2026-01'}
-                  </p>
-                </div>
+                )}
               </div>
-            </div>
-
-            {/* Quick Metrics */}
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                <p className="text-[11px] text-slate-500 font-medium">សិស្សសរុប</p>
-                <p className="text-lg font-bold text-slate-900">{totalStudents}</p>
+              <div>
+                <h3 className="font-moul text-base text-slate-100 flex items-center gap-2">
+                  {currentTeacher?.nameKhmer || 'លោកគ្រូ លីម សន'}
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]"></span>
+                </h3>
+                <p className="font-kantumruy text-sm text-slate-400 mt-0.5">
+                  ថ្នាក់ទី{selectedGrade}{selectedSection} • ឆ្នាំ{selectedAcademicYear || schoolProfile.academicYear}
+                </p>
               </div>
-              <div className="p-2.5 rounded-xl bg-pink-50/60 border border-pink-100/60">
-                <p className="text-[11px] text-pink-700 font-medium">សិស្សស្រី</p>
-                <p className="text-lg font-bold text-pink-700">{femaleStudents}</p>
-              </div>
-              <div className="p-2.5 rounded-xl bg-blue-50/60 border border-blue-100/60">
-                <p className="text-[11px] text-blue-700 font-medium">សិស្សប្រុស</p>
-                <p className="text-lg font-bold text-blue-700">{maleStudents}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-              <Calendar className="w-4 h-4 text-blue-600 shrink-0" />
-              <span className="font-medium text-slate-700">{getTodayKhmerDate()}</span>
             </div>
           </div>
 
-          {/* Quick Action Chips at bottom of card */}
-          <div className="pt-4 border-t border-slate-100 space-y-2">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">ផ្លូវកាត់រហ័ស (Quick Actions)</p>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <button
-                onClick={() => setActiveTabSub('grades')}
-                className="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs flex items-center gap-1 transition-all cursor-pointer border border-blue-200/60"
-              >
-                <span>⚡ ពិន្ទុខែ</span>
-              </button>
-              <button
-                onClick={() => setActiveTabSub('attendance')}
-                className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center gap-1 transition-all cursor-pointer border border-emerald-200/60"
-              >
-                <span>📅 វត្តមាន</span>
-              </button>
-              <button
-                onClick={() => setActiveTabSub('ranking')}
-                className="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-xs flex items-center gap-1 transition-all cursor-pointer border border-amber-200/60"
-              >
-                <span>🏆 លទ្ធផល</span>
-              </button>
-              <button
-                onClick={() => setActiveTabSub('roster')}
-                className="px-2.5 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs flex items-center gap-1 transition-all cursor-pointer border border-purple-200/60"
-              >
-                <span>👥 សិស្ស</span>
-              </button>
-              <button
-                onClick={() => setIsAddStudentOpen(true)}
-                className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1 transition-all cursor-pointer ml-auto"
-              >
-                <PlusCircle className="w-3 h-3 text-cyan-400" />
-                <span>+ សិស្ស</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: 6-Step Setup Progress Bar (របារដំណើរការ ៦ ជំហាន) */}
-        <div className="lg:col-span-8 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
-                  <Layers className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-800 text-sm sm:text-base">
-                    ដំណើរកំណត់រចនាសម្ព័ន្ធការងារគ្រូ ៦ ជំហាន (Setup Progress)
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    បានបញ្ចប់ {completedStepsCount} នៃ ៦ ជំហានស្វ័យប្រវត្តិតាមស្តង់ដារ KrouDigital 4.0
-                  </p>
-                </div>
+          {/* 2. 4 QUICK STAT METRIC CARDS */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-slate-900/70 backdrop-blur-md rounded-2xl p-4 border border-slate-800/80 shadow-lg flex flex-col justify-center">
+              <p className="font-kantumruy text-[11px] text-slate-400">សិស្សសរុប</p>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="font-bold text-2xl text-slate-100">{totalStudents}</span>
+                <span className="font-kantumruy text-[10px] text-slate-500">នាក់ (ស្រី {femaleStudents})</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-                  {progressPercentage}% ជោគជ័យ
+            </div>
+            
+            <div className="bg-slate-900/70 backdrop-blur-md rounded-2xl p-4 border border-slate-800/80 shadow-lg flex flex-col justify-center">
+              <p className="font-kantumruy text-[11px] text-slate-400">វត្តមានថ្ងៃនេះ</p>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="font-bold text-2xl text-emerald-400">
+                  {totalStudents > 0 ? Math.round((todayPresentCount / totalStudents) * 100) : 100}%
+                </span>
+                <span className="font-kantumruy text-[10px] text-slate-500">
+                  ({todayPresentCount}/{totalStudents})
                 </span>
               </div>
             </div>
 
-            {/* Visual Progress Bar */}
-            <div className="w-full bg-slate-100 h-2.5 rounded-full my-3 overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 transition-all duration-500"
-                style={{ width: `${progressPercentage}%` }}
-              />
+            <div className="bg-slate-900/70 backdrop-blur-md rounded-2xl p-4 border border-slate-800/80 shadow-lg flex flex-col justify-center">
+              <p className="font-kantumruy text-[11px] text-slate-400">មធ្យមភាគថ្នាក់</p>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="font-bold text-2xl text-amber-400">{classAvgScore.toFixed(1)}</span>
+                <span className="font-kantumruy text-[10px] text-slate-500">/ 10</span>
+              </div>
             </div>
 
-            {/* 6 Steps Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 pt-1">
-              {onboardingSteps.map(st => (
-                <button
-                  key={st.step}
-                  onClick={st.action}
-                  className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer group ${
-                    st.isComplete
-                      ? 'bg-emerald-50/40 border-emerald-200/80 hover:bg-emerald-50'
-                      : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-blue-300 hover:shadow-xs'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                      st.isComplete ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
-                    }`}>
-                      {st.isComplete ? '✓' : st.step}
-                    </span>
-                    {st.isComplete ? (
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded">
-                        រួចរាល់
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-blue-600 font-medium group-hover:underline">
-                        កំណត់
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    <p className={`text-xs font-bold line-clamp-1 ${st.isComplete ? 'text-slate-900' : 'text-slate-700'}`}>
-                      {st.name}
-                    </p>
-                    <p className="text-[10px] text-slate-500 line-clamp-1">
-                      {st.subtext}
-                    </p>
-                  </div>
-                </button>
-              ))}
+            <div className="bg-slate-900/70 backdrop-blur-md rounded-2xl p-4 border border-slate-800/80 shadow-lg flex flex-col justify-center">
+              <p className="font-kantumruy text-[11px] text-slate-400">កិច្ចតែងការ</p>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="font-bold text-2xl text-cyan-400">{classPlans.length}</span>
+                <span className="font-kantumruy text-[10px] text-slate-500 px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700">រួចរាល់</span>
+              </div>
             </div>
           </div>
 
-          {/* Quick Toolbar for Bulk Import & Add Class */}
-          <div className="pt-3 mt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-xs text-slate-600">
-              <span className="font-semibold text-slate-700">ជំនួយការបញ្ចូលទិន្នន័យ៖</span>
-              <span className="text-slate-500">គាំទ្រការ Copy-Paste ពី Excel និងឯកសារ MoEYS PLP-SMS</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsBulkImportOpen(true)}
-                className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center gap-1.5 transition-all border border-indigo-200 cursor-pointer"
-              >
-                <UploadCloud className="w-3.5 h-3.5" />
-                <span>📥 នាំចូលសិស្សច្រើននាក់</span>
-              </button>
-              <button
-                onClick={() => setIsCreateClassModalOpen(true)}
-                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
-              >
-                <PlusCircle className="w-3.5 h-3.5 text-cyan-300" />
-                <span>+ បង្កើតថ្នាក់</span>
-              </button>
-            </div>
+          {/* 3. 4 BIG ACTION BUTTONS GRID */}
+          <div className="grid grid-cols-2 gap-3 pb-8">
+            <button 
+              onClick={() => setActiveTabSub('grades')}
+              className="group bg-slate-900/70 hover:bg-slate-800/80 active:bg-slate-800 backdrop-blur-md rounded-2xl p-4 border border-slate-800/80 hover:border-indigo-500/50 shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex flex-col items-center justify-center gap-2 cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center group-hover:bg-indigo-500/30">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <span className="font-kantumruy font-bold text-[13px] text-slate-200">បញ្ចូលពិន្ទុខែ</span>
+            </button>
+
+            <button 
+              onClick={() => setActiveTabSub('attendance')}
+              className="group bg-slate-900/70 hover:bg-slate-800/80 active:bg-slate-800 backdrop-blur-md rounded-2xl p-4 border border-slate-800/80 hover:border-emerald-500/50 shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex flex-col items-center justify-center gap-2 cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center group-hover:bg-emerald-500/30">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <span className="font-kantumruy font-bold text-[13px] text-slate-200">ស្រង់អវត្តមាន</span>
+            </button>
+
+            <button 
+              onClick={() => setActiveTabSub('ranking')}
+              className="group bg-slate-900/70 hover:bg-slate-800/80 active:bg-slate-800 backdrop-blur-md rounded-2xl p-4 border border-slate-800/80 hover:border-amber-500/50 shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex flex-col items-center justify-center gap-2 cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center group-hover:bg-amber-500/30">
+                <Award className="w-5 h-5" />
+              </div>
+              <span className="font-kantumruy font-bold text-[13px] text-slate-200">ចំណាត់ថ្នាក់</span>
+            </button>
+
+            <button 
+              onClick={() => setShowClassSummaryPrint(true)}
+              className="group bg-slate-900/70 hover:bg-slate-800/80 active:bg-slate-800 backdrop-blur-md rounded-2xl p-4 border border-slate-800/80 hover:border-blue-500/50 shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex flex-col items-center justify-center gap-2 cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:bg-blue-500/30">
+                <Printer className="w-5 h-5" />
+              </div>
+              <span className="font-kantumruy font-bold text-[13px] text-slate-200">របាយការណ៍</span>
+            </button>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ------------------------------------------------------------- */}
       {/* 4. KROUDIGITAL 4.0 TEACHER NAVIGATION (របារចំហៀងមុខងារស្នូល) */}

@@ -11,7 +11,9 @@ import {
   CalendarCheck,
   Users,
   Calendar,
-  BookOpen
+  BookOpen,
+  FileText,
+  UserCircle
 } from 'lucide-react';
 
 interface MobileBottomNavProps {
@@ -36,11 +38,11 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenMobileMe
       ]
     : isTeacher
     ? [
-        { id: 'homeroom_dashboard', label: 'បន្ទុកថ្នាក់', icon: Award },
+        { id: 'homeroom_dashboard', label: 'ទំព័រដើម', icon: Home },
+        { id: 'students', label: 'សិស្ស', icon: Users },
         { id: 'scores', label: 'ពិន្ទុ', icon: BookOpenCheck },
-        { id: 'attendance_health', label: 'វត្តមាន', icon: CalendarCheck },
-        { id: 'teacher_agenda', label: 'កិច្ចការ', icon: Calendar },
-        { id: 'all_apps', label: 'ម៉ឺនុយ', icon: Layers },
+        { id: 'reports_qr', label: 'របាយការណ៍', icon: FileText },
+        { id: 'account_modal', label: 'គណនី', icon: UserCircle },
       ]
     : [
         { id: 'dashboard', label: 'ទំព័រដើម', icon: Home },
@@ -56,8 +58,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenMobileMe
   });
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 px-1.5 py-1.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] no-print">
-      <div className="flex items-center justify-around max-w-md mx-auto">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/80 backdrop-blur-lg border-t border-slate-800/80 px-1.5 py-1.5 h-16 shadow-[0_-4px_16px_rgba(0,0,0,0.4)] no-print">
+      <div className="flex items-center justify-around max-w-md mx-auto h-full">
         {visibleTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = (tab.id === 'all_apps' || tab.id === 'account_modal') ? false : activeTab === tab.id;
@@ -80,19 +82,19 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenMobileMe
               }}
               className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-200 active:scale-95 ${
                 isActive
-                  ? 'text-blue-600 dark:text-blue-400 font-bold'
-                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                  ? 'text-cyan-400 font-bold'
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               <div className={`p-1.5 rounded-xl transition-all ${
                 isActive 
-                  ? 'bg-blue-50 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 shadow-2xs scale-105' 
-                  : 'hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                  ? 'bg-slate-800 text-cyan-400 shadow-2xs scale-105' 
+                  : 'hover:bg-slate-800/60'
               }`}>
                 <Icon className="w-5 h-5 stroke-[2.2]" />
               </div>
-              <span className={`text-[10px] mt-0.5 leading-tight whitespace-nowrap transition-colors ${
-                isActive ? 'font-bold text-blue-600 dark:text-blue-400' : 'font-medium'
+              <span className={`text-[10px] font-kantumruy mt-0.5 leading-tight whitespace-nowrap transition-colors ${
+                isActive ? 'font-bold text-cyan-400' : 'font-medium'
               }`}>
                 {tab.label}
               </span>
