@@ -4,6 +4,7 @@ import { Edit2, QrCode, Download, CheckCircle2, User, Phone, MapPin, Briefcase, 
 import { EditDirectorProfileModal } from './EditDirectorProfileModal';
 import { DirectorSignatureTab } from './DirectorSignatureTab';
 import { DirectorAccountTab } from './DirectorAccountTab';
+import { DirectorActiveSessionsTab } from './DirectorActiveSessionsTab';
 
 export const DirectorProfileView: React.FC = () => {
   const { currentUser } = useSchool();
@@ -281,8 +282,10 @@ export const DirectorProfileView: React.FC = () => {
           </div>
         ) : activeTab === 'signature' ? (
           <DirectorSignatureTab />
-        ) : activeTab === 'account' ? (
+        ) : activeTab === 'account_info' ? (
           <DirectorAccountTab />
+        ) : activeTab === 'active_devices' ? (
+          <DirectorActiveSessionsTab />
         ) : (
           <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center text-slate-500 font-kantumruy">
             កំពុងអភិវឌ្ឍន៍
