@@ -7,7 +7,7 @@ import { PrincipalDashboard } from './admin/PrincipalDashboard';
 import { DirectorProfileView } from './admin/DirectorProfileView';
 import { MobileAppCenter } from './MobileAppCenter';
 import { StudentManagement } from './StudentManagement';
-import { TeacherManagement } from './TeacherManagement';
+import { AdminTeachersManagement } from './admin/AdminTeachersManagement';
 import { ClassroomScores } from './ClassroomScores';
 import { HealthAttendance } from './HealthAttendance';
 import { BudgetFinance } from './BudgetFinance';
@@ -194,7 +194,7 @@ export const AdminLayout: React.FC = () => {
           {activeTab === 'household_census' && canAccessTab('household_census') && <HouseholdCensus />}
           {activeTab === 'library' && canAccessTab('library') && <LibraryManagement />}
           {activeTab === 'learning_resources' && canAccessTab('learning_resources') && <OtherLearningResources />}
-          {activeTab === 'teachers' && canAccessTab('teachers') && <TeacherManagement />}
+          {activeTab === 'teachers' && canAccessTab('teachers') && <AdminTeachersManagement />}
           {(activeTab === 'classrooms' || activeTab === 'scores') && canAccessTab(activeTab) && <ClassroomScores />}
           {activeTab === 'attendance_health' && canAccessTab('attendance_health') && <HealthAttendance />}
           {activeTab === 'calendar' && canAccessTab('calendar') && (
