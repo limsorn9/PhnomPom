@@ -6,7 +6,7 @@ import { HomeroomHeader } from './homeroom/HomeroomHeader';
 import { MyClassTab } from './homeroom/MyClassTab';
 import { DailyAttendanceTracker } from './homeroom/DailyAttendanceTracker';
 import { TeacherScoresHub } from './homeroom/TeacherScoresHub';
-import { LessonPlansTab } from './homeroom/LessonPlansTab';
+import { GeipDashboardHub } from './homeroom/GeipDashboardHub';
 import { ParentMeetingsTab } from './homeroom/ParentMeetingsTab';
 import { HomeroomNotificationsTab } from './homeroom/HomeroomNotificationsTab';
 import { AtRiskStudentsTab } from './homeroom/AtRiskStudentsTab';
@@ -77,7 +77,7 @@ export type TeacherNavigationTab =
   | 'reports'         // របាយការណ៍ (Class Reports)
   | 'at_risk'         // សិស្សខ្សោយ/រៀនយឺត (At-Risk)
   | 'class_logs'      // កំណត់ហេតុប្រចាំថ្ងៃ (Daily Logs)
-  | 'lesson_plans'    // កិច្ចតែងការបង្រៀន (Lesson Plans)
+  | 'geip'            // គម្រោង GEIP
   | 'parent_meetings' // ប្រជុំមាតាបិតា (Parent Meetings)
   | 'teacher_meetings'// កំណត់ត្រាប្រជុំគ្រូ (Teacher Meetings)
   | 'notifications';  // ដំណឹង & សំណើ (Notifications)
@@ -933,15 +933,12 @@ export const HomeroomTeacherDashboard: React.FC = () => {
         />
       )}
 
-      {/* VIEW J: LESSON PLANS (កិច្ចតែងការបង្រៀន) */}
-      {activeTabSub === 'lesson_plans' && (
-        <LessonPlansTab
-          lessonPlans={lessonPlans}
+      {/* VIEW J: GEIP (គម្រោង GEIP) */}
+      {activeTabSub === 'geip' && (
+        <GeipDashboardHub
+          students={students}
           selectedGrade={selectedGrade}
           selectedSection={selectedSection}
-          onAddPlan={addLessonPlan}
-          onUpdatePlan={updateLessonPlan}
-          onDeletePlan={deleteLessonPlan}
         />
       )}
 
