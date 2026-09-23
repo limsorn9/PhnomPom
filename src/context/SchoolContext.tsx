@@ -773,7 +773,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (userRole === 'secretary') return 'secretary_dashboard';
     if (userRole === 'librarian') return 'librarian_dashboard';
     if (userRole === 'teacher') return 'homeroom_dashboard';
-    return 'dashboard';
+    return 'homeroom_dashboard';
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);

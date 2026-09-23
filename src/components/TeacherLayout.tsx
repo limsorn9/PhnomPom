@@ -95,7 +95,13 @@ export const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, activeTa
       {/* Bottom Menu */}
       <div className="p-4 border-t border-[#13373e]">
         <nav className="space-y-1">
-          <button className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-[#0d282e] transition-colors">
+          <button 
+            onClick={() => {
+              setActiveTabSub('profile');
+              setIsMobileMenuOpen(false);
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-[#0d282e] transition-colors"
+          >
             <User className="w-4 h-4" />
             <span>ព័ត៌មានផ្ទាល់ខ្លួន</span>
           </button>
