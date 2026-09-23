@@ -50,10 +50,10 @@ export const TeacherClassroomHub: React.FC<TeacherClassroomHubProps> = ({
         {/* Header Controller */}
         <div className="flex flex-col gap-2">
           <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
-            👥 បញ្ជីសិស្សក្នុងថ្នាក់
+            👥 សិស្សក្នុងថ្នាក់របស់ខ្ញុំ
           </h2>
           <p className="text-emerald-400 font-medium text-sm">
-            ថ្នាក់ទី{selectedGrade}{selectedSection} · សរុប {classStudents.length} នាក់ (ស្រី {femaleCount} នាក់)
+            ថ្នាក់ទី{selectedGrade}{selectedSection} · សិស្សសរុប {classStudents.length} នាក់ (ស្រី {femaleCount} នាក់) · ឆ្នាំសិក្សា ២០២៦-២០២៧
           </p>
         </div>
 
@@ -63,7 +63,7 @@ export const TeacherClassroomHub: React.FC<TeacherClassroomHubProps> = ({
             onClick={() => setIsBulkOpen(true)}
             className="flex-1 md:flex-none px-4 py-2.5 bg-indigo-900/40 hover:bg-indigo-800/60 text-indigo-300 border border-indigo-800/50 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors">
             <UploadCloud className="w-4 h-4" />
-            <span className="truncate">📥 នាំចូលសិស្ស (Excel)</span>
+            <span className="truncate">📥 នាំចូលរហ័ស (Smart Paste / Excel)</span>
           </button>
           
           <button 
@@ -83,7 +83,7 @@ export const TeacherClassroomHub: React.FC<TeacherClassroomHubProps> = ({
             }}
             className="flex-1 md:flex-none px-4 py-2.5 bg-blue-900/40 hover:bg-blue-800/60 text-blue-300 border border-blue-800/50 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors">
             <PlusCircle className="w-4 h-4" />
-            <span className="truncate">+ បន្ថែមសិស្សម្នាក់</span>
+            <span className="truncate">+ បន្ថែមសិស្សថ្មី</span>
           </button>
           
           <button 
@@ -221,14 +221,24 @@ export const TeacherClassroomHub: React.FC<TeacherClassroomHubProps> = ({
               {/* កាត ២: អាសយដ្ឋាន (៤ ថ្នាក់) */}
               <div className="bg-[#0d282e] border border-[#164049] rounded-2xl p-5 shadow-lg">
                 <h4 className="text-sm font-bold text-amber-400 mb-4 flex items-center gap-2 border-b border-[#164049] pb-2">
-                  <MapPin className="w-4 h-4" /> ទីកន្លែងកំណើត និងលំនៅបច្ចុប្បន្ន
+                  <MapPin className="w-4 h-4" /> អាសយដ្ឋាន ៤ ថ្នាក់ (MoEYS Standard)
                 </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="col-span-full">
-                    <label className="block text-xs text-slate-400 mb-1">អាសយដ្ឋានលម្អិត</label>
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">ទីកន្លែងកំណើត (ខេត្ត ស្រុក ឃុំ ភូមិ)</label>
                     <input 
                       type="text" 
-                      placeholder="ភូមិអូរ, ឃុំបារាំងធ្លាក់, ស្រុកភ្នំព្រឹក, ខេត្តបាត់ដំបង"
+                      placeholder="ឧ. ខេត្តបាត់ដំបង > ស្រុកភ្នំព្រឹក > ឃុំបារាំងធ្លាក់ > ភូមិ..."
+                      value={selectedStudent.birthPlace || ''}
+                      onChange={e => setSelectedStudent({...selectedStudent, birthPlace: e.target.value})}
+                      className="w-full bg-[#0a2328] border border-[#164049] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">លំនៅបច្ចុប្បន្ន (ខេត្ត ស្រុក ឃុំ ភូមិ)</label>
+                    <input 
+                      type="text" 
+                      placeholder="ឧ. ខេត្តបាត់ដំបង > ស្រុកភ្នំព្រឹក > ឃុំបារាំងធ្លាក់ > ភូមិអូរ"
                       value={selectedStudent.address || ''}
                       onChange={e => setSelectedStudent({...selectedStudent, address: e.target.value})}
                       className="w-full bg-[#0a2328] border border-[#164049] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" 
@@ -346,7 +356,7 @@ export const TeacherClassroomHub: React.FC<TeacherClassroomHubProps> = ({
                   onClick={handleSaveProfile}
                   className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all"
                 >
-                  <Save className="w-5 h-5" /> រក្សាទុកប្រវត្តិរូប
+                  <span>💾</span> រក្សាទុកប្រវត្តិរូប
                 </button>
               </div>
             </div>
