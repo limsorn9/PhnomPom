@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { TeacherLayout } from './TeacherLayout';
+import { TeacherProfile } from './TeacherProfile';
 import { Student } from '../types';
 import { HomeroomHeader } from './homeroom/HomeroomHeader';
 import { TeacherClassroomHub } from './homeroom/TeacherClassroomHub';
@@ -1107,113 +1108,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
           onGoogleAuthClick={() => {}}
         />
       )}
-      {activeTabSub === 'profile' && (
-        <div className="space-y-6 max-w-4xl mx-auto">
-          <div className="mb-6">
-            <h2 className="text-xl md:text-2xl font-bold text-white mb-2">ព័ត៌មានគណនីគ្រូ</h2>
-            <p className="text-slate-400 text-sm">គ្រប់គ្រងប្រវត្តិរូប និងហត្ថលេខាឌីជីថល</p>
-          </div>
-
-          <div className="bg-[#0d282e]/80 border border-[#164049]/80 rounded-2xl p-5 md:p-8 backdrop-blur-md shadow-xl">
-            <div className="flex flex-col md:flex-row gap-8">
-              {/* Left Column: Avatar & Signature */}
-              <div className="flex flex-col items-center gap-6 md:w-1/3">
-                <div className="flex flex-col items-center">
-                  <div className="w-32 h-32 bg-[#07191d] rounded-full border-4 border-[#164049] flex items-center justify-center overflow-hidden mb-3">
-                    <User className="w-12 h-12 text-slate-500" />
-                  </div>
-                  <button className="px-4 py-2 bg-[#164049] hover:bg-[#1c505b] text-slate-200 rounded-lg text-sm transition flex items-center gap-2">
-                    <Upload className="w-4 h-4" />
-                    ប្ដូររូបថត
-                  </button>
-                </div>
-                
-                <div className="w-full h-px bg-[#164049]"></div>
-                
-                <div className="flex flex-col items-center w-full">
-                  <p className="text-slate-300 text-sm font-bold mb-3">ហត្ថលេខាឌីជីថល</p>
-                  <div className="w-full h-24 bg-white/5 border-2 border-dashed border-[#164049] rounded-xl flex items-center justify-center mb-3">
-                    <span className="text-slate-500 text-xs">មិនទាន់មានហត្ថលេខា</span>
-                  </div>
-                  <button className="px-4 py-2 bg-[#164049] hover:bg-[#1c505b] text-slate-200 rounded-lg text-sm transition flex items-center gap-2">
-                    <Upload className="w-4 h-4" />
-                    បញ្ចូលហត្ថលេខា
-                  </button>
-                  <p className="text-slate-500 text-[10px] mt-2 text-center">សម្រាប់ប្រើក្នុងរបាយការណ៍បោះពុម្ពស្វ័យប្រវត្តិ</p>
-                </div>
-              </div>
-
-              {/* Right Column: Details */}
-              <div className="flex-1 space-y-6">
-                <h3 className="text-lg font-bold text-emerald-400 border-b border-[#164049] pb-2">ព័ត៌មានទូទៅ</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">ឈ្មោះពេញ (ខ្មែរ)</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-[#07191d] border border-[#164049] text-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-emerald-500"
-                      value={currentTeacher?.nameKhmer || 'លោក លីម សន'}
-                      readOnly
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">ឈ្មោះពេញ (ឡាតាំង)</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-[#07191d] border border-[#164049] text-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-emerald-500"
-                      value={currentTeacher?.nameLatin || 'Lim Sorn'}
-                      readOnly
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">ភេទ</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-[#07191d] border border-[#164049] text-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-emerald-500"
-                      value="ប្រុស"
-                      readOnly
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">អត្តលេខមន្ត្រី (Staff ID)</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-[#07191d] border border-[#164049] text-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-emerald-500"
-                      value={currentTeacher?.staffCode || 'MOEYS-001'}
-                      readOnly
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">មុខវិជ្ជាឯកទេស</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-[#07191d] border border-[#164049] text-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:border-emerald-500"
-                      value={currentTeacher?.qualification || 'គ្រូបង្រៀនកម្រិតបឋម'}
-                      readOnly
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">ថ្នាក់បន្ទុកបច្ចុប្បន្ន</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-emerald-900/30 border border-emerald-800/50 text-emerald-400 rounded-lg px-3 py-2.5 font-bold focus:outline-none"
-                      value={`ថ្នាក់ទី ${selectedGrade}${selectedSection}`}
-                      readOnly
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex justify-end pt-4">
-                  <button className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-900/20 transition">
-                    រក្សាទុកការផ្លាស់ប្តូរ
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {activeTabSub === 'profile' && <TeacherProfile />}
 
     </TeacherLayout>
   );
