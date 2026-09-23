@@ -1,9 +1,9 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SchoolProvider, useSchool } from '../context/SchoolContext';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { MobileBottomNav } from './MobileBottomNav';
-import { Dashboard } from './Dashboard';
+import { PrincipalDashboard } from './PrincipalDashboard';
 import { MobileAppCenter } from './MobileAppCenter';
 import { StudentManagement } from './StudentManagement';
 import { TeacherManagement } from './TeacherManagement';
@@ -149,27 +149,29 @@ export const AdminLayout: React.FC = () => {
       {/* Main Content Body (Right Side) */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
         {/* Sticky Top Header */}
-        <Header
-          onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)}
-          onOpenSettings={handleOpenSettings}
-          googleUser={googleUser}
-          onGoogleAuthClick={handleGoogleAuthAction}
-          isAuthLoading={isAuthLoading}
-          onExportStandaloneHtml={() => setIsExportHtmlOpen(true)}
-          onOpenBulkImport={() => setIsBulkImportOpen(true)}
-          onOpenDriveSync={() => setIsDriveSyncOpen(true)}
-          onOpenSpotlightSearch={() => setIsSpotlightOpen(true)}
-        />
+        {activeTab !== 'dashboard' && (
+          <Header
+            onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)}
+            onOpenSettings={handleOpenSettings}
+            googleUser={googleUser}
+            onGoogleAuthClick={handleGoogleAuthAction}
+            isAuthLoading={isAuthLoading}
+            onExportStandaloneHtml={() => setIsExportHtmlOpen(true)}
+            onOpenBulkImport={() => setIsBulkImportOpen(true)}
+            onOpenDriveSync={() => setIsDriveSyncOpen(true)}
+            onOpenSpotlightSearch={() => setIsSpotlightOpen(true)}
+          />
+        )}
 
         {/* Dynamic Main Workspace Container */}
-        <main className="flex-1 w-full mx-auto pb-20 lg:pb-8 max-w-7xl p-3 sm:p-5 lg:p-6 space-y-6">
+        <main className={`flex-1 w-full mx-auto ${activeTab === 'dashboard' ? '' : 'pb-20 lg:pb-8 max-w-7xl p-3 sm:p-5 lg:p-6 space-y-6'}`}>
           {/* Render based on RBAC & Active Tab */}
           {activeTab === 'super_admin_hub' && canAccessTab('super_admin_hub') && <SuperAdminHub />}
           {activeTab === 'telegram_bot' && canAccessTab('telegram_bot') && <TelegramBotStudio />}
           {activeTab === 'secretary_dashboard' && canAccessTab('secretary_dashboard') && <SecretaryDashboard />}
           {activeTab === 'librarian_dashboard' && canAccessTab('librarian_dashboard') && <LibraryManagement />}
           {activeTab === 'dashboard' && canAccessTab('dashboard') && (
-            <Dashboard onOpenMobileMenu={() => setIsMobileSidebarOpen(true)} />
+            <PrincipalDashboard onNavigate={setActiveTab} />
           )}
           {activeTab === 'ai_teacher' && canAccessTab('ai_teacher') && <AITeacherHub />}
           {activeTab === 'activity_logs' && canAccessTab('activity_logs') && <RecentActivityDashboard />}
