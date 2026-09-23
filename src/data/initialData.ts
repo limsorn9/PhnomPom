@@ -43,14 +43,7 @@ export const toKhmerNum = (num: number | string): string => {
 };
 
 export const getCurrentAcademicYear = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1; // 1-12
-  if (month >= 11) {
-    return `${toKhmerNum(year)} - ${toKhmerNum(year + 1)}`;
-  } else {
-    return `${toKhmerNum(year - 1)} - ${toKhmerNum(year)}`;
-  }
+  return '២០២៦ - ២០២៧';
 };
 
 export const getDynamicAcademicYears = () => {
@@ -94,7 +87,9 @@ export const initialTeachers: Teacher[] = [
     phone: '087 99 19 77',
     email: 'limsorn9@gmail.com',
     qualification: 'បរិញ្ញាបត្រជាន់ខ្ពស់ គ្រប់គ្រងអប់រំ',
-    role: 'នាយកសាលា',
+    role: 'គ្រូបន្ទុកថ្នាក់',
+    assignedGrade: 1,
+    assignedSection: 'ក',
     yearsOfService: 20,
     startDate: '2004-10-01',
     status: 'active',
@@ -169,9 +164,11 @@ export const initialUsers = [
     username: 'limsorn',
     email: 'limsorn9@gmail.com',
     password: 'Ls12122012@',
-    nameKhmer: 'លោក លីម សន (Super Admin)',
+    nameKhmer: 'លោក លីម សន (គ្រូបន្ទុកថ្នាក់)',
     nameLatin: 'Lim Sorn',
-    role: 'super_admin' as const,
+    role: 'teacher' as const,
+    assignedGrade: 1,
+    assignedSection: 'ក',
     phone: '087 99 19 77',
     staffCode: 'MOEYS-SUPER-001',
     createdAt: '2024-01-01',

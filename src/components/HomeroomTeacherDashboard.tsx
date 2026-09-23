@@ -7,11 +7,7 @@ import { TeacherClassroomHub } from './homeroom/TeacherClassroomHub';
 import { DailyAttendanceTracker } from './homeroom/DailyAttendanceTracker';
 import { TeacherScoresHub } from './homeroom/TeacherScoresHub';
 import { GeipDashboardHub } from './homeroom/GeipDashboardHub';
-import { ParentMeetingsTab } from './homeroom/ParentMeetingsTab';
-import { HomeroomNotificationsTab } from './homeroom/HomeroomNotificationsTab';
-import { AtRiskStudentsTab } from './homeroom/AtRiskStudentsTab';
-import { DailyClassLogsTab } from './homeroom/DailyClassLogsTab';
-import { TeacherMeetingNotesTab } from './homeroom/TeacherMeetingNotesTab';
+
 import { ClassCommitteePrintModal } from './ClassCommitteePrintModal';
 import { ClassStudentStatisticsPriModal } from './ClassStudentStatisticsPriModal';
 import { StudentHealthBookletModal } from './StudentHealthBookletModal';
@@ -75,12 +71,7 @@ export type TeacherNavigationTab =
   | 'ranking'         // លទ្ធផលសិក្សា (Academic Performance & Ranking)
   | 'leave_requests'  // សំណើសុំច្បាប់សិស្ស (Leave Requests)
   | 'reports'         // របាយការណ៍ (Class Reports)
-  | 'at_risk'         // សិស្សខ្សោយ/រៀនយឺត (At-Risk)
-  | 'class_logs'      // កំណត់ហេតុប្រចាំថ្ងៃ (Daily Logs)
-  | 'geip'            // គម្រោង GEIP
-  | 'parent_meetings' // ប្រជុំមាតាបិតា (Parent Meetings)
-  | 'teacher_meetings'// កំណត់ត្រាប្រជុំគ្រូ (Teacher Meetings)
-  | 'notifications';  // ដំណឹង & សំណើ (Notifications)
+  | 'geip';           // គម្រោង GEIP
 
 export type GradingFramework = 'geip' | 'agreement';
 
@@ -872,85 +863,12 @@ export const HomeroomTeacherDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* VIEW H: AT-RISK STUDENTS (សិស្សខ្សោយ/រៀនយឺត) */}
-      {activeTabSub === 'at_risk' && (
-        <AtRiskStudentsTab
-          selectedGrade={selectedGrade}
-          selectedSection={selectedSection}
-          students={students}
-          currentTeacher={currentTeacher}
-          atRiskStudents={atRiskStudents}
-          onAddAtRiskStudent={addAtRiskStudent}
-          onUpdateAtRiskStudent={updateAtRiskStudent}
-          onAddInterventionLog={addInterventionLog}
-          onDeleteAtRiskStudent={deleteAtRiskStudent}
-          attendanceRecords={attendanceRecords}
-          scores={scores}
-        />
-      )}
-
-      {/* VIEW I: DAILY CLASS LOGS (កំណត់ហេតុប្រចាំថ្ងៃ) */}
-      {activeTabSub === 'class_logs' && (
-        <DailyClassLogsTab
-          selectedGrade={selectedGrade}
-          selectedSection={selectedSection}
-          currentTeacher={currentTeacher}
-          dailyClassLogs={dailyClassLogs}
-          onAddDailyClassLog={addDailyClassLog}
-          onUpdateDailyClassLog={updateDailyClassLog}
-          onDeleteDailyClassLog={deleteDailyClassLog}
-          onToggleArchiveDailyClassLog={toggleArchiveDailyClassLog}
-        />
-      )}
-
       {/* VIEW J: GEIP (គម្រោង GEIP) */}
       {activeTabSub === 'geip' && (
         <GeipDashboardHub
           students={students}
           selectedGrade={selectedGrade}
           selectedSection={selectedSection}
-        />
-      )}
-
-      {/* VIEW K: PARENT MEETINGS (ប្រជុំមាតាបិតា) */}
-      {activeTabSub === 'parent_meetings' && (
-        <ParentMeetingsTab
-          parentMeetings={parentMeetings}
-          selectedGrade={selectedGrade}
-          selectedSection={selectedSection}
-          onAddMeeting={addParentMeeting}
-          onUpdateMeeting={updateParentMeeting}
-          onDeleteMeeting={deleteParentMeeting}
-          onOpenClassCommitteePrint={() => setShowClassCommitteeModal(true)}
-        />
-      )}
-
-      {/* VIEW L: TEACHER MEETINGS (កំណត់ត្រាប្រជុំគ្រូ) */}
-      {activeTabSub === 'teacher_meetings' && (
-        <TeacherMeetingNotesTab
-          selectedGrade={selectedGrade}
-          selectedSection={selectedSection}
-          isTeacherRole={currentUser?.role === 'teacher'}
-        />
-      )}
-
-      {/* VIEW M: NOTIFICATIONS & PARENT REQUESTS (ដំណឹង & សំណើមាតាបិតា) */}
-      {activeTabSub === 'notifications' && (
-        <HomeroomNotificationsTab
-          selectedGrade={selectedGrade}
-          selectedSection={selectedSection}
-          students={students}
-          currentTeacher={currentTeacher}
-          parentRequests={parentRequests}
-          onAddParentRequest={addParentRequest}
-          onUpdateParentRequest={updateParentRequest}
-          onResolveParentRequest={resolveParentRequest}
-          onDeleteParentRequest={deleteParentRequest}
-          parentMeetings={parentMeetings}
-          onGoToMeetingsTab={() => setActiveTabSub('parent_meetings')}
-          attendanceRecords={attendanceRecords}
-          scores={scores}
-          onRecordAttendancePermission={handleRecordAttendancePermission}
         />
       )}
 
