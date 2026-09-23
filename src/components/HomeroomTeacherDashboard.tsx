@@ -59,7 +59,11 @@ import {
   Medal,
   HelpCircle,
   FileCheck2,
-  User
+  User,
+  ChevronDown,
+  ClipboardList,
+  PenTool,
+  BarChart2
 } from 'lucide-react';
 
 export type TeacherNavigationTab =
@@ -360,538 +364,207 @@ export const HomeroomTeacherDashboard: React.FC = () => {
   const failedStudentsCount = rankedStudents.length - passedStudentsCount;
   const passRate = rankedStudents.length > 0 ? Math.round((passedStudentsCount / rankedStudents.length) * 100) : 100;
 
+  const renderSidebarItem = (id: TeacherNavigationTab, icon: React.ReactNode, label: string) => {
+    const isActive = activeTabSub === id;
+    return (
+      <button
+        onClick={() => setActiveTabSub(id)}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+          isActive
+            ? 'bg-[#0d3b45] text-cyan-300 border-l-4 border-cyan-400'
+            : 'text-slate-400 hover:bg-[#0a2328] hover:text-slate-200 border-l-4 border-transparent'
+        }`}
+      >
+        {icon}
+        <span>{label}</span>
+      </button>
+    );
+  };
+
   return (
-    <div className="space-y-6 animate-fadeIn font-battambang">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-[#081b20] font-kantumruy animate-fadeIn">
+      
       {/* ============================================================= */}
-      {/* KROUDIGITAL 4.0 TEACHER DASHBOARD (CLEAN & MODERN)            */}
+      {/* DESKTOP SIDEBAR (KROUDIGITAL 4.0 NAVIGATION)                    */}
       {/* ============================================================= */}
-      {activeTabSub === 'overview' && (
-        <div className="space-y-6">
-          {/* 1. PROFILE HEADER */}
-          <div className="bg-[#090d16] rounded-2xl p-4 shadow-xl border border-slate-800/80 flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              <div className="w-14 h-14 rounded-full overflow-hidden bg-slate-800 border-2 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-                {currentTeacher?.avatarUrl ? (
-                  <img src={currentTeacher.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center font-bold text-slate-300 font-moul text-lg">
-                    {currentTeacher?.nameKhmer ? currentTeacher.nameKhmer.charAt(0) : 'គ'}
-                  </div>
-                )}
-              </div>
-              <div>
-                <h3 className="font-moul text-base text-slate-100 flex items-center gap-2">
-                  {currentTeacher?.nameKhmer || 'លោកគ្រូ លីម សន'}
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]"></span>
-                </h3>
-                <p className="font-kantumruy text-sm text-slate-400 mt-0.5">
-                  ថ្នាក់ទី{selectedGrade}{selectedSection} • ឆ្នាំ{selectedAcademicYear || schoolProfile.academicYear}
-                </p>
-              </div>
+      <aside className="hidden lg:flex flex-col w-72 bg-[#0a2126] border-r border-[#164049]/50 shadow-2xl z-10 shrink-0">
+        <div className="p-5">
+          {/* Header Profile Card */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white shadow-md">
+              {currentTeacher?.nameKhmer ? currentTeacher.nameKhmer.charAt(0) : 'ល'}
+            </div>
+            <div>
+              <h3 className="font-moul text-sm text-slate-100">{currentTeacher?.nameKhmer || 'លីម សន'}</h3>
+              <p className="text-[11px] text-emerald-400">គ្រូបង្រៀន</p>
             </div>
           </div>
-
-          {/* 2. 4 QUICK STAT METRIC CARDS */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-slate-900/70 backdrop-blur-md rounded-2xl p-4 border border-slate-800/80 shadow-lg flex flex-col justify-center">
-              <p className="font-kantumruy text-[11px] text-slate-400">សិស្សសរុប</p>
-              <div className="flex items-baseline gap-1 mt-1">
-                <span className="font-bold text-2xl text-slate-100">{totalStudents}</span>
-                <span className="font-kantumruy text-[10px] text-slate-500">នាក់ (ស្រី {femaleStudents})</span>
-              </div>
-            </div>
-            
-            <div className="bg-slate-900/70 backdrop-blur-md rounded-2xl p-4 border border-slate-800/80 shadow-lg flex flex-col justify-center">
-              <p className="font-kantumruy text-[11px] text-slate-400">វត្តមានថ្ងៃនេះ</p>
-              <div className="flex items-baseline gap-1 mt-1">
-                <span className="font-bold text-2xl text-emerald-400">
-                  {totalStudents > 0 ? Math.round((todayPresentCount / totalStudents) * 100) : 100}%
-                </span>
-                <span className="font-kantumruy text-[10px] text-slate-500">
-                  ({todayPresentCount}/{totalStudents})
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-slate-900/70 backdrop-blur-md rounded-2xl p-4 border border-slate-800/80 shadow-lg flex flex-col justify-center">
-              <p className="font-kantumruy text-[11px] text-slate-400">មធ្យមភាគថ្នាក់</p>
-              <div className="flex items-baseline gap-1 mt-1">
-                <span className="font-bold text-2xl text-amber-400">{classAvgScore.toFixed(1)}</span>
-                <span className="font-kantumruy text-[10px] text-slate-500">/ 10</span>
-              </div>
-            </div>
-
-            <div className="bg-slate-900/70 backdrop-blur-md rounded-2xl p-4 border border-slate-800/80 shadow-lg flex flex-col justify-center">
-              <p className="font-kantumruy text-[11px] text-slate-400">កិច្ចតែងការ</p>
-              <div className="flex items-baseline gap-1 mt-1">
-                <span className="font-bold text-2xl text-cyan-400">{classPlans.length}</span>
-                <span className="font-kantumruy text-[10px] text-slate-500 px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700">រួចរាល់</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. 4 BIG ACTION BUTTONS GRID */}
-          <div className="grid grid-cols-2 gap-3 pb-8">
-            <button 
-              onClick={() => setActiveTabSub('grades')}
-              className="group bg-slate-900/70 hover:bg-slate-800/80 active:bg-slate-800 backdrop-blur-md rounded-2xl p-4 border border-slate-800/80 hover:border-indigo-500/50 shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex flex-col items-center justify-center gap-2 cursor-pointer"
-            >
-              <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center group-hover:bg-indigo-500/30">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <span className="font-kantumruy font-bold text-[13px] text-slate-200">បញ្ចូលពិន្ទុខែ</span>
-            </button>
-
-            <button 
-              onClick={() => setActiveTabSub('attendance')}
-              className="group bg-slate-900/70 hover:bg-slate-800/80 active:bg-slate-800 backdrop-blur-md rounded-2xl p-4 border border-slate-800/80 hover:border-emerald-500/50 shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex flex-col items-center justify-center gap-2 cursor-pointer"
-            >
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center group-hover:bg-emerald-500/30">
-                <Calendar className="w-5 h-5" />
-              </div>
-              <span className="font-kantumruy font-bold text-[13px] text-slate-200">ស្រង់អវត្តមាន</span>
-            </button>
-
-            <button 
-              onClick={() => setActiveTabSub('ranking')}
-              className="group bg-slate-900/70 hover:bg-slate-800/80 active:bg-slate-800 backdrop-blur-md rounded-2xl p-4 border border-slate-800/80 hover:border-amber-500/50 shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex flex-col items-center justify-center gap-2 cursor-pointer"
-            >
-              <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center group-hover:bg-amber-500/30">
-                <Award className="w-5 h-5" />
-              </div>
-              <span className="font-kantumruy font-bold text-[13px] text-slate-200">ចំណាត់ថ្នាក់</span>
-            </button>
-
-            <button 
-              onClick={() => setShowClassSummaryPrint(true)}
-              className="group bg-slate-900/70 hover:bg-slate-800/80 active:bg-slate-800 backdrop-blur-md rounded-2xl p-4 border border-slate-800/80 hover:border-blue-500/50 shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex flex-col items-center justify-center gap-2 cursor-pointer"
-            >
-              <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:bg-blue-500/30">
-                <Printer className="w-5 h-5" />
-              </div>
-              <span className="font-kantumruy font-bold text-[13px] text-slate-200">របាយការណ៍</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ------------------------------------------------------------- */}
-      {/* 4. KROUDIGITAL 4.0 TEACHER NAVIGATION (របារចំហៀងមុខងារស្នូល) */}
-      {/* ------------------------------------------------------------- */}
-      <div className="bg-white rounded-2xl p-2 border border-slate-200/90 shadow-xs">
-        {/* Core Teacher Navigation Row */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-thin">
-          {/* 0. Primary Action: + បង្កើតថ្នាក់ */}
-          <button
-            onClick={() => setIsCreateClassModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 text-white hover:opacity-95 shadow-sm transition-all whitespace-nowrap cursor-pointer shrink-0 border border-blue-500/40"
-          >
-            <FolderPlus className="w-4 h-4 text-cyan-300" />
-            <span>+ បង្កើតថ្នាក់</span>
+          
+          {/* Class Dropdown */}
+          <button className="w-full flex items-center justify-between bg-[#081b20] border border-[#164049] rounded-xl px-4 py-2.5 text-sm text-slate-300 hover:bg-[#0c2a30] transition-colors cursor-pointer mb-6">
+            <span>ថ្នាក់ទី{selectedGrade}{selectedSection} · {selectedAcademicYear || schoolProfile.academicYear}</span>
+            <ChevronDown className="w-4 h-4 text-slate-500" />
           </button>
+          
+          {/* Menu Items */}
+          <nav className="space-y-1">
+            {renderSidebarItem('overview', <LayoutDashboard className="w-5 h-5" />, 'ផ្ទាំងរបស់គ្រូ')}
+            {renderSidebarItem('roster', <Users className="w-5 h-5" />, 'ថ្នាក់ និងសិស្ស')}
+            {renderSidebarItem('attendance', <Calendar className="w-5 h-5" />, 'ស្រង់អវត្តមាន')}
+            {renderSidebarItem('grades', <PenTool className="w-5 h-5" />, 'ស្រង់ពិន្ទុ')}
+            {renderSidebarItem('lesson_plans', <ClipboardList className="w-5 h-5" />, 'គម្រោង GEIP')}
+            {renderSidebarItem('ranking', <Award className="w-5 h-5" />, 'លទ្ធផលសិក្សា')}
+            {renderSidebarItem('leave_requests', <FileCheck2 className="w-5 h-5" />, 'សំណើសុំច្បាប់សិស្ស')}
+            {renderSidebarItem('reports', <Printer className="w-5 h-5" />, 'របាយការណ៍')}
+          </nav>
+        </div>
+      </aside>
 
-          {/* 1. ផ្ទាំងរបស់គ្រូ (Home Overview) */}
+      {/* ============================================================= */}
+      {/* MAIN CONTENT AREA                                               */}
+      {/* ============================================================= */}
+      <main className="flex-1 w-full p-4 lg:p-8 overflow-y-auto overflow-x-hidden relative h-screen">
+        
+        {/* MOBILE TOP BAR NAVIGATION (Fallback for mobile) */}
+        <div className="lg:hidden flex items-center gap-2 overflow-x-auto pb-4 scrollbar-thin mb-4">
           <button
             onClick={() => setActiveTabSub('overview')}
-            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
               activeTabSub === 'overview'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-[#0d3b45] text-cyan-300 border border-cyan-500/30'
+                : 'bg-[#0d282e]/80 text-slate-400 border border-[#164049]/70'
             }`}
           >
             <LayoutDashboard className="w-4 h-4" />
-            <span>ផ្ទាំងរបស់គ្រូ (Overview)</span>
+            <span>ផ្ទាំងរបស់គ្រូ</span>
           </button>
-
-          {/* 2. ថ្នាក់ និងសិស្ស (Class & Student Roster) */}
+          
           <button
             onClick={() => setActiveTabSub('roster')}
-            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
               activeTabSub === 'roster'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-[#0d3b45] text-cyan-300 border border-cyan-500/30'
+                : 'bg-[#0d282e]/80 text-slate-400 border border-[#164049]/70'
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>ថ្នាក់ និងសិស្ស (Roster)</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-              activeTabSub === 'roster' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700 font-bold'
-            }`}>
-              {totalStudents}
-            </span>
+            <span>សិស្ស</span>
           </button>
-
-          {/* 3. ស្រង់អវត្តមាន (Daily Attendance Tracker) */}
           <button
-            onClick={() => setActiveTabSub('attendance')}
-            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-              activeTabSub === 'attendance'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
+            onClick={() => setIsCreateClassModalOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 bg-[#0d282e]/80 text-cyan-400 border border-[#164049]/70"
           >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>ស្រង់អវត្តមាន (Attendance)</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-              activeTabSub === 'attendance' ? 'bg-blue-700 text-white' : 'bg-emerald-100 text-emerald-800 font-bold'
-            }`}>
-              {todayPresentCount}/{totalStudents}
-            </span>
-          </button>
-
-          {/* 4. ស្រង់ពិន្ទុ (Monthly Grade Entry) */}
-          <button
-            onClick={() => setActiveTabSub('grades')}
-            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-              activeTabSub === 'grades'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <Award className="w-4 h-4" />
-            <span>ស្រង់ពិន្ទុ (Monthly Grades)</span>
-          </button>
-
-          {/* 5. លទ្ធផលសិក្សា (Academic Performance & Ranking) */}
-          <button
-            onClick={() => setActiveTabSub('ranking')}
-            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-              activeTabSub === 'ranking'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            <span>លទ្ធផលសិក្សា (Performance)</span>
-          </button>
-
-          {/* 6. សំណើសុំច្បាប់សិស្ស (Leave Requests) */}
-          <button
-            onClick={() => setActiveTabSub('leave_requests')}
-            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-              activeTabSub === 'leave_requests'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <FileText className="w-4 h-4" />
-            <span>សំណើសុំច្បាប់សិស្ស (Leave)</span>
-            {pendingRequests.length > 0 && (
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                activeTabSub === 'leave_requests' ? 'bg-rose-700 text-white' : 'bg-rose-100 text-rose-800'
-              }`}>
-                {pendingRequests.length}
-              </span>
-            )}
-          </button>
-
-          {/* 7. របាយការណ៍ (Class Reports) */}
-          <button
-            onClick={() => setActiveTabSub('reports')}
-            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-              activeTabSub === 'reports'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <Printer className="w-4 h-4" />
-            <span>របាយការណ៍ (Reports)</span>
+            <FolderPlus className="w-4 h-4" />
+            <span>បង្កើតថ្នាក់</span>
           </button>
         </div>
 
-        {/* Secondary Subtabs Row (Tools, Logs & Communication) */}
-        <div className="flex items-center gap-1.5 pt-2 mt-2 border-t border-slate-100 overflow-x-auto text-xs">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pl-1 shrink-0">
-            មុខងារបន្ថែម៖
-          </span>
-
-          <button
-            onClick={() => setActiveTabSub('at_risk')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-              activeTabSub === 'at_risk'
-                ? 'bg-indigo-600 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            សិស្សខ្សោយ/រៀនយឺត ({classAtRiskCount})
-          </button>
-
-          <button
-            onClick={() => setActiveTabSub('class_logs')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-              activeTabSub === 'class_logs'
-                ? 'bg-blue-600 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            កំណត់ហេតុប្រចាំថ្ងៃ ({classDailyLogsCount})
-          </button>
-
-          <button
-            onClick={() => setActiveTabSub('lesson_plans')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-              activeTabSub === 'lesson_plans'
-                ? 'bg-blue-600 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            កិច្ចតែងការ ({classPlans.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTabSub('parent_meetings')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-              activeTabSub === 'parent_meetings'
-                ? 'bg-blue-600 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            ប្រជុំមាតាបិតា ({classMeetings.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTabSub('teacher_meetings')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-              activeTabSub === 'teacher_meetings'
-                ? 'bg-indigo-600 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            ប្រជុំគ្រូ ({teacherMeetings.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTabSub('notifications')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-              activeTabSub === 'notifications'
-                ? 'bg-amber-600 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            ដំណឹង & សំណើ {totalNotificationsCount > 0 && `(${totalNotificationsCount})`}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('ai_teacher')}
-            className="px-3 py-1.5 rounded-lg font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 hover:from-amber-400 hover:to-orange-400 transition-all whitespace-nowrap cursor-pointer shrink-0 ml-auto flex items-center gap-1 border border-amber-300"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>🤖 AI សម្រាប់គ្រូ</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ------------------------------------------------------------- */}
-      {/* 5. TAB VIEW CONTENTS                                          */}
-      {/* ------------------------------------------------------------- */}
-
-      {/* VIEW A: HOME OVERVIEW (ផ្ទាំងរបស់គ្រូ) */}
-      {activeTabSub === 'overview' && (
-        <div className="space-y-6">
-          {/* Quick Metrics Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+        {activeTabSub === 'overview' && (
+          <div className="space-y-6 max-w-5xl mx-auto">
+            {/* 1. WELCOME BLOCK (ប្លុកស្វាគមន៍ខាងលើ) */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
               <div>
-                <p className="text-xs text-slate-500 font-medium">វត្តមានថ្ងៃនេះ</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  {todayPresentCount} <span className="text-sm font-normal text-slate-500">/ {totalStudents}</span>
-                </p>
-                <p className="text-[11px] text-emerald-600 font-bold mt-1">
-                  អត្រាវត្តមាន {totalStudents > 0 ? Math.round((todayPresentCount / totalStudents) * 100) : 100}%
-                </p>
+                <h2 className="text-xl md:text-2xl font-moul text-slate-100">សួស្ដី លោកគ្រូ {currentTeacher?.nameKhmer || 'លីម សន'}</h2>
+                <p className="text-slate-400 text-sm mt-1">ថ្នាក់ទី{selectedGrade}{selectedSection} · សិស្ស {totalStudents} នាក់</p>
               </div>
-              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
-                <CheckCircle2 className="w-6 h-6" />
+              <div className="flex items-center gap-3">
+                <div className="bg-[#0d282e]/80 border border-[#164049]/70 rounded-xl px-4 py-2 backdrop-blur-md">
+                  <p className="text-[10px] text-slate-400 uppercase">សិស្ស</p>
+                  <p className="font-bold text-lg text-slate-100">{totalStudents} <span className="text-xs font-normal text-slate-500">(ក្នុងថ្នាក់របស់អ្នក)</span></p>
+                </div>
+                <div className="bg-[#0d282e]/80 border border-[#164049]/70 rounded-xl px-4 py-2 backdrop-blur-md">
+                  <p className="text-[10px] text-slate-400 uppercase">ថ្ងៃនេះ</p>
+                  <p className="font-bold text-lg text-amber-400">រង់ចាំ <span className="text-xs font-normal text-slate-500">(ត្រូវកត់វត្តមាន)</span></p>
+                </div>
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-              <div>
-                <p className="text-xs text-slate-500 font-medium">ពិន្ទុមធ្យមភាគថ្នាក់</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  {classAvgScore.toFixed(1)} <span className="text-sm font-normal text-slate-500">/ 10</span>
-                </p>
-                <p className="text-[11px] text-blue-600 font-bold mt-1">
-                  អត្រាជាប់ {passRate}% (និទ្ទេស {classAvgScore >= 7.0 ? 'ល្អ' : 'ល្អបង្គួរ'})
-                </p>
-              </div>
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
-                <Award className="w-6 h-6" />
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-              <div>
-                <p className="text-xs text-slate-500 font-medium">សិស្សខ្សោយ/រៀនយឺត</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">{classAtRiskCount} នាក់</p>
-                <p className="text-[11px] text-indigo-600 font-bold mt-1">
-                  កំពុងទទួលបានការបំប៉ន
-                </p>
-              </div>
-              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
-                <Target className="w-6 h-6" />
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-              <div>
-                <p className="text-xs text-slate-500 font-medium">សំណើសុំច្បាប់សិស្ស</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">{pendingRequests.length} ករណី</p>
-                <p className="text-[11px] text-amber-600 font-bold mt-1">
-                  រង់ចាំការពិនិត្យ
-                </p>
-              </div>
-              <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
-                <FileText className="w-6 h-6" />
-              </div>
-            </div>
-          </div>
-
-          {/* Top 3 Achievers Spotlight */}
-          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <div className="flex items-center gap-2">
-                <Medal className="w-5 h-5 text-amber-500" />
-                <h3 className="font-bold text-slate-800 text-sm sm:text-base font-moul">
-                  តារាងកិត្តិយសសិស្សឆ្នើមប្រចាំថ្នាក់ (Top Achievers)
-                </h3>
-              </div>
-              <button
-                onClick={() => setActiveTabSub('ranking')}
-                className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
+            {/* 2. TODAY'S TASKS (ប្លុក «កិច្ចការថ្ងៃនេះ») */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Task 1: Attendance */}
+              <div 
+                onClick={() => setActiveTabSub('attendance')}
+                className="bg-[#0d282e]/80 border border-[#164049]/70 rounded-2xl p-5 backdrop-blur-md cursor-pointer hover:bg-[#10323a] transition-colors flex items-start gap-4 group"
               >
-                <span>មើលចំណាត់ថ្នាក់ទាំងអស់</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {topStudents.map((st, idx) => (
-                <div
-                  key={st.id}
-                  onClick={() => setSelectedStudentDetail(st)}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden flex items-center gap-3.5 ${
-                    idx === 0
-                      ? 'bg-gradient-to-br from-amber-50/80 to-amber-100/40 border-amber-200 hover:shadow-md'
-                      : idx === 1
-                      ? 'bg-gradient-to-br from-slate-50 to-slate-100/60 border-slate-200 hover:shadow-md'
-                      : 'bg-gradient-to-br from-orange-50/60 to-orange-100/30 border-orange-200 hover:shadow-md'
-                  }`}
-                >
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg shrink-0 ${
-                    idx === 0 ? 'bg-amber-500 text-white shadow-sm' : idx === 1 ? 'bg-slate-400 text-white shadow-sm' : 'bg-amber-700 text-white shadow-sm'
-                  }`}>
-                    {idx + 1}
+                <div className="bg-amber-500/20 text-amber-400 p-3 rounded-xl shrink-0 group-hover:bg-amber-500/30 transition-colors">
+                  <Calendar className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-slate-200 font-bold text-base mb-1">វត្តមានថ្ងៃនេះ</h3>
+                  <div className="flex items-center justify-between">
+                    <p className="text-slate-400 text-sm">មិនទាន់កត់ · ចុចដើម្បីកត់</p>
+                    <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition-colors" />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <p className="font-bold text-slate-900 text-sm truncate font-moul">
-                        {st.nameKhmer}
-                      </p>
+                </div>
+              </div>
+
+              {/* Task 2: Grades */}
+              <div 
+                onClick={() => setActiveTabSub('grades')}
+                className="bg-[#0d282e]/80 border border-[#164049]/70 rounded-2xl p-5 backdrop-blur-md cursor-pointer hover:bg-[#10323a] transition-colors flex items-start gap-4 group"
+              >
+                <div className="bg-emerald-500/20 text-emerald-400 p-3 rounded-xl shrink-0 group-hover:bg-emerald-500/30 transition-colors">
+                  <PenTool className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-slate-200 font-bold text-base mb-1">ពិន្ទុខែនេះ</h3>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-slate-400 text-sm">0 / {totalStudents} នាក់បានបញ្ចូល</p>
+                      <span className="text-emerald-400 text-xs font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full">0%</span>
                     </div>
-                    <p className="text-xs text-slate-500 truncate">
-                      {st.code} • ភេទ {st.gender === 'female' || st.gender === 'F' ? 'ស្រី' : 'ប្រុស'}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs font-bold text-slate-800">
-                        មធ្យមភាគ {st.rankScoreAvg}/10
-                      </span>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white/80 border border-slate-200">
-                        និទ្ទេស {st.rankLetter}
-                      </span>
+                    {/* Progress Bar */}
+                    <div className="w-full h-1.5 bg-[#081b20] rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 w-[0%]" />
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Roster Preview with Add Student Trigger */}
-          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <div>
-                <h3 className="font-bold text-slate-800 text-sm sm:text-base font-moul">
-                  បញ្ជីឈ្មោះសិស្សក្នុងថ្នាក់ទី {selectedGrade} «{selectedSection}»
-                </h3>
-                <p className="text-xs text-slate-500">
-                  សិស្សសរុប {totalStudents} នាក់ (ស្រី {femaleStudents} នាក់)
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setIsBulkImportOpen(true)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
-                >
-                  📥 នាំចូល
-                </button>
-                <button
-                  onClick={() => setIsAddStudentOpen(true)}
-                  className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1 shadow-xs transition-all cursor-pointer"
-                >
-                  <PlusCircle className="w-3.5 h-3.5" />
-                  <span>+ បន្ថែមសិស្ស</span>
-                </button>
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
-                    <th className="py-2.5 px-3 w-12 text-center">ល.រ</th>
-                    <th className="py-2.5 px-3">អត្តលេខ</th>
-                    <th className="py-2.5 px-3">គោត្តនាម និងនាម</th>
-                    <th className="py-2.5 px-3 text-center">ភេទ</th>
-                    <th className="py-2.5 px-3">ថ្ងៃខែឆ្នាំកំណើត</th>
-                    <th className="py-2.5 px-3">អាណាព្យាបាល</th>
-                    <th className="py-2.5 px-3">លេខទូរស័ព្ទ</th>
-                    <th className="py-2.5 px-3 text-center">សកម្មភាព</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {classStudents.slice(0, 8).map((stu, i) => (
-                    <tr key={stu.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-2 px-3 text-center font-mono text-slate-500">{i + 1}</td>
-                      <td className="py-2 px-3 font-mono font-bold text-blue-700">{stu.code}</td>
-                      <td className="py-2 px-3 font-bold text-slate-900">{stu.nameKhmer}</td>
-                      <td className="py-2 px-3 text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          stu.gender === 'female' || stu.gender === 'F' ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'
-                        }`}>
-                          {stu.gender === 'female' || stu.gender === 'F' ? 'ស្រី' : 'ប្រុស'}
-                        </span>
-                      </td>
-                      <td className="py-2 px-3 font-mono text-slate-600">{stu.dob || '—'}</td>
-                      <td className="py-2 px-3 text-slate-700">{stu.guardianName || 'ឪពុកម្តាយ'}</td>
-                      <td className="py-2 px-3 font-mono text-slate-600">{stu.guardianPhone || '—'}</td>
-                      <td className="py-2 px-3 text-center">
-                        <button
-                          onClick={() => setSelectedStudentDetail(stu)}
-                          className="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold cursor-pointer"
-                        >
-                          មើល
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {totalStudents > 8 && (
-              <div className="pt-3 text-center border-t border-slate-100">
-                <button
+            {/* 3. QUICK SHORTCUTS GRID (ប្លុក «ផ្លូវកាត់») */}
+            <div>
+              <h3 className="text-slate-300 font-bold mb-3 text-sm">ផ្លូវកាត់</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <button 
+                  onClick={() => setActiveTabSub('grades')}
+                  className="bg-[#0a2328] hover:bg-[#0f353d] border border-[#164049] rounded-xl p-3 flex justify-between items-center transition-colors group"
+                >
+                  <span className="text-slate-200 text-sm flex items-center gap-2"><PenTool className="w-4 h-4 text-indigo-400" /> ពិន្ទុខែ</span>
+                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400" />
+                </button>
+                <button 
+                  onClick={() => setActiveTabSub('attendance')}
+                  className="bg-[#0a2328] hover:bg-[#0f353d] border border-[#164049] rounded-xl p-3 flex justify-between items-center transition-colors group"
+                >
+                  <span className="text-slate-200 text-sm flex items-center gap-2"><Calendar className="w-4 h-4 text-amber-400" /> វត្តមាន</span>
+                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400" />
+                </button>
+                <button 
+                  onClick={() => setActiveTabSub('ranking')}
+                  className="bg-[#0a2328] hover:bg-[#0f353d] border border-[#164049] rounded-xl p-3 flex justify-between items-center transition-colors group"
+                >
+                  <span className="text-slate-200 text-sm flex items-center gap-2"><BarChart2 className="w-4 h-4 text-cyan-400" /> លទ្ធផល</span>
+                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400" />
+                </button>
+                <button 
                   onClick={() => setActiveTabSub('roster')}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
+                  className="bg-[#0a2328] hover:bg-[#0f353d] border border-[#164049] rounded-xl p-3 flex justify-between items-center transition-colors group"
                 >
-                  មើលសិស្សទាំងអស់ ({totalStudents} នាក់) →
+                  <span className="text-slate-200 text-sm flex items-center gap-2"><Users className="w-4 h-4 text-emerald-400" /> សិស្ស</span>
+                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400" />
                 </button>
               </div>
-            )}
-          </div>
-        </div>
-      )}
+            </div>
 
+            {/* 4. SCHOOL INFO BANNER (ប័ណ្ណណែនាំសាលា) */}
+            <div className="bg-[#0d282e]/50 border border-[#164049]/50 rounded-xl p-4 text-center mt-8">
+              <p className="text-slate-400 text-sm">
+                សាលាបឋមសិក្សាភ្នំពុំ · ឃុំបារាំងធ្លាក់ ស្រុកភ្នំព្រឹក ខេត្តបាត់ដំបង · កូដ: {schoolProfile.schoolId || '02100108027'}
+              </p>
+            </div>
+          </div>
+        )}
       {/* VIEW B: CLASS & STUDENT ROSTER (ថ្នាក់ និងសិស្ស) */}
       {activeTabSub === 'roster' && (
         <div className="space-y-4">
@@ -1639,6 +1312,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
           onGoogleAuthClick={() => {}}
         />
       )}
+      </main>
     </div>
   );
 };
