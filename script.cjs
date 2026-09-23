@@ -1,0 +1,10 @@
+const fs = require('fs');
+let code = fs.readFileSync('src/components/AdminLayout.tsx', 'utf8');
+code = code.replace(/from '\.\/components\//g, "from './");
+code = code.replace(/from '\.\/context\//g, "from '../context/");
+code = code.replace(/from '\.\/data\//g, "from '../data/");
+code = code.replace(/from '\.\/types/g, "from '../types");
+code = code.replace(/from '\.\/services\//g, "from '../services/");
+code = code.replace(/export const AdminLayout: React\.FC = \(\) => {/g, "export const AdminLayout: React.FC = () => {");
+code = code.replace(/const MainLayout: React\.FC = \(\) => {/g, "export const AdminLayout: React.FC = () => {");
+fs.writeFileSync('src/components/AdminLayout.tsx', code);

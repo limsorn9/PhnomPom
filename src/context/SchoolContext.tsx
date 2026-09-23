@@ -4276,8 +4276,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const logout = () => {
     localStorage.removeItem(`${LOCAL_STORAGE_KEY}_current_user`);
+    localStorage.removeItem('auth_user');
+    localStorage.removeItem('current_role');
     setCurrentUser(null);
-    window.location.href = '/';
+    window.location.href = '/login';
   };
 
   const switchUserRole = (role: UserRole) => {
