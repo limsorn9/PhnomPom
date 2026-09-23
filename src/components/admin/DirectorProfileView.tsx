@@ -3,6 +3,7 @@ import { useSchool } from '../../context/SchoolContext';
 import { Edit2, QrCode, Download, CheckCircle2, User, Phone, MapPin, Briefcase, GraduationCap, Users } from 'lucide-react';
 import { EditDirectorProfileModal } from './EditDirectorProfileModal';
 import { DirectorSignatureTab } from './DirectorSignatureTab';
+import { DirectorAccountTab } from './DirectorAccountTab';
 
 export const DirectorProfileView: React.FC = () => {
   const { currentUser } = useSchool();
@@ -280,6 +281,8 @@ export const DirectorProfileView: React.FC = () => {
           </div>
         ) : activeTab === 'signature' ? (
           <DirectorSignatureTab />
+        ) : activeTab === 'account' ? (
+          <DirectorAccountTab />
         ) : (
           <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center text-slate-500 font-kantumruy">
             កំពុងអភិវឌ្ឍន៍
