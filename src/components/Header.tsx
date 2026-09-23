@@ -98,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({
     currentUser,
     teachers,
     switchToTeacherAccount,
-    logoutApp,
+    logout: logoutApp,
     switchUserRole,
     openDirectorPinModal,
     unreadNotifCount,
