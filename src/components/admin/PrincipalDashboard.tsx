@@ -86,7 +86,7 @@ export const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({ onNaviga
               </div>
             </div>
             <div className="p-2 flex flex-col gap-1">
-              <button onClick={() => setIsProfileModalOpen(true)} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 rounded-xl transition">
+              <button onClick={() => handleNavigation('director_profile')} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 rounded-xl transition">
                 <IdCard className="w-4 h-4 text-slate-400" />
                 ព័ត៌មានផ្ទាល់ខ្លួន
               </button>

@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { MobileBottomNav } from './MobileBottomNav';
 import { PrincipalDashboard } from './admin/PrincipalDashboard';
+import { DirectorProfileView } from './admin/DirectorProfileView';
 import { MobileAppCenter } from './MobileAppCenter';
 import { StudentManagement } from './StudentManagement';
 import { TeacherManagement } from './TeacherManagement';
@@ -174,6 +175,7 @@ export const AdminLayout: React.FC = () => {
               onOpenSettings={handleOpenSettings}
             />
           )}
+          {activeTab === 'director_profile' && <DirectorProfileView />}
           {activeTab === 'ai_teacher' && canAccessTab('ai_teacher') && <AITeacherHub />}
           {activeTab === 'activity_logs' && canAccessTab('activity_logs') && <RecentActivityDashboard />}
           {activeTab === 'homeroom_dashboard' && canAccessTab('homeroom_dashboard') && <HomeroomTeacherDashboard />}
