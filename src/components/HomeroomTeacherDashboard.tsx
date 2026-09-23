@@ -4,7 +4,7 @@ import { TeacherLayout } from './TeacherLayout';
 import { Student } from '../types';
 import { HomeroomHeader } from './homeroom/HomeroomHeader';
 import { MyClassTab } from './homeroom/MyClassTab';
-import { AttendanceTab } from './homeroom/AttendanceTab';
+import { DailyAttendanceTracker } from './homeroom/DailyAttendanceTracker';
 import { GradesTab } from './homeroom/GradesTab';
 import { LessonPlansTab } from './homeroom/LessonPlansTab';
 import { ParentMeetingsTab } from './homeroom/ParentMeetingsTab';
@@ -517,7 +517,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
 
       {/* VIEW C: DAILY ATTENDANCE TRACKER (ស្រង់អវត្តមាន) */}
       {activeTabSub === 'attendance' && (
-        <AttendanceTab
+        <DailyAttendanceTracker
           students={students}
           selectedGrade={selectedGrade}
           selectedSection={selectedSection}
