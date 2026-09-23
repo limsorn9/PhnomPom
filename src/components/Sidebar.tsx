@@ -176,7 +176,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           labelKh: 'វត្តមានគ្រូបង្រៀន',
           labelEn: 'Teacher Attendance',
           icon: CalendarCheck,
-          externalUrl: 'https://plp-sms.moeys.gov.kh/teacher-attendance',
+          // Removed externalUrl for Dual Mode
         },
         {
           id: 'dashboard',
@@ -277,14 +277,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           labelKh: 'វត្តមានផ្ទាល់ខ្លួន',
           labelEn: 'My Attendance',
           icon: CalendarCheck,
-          externalUrl: 'https://plp-sms.moeys.gov.kh/my-attendance',
+          // Removed externalUrl for Dual Mode
         },
         {
           id: 'student_attendance_ext' as any,
           labelKh: 'វត្តមានសិស្ស',
           labelEn: 'Student Attendance',
           icon: Users,
-          externalUrl: 'https://plp-sms.moeys.gov.kh/student-attendance-view',
+          // Removed externalUrl for Dual Mode
         },
         {
           id: 'homeroom_dashboard',

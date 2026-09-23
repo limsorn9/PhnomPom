@@ -1955,3 +1955,14 @@ export interface SchoolGroup {
   createdAt: string;
   updatedAt?: string;
 }
+
+export interface AttendanceRecord {
+  id: string;
+  date: string; // YYYY-MM-DD
+  type: 'student' | 'staff';
+  targetId: string; // studentId or teacherId
+  classId?: string; // For student
+  status: 'present' | 'absent' | 'permission' | 'late';
+  recordedBy: string;
+  timestamp: string; // ISO string
+}
