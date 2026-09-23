@@ -111,11 +111,11 @@ export const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children, activeTa
             <HelpCircle className="w-4 h-4" />
             <span>អំពី និងជំនួយ</span>
           </button>
-          <button 
-            onClick={() => { if(typeof logout === 'function') logout(); }}
-            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 transition-colors mt-2"
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-500/10 transition text-xs font-medium cursor-pointer mt-2"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-4 h-4"/>
             <span>ចាកចេញ</span>
           </button>
         </nav>
