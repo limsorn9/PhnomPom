@@ -489,6 +489,7 @@ export interface MonthlyBudgetSummary {
 export type GradingScaleType = 'khmer_term' | 'letter';
 
 export interface SchoolProfile {
+  level?: 'primary' | 'secondary' | 'high_school';
   nameKhmer: string;
   nameLatin: string;
   schoolCode: string;
