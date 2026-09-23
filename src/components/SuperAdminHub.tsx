@@ -9,7 +9,7 @@ interface SchoolEntry extends Partial<SchoolProfile> {
 }
 
 export const SuperAdminHub: React.FC = () => {
-  const { currentUser, updateSchoolProfile, showToast } = useSchool();
+  const { currentUser, updateSchoolProfile, showToast, setIsSuperAdminHub } = useSchool();
   const { logout } = useAuth();
   
   // Manage list of schools
