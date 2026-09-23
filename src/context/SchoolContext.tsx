@@ -175,7 +175,7 @@ interface SchoolContextType {
   loginByVerifiedIdentifier: (identifier: string) => { success: boolean; message: string; user?: AppUser };
   loginWithQRCode: (rawPayload: string) => { success: boolean; message: string; user?: AppUser };
   loginWithGoogle: () => Promise<{ success: boolean; message: string; user?: AppUser }>;
-  logoutApp: () => void;
+  logout: () => void;
   switchUserRole: (role: UserRole) => void;
   impersonateUser: (userId: string) => void;
   switchToTeacherAccount: (teacher: Teacher) => void;
@@ -4274,9 +4274,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const logoutApp = () => {
+  const logout = () => {
+    localStorage.removeItem(`${LOCAL_STORAGE_KEY}_current_user`);
     setCurrentUser(null);
-    showToast('បានចាកចេញពីប្រព័ន្ធដោយជោគជ័យ!', 'info');
+    window.location.href = '/';
   };
 
   const switchUserRole = (role: UserRole) => {
@@ -7367,7 +7368,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         loginByVerifiedIdentifier,
         loginWithQRCode,
         loginWithGoogle,
-        logoutApp,
+        logout,
         switchUserRole,
         impersonateUser,
         switchToTeacherAccount,

@@ -3,7 +3,7 @@ import { useSchool } from '../context/SchoolContext';
 import { Clock, AlertTriangle, RefreshCw, ShieldAlert, Sparkles } from 'lucide-react';
 
 export const InactivityTimeoutCountdown: React.FC = () => {
-  const { currentUser, logoutApp, showToast, language } = useSchool();
+  const { currentUser, logout, showToast, language } = useSchool();
 
   // Get policy settings
   const isEnabled = () => {
@@ -79,14 +79,14 @@ export const InactivityTimeoutCountdown: React.FC = () => {
             : 'សម័យកាលត្រូវបានកាត់ផ្តាច់ដោយសារទុកចោលមិនប្រើប្រាស់ (Inactivity Timeout) ដើម្បីធានាសុវត្ថិភាព។',
           'error'
         );
-        logoutApp();
+        logout();
       } else {
         setShowWarning(false);
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [currentUser, logoutApp, showToast, language]);
+  }, [currentUser, logout, showToast, language]);
 
   const handleStayLoggedIn = () => {
     resetActivity();
