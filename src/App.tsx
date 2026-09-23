@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { Dashboard } from './components/Dashboard';
+import { MobileAppCenter } from './components/MobileAppCenter';
 import { StudentManagement } from './components/StudentManagement';
 import { TeacherManagement } from './components/TeacherManagement';
 import { ClassroomScores } from './components/ClassroomScores';
@@ -14,22 +15,33 @@ import { GoogleWorkspaceHub } from './components/GoogleWorkspaceHub';
 import { AcademicCalendar } from './components/AcademicCalendar';
 import { AccountsManagement } from './components/AccountsManagement';
 import { StudentPortal } from './components/StudentPortal';
+import { SecretaryDashboard } from './components/SecretaryDashboard';
 import { HomeroomTeacherDashboard } from './components/HomeroomTeacherDashboard';
+import { MyClasses } from './components/MyClasses';
+import { TeacherProfile } from './components/TeacherProfile';
 import { SchoolAdmin } from './components/SchoolAdmin';
 import { SchoolManagement } from './components/SchoolManagement';
 import { OfficialDocumentCenter } from './components/OfficialDocumentCenter';
 import { StudentTransferManagement } from './components/StudentTransferManagement';
 import { HouseholdCensus } from './components/HouseholdCensus';
 import { LibraryManagement } from './components/LibraryManagement';
+import { OtherLearningResources } from './components/OtherLearningResources';
 import { RecentActivityDashboard } from './components/RecentActivityDashboard';
 import { AITeacherHub } from './components/ai-teacher/AITeacherHub';
+import { SchoolEquipmentLoanManager } from './components/SchoolEquipmentLoanManager';
+import { TeacherDailyAgendaPanel } from './components/TeacherDailyAgendaPanel';
+import { TeacherMeetingMinutesManager } from './components/TeacherMeetingMinutesManager';
+import { TeachingResourceHub } from './components/TeachingResourceHub';
 import { BulkDataImportExportModal } from './components/BulkDataImportExportModal';
 import { GoogleDriveSyncModal } from './components/GoogleDriveSyncModal';
+import { VersionMismatchModal } from './components/VersionMismatchModal';
 import { QuickSearchSpotlightModal } from './components/QuickSearchSpotlightModal';
 import { AuthScreen } from './components/AuthScreen';
 import { StandaloneHtmlExportModal } from './components/StandaloneHtmlExportModal';
 import { SchoolProfileModal } from './components/SchoolProfileModal';
-import { SessionExpirationModal } from './components/SessionExpirationModal';
+import { DirectorPinModal } from './components/DirectorPinModal';
+import { SuperAdminHub } from './components/SuperAdminHub';
+import { TelegramBotStudio } from './components/TelegramBotStudio';
 import { initAuth, googleSignIn, logout } from './services/googleAuth';
 import { User } from 'firebase/auth';
 import {
@@ -44,7 +56,9 @@ const MainLayout: React.FC = () => {
     updateSchoolProfile,
     showToast,
     currentUser,
-    canAccessTab
+    canAccessTab,
+    versionConflictState,
+    resolveVersionConflict
   } = useSchool();
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -101,6 +115,10 @@ const MainLayout: React.FC = () => {
   };
 
   const handleOpenSettings = () => {
+    if (currentUser?.role !== 'director' && currentUser?.role !== 'super_admin') {
+      showToast('មុខងារកំណត់ព័ត៌មានសាលារៀនគឺស្ថិតនៅក្នុងប្រូហ្វាល់នាយកសាលាតែម្នាក់គត់!', 'error');
+      return;
+    }
     setIsSettingsOpen(true);
   };
 
@@ -143,12 +161,24 @@ const MainLayout: React.FC = () => {
         />
 
         {/* Dynamic Main Workspace Container */}
-        <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 lg:p-6 pb-20 lg:pb-8 space-y-6">
+        <main className="flex-1 w-full mx-auto pb-20 lg:pb-8 max-w-7xl p-3 sm:p-5 lg:p-6 space-y-6">
           {/* Render based on RBAC & Active Tab */}
-          {activeTab === 'dashboard' && canAccessTab('dashboard') && <Dashboard />}
+          {activeTab === 'super_admin_hub' && canAccessTab('super_admin_hub') && <SuperAdminHub />}
+          {activeTab === 'telegram_bot' && canAccessTab('telegram_bot') && <TelegramBotStudio />}
+          {activeTab === 'secretary_dashboard' && canAccessTab('secretary_dashboard') && <SecretaryDashboard />}
+          {activeTab === 'librarian_dashboard' && canAccessTab('librarian_dashboard') && <LibraryManagement />}
+          {activeTab === 'dashboard' && canAccessTab('dashboard') && (
+            <Dashboard onOpenMobileMenu={() => setIsMobileSidebarOpen(true)} />
+          )}
           {activeTab === 'ai_teacher' && canAccessTab('ai_teacher') && <AITeacherHub />}
-          {(activeTab === 'activity_history' || activeTab === 'activity_logs') && (canAccessTab('activity_history') || canAccessTab('activity_logs')) && <RecentActivityDashboard />}
+          {activeTab === 'activity_logs' && canAccessTab('activity_logs') && <RecentActivityDashboard />}
           {activeTab === 'homeroom_dashboard' && canAccessTab('homeroom_dashboard') && <HomeroomTeacherDashboard />}
+          {activeTab === 'my_classes' && canAccessTab('my_classes') && <MyClasses />}
+          {activeTab === 'teacher_profile' && canAccessTab('teacher_profile') && <TeacherProfile />}
+          {activeTab === 'teacher_agenda' && canAccessTab('teacher_agenda') && <TeacherDailyAgendaPanel />}
+          {activeTab === 'equipment_loans' && canAccessTab('equipment_loans') && <SchoolEquipmentLoanManager />}
+          {activeTab === 'teacher_meetings' && canAccessTab('teacher_meetings') && <TeacherMeetingMinutesManager />}
+          {activeTab === 'teaching_resources' && canAccessTab('teaching_resources') && <TeachingResourceHub />}
           {activeTab === 'school_admin' && canAccessTab('school_admin') && <SchoolAdmin />}
           {activeTab === 'school_management' && canAccessTab('school_management') && <SchoolManagement />}
           {activeTab === 'official_documents' && canAccessTab('official_documents') && <OfficialDocumentCenter />}
@@ -157,6 +187,7 @@ const MainLayout: React.FC = () => {
           {activeTab === 'transfers' && canAccessTab('transfers') && <StudentTransferManagement />}
           {activeTab === 'household_census' && canAccessTab('household_census') && <HouseholdCensus />}
           {activeTab === 'library' && canAccessTab('library') && <LibraryManagement />}
+          {activeTab === 'learning_resources' && canAccessTab('learning_resources') && <OtherLearningResources />}
           {activeTab === 'teachers' && canAccessTab('teachers') && <TeacherManagement />}
           {(activeTab === 'classrooms' || activeTab === 'scores') && canAccessTab(activeTab) && <ClassroomScores />}
           {activeTab === 'attendance_health' && canAccessTab('attendance_health') && <HealthAttendance />}
@@ -173,7 +204,12 @@ const MainLayout: React.FC = () => {
         </main>
 
         {/* Mobile Quick Bottom Navigation */}
-        <MobileBottomNav onOpenMobileMenu={() => setIsMobileSidebarOpen(true)} />
+        {!isMobileSidebarOpen && (
+          <MobileBottomNav
+            onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
+            onOpenSettings={handleOpenSettings}
+          />
+        )}
 
         {/* Global Desktop & Tablet Footer */}
         <footer className="bg-white border-t border-slate-200 py-3.5 px-6 text-center text-xs text-slate-500 no-print hidden sm:block">
@@ -249,8 +285,16 @@ const MainLayout: React.FC = () => {
         onClose={() => setIsSpotlightOpen(false)}
       />
 
-      {/* Session Expiration Warning Modal (2-Minute Threshold Warning) */}
-      <SessionExpirationModal />
+      {/* Version Mismatch Notification Modal */}
+      <VersionMismatchModal
+        conflictState={versionConflictState}
+        onDismiss={() => resolveVersionConflict('keep_local')}
+        onKeepLocal={() => resolveVersionConflict('keep_local')}
+        onKeepCloud={() => resolveVersionConflict('keep_cloud', versionConflictState.cloudVersion?.snapshotData)}
+      />
+
+      {/* Global Director Secret PIN Modal */}
+      <DirectorPinModal />
     </div>
   );
 };

@@ -13,7 +13,9 @@ import {
   ShieldCheck,
   Building2,
   FileSpreadsheet,
-  HeartPulse
+  HeartPulse,
+  HardDrive,
+  FolderSync
 } from 'lucide-react';
 
 interface HomeroomHeaderProps {
@@ -31,9 +33,12 @@ interface HomeroomHeaderProps {
   classAvgScore: number;
   totalLessonPlans: number;
   totalParentMeetings: number;
+  totalTeacherMeetings?: number;
   pendingNotificationsCount?: number;
   urgentNotificationsCount?: number;
   onOpenNotifications?: () => void;
+  onOpenTeacherMeetings?: () => void;
+  onOpenDriveSync?: () => void;
   onPrintClassSummary: () => void;
   onOpenClassCommitteePrint?: () => void;
   onOpenPriStatistics?: () => void;
@@ -56,9 +61,12 @@ export const HomeroomHeader: React.FC<HomeroomHeaderProps> = ({
   classAvgScore,
   totalLessonPlans,
   totalParentMeetings,
+  totalTeacherMeetings = 0,
   pendingNotificationsCount = 0,
   urgentNotificationsCount = 0,
   onOpenNotifications,
+  onOpenTeacherMeetings,
+  onOpenDriveSync,
   onPrintClassSummary,
   onOpenClassCommitteePrint,
   onOpenPriStatistics,
@@ -87,7 +95,7 @@ export const HomeroomHeader: React.FC<HomeroomHeaderProps> = ({
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
-              <span>គ្រូបន្ទុកថ្នាក់៖ <strong className="text-slate-700">{currentTeacher ? currentTeacher.nameKhmer : 'លោកគ្រូ ចាន់ វុទ្ធី'}</strong></span>
+              <span>គ្រូបន្ទុកថ្នាក់៖ <strong className="text-slate-700">{currentTeacher ? currentTeacher.nameKhmer : '—'}</strong></span>
               {currentTeacher?.phone && (
                 <>
                   <span>•</span>
@@ -132,34 +140,66 @@ export const HomeroomHeader: React.FC<HomeroomHeaderProps> = ({
             </button>
           )}
 
-          <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
-            <span className="text-xs font-medium text-slate-500 pl-2">ជ្រើសរើសថ្នាក់៖</span>
-            {/* Grade select */}
-            <select
-              value={selectedGrade}
-              onChange={(e) => setSelectedGrade(Number(e.target.value))}
-              className="text-xs font-bold bg-white text-slate-800 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-            >
-              {[1, 2, 3, 4, 5, 6].map((g) => (
-                <option key={g} value={g}>
-                  ថ្នាក់ទី {g}
-                </option>
-              ))}
-            </select>
+          {isTeacherRole ? (
+            <div className="flex items-center gap-1.5 bg-blue-50 px-3.5 py-2 rounded-xl border border-blue-200 text-blue-900 shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+              <span className="text-xs font-bold">ថ្នាក់បន្ទុក៖ ថ្នាក់ទី {selectedGrade} «{selectedSection}»</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+              <span className="text-xs font-medium text-slate-500 pl-2">ជ្រើសរើសថ្នាក់៖</span>
+              {/* Grade select */}
+              <select
+                value={selectedGrade}
+                onChange={(e) => setSelectedGrade(Number(e.target.value))}
+                className="text-xs font-bold bg-white text-slate-800 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              >
+                {[1, 2, 3, 4, 5, 6].map((g) => (
+                  <option key={g} value={g}>
+                    ថ្នាក់ទី {g}
+                  </option>
+                ))}
+              </select>
 
-            {/* Section select */}
-            <select
-              value={selectedSection}
-              onChange={(e) => setSelectedSection(e.target.value)}
-              className="text-xs font-bold bg-white text-slate-800 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              {/* Section select */}
+              <select
+                value={selectedSection}
+                onChange={(e) => setSelectedSection(e.target.value)}
+                className="text-xs font-bold bg-white text-slate-800 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              >
+                {['ក', 'ខ', 'គ'].map((sec) => (
+                  <option key={sec} value={sec}>
+                    បន្ទប់ «{sec}»
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {onOpenDriveSync && (
+            <button
+              onClick={onOpenDriveSync}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-xs cursor-pointer"
+              title="ធ្វើសមកាលកម្មឯកសារប្រជុំ & ហិរញ្ញវត្ថុទៅ Google Drive (Folder ID: 1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g)"
             >
-              {['ក', 'ខ', 'គ'].map((sec) => (
-                <option key={sec} value={sec}>
-                  បន្ទប់ «{sec}»
-                </option>
-              ))}
-            </select>
-          </div>
+              <HardDrive className="w-4 h-4 text-emerald-200" />
+              <span>Drive Sync</span>
+              <span className="hidden lg:inline-block px-1.5 py-0.5 rounded text-[10px] bg-emerald-800/60 font-mono text-emerald-100">
+                1GCMdT...
+              </span>
+            </button>
+          )}
+
+          {onOpenTeacherMeetings && (
+            <button
+              onClick={onOpenTeacherMeetings}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-indigo-700 hover:bg-indigo-800 text-white transition-all shadow-xs cursor-pointer"
+              title="កំណត់ត្រាការប្រជុំគ្រូ សេចក្ដីសម្រេចចិត្ត & Sync Google Calendar / Drive (Folder ID: 1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g)"
+            >
+              <Users className="w-4 h-4 text-indigo-200" />
+              <span>ប្រជុំគ្រូ</span>
+            </button>
+          )}
 
           {onOpenClassCommitteePrint && (
             <button

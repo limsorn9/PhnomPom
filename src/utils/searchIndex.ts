@@ -135,7 +135,7 @@ export class StudentSearchIndex {
     const fuzzyMatches: FuzzySearchResult<Student>[] = [];
 
     fuseResults.forEach(res => {
-      if (!matchedIds.has(res.item.id)) {
+      if (res?.item?.id && !matchedIds.has(res.item.id)) {
         fuzzyMatches.push({
           item: res.item,
           refIndex: res.refIndex,
@@ -240,7 +240,7 @@ export class TeacherSearchIndex {
     const fuzzyMatches: FuzzySearchResult<Teacher>[] = [];
 
     fuseResults.forEach(res => {
-      if (!matchedIds.has(res.item.id)) {
+      if (res?.item?.id && !matchedIds.has(res.item.id)) {
         fuzzyMatches.push({
           item: res.item,
           refIndex: res.refIndex,

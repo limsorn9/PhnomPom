@@ -27,15 +27,7 @@ import {
   ChevronRight,
   ShieldCheck,
   Sliders,
-  DollarSign,
-  Database,
-  Archive,
-  RefreshCw,
-  HardDrive,
-  Download,
-  AlertTriangle,
-  FileArchive,
-  Layers
+  DollarSign
 } from 'lucide-react';
 
 export const SchoolManagement: React.FC = () => {
@@ -53,30 +45,114 @@ export const SchoolManagement: React.FC = () => {
     schoolProfile,
     showToast,
     selectedAcademicYear,
-    academicYears,
+    students,
+    teachers,
+    classrooms,
     scores,
-    attendanceRecords,
-    lessonPlans,
-    dailyClassLogs,
-    transfers,
     budgetTransactions,
-    currentUser,
-    archiveAcademicYearRecords,
-    purgeAcademicYearRecords,
-    vacuumDatabase
+    attendanceRecords,
+    appUsers
   } = useSchool();
 
-  const [activeSubTab, setActiveSubTab] = useState<'standards' | 'strategic_plan' | 'assets' | 'data_maintenance'>('standards');
+  const [activeSubTab, setActiveSubTab] = useState<'standards' | 'strategic_plan' | 'assets' | 'backup'>('standards');
 
-  // Data Maintenance State
-  const [selectedMaintenanceYear, setSelectedMaintenanceYear] = useState<string>(selectedAcademicYear);
-  const [isPurgeModalOpen, setIsPurgeModalOpen] = useState(false);
-  const [purgeConfirmText, setPurgeConfirmText] = useState('');
-  const [isArchiving, setIsArchiving] = useState(false);
-  const [isPurging, setIsPurging] = useState(false);
-  const [isOptimizing, setIsOptimizing] = useState(false);
-  const [lastArchivedInfo, setLastArchivedInfo] = useState<{ count: number; filename: string } | null>(null);
-  const [lastVacuumInfo, setLastVacuumInfo] = useState<{ cleanedCount: number } | null>(null);
+  // Export & Backup Handlers
+  const handleDownloadJsonBackup = () => {
+    const backupData = {
+      exportDate: new Date().toISOString(),
+      schoolProfile,
+      students,
+      teachers,
+      classrooms,
+      scores,
+      budgetTransactions,
+      attendanceRecords,
+      schoolAssets,
+      schoolStrategicPlans,
+      modelSchoolStandards,
+      appUsers
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `school_complete_backup_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    showToast('បានទាញយកទិន្នន័យបម្រុងទុក (JSON Backup) ជោគជ័យ!');
+  };
+
+  const handleExportStudentsCsv = () => {
+    const headers = ['ID', 'Student Code', 'Name (Khmer)', 'Gender', 'Grade', 'Section', 'Guardian Phone', 'Address'];
+    const rows = students.map(s => [
+      s.id,
+      s.studentCode || '',
+      `"${s.nameKhmer || ''}"`,
+      s.gender || '',
+      s.grade || '',
+      s.section || '',
+      `"${s.guardianPhone || ''}"`,
+      `"${s.address || ''}"`
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `students_records_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast('បានទាញយកបញ្ជីសិស្សជា CSV ជោគជ័យ!');
+  };
+
+  const handleExportTeachersCsv = () => {
+    const headers = ['ID', 'Staff Code', 'Name (Khmer)', 'Name (Latin)', 'Gender', 'Phone', 'Email', 'Assigned Grade', 'Assigned Section'];
+    const rows = teachers.map(t => [
+      t.id,
+      t.staffCode || '',
+      `"${t.nameKhmer || ''}"`,
+      `"${t.nameLatin || ''}"`,
+      t.gender || '',
+      `"${t.phone || ''}"`,
+      t.email || '',
+      t.assignedGrade || '',
+      t.assignedSection || ''
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `teachers_records_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast('បានទាញយកបញ្ជីគ្រូបង្រៀនជា CSV ជោគជ័យ!');
+  };
+
+  const handleExportBudgetCsv = () => {
+    const headers = ['ID', 'Title', 'Type', 'Source', 'Category', 'Amount (Riel)', 'Amount (USD)', 'Date', 'Reference Code', 'Status'];
+    const rows = budgetTransactions.map(tx => [
+      tx.id,
+      `"${tx.title || ''}"`,
+      tx.type,
+      `"${tx.source || ''}"`,
+      `"${tx.category || ''}"`,
+      tx.amountRiel || 0,
+      tx.amountUsd || 0,
+      tx.date || '',
+      tx.referenceCode || '',
+      tx.status || ''
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `budget_transactions_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast('បានទាញយកបញ្ជីថវិកាជា CSV ជោគជ័យ!');
+  };
 
   // Standards State
   const [expandedStandard, setExpandedStandard] = useState<number | null>(1);
@@ -280,81 +356,6 @@ export const SchoolManagement: React.FC = () => {
     setIsAssetModalOpen(false);
   };
 
-  // Maintenance calculations & handlers
-  const maintenanceStats = useMemo(() => {
-    const scoresCount = scores.filter(s => s.academicYear === selectedMaintenanceYear).length;
-    const attendanceCount = attendanceRecords.filter(a => a.academicYear === selectedMaintenanceYear).length;
-    const lessonPlansCount = lessonPlans.filter(l => l.academicYear === selectedMaintenanceYear).length;
-    const classLogsCount = dailyClassLogs.filter(d => d.academicYear === selectedMaintenanceYear).length;
-    const transfersCount = transfers.filter(t => t.academicYear === selectedMaintenanceYear).length;
-    const budgetCount = budgetTransactions.filter(b => b.academicYear === selectedMaintenanceYear).length;
-    const total = scoresCount + attendanceCount + lessonPlansCount + classLogsCount + transfersCount + budgetCount;
-
-    return {
-      scoresCount,
-      attendanceCount,
-      lessonPlansCount,
-      classLogsCount,
-      transfersCount,
-      budgetCount,
-      total
-    };
-  }, [scores, attendanceRecords, lessonPlans, dailyClassLogs, transfers, budgetTransactions, selectedMaintenanceYear]);
-
-  const allSystemStats = useMemo(() => {
-    return {
-      totalScores: scores.length,
-      totalAttendance: attendanceRecords.length,
-      totalLessonPlans: lessonPlans.length,
-      totalClassLogs: dailyClassLogs.length,
-      totalTransfers: transfers.length,
-      totalBudget: budgetTransactions.length,
-      grandTotal: scores.length + attendanceRecords.length + lessonPlans.length + dailyClassLogs.length + transfers.length + budgetTransactions.length
-    };
-  }, [scores, attendanceRecords, lessonPlans, dailyClassLogs, transfers, budgetTransactions]);
-
-  const handleDownloadArchive = () => {
-    setIsArchiving(true);
-    setTimeout(() => {
-      const res = archiveAcademicYearRecords(selectedMaintenanceYear);
-      if (res.success && res.exportJson && res.filename) {
-        const blob = new Blob([res.exportJson], { type: 'application/json;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', res.filename);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setLastArchivedInfo({ count: res.count, filename: res.filename });
-      }
-      setIsArchiving(false);
-    }, 450);
-  };
-
-  const handlePurgeRecords = () => {
-    if (purgeConfirmText.trim() !== selectedMaintenanceYear) {
-      showToast(`សូមវាយពាក្យ «${selectedMaintenanceYear}» ឱ្យបានត្រឹមត្រូវដើម្បីបញ្ជាក់ការសម្អាត!`, 'error');
-      return;
-    }
-    setIsPurging(true);
-    setTimeout(() => {
-      purgeAcademicYearRecords(selectedMaintenanceYear);
-      setIsPurgeModalOpen(false);
-      setPurgeConfirmText('');
-      setIsPurging(false);
-    }, 400);
-  };
-
-  const handleRunVacuum = () => {
-    setIsOptimizing(true);
-    setTimeout(() => {
-      const res = vacuumDatabase();
-      setLastVacuumInfo({ cleanedCount: res.cleanedCount });
-      setIsOptimizing(false);
-    }, 500);
-  };
-
   return (
     <div className="space-y-6">
       {/* Top Card */}
@@ -423,18 +424,101 @@ export const SchoolManagement: React.FC = () => {
             <span>សារពើភ័ណ្ឌ & ទ្រព្យសម្បត្តិសាលា ({schoolAssets.length})</span>
           </button>
           <button
-            onClick={() => setActiveSubTab('data_maintenance')}
+            onClick={() => setActiveSubTab('backup')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${
-              activeSubTab === 'data_maintenance'
+              activeSubTab === 'backup'
                 ? 'bg-amber-600 text-white shadow-sm shadow-amber-200'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            <Database className="w-4 h-4" />
-            <span>ការថែទាំទិន្នន័យ & បណ្ណសារ (Data Maintenance)</span>
+            <ShieldCheck className="w-4 h-4" />
+            <span>ទិន្នន័យបម្រុងទុក និងសុវត្ថិភាព (Data Export & Safety)</span>
           </button>
         </div>
       </div>
+
+      {/* TAB 4: DATA EXPORT & SAFETY */}
+      {activeSubTab === 'backup' && (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white rounded-3xl p-6 shadow-lg">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div>
+                <span className="px-3 py-1 bg-emerald-500 text-white font-bold rounded-full text-xs uppercase tracking-wider flex items-center gap-1 inline-flex">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Data Export & Safety Hub</span>
+                </span>
+                <h2 className="text-xl font-bold font-moul mt-2">
+                  ការគ្រប់គ្រងទិន្នន័យបម្រុងទុក និងសុវត្ថិភាពសាលារៀន
+                </h2>
+                <p className="text-slate-300 text-xs mt-1 max-w-2xl">
+                  អនុញ្ញាតឱ្យនាយកសាលាទាញយកទិន្នន័យបម្រុងទុកពេញលេញ (JSON Backup) និងរបាយការណ៍ជាឯកសារ CSV សម្រាប់រក្សាទុកដោយសុវត្ថិភាព។
+                </p>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 text-center border border-white/20 min-w-[200px]">
+                <div className="text-2xl font-extrabold text-amber-300">{students.length} សិស្ស | {teachers.length} គ្រូ</div>
+                <div className="text-xs text-slate-200 mt-0.5">ទិន្នន័យសរុបក្នុងប្រព័ន្ធ</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Complete JSON Backup Card */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
+              <div>
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 font-bold">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 font-moul">ទាញយកទិន្នន័យបម្រុងទុកពេញលេញ (Complete JSON Backup)</h3>
+                <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                  ទាញយកទិន្នន័យទាំងមូលរបស់សាលា រួមមាន ព័ត៌មានសាលា បញ្ជីសិស្ស គ្រូបង្រៀន បន្ទប់រៀន ពិន្ទុ ថវិកា វត្តមាន និងផែនការយុទ្ធសាស្ត្រក្នុងឯកសារ JSON តែមួយ។
+                </p>
+              </div>
+              <button
+                onClick={handleDownloadJsonBackup}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>ទាញយក JSON Backup ពេញលេញ</span>
+              </button>
+            </div>
+
+            {/* CSV Data Exports Card */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
+              <div>
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4 font-bold">
+                  <Package className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 font-moul">ទាញយកទិន្នន័យឯកសារ CSV (Spreadsheet Export)</h3>
+                <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                  ទាញយកបញ្ជីជាក់លាក់ជាទម្រង់ CSV ដើម្បីបើកមើល និងកែច្នៃក្នុង Microsoft Excel ឬ Google Sheets។
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2">
+                <button
+                  onClick={handleExportStudentsCsv}
+                  className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <span>សិស្ស ({students.length})</span>
+                </button>
+                <button
+                  onClick={handleExportTeachersCsv}
+                  className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <span>គ្រូ ({teachers.length})</span>
+                </button>
+                <button
+                  onClick={handleExportBudgetCsv}
+                  className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <span>ថវិកា ({budgetTransactions.length})</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TAB 1: 5 STANDARDS OF MODEL PRIMARY SCHOOL (MoEYS) */}
       {activeSubTab === 'standards' && (
@@ -853,233 +937,6 @@ export const SchoolManagement: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 4: DATA MAINTENANCE & ARCHIVE */}
-      {activeSubTab === 'data_maintenance' && (
-        <div className="space-y-6">
-          {/* Header Banner */}
-          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white rounded-3xl p-6 shadow-md border border-slate-800 relative overflow-hidden">
-            <div className="absolute -right-8 -bottom-8 w-56 h-56 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 bg-amber-400/20 text-amber-300 border border-amber-400/30 rounded-full text-xs font-semibold flex items-center gap-1.5">
-                    <Database className="w-3.5 h-3.5" />
-                    Database Performance & Maintenance
-                  </span>
-                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full text-xs font-semibold flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    ស្ថានភាពល្អប្រសើរ (Healthy)
-                  </span>
-                </div>
-                <h2 className="text-xl sm:text-2xl font-bold font-moul">
-                  ការថែទាំទិន្នន័យ & បណ្ណសារសុវត្ថិភាព
-                </h2>
-                <p className="text-slate-300 text-xs sm:text-sm max-w-2xl">
-                  គ្រប់គ្រងបណ្ណសារតាមឆ្នាំសិក្សា (Archive) សម្អាតកំណត់ត្រាចាស់ៗ (Purge) និងដំណើរការបង្កើនល្បឿនប្រព័ន្ធ (Vacuum DB) ដើម្បីធានាថាទិន្នន័យដំណើរការរលូន និងមានសុវត្ថិភាពខ្ពស់។
-                </p>
-              </div>
-
-              {/* Quick DB Health Widget */}
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-center min-w-[200px]">
-                <span className="text-xs text-slate-300 block font-medium">កំណត់ត្រាសរុបក្នុងប្រព័ន្ធ</span>
-                <span className="text-2xl font-extrabold text-amber-300">{allSystemStats.grandTotal.toLocaleString()}</span>
-                <span className="text-[11px] text-slate-300 block mt-1">
-                  ពិន្ទុ {allSystemStats.totalScores} • វត្តមាន {allSystemStats.totalAttendance}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Academic Year Selection & Record Breakdown */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-5">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Archive className="w-5 h-5 text-amber-600" />
-                  ជ្រើសរើសឆ្នាំសិក្សាសម្រាប់គ្រប់គ្រងបណ្ណសារ & សម្អាត
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  ជ្រើសរើសឆ្នាំសិក្សាដែលចង់បម្រុងទុកបណ្ណសារ ឬចង់សម្អាតចេញពីមូលដ្ឋានទិន្នន័យ
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <label className="text-xs font-semibold text-slate-600 whitespace-nowrap">ឆ្នាំសិក្សា៖</label>
-                <select
-                  value={selectedMaintenanceYear}
-                  onChange={e => setSelectedMaintenanceYear(e.target.value)}
-                  className="w-full sm:w-48 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-blue-950 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                >
-                  {academicYears.map(year => (
-                    <option key={year} value={year}>
-                      {year} {year === selectedAcademicYear ? '(បច្ចុប្បន្ន)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Selected Year Stats Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-center">
-                <span className="text-[11px] font-semibold text-blue-700 block">ពិន្ទុ & លទ្ធផល</span>
-                <span className="text-lg font-bold text-blue-950">{maintenanceStats.scoresCount}</span>
-                <span className="text-[10px] text-blue-600 block">កំណត់ត្រា</span>
-              </div>
-              <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 text-center">
-                <span className="text-[11px] font-semibold text-emerald-700 block">វត្តមានសិស្ស</span>
-                <span className="text-lg font-bold text-emerald-950">{maintenanceStats.attendanceCount}</span>
-                <span className="text-[10px] text-emerald-600 block">កំណត់ត្រា</span>
-              </div>
-              <div className="p-3 bg-purple-50/60 rounded-xl border border-purple-100 text-center">
-                <span className="text-[11px] font-semibold text-purple-700 block">កិច្ចតែងការ</span>
-                <span className="text-lg font-bold text-purple-950">{maintenanceStats.lessonPlansCount}</span>
-                <span className="text-[10px] text-purple-600 block">មេរៀន</span>
-              </div>
-              <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-100 text-center">
-                <span className="text-[11px] font-semibold text-amber-800 block">កំណត់ហេតុថ្នាក់</span>
-                <span className="text-lg font-bold text-amber-950">{maintenanceStats.classLogsCount}</span>
-                <span className="text-[10px] text-amber-700 block">ថ្ងៃ</span>
-              </div>
-              <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 text-center">
-                <span className="text-[11px] font-semibold text-indigo-700 block">ការផ្ទេរសិស្ស</span>
-                <span className="text-lg font-bold text-indigo-950">{maintenanceStats.transfersCount}</span>
-                <span className="text-[10px] text-indigo-600 block">ករណី</span>
-              </div>
-              <div className="p-3 bg-cyan-50/60 rounded-xl border border-cyan-100 text-center">
-                <span className="text-[11px] font-semibold text-cyan-800 block">ថវិកា & ចំណូល-ចំណាយ</span>
-                <span className="text-lg font-bold text-cyan-950">{maintenanceStats.budgetCount}</span>
-                <span className="text-[10px] text-cyan-700 block">ប្រតិបត្តិការ</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 3 Core Maintenance Action Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Action 1: Safe Archive */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-blue-300 transition-all">
-              <div className="space-y-3">
-                <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 shadow-xs">
-                  <Archive className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="text-base font-bold text-slate-900">
-                    ១. បម្រុងទុកបណ្ណសារ (Archive)
-                  </h4>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    ទាញយកកញ្ចប់បណ្ណសារសុវត្ថិភាពពេញលេញនៃឆ្នាំសិក្សា <strong className="text-blue-900">{selectedMaintenanceYear}</strong> (ពិន្ទុ, វត្តមាន, កិច្ចតែងការ, កំណត់ហេតុ) ជាឯកសារ JSON រក្សាទុកក្នុងកុំព្យូទ័រ ឬ Drive។
-                  </p>
-                </div>
-
-                {lastArchivedInfo && (
-                  <div className="p-2.5 bg-blue-50 rounded-xl border border-blue-200 text-xs text-blue-800 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-                    <span className="truncate">បានទាញយក {lastArchivedInfo.count} កំណត់ត្រារួចរាល់</span>
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={handleDownloadArchive}
-                disabled={isArchiving || maintenanceStats.total === 0}
-                className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
-              >
-                {isArchiving ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>កំពុងបង្កើតបណ្ណសារ...</span>
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4" />
-                    <span>ទាញយកបណ្ណសារឆ្នាំ {selectedMaintenanceYear} ({maintenanceStats.total})</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Action 2: Safe Purge */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-rose-300 transition-all">
-              <div className="space-y-3">
-                <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-700 shadow-xs">
-                  <Trash2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="text-base font-bold text-slate-900">
-                    ២. សម្អាតទិន្នន័យចាស់ (Purge Old Year)
-                  </h4>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    លុបកំណត់ត្រាប្រចាំថ្ងៃ និងពិន្ទុនៃឆ្នាំ <strong className="text-rose-900">{selectedMaintenanceYear}</strong> ចេញពីប្រព័ន្ធ ដើម្បីសន្សំសំចៃទំហំផ្ទុក និងបង្កើនល្បឿន។ (រក្សាទុកបញ្ជីសិស្ស និងគ្រូជាធម្មតា)។
-                  </p>
-                </div>
-
-                <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>សូមប្រាកដថាបានទាញយក Archive រួចរាល់មុននឹង Purge!</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setPurgeConfirmText('');
-                  setIsPurgeModalOpen(true);
-                }}
-                disabled={maintenanceStats.total === 0 || currentUser?.role !== 'director'}
-                className="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>សម្អាតទិន្នន័យឆ្នាំ {selectedMaintenanceYear}</span>
-              </button>
-            </div>
-
-            {/* Action 3: Vacuum & DB Cache Optimization */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-300 transition-all">
-              <div className="space-y-3">
-                <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-xs">
-                  <RefreshCw className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="text-base font-bold text-slate-900">
-                    ៣. បង្កើនប្រសិទ្ធភាព (Vacuum & Optimize)
-                  </h4>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    ស្កេនសម្អាតកំណត់ត្រាកំហុសដែលមិនមានម្ចាស់ (Orphan/Ghost records), សម្អាត Storage Cache និងរៀបចំ Index របស់ប្រព័ន្ធឱ្យដំណើរការលឿនដូចដើម។
-                  </p>
-                </div>
-
-                {lastVacuumInfo && (
-                  <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>បានសម្អាត និងបង្កើនប្រសិទ្ធភាពរួចរាល់ ({lastVacuumInfo.cleanedCount} កំណត់ត្រា)</span>
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={handleRunVacuum}
-                disabled={isOptimizing}
-                className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
-              >
-                {isOptimizing ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>កំពុងដំណើរការ Vacuum...</span>
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4" />
-                    <span>ដំណើរការ Vacuum & Optimize DB</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* MODAL 1: ADD/EDIT STRATEGIC PLAN */}
       {isPlanModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
@@ -1351,83 +1208,6 @@ export const SchoolManagement: React.FC = () => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 3: PURGE CONFIRMATION MODAL */}
-      {isPurgeModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-rose-100 my-8 space-y-4">
-            <div className="flex items-center gap-3 text-rose-600">
-              <div className="w-12 h-12 rounded-2xl bg-rose-100 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-6 h-6 text-rose-600" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold font-moul text-rose-950">បញ្ជាក់ការសម្អាតទិន្នន័យចាស់</h3>
-                <p className="text-xs text-rose-600 font-medium">សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ!</p>
-              </div>
-            </div>
-
-            <div className="p-3.5 bg-rose-50 rounded-2xl border border-rose-200 text-xs text-rose-900 space-y-2 leading-relaxed">
-              <p>
-                តើលោក/លោកស្រីពិតជាចង់សម្អាតកំណត់ត្រាទាំងអស់ក្នុងឆ្នាំសិក្សា <strong className="font-bold text-rose-950">{selectedMaintenanceYear}</strong> មែនទេ?
-              </p>
-              <ul className="list-disc list-inside space-y-1 text-[11px] text-rose-800">
-                <li>ពិន្ទុ & លទ្ធផលសិក្សា៖ <strong>{maintenanceStats.scoresCount}</strong> កំណត់ត្រា</li>
-                <li>វត្តមានសិស្សប្រចាំថ្ងៃ៖ <strong>{maintenanceStats.attendanceCount}</strong> កំណត់ត្រា</li>
-                <li>កិច្ចតែងការបង្រៀន៖ <strong>{maintenanceStats.lessonPlansCount}</strong> កំណត់ត្រា</li>
-                <li>កំណត់ហេតុថ្នាក់៖ <strong>{maintenanceStats.classLogsCount}</strong> កំណត់ត្រា</li>
-              </ul>
-              <p className="font-semibold text-rose-950 pt-1">
-                * បញ្ជីឈ្មោះសិស្ស និងលោកគ្រូ-អ្នកគ្រូ នឹងនៅតែរក្សាទុកជាធម្មតា។
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                សូមវាយអក្សរ <span className="text-rose-600 font-mono font-bold select-all bg-rose-100 px-1.5 py-0.5 rounded">{selectedMaintenanceYear}</span> ដើម្បីបញ្ជាក់៖
-              </label>
-              <input
-                type="text"
-                placeholder={selectedMaintenanceYear}
-                value={purgeConfirmText}
-                onChange={e => setPurgeConfirmText(e.target.value)}
-                className="w-full text-sm font-semibold bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-rose-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsPurgeModalOpen(false);
-                  setPurgeConfirmText('');
-                }}
-                disabled={isPurging}
-                className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-              >
-                បោះបង់
-              </button>
-              <button
-                type="button"
-                onClick={handlePurgeRecords}
-                disabled={purgeConfirmText.trim() !== selectedMaintenanceYear || isPurging}
-                className="px-5 py-2 text-sm font-bold bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-xl shadow-sm transition-colors flex items-center gap-2 cursor-pointer"
-              >
-                {isPurging ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>កំពុងសម្អាត...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    <span>បញ្ជាក់ការសម្អាត</span>
-                  </>
-                )}
-              </button>
-            </div>
           </div>
         </div>
       )}

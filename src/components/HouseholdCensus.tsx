@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { HouseholdRecord, FamilyMember, FamilyPovertyStatus } from '../types';
+import { AddressSelector } from './common/AddressSelector';
 import {
   Home,
   MapPin,
@@ -35,6 +36,7 @@ import {
 } from 'lucide-react';
 import { AngkorPageWatermark, MoEYSRoyalHeader } from './AngkorMotif';
 import { UniversalPrintModal } from './UniversalPrintModal';
+import { StudentHouseholdMap } from './StudentHouseholdMap';
 
 export const HouseholdCensus: React.FC = () => {
   const {
@@ -56,12 +58,22 @@ export const HouseholdCensus: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'table' | 'map'>('grid');
 
+  const isDirector = 
+    currentUser?.role === 'director' || 
+    currentUser?.role === 'super_admin' ||
+    currentUser?.role === 'secretary' ||
+    currentUser?.email?.toLowerCase() === 'limsorn9@gmail.com' ||
+    currentUser?.username?.toLowerCase() === 'director' ||
+    currentUser?.username?.toLowerCase() === 'limsorn' ||
+    Boolean(currentUser?.nameKhmer && (currentUser.nameKhmer.includes('លីម សន') || currentUser.nameKhmer.includes('នាយក')));
+
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
   const [isAddVillageModalOpen, setIsAddVillageModalOpen] = useState<boolean>(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
   const [selectedHousehold, setSelectedHousehold] = useState<HouseholdRecord | null>(null);
+  const [householdToDelete, setHouseholdToDelete] = useState<HouseholdRecord | null>(null);
   const [newVillageName, setNewVillageName] = useState<string>('');
 
   // Form state for creating / editing household
@@ -273,6 +285,98 @@ export const HouseholdCensus: React.FC = () => {
     setIsAddModalOpen(true);
   };
 
+  // Auto-fetch Guardian and Children from Students by Phone Number
+  const handleAutoSyncFromStudentsByPhone = (phoneInput: string) => {
+    const cleanPhone = (phoneInput || '').replace(/[\s\-\+]/g, '');
+    if (!cleanPhone || cleanPhone.length < 5) {
+      showToast('សូមបញ្ចូលលេខទូរស័ព្ទឱ្យបានត្រឹមត្រូវសិន ដើម្បីទាញយកទិន្នន័យ!', 'error');
+      return;
+    }
+
+    const matchedStudents = students.filter(s => {
+      const gPhone = (s.guardianPhone || '').replace(/[\s\-\+]/g, '');
+      const sPhone = (s.phone || '').replace(/[\s\-\+]/g, '');
+      return (gPhone && cleanPhone.includes(gPhone)) || (sPhone && cleanPhone.includes(sPhone)) || (gPhone && gPhone === cleanPhone) || (sPhone && sPhone === cleanPhone);
+    });
+
+    if (matchedStudents.length === 0) {
+      showToast(`រកមិនឃើញសិស្សដែលមានលេខទូរស័ព្ទ "${phoneInput}" ក្នុងប្រព័ន្ធឡើយ។`, 'info');
+      return;
+    }
+
+    const firstStudent = matchedStudents[0];
+    const detectedFatherName = firstStudent.fatherName || '';
+    const detectedFatherOcc = firstStudent.fatherOccupation || 'កសិករ';
+    const detectedMotherName = firstStudent.motherName || '';
+    const detectedMotherOcc = firstStudent.motherOccupation || 'កសិករ';
+    const detectedGuardianName = firstStudent.guardianName || detectedFatherName || detectedMotherName || 'អាណាព្យាបាលសិស្ស';
+    const detectedGuardianOccupation = firstStudent.guardianOccupation || detectedFatherOcc || 'កសិករ';
+    const detectedAddress = firstStudent.address || `${firstStudent.currentVillage || ''}, ${firstStudent.currentCommune || ''}, ${firstStudent.currentDistrict || ''}, ${firstStudent.currentProvince || ''}`.replace(/^, /, '') || '';
+
+    const newMembers: FamilyMember[] = [];
+    
+    // Add Father if exists
+    if (detectedFatherName) {
+      newMembers.push({
+        id: `mem-fat-${firstStudent.id}`,
+        name: detectedFatherName,
+        gender: 'M',
+        dob: '1980-01-01',
+        age: 45,
+        relationship: 'ឪពុក',
+        occupation: detectedFatherOcc,
+        civilStatusDoc: 'អត្តសញ្ញាណប័ណ្ណ',
+        isStudentAtSchool: false
+      });
+    }
+
+    // Add Mother if exists
+    if (detectedMotherName) {
+      newMembers.push({
+        id: `mem-mot-${firstStudent.id}`,
+        name: detectedMotherName,
+        gender: 'F',
+        dob: '1982-01-01',
+        age: 43,
+        relationship: 'ម្តាយ',
+        occupation: detectedMotherOcc,
+        civilStatusDoc: 'អត្តសញ្ញាណប័ណ្ណ',
+        isStudentAtSchool: false
+      });
+    }
+
+    // Add all matched children (students)
+    matchedStudents.forEach((s, idx) => {
+      newMembers.push({
+        id: `mem-stu-${s.id}-${idx}`,
+        name: s.nameKhmer,
+        gender: s.gender,
+        dob: s.dob || '2015-01-01',
+        age: s.age || 10,
+        relationship: 'កូន',
+        occupation: 'សិស្ស',
+        civilStatusDoc: 'សំបុត្រកំណើត',
+        isStudentAtSchool: true,
+        studentGrade: s.grade,
+        studentSection: s.section,
+        studentCode: s.code
+      });
+    });
+
+    setFormData(prev => ({
+      ...prev,
+      headName: prev.headName ? prev.headName : detectedGuardianName,
+      headOccupation: prev.headOccupation ? prev.headOccupation : detectedGuardianOccupation,
+      spouseName: prev.spouseName ? prev.spouseName : detectedMotherName,
+      spouseOccupation: prev.spouseOccupation ? prev.spouseOccupation : detectedMotherOcc,
+      currentAddress: prev.currentAddress ? prev.currentAddress : detectedAddress,
+      phoneNumber: phoneInput,
+      members: [...prev.members.filter(m => !m.isStudentAtSchool && m.relationship !== 'ឪពុក' && m.relationship !== 'ម្តាយ'), ...newMembers]
+    }));
+
+    showToast(`បានទាញយកឈ្មោះឪពុក ម្តាយ មុខរបរ អាសយដ្ឋាន និងកូនៗចំនួន ${matchedStudents.length} នាក់ដោយស្វ័យប្រវត្តិ!`, 'success');
+  };
+
   // Add Member to Form
   const handleAddMemberToForm = () => {
     if (!tempMember.name.trim()) {
@@ -374,7 +478,8 @@ export const HouseholdCensus: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Household_Census_${schoolProfile.nameLatin.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+    const safeLatinName = (schoolProfile.nameLatin || 'Phnom_Pom').replace(/\s+/g, '_');
+    link.download = `Household_Census_${safeLatinName}_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     showToast('បានទាញយកទិន្នន័យជំរឿនខ្នងផ្ទះជាទម្រង់ CSV ជោគជ័យ!');
   };
@@ -709,17 +814,15 @@ export const HouseholdCensus: React.FC = () => {
                       <Edit2 className="w-4 h-4" />
                     </button>
 
-                    <button
-                      onClick={() => {
-                        if (confirm(`តើអ្នកពិតជាចង់លុបទិន្នន័យខ្នងផ្ទះរបស់ «${h.headName}» មែនទេ?`)) {
-                          deleteHousehold(h.id);
-                        }
-                      }}
-                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                      title="លុបខ្នងផ្ទះ"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {isDirector && (
+                      <button
+                        onClick={() => setHouseholdToDelete(h)}
+                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                        title="លុបខ្នងផ្ទះ (សិទ្ធិនាយកសាលា)"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -778,29 +881,27 @@ export const HouseholdCensus: React.FC = () => {
                             setSelectedHousehold(h);
                             setIsDetailModalOpen(true);
                           }}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
                           title="មើលលម្អិត"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleOpenEdit(h)}
-                          className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                          className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg cursor-pointer"
                           title="កែសម្រួល"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => {
-                            if (confirm(`តើអ្នកពិតជាចង់លុបទិន្នន័យខ្នងផ្ទះរបស់ «${h.headName}» មែនទេ?`)) {
-                              deleteHousehold(h.id);
-                            }
-                          }}
-                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
-                          title="លុប"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {isDirector && (
+                          <button
+                            onClick={() => setHouseholdToDelete(h)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
+                            title="លុបខ្នងផ្ទះ (សិទ្ធិនាយកសាលា)"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -813,68 +914,28 @@ export const HouseholdCensus: React.FC = () => {
 
       {/* Interactive Map View */}
       {viewMode === 'map' && (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm p-4 space-y-4 no-print">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Compass className="w-5 h-5 text-emerald-600" />
-              <h3 className="text-base font-bold text-slate-800">ផែនទីទីតាំងខ្នងផ្ទះសិស្សក្នុងតំបន់សេវា ({filteredHouseholds.length} ខ្នង)</h3>
-            </div>
-            <a
-              href="https://maps.app.goo.gl/ackTYSYsd7t54vGP6"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors"
-            >
-              <span>បើកទីតាំងសាលារៀនលើ Google Maps</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
-
-          {/* Embedded Google Map with School & Household Pinpoints */}
-          <div className="relative w-full h-[520px] rounded-2xl overflow-hidden border border-slate-300 shadow-inner bg-slate-100">
-            <iframe
-              title="Google Map Phnom Pom Primary School Catchment Area"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15654.897451234!2d102.342145!3d13.241567!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTPCsDE0JzI5LjYiTiAxMDLCsDIwJzMxLjciRQ!5e0!3m2!1skm!2skh!4v1700000000000!5m2!1skm!2skh"
-              className="w-full h-full border-0"
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-
-            {/* Floating Household Pins Overlay Legend */}
-            <div className="absolute top-4 right-4 max-w-sm w-full bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-slate-200/80 max-h-[460px] overflow-y-auto space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                <span className="text-xs font-bold text-slate-800">បញ្ជីខ្នងផ្ទះលើផែនទី</span>
-                <span className="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                  {filteredHouseholds.length} ទីតាំង
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                {filteredHouseholds.map(h => (
-                  <div
-                    key={h.id}
-                    onClick={() => {
-                      setSelectedHousehold(h);
-                      setIsDetailModalOpen(true);
-                    }}
-                    className="p-2.5 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 cursor-pointer transition-all flex items-start gap-2.5 text-xs"
-                  >
-                    <div className="p-1.5 bg-emerald-100 text-emerald-700 rounded-lg shrink-0 mt-0.5">
-                      <MapPin className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-slate-800 truncate">{h.headName} (ផ្ទះ {h.houseNumber || 'N/A'})</p>
-                      <p className="text-[11px] text-slate-500">{h.village} • {h.members.length} នាក់</p>
-                      <div className="flex items-center gap-1 mt-1">
-                        {getPovertyBadge(h.familyStatus)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+        <div className="space-y-4 no-print">
+          <StudentHouseholdMap
+            households={filteredHouseholds}
+            schoolProfile={schoolProfile}
+            students={students}
+            villages={villages}
+            onSelectHousehold={(h) => {
+              setSelectedHousehold(h);
+              setIsDetailModalOpen(true);
+            }}
+            onDeleteHousehold={isDirector ? (id, name) => {
+              const target = households.find(item => item.id === id) || ({
+                id,
+                headName: name,
+                village: '',
+                members: []
+              } as unknown as HouseholdRecord);
+              setHouseholdToDelete(target);
+            } : undefined}
+            isDirector={isDirector}
+            selectedHouseholdId={selectedHousehold?.id}
+          />
         </div>
       )}
 
@@ -1013,7 +1074,24 @@ export const HouseholdCensus: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="space-y-3">
+                  <AddressSelector
+                    province={'ខេត្តបាត់ដំបង'}
+                    district={'ស្រុកភ្នំព្រឹក'}
+                    commune={'ឃុំភ្នំព្រឹក'}
+                    village={formData.village || 'ភូមិភ្នំព្រឹក'}
+                    showSchoolSelector={false}
+                    onChange={(addr) => {
+                      setFormData({
+                        ...formData,
+                        village: addr.village || formData.village,
+                        currentAddress: addr.fullAddressString
+                      });
+                    }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-slate-600 font-medium mb-1">លេខខ្នងផ្ទះ (House No.)</label>
                     <input
@@ -1023,19 +1101,6 @@ export const HouseholdCensus: React.FC = () => {
                       placeholder="ឧ. ០២៨"
                       className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 font-bold"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-600 font-medium mb-1">ភូមិតំបន់សេវា *</label>
-                    <select
-                      value={formData.village}
-                      onChange={e => setFormData({ ...formData, village: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800"
-                    >
-                      {villages.map(v => (
-                        <option key={v} value={v}>{v}</option>
-                      ))}
-                    </select>
                   </div>
 
                   <div>
@@ -1067,7 +1132,7 @@ export const HouseholdCensus: React.FC = () => {
                     type="text"
                     value={formData.currentAddress || ''}
                     onChange={e => setFormData({ ...formData, currentAddress: e.target.value })}
-                    placeholder="ភូមិ... ឃុំបារាំងធ្លាក់ ស្រុកភ្នំព្រឹក ខេត្តបាត់ដំបង"
+                    placeholder="ភូមិ... ឃុំ... ស្រុក... ខេត្ត..."
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
@@ -1140,13 +1205,27 @@ export const HouseholdCensus: React.FC = () => {
 
                   <div>
                     <label className="block text-slate-600 font-medium mb-1">លេខទូរស័ព្ទទាក់ទង</label>
-                    <input
-                      type="tel"
-                      value={formData.phoneNumber || ''}
-                      onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })}
-                      placeholder="012 334 455"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-800"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="tel"
+                        value={formData.phoneNumber || ''}
+                        onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })}
+                        placeholder="012 334 455"
+                        className="flex-1 px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-800"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleAutoSyncFromStudentsByPhone(formData.phoneNumber || '')}
+                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-bold shadow-sm transition-all flex items-center gap-1 shrink-0"
+                        title="ទាញយកឈ្មោះអាណាព្យាបាល និងកូនៗពីបញ្ជីសិស្សតាមលេខទូរស័ព្ទ"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>ទាញយកស្វ័យប្រវត្តិ</span>
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      💡 បញ្ចូលលេខទូរស័ព្ទ ហើយចុចប៊ូតុងនេះ ដើម្បីទាញយកឈ្មោះអាណាព្យាបាល និងកូនៗទាំងអស់ពីបញ្ជីសិស្ស។
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1527,14 +1606,29 @@ export const HouseholdCensus: React.FC = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setIsDetailModalOpen(false)}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-xl transition-colors font-medium"
-              >
-                បិទ (Close)
-              </button>
+            <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-xl transition-colors font-medium cursor-pointer"
+                >
+                  បិទ (Close)
+                </button>
+                {isDirector && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHouseholdToDelete(selectedHousehold);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-bold transition-all cursor-pointer"
+                    title="លុបទិន្នន័យខ្នងផ្ទះនេះចេញពីប្រព័ន្ធ (សិទ្ធិនាយកសាលា)"
+                  >
+                    <Trash2 className="w-4 h-4 text-rose-600" />
+                    <span>លុបខ្នងផ្ទះ</span>
+                  </button>
+                )}
+              </div>
 
               <button
                 type="button"
@@ -1542,7 +1636,7 @@ export const HouseholdCensus: React.FC = () => {
                   setIsDetailModalOpen(false);
                   setIsPrintModalOpen(true);
                 }}
-                className="flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-all"
+                className="flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-all cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
                 <span>បោះពុម្ពឯកសារខ្នងផ្ទះនេះ</span>
@@ -1598,6 +1692,80 @@ export const HouseholdCensus: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: Custom Delete Confirmation Modal */}
+      {householdToDelete && (
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 no-print animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl border border-rose-100 max-w-md w-full overflow-hidden">
+            <div className="bg-gradient-to-r from-rose-600 to-red-700 px-6 py-4 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                  <Trash2 className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold font-moul text-sm">បញ្ជាក់ការលុបខ្នងផ្ទះ</h3>
+                  <p className="text-[11px] text-rose-100">សិទ្ធិអនុញ្ញាតដោយ៖ នាយកសាលា</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setHouseholdToDelete(null)}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 space-y-2">
+                <p className="text-rose-900 font-bold text-sm">
+                  តើអ្នកពិតជាចង់លុបទិន្នន័យជំរឿនខ្នងផ្ទះនេះមែនទេ?
+                </p>
+                <div className="space-y-1 text-slate-700 pt-1">
+                  <p><span className="font-semibold text-slate-500">មេគ្រួសារ៖</span> <strong className="text-slate-900 text-sm">{householdToDelete.headName}</strong></p>
+                  {householdToDelete.houseNumber && (
+                    <p><span className="font-semibold text-slate-500">លេខផ្ទះ៖</span> <strong className="text-slate-800">{householdToDelete.houseNumber}</strong></p>
+                  )}
+                  {householdToDelete.village && (
+                    <p><span className="font-semibold text-slate-500">ទីតាំងភូមិ៖</span> <span className="font-medium text-emerald-800">{householdToDelete.village}</span></p>
+                  )}
+                  {householdToDelete.members && (
+                    <p><span className="font-semibold text-slate-500">សមាជិកគ្រួសារ៖</span> <span className="font-bold text-blue-700">{householdToDelete.members.length} នាក់</span></p>
+                  )}
+                </div>
+              </div>
+
+              <p className="text-slate-500 text-[11px] leading-relaxed">
+                ⚠️ សម្គាល់៖ ការលុបនេះនឹងដកទិន្នន័យខ្នងផ្ទះ និងទីតាំងលើផែនទីសាលាចេញពីប្រព័ន្ធជំរឿនជាអចិន្ត្រៃយ៍។
+              </p>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setHouseholdToDelete(null)}
+                  className="px-4 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors font-medium cursor-pointer"
+                >
+                  បោះបង់ (Cancel)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    deleteHousehold(householdToDelete.id);
+                    if (selectedHousehold?.id === householdToDelete.id) {
+                      setIsDetailModalOpen(false);
+                      setSelectedHousehold(null);
+                    }
+                    setHouseholdToDelete(null);
+                  }}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>យល់ព្រមលុប (Confirm Delete)</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

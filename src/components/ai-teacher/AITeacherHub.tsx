@@ -9,10 +9,14 @@ import {
   History, 
   Bot, 
   MessageSquare,
-  ChevronRight
+  ChevronRight,
+  Layers,
+  Award
 } from 'lucide-react';
 import { AITeacherSubTab, AICreationItem } from './types';
 import { AITeacherDashboard } from './AITeacherDashboard';
+import { MoEYSPrimaryCurriculumHub } from './MoEYSPrimaryCurriculumHub';
+import { WeeklyLessonPlanGenerator } from './WeeklyLessonPlanGenerator';
 import { LessonSlideGenerator } from './LessonSlideGenerator';
 import { CurriculumGenerator } from './CurriculumGenerator';
 import { TestQuestionGenerator } from './TestQuestionGenerator';
@@ -29,6 +33,9 @@ export const AITeacherHub: React.FC = () => {
   const handleOpenCreation = (item: AICreationItem) => {
     setSelectedCreation(item);
     switch (item.type) {
+      case 'weekly_lesson':
+        setActiveSubTab('weekly_lesson');
+        break;
       case 'lesson':
       case 'slide':
         setActiveSubTab('lesson_slide');
@@ -49,8 +56,10 @@ export const AITeacherHub: React.FC = () => {
 
   const navItems = [
     { id: 'dashboard' as AITeacherSubTab, label: 'ផ្ទាំងដើម', icon: LayoutDashboard },
-    { id: 'lesson_slide' as AITeacherSubTab, label: 'កិច្ចតែងការ & ស្លាយ', icon: BookOpen },
-    { id: 'curriculum' as AITeacherSubTab, label: 'បំណែងចែកកម្មវិធីសិក្សា', icon: Calendar },
+    { id: 'moeys_standards' as AITeacherSubTab, label: 'ស្តង់ដារបឋមសិក្សាគំរូ & សៀវភៅពុម្ព MoEYS', icon: Award },
+    { id: 'weekly_lesson' as AITeacherSubTab, label: 'កិច្ចតែងការប្រចាំសប្តាហ៍', icon: Calendar },
+    { id: 'lesson_slide' as AITeacherSubTab, label: 'កិច្ចតែងការទោល & ស្លាយ', icon: BookOpen },
+    { id: 'curriculum' as AITeacherSubTab, label: 'បំណែងចែកកម្មវិធីសិក្សា', icon: Layers },
     { id: 'test_generator' as AITeacherSubTab, label: 'វិញ្ញាសាតេស្ត & សំណួរ', icon: HelpCircle },
     { id: 'educational_game' as AITeacherSubTab, label: 'ល្បែងសិក្សាឌីជីថល', icon: Gamepad2 },
     { id: 'saved_resources' as AITeacherSubTab, label: 'ឯកសាររក្សាទុក', icon: History },
@@ -120,6 +129,21 @@ export const AITeacherHub: React.FC = () => {
               setSelectedCreation(null);
             }} 
             onOpenCreation={handleOpenCreation}
+          />
+        )}
+
+        {activeSubTab === 'moeys_standards' && (
+          <MoEYSPrimaryCurriculumHub 
+            onNavigateToTab={(tab) => {
+              setActiveSubTab(tab);
+              setSelectedCreation(null);
+            }}
+          />
+        )}
+
+        {activeSubTab === 'weekly_lesson' && (
+          <WeeklyLessonPlanGenerator 
+            initialPlan={selectedCreation?.type === 'weekly_lesson' ? selectedCreation.payload : undefined}
           />
         )}
 

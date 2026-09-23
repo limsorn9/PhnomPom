@@ -1,5 +1,13 @@
 import { getAccessToken } from './googleAuth';
-import { Student, Teacher, StudentScoreRecord, BudgetTransaction, SchoolProfile } from '../types';
+import {
+  Student,
+  Teacher,
+  StudentScoreRecord,
+  BudgetTransaction,
+  SchoolProfile,
+  EquipmentLoanRecord,
+  MonthlyBudgetSummary
+} from '../types';
 
 export interface CreatedSheetResult {
   spreadsheetId: string;
@@ -457,6 +465,202 @@ export const exportFinanceToGoogleSheets = async (
 
   await writeSheetValues(spreadsheetId, `'${sheetName}'!A1:K${rows.length}`, rows);
   await formatSheetHeader(spreadsheetId, 0);
+
+  return {
+    spreadsheetId,
+    spreadsheetUrl,
+    title
+  };
+};
+
+/**
+ * Export School Tech Equipment Loan Records to Google Sheets
+ */
+export const exportEquipmentLoansToGoogleSheets = async (
+  schoolProfile: SchoolProfile,
+  loanRecords: EquipmentLoanRecord[]
+): Promise<CreatedSheetResult> => {
+  const title = `បញ្ជីកត់ត្រាការខ្ចីឧបករណ៍បច្ចេកវិទ្យា_${schoolProfile.nameKhmer}_${new Date().toLocaleDateString('km-KH')}`;
+  const sheetName = 'បញ្ជីខ្ចីឧបករណ៍';
+
+  const { spreadsheetId, spreadsheetUrl } = await createSpreadsheet(title, [sheetName]);
+
+  const rows: (string | number)[][] = [
+    ['ក្រសួងអប់រំ យុវជន និងកីឡា', '', '', '', schoolProfile.nameKhmer, '', '', '', ''],
+    [`សាលាបឋមសិក្សា៖ ${schoolProfile.nameKhmer}`, '', '', `បញ្ជីត្រួតពិនិត្យ និងកត់ត្រាការខ្ចី-ប្រើប្រាស់ឧបករណ៍បច្ចេកវិទ្យា`, '', '', `ឆ្នាំសិក្សា៖ ${schoolProfile.academicYear}`],
+    ['', '', '', '', '', '', '', '', ''],
+    [
+      'ល.រ',
+      'លេខកូដខ្ចី',
+      'ឈ្មោះគ្រូខ្ចី',
+      'ទូរស័ព្ទ',
+      'ថ្នាក់/បន្ទប់',
+      'ឈ្មោះឧបករណ៍',
+      'លេខកូដឧបករណ៍',
+      'គោលបំណងប្រើប្រាស់',
+      'កាលបរិច្ឆេទខ្ចី',
+      'ម៉ោងខ្ចី',
+      'កាលបរិច្ឆេទសងរំពឹងទុក',
+      'កាលបរិច្ឆេទសងជាក់ស្តែង',
+      'ស្ថានភាព',
+      'ស្ថានភាពឧបករណ៍មុនខ្ចី',
+      'ស្ថានភាពឧបករណ៍ក្រោយសង',
+      'អ្នកកត់ត្រា/បណ្ណារក្ស'
+    ]
+  ];
+
+  loanRecords.forEach((loan, idx) => {
+    const statusLabel =
+      loan.status === 'borrowed'
+        ? 'កំពុងខ្ចី'
+        : loan.status === 'returned'
+        ? 'បានប្រគល់រួច'
+        : loan.status === 'overdue'
+        ? 'ហួសកំណត់'
+        : 'ខូចខាត';
+
+    rows.push([
+      idx + 1,
+      loan.loanNumber,
+      loan.teacherName,
+      loan.teacherPhone || '',
+      loan.gradeSection,
+      loan.equipmentName,
+      loan.equipmentCode,
+      loan.purposeOfUse,
+      loan.borrowDate,
+      loan.borrowTime || '',
+      loan.expectedReturnDate,
+      loan.actualReturnDate || '',
+      statusLabel,
+      loan.conditionBefore,
+      loan.conditionAfter || '',
+      loan.recordedBy
+    ]);
+  });
+
+  await writeSheetValues(spreadsheetId, `'${sheetName}'!A1:P${rows.length}`, rows);
+  await formatSheetHeader(spreadsheetId, 0);
+
+  return {
+    spreadsheetId,
+    spreadsheetUrl,
+    title
+  };
+};
+
+/**
+ * Export Monthly Budget Tracking Matrix & Financial Summary to Google Sheets
+ */
+export const exportMonthlyBudgetReportToGoogleSheets = async (
+  schoolProfile: SchoolProfile,
+  academicYear: string,
+  monthlySummaries: MonthlyBudgetSummary[],
+  transactions: BudgetTransaction[]
+): Promise<CreatedSheetResult> => {
+  const title = `របាយការណ៍តាមដានថវិកាប្រចាំខែ_${schoolProfile.nameKhmer}_ឆ្នាំ${academicYear}`;
+  const sheetSummary = 'តារាងបូកសរុបប្រចាំខែ';
+  const sheetDetails = 'បញ្ជីប្រតិបត្តិការលម្អិត';
+
+  const { spreadsheetId, spreadsheetUrl } = await createSpreadsheet(title, [sheetSummary, sheetDetails]);
+
+  // 1. Summary Sheet
+  const summaryRows: (string | number)[][] = [
+    ['ក្រសួងអប់រំ យុវជន និងកីឡា', '', '', '', schoolProfile.nameKhmer, '', '', ''],
+    [`សាលាបឋមសិក្សា៖ ${schoolProfile.nameKhmer}`, '', '', `របាយការណ៍តាមដានចំណូល-ចំណាយថវិកាប្រចាំខែ`, '', '', `ឆ្នាំសិក្សា៖ ${academicYear}`],
+    ['', '', '', '', '', '', '', ''],
+    [
+      'ល.រ',
+      'ខែ',
+      'ចំណូលសរុប (រៀល)',
+      'ចំណាយសរុប (រៀល)',
+      'សមតុល្យនៅសល់ (រៀល)',
+      'ចំណូល ($)',
+      'ចំណាយ ($)',
+      'សមតុល្យ ($)',
+      'ចំនួនប្រតិបត្តិការ',
+      'ថវិការដ្ឋ (PB)',
+      'មូលនិធិសាលា (SIG)',
+      'សហគមន៍/មាតាបិតា'
+    ]
+  ];
+
+  let grandTotalIncome = 0;
+  let grandTotalExpense = 0;
+
+  monthlySummaries.forEach((m, idx) => {
+    grandTotalIncome += m.incomeRiel;
+    grandTotalExpense += m.expenseRiel;
+    summaryRows.push([
+      idx + 1,
+      m.monthName,
+      m.incomeRiel,
+      m.expenseRiel,
+      m.balanceRiel,
+      m.incomeUsd,
+      m.expenseUsd,
+      m.balanceUsd,
+      m.transactionCount,
+      m.bySource.pbStateBudget.income - m.bySource.pbStateBudget.expense,
+      m.bySource.sigImprovementGrant.income - m.bySource.sigImprovementGrant.expense,
+      m.bySource.communityParents.income - m.bySource.communityParents.expense
+    ]);
+  });
+
+  // Grand Total Row
+  summaryRows.push([
+    '',
+    'សរុបរួមប្រចាំឆ្នាំ',
+    grandTotalIncome,
+    grandTotalExpense,
+    grandTotalIncome - grandTotalExpense,
+    Math.round(grandTotalIncome / 4050),
+    Math.round(grandTotalExpense / 4050),
+    Math.round((grandTotalIncome - grandTotalExpense) / 4050),
+    transactions.length,
+    '',
+    '',
+    ''
+  ]);
+
+  await writeSheetValues(spreadsheetId, `'${sheetSummary}'!A1:L${summaryRows.length}`, summaryRows);
+  await formatSheetHeader(spreadsheetId, 0);
+
+  // 2. Details Sheet
+  const detailRows: (string | number)[][] = [
+    ['បញ្ជីប្រតិបត្តិការចំណូល-ចំណាយលម្អិតទាំងអស់', '', '', '', '', '', '', '', '', ''],
+    ['', '', '', '', '', '', '', '', '', ''],
+    ['', '', '', '', '', '', '', '', '', ''],
+    [
+      'ល.រ',
+      'កាលបរិច្ឆេទ',
+      'លេខកូដ',
+      'បរិយាយ',
+      'ប្រភេទ',
+      'ប្រភព',
+      'ជំពូក/ប្រភេទចំណាយ',
+      'ទឹកប្រាក់ (រៀល)',
+      'ទឹកប្រាក់ ($)',
+      'អ្នកកត់ត្រា'
+    ]
+  ];
+
+  transactions.forEach((tx, idx) => {
+    detailRows.push([
+      idx + 1,
+      tx.date,
+      tx.referenceCode,
+      tx.title,
+      tx.type === 'income' ? 'ចំណូល' : 'ចំណាយ',
+      tx.source,
+      tx.category,
+      tx.amountRiel,
+      tx.amountUsd,
+      tx.recordedBy
+    ]);
+  });
+
+  await writeSheetValues(spreadsheetId, `'${sheetDetails}'!A1:J${detailRows.length}`, detailRows);
 
   return {
     spreadsheetId,

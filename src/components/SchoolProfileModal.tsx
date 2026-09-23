@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { SchoolProfile, GradingScaleType } from '../types';
-import { AngkorBannerArtwork } from './AngkorBannerArtwork';
+import { useSchool } from '../context/SchoolContext';
 import {
   X,
   Save,
@@ -19,9 +19,14 @@ import {
   Globe,
   Sliders,
   Image as ImageIcon,
-  Camera,
-  Upload,
-  Layers,
+  Sun,
+  Moon,
+  Shield,
+  Database,
+  Download,
+  Lock,
+  Clock,
+  HardDrive,
   Check
 } from 'lucide-react';
 
@@ -51,10 +56,27 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
   onSave,
   showToast
 }) => {
+  const {
+    isDarkMode,
+    toggleDarkMode,
+    students,
+    scores,
+    attendanceRecords,
+    dailyHealthChecks,
+    teachers,
+    studentBadgeAssignments,
+    activityLogs,
+    transfers,
+    currentUser
+  } = useSchool();
   const [formData, setFormData] = useState<SchoolProfile>(initialProfile);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [activeTab, setActiveTab] = useState<'general' | 'location' | 'contact' | 'links' | 'settings'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'location' | 'contact' | 'links' | 'settings' | 'security'>('general');
+  const [isExportingSnapshot, setIsExportingSnapshot] = useState(false);
+
+  // Check role: strictly director or super_admin
+  const isAuthorized = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
 
   // Reset form when modal opens with fresh initialProfile
   useEffect(() => {
@@ -251,6 +273,12 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!isAuthorized) {
+      showToast('មុខងារកំណត់ព័ត៌មានសាលារៀនគឺស្ថិតនៅក្នុងប្រូហ្វាល់នាយកសាលាតែម្នាក់គត់!', 'error');
+      onClose();
+      return;
+    }
+
     // Mark all as touched
     setTouched({
       nameKhmer: true,
@@ -287,50 +315,116 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
     showToast('បានរក្សាទុក និងផ្ទៀងផ្ទាត់ព័ត៌មានសាលារៀនដោយជោគជ័យ!', 'success');
   };
 
+  const handleTriggerDatabaseSnapshot = () => {
+    setIsExportingSnapshot(true);
+    try {
+      const nowIso = new Date().toISOString();
+      const snapshotData = {
+        exportedAt: nowIso,
+        system: 'ប្រព័ន្ធគ្រប់គ្រងសាលាបឋមសិក្សាភ្នំពុំ (MoEYS Primary School Management System)',
+        schoolProfile: {
+          ...formData,
+          lastDatabaseBackup: nowIso
+        },
+        statistics: {
+          totalStudents: students.length,
+          totalScores: scores.length,
+          totalAttendanceRecords: attendanceRecords.length,
+          totalHealthCheckRecords: dailyHealthChecks.length,
+          totalTeachers: teachers.length,
+          totalBadgeAssignments: studentBadgeAssignments.length,
+          totalActivityLogs: activityLogs.length,
+          totalTransfers: transfers.length
+        },
+        data: {
+          students,
+          scores,
+          attendanceRecords,
+          dailyHealthChecks,
+          teachers,
+          studentBadgeAssignments,
+          activityLogs,
+          transfers
+        }
+      };
+
+      const jsonStr = JSON.stringify(snapshotData, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      link.href = url;
+      link.download = `phnom_pom_school_full_snapshot_${timestamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      const updatedProfile = {
+        ...formData,
+        lastDatabaseBackup: nowIso
+      };
+      setFormData(updatedProfile);
+      onSave(updatedProfile);
+      showToast('បានទាញយក និងរក្សាទុកទិន្នន័យបម្រុងទុក (Full Database Snapshot) ដោយជោគជ័យ!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'បរាជ័យក្នុងការទាញយកទិន្នន័យបម្រុងទុក', 'error');
+    } finally {
+      setIsExportingSnapshot(false);
+    }
+  };
+
   const hasErrors = useMemo(() => Object.keys(errors).length > 0, [errors]);
 
   if (!isOpen) return null;
+  if (!isAuthorized) return null;
 
   return (
     <div
       id="school-profile-modal-overlay"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150 font-battambang"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150 font-battambang"
     >
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl max-w-2xl w-full h-[90dvh] sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
         {/* Modal Header */}
-        <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 p-4 sm:p-5 text-white flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-white/10 rounded-xl border border-white/20">
-              <Building2 className="w-6 h-6 text-yellow-400" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-bold font-moul">កែប្រែ និងផ្ទៀងផ្ទាត់ព័ត៌មានសាលា</h3>
-                <span className="px-2 py-0.5 bg-emerald-500/30 text-emerald-300 border border-emerald-400/30 rounded-full text-[10px] font-bold">
-                  Validation Active
-                </span>
+        <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 p-3 sm:p-5 text-white shrink-0">
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="p-2 sm:p-2.5 bg-white/10 rounded-xl border border-white/20 shrink-0">
+                <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400" />
               </div>
-              <p className="text-xs text-blue-100/90 mt-0.5">
-                ប្រព័ន្ធត្រួតពិនិត្យភាពត្រឹមត្រូវនៃលេខទូរស័ព្ទ អ៊ីម៉ែល Google Maps និង Facebook URL
-              </p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  <h3 className="text-sm sm:text-base font-bold font-moul leading-snug truncate sm:whitespace-normal">
+                    កែប្រែ & ផ្ទៀងផ្ទាត់ព័ត៌មានសាលា
+                  </h3>
+                  <span className="hidden sm:inline-flex px-2 py-0.5 bg-emerald-500/30 text-emerald-300 border border-emerald-400/30 rounded-full text-[10px] font-bold shrink-0">
+                    Validation Active
+                  </span>
+                </div>
+                <p className="text-[11px] sm:text-xs text-blue-100/80 mt-0.5 truncate sm:whitespace-normal">
+                  ប្រព័ន្ធត្រួតពិនិត្យភាពត្រឹមត្រូវនៃទិន្នន័យសាលា និងតំណភ្ជាប់
+                </p>
+              </div>
             </div>
+
+            <button
+              id="close-school-profile-modal-btn"
+              onClick={onClose}
+              className="p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/15 active:bg-white/25 transition-colors cursor-pointer shrink-0 min-w-[38px] min-h-[38px] flex items-center justify-center"
+              title="បិទ"
+              aria-label="បិទ"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            id="close-school-profile-modal-btn"
-            onClick={onClose}
-            className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-            title="បិទ"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-slate-100 border-b border-slate-200 px-4 pt-2 flex gap-1 overflow-x-auto shrink-0 scrollbar-none text-xs">
+        <div className="bg-slate-100 border-b border-slate-200 px-3 sm:px-4 pt-1.5 sm:pt-2 flex gap-1 overflow-x-auto shrink-0 scrollbar-none overscroll-x-contain text-xs">
           <button
             type="button"
             onClick={() => setActiveTab('general')}
-            className={`px-3.5 py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === 'general'
                 ? 'bg-white text-blue-900 border-t-2 border-t-blue-600 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -346,7 +440,7 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('location')}
-            className={`px-3.5 py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === 'location'
                 ? 'bg-white text-blue-900 border-t-2 border-t-blue-600 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -359,14 +453,14 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('contact')}
-            className={`px-3.5 py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === 'contact'
                 ? 'bg-white text-blue-900 border-t-2 border-t-blue-600 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
             <Phone className="w-3.5 h-3.5 text-indigo-600" />
-            <span>គណៈគ្រប់គ្រង & ទំនាក់ទំនង</span>
+            <span>ទំនាក់ទំនង</span>
             {(errors.principalPhone || errors.email) && (
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
             )}
@@ -375,14 +469,14 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('links')}
-            className={`px-3.5 py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === 'links'
                 ? 'bg-white text-blue-900 border-t-2 border-t-blue-600 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
             <Globe className="w-3.5 h-3.5 text-blue-600" />
-            <span>ផែនទី & Facebook</span>
+            <span>ផែនទី & FB</span>
             {(errors.mapUrl || errors.facebookPage) && (
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
             )}
@@ -391,14 +485,27 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('settings')}
-            className={`px-3.5 py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === 'settings'
                 ? 'bg-white text-blue-900 border-t-2 border-t-blue-600 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
             <Sliders className="w-3.5 h-3.5 text-amber-600" />
-            <span>ស្តង់ដារពិន្ទុ & Logo</span>
+            <span>ស្តង់ដារពិន្ទុ</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('security')}
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-t-lg font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
+              activeTab === 'security'
+                ? 'bg-white text-blue-900 border-t-2 border-t-blue-600 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+            }`}
+          >
+            <Shield className="w-3.5 h-3.5 text-rose-600" />
+            <span>សុវត្ថិភាព & បម្រុងទុក</span>
           </button>
         </div>
 
@@ -839,9 +946,79 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
             </div>
           )}
 
-          {/* TAB 5: GRADING SCALE & LOGO */}
+          {/* TAB 5: GRADING SCALE, THEME & LOGO */}
           {activeTab === 'settings' && (
             <div className="space-y-4 animate-in fade-in">
+              {/* Dark Mode / Theme Settings Card */}
+              <div className="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <label className="block text-slate-900 dark:text-white font-bold text-xs">
+                      ទម្រង់ផ្ទៃកម្មវិធី (Theme & Display Mode)
+                    </label>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      កំណត់រចនាប័ទ្មពណ៌ទូទៅរបស់ប្រព័ន្ធ និងរក្សាទុកក្នុងកុំព្យូទ័រ/ឧបករណ៍របស់អ្នក (Local Storage)
+                    </p>
+                  </div>
+                  <span
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                      isDarkMode
+                        ? 'bg-indigo-950 text-indigo-300 border border-indigo-700'
+                        : 'bg-amber-100 text-amber-800 border border-amber-300'
+                    }`}
+                  >
+                    {isDarkMode ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+                    <span>{isDarkMode ? 'ទម្រង់ងងឹត (Dark)' : 'ទម្រង់ពន្លឺ (Light)'}</span>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    id="theme-toggle-light"
+                    onClick={() => {
+                      if (isDarkMode) toggleDarkMode();
+                      showToast('បានប្តូរទៅប្រើទម្រង់ពន្លឺធម្មតា (Light Mode)', 'info');
+                    }}
+                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
+                      !isDarkMode
+                        ? 'bg-white border-blue-500 shadow-sm ring-2 ring-blue-500/20 text-slate-900'
+                        : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:border-slate-400 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 shadow-xs">
+                      <Sun className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-xs">ទម្រង់ពន្លឺធម្មតា (Light Mode)</p>
+                      <p className="text-[11px] text-slate-500">ផ្ទៃពណ៌ស ភ្លឺច្បាស់ ងាយស្រួលមើលពេលថ្ងៃ</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    id="theme-toggle-dark"
+                    onClick={() => {
+                      if (!isDarkMode) toggleDarkMode();
+                      showToast('បានប្តូរទៅប្រើទម្រង់ងងឹត (Dark Mode)', 'info');
+                    }}
+                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
+                      isDarkMode
+                        ? 'bg-slate-900 border-blue-500 shadow-sm ring-2 ring-blue-500/20 text-white'
+                        : 'bg-white border-slate-200 hover:border-slate-300 text-slate-700'
+                    }`}
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-indigo-950 text-indigo-400 flex items-center justify-center shrink-0 shadow-xs border border-indigo-800">
+                      <Moon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-xs">ទម្រង់ងងឹត (Dark Mode)</p>
+                      <p className="text-[11px] text-slate-500">ផ្ទៃងងឹតកាត់បន្ថយចំណាំងពន្លឺ ថែរក្សាភ្នែក</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               {/* Grading Scale */}
               <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                 <label className="block text-slate-800 font-bold mb-1.5">
@@ -918,164 +1095,165 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
                   បង្ហាញលើប័ណ្ណសរសើរ កាតសិស្ស និងក្បាលលិខិតផ្លូវការ
                 </p>
               </div>
+            </div>
+          )}
 
-              {/* Hero Banner Background Settings */}
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
-                <label className="block text-slate-800 font-bold">
-                  រូបភាពប្រាសាទអង្គរវត្តលើផ្ទាំងធំបឋមកថា (Angkor Wat Hero Banner)
-                </label>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {/* TAB 6: SECURITY, BACKUP & SESSION PERSISTENCE */}
+          {activeTab === 'security' && (
+            <div className="space-y-4 animate-in fade-in">
+              {/* Full Database Snapshot Card */}
+              <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-4 sm:p-5 rounded-2xl border border-indigo-800 shadow-md space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-800/80 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-600/40 border border-indigo-400/40 flex items-center justify-center text-indigo-300 flex-shrink-0">
+                      <Database className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm font-moul text-indigo-100">
+                        ទាញយកទិន្នន័យបម្រុងទុកពេញលេញ (Full Database Snapshot)
+                      </h4>
+                      <p className="text-[11px] text-indigo-200/80 mt-0.5">
+                        នាំចេញទិន្នន័យសាលាទាំងស្រុងជាឯកសារ JSON រួមមានសិស្ស ពិន្ទុ វត្តមាន ពិនិត្យសុខភាព គ្រូបង្រៀន និងកំណត់ត្រាផ្សេងៗ
+                      </p>
+                    </div>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => handleFieldChange('bannerType', 'angkor_twilight')}
-                    className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
-                      formData.bannerType === 'angkor_twilight' || !formData.bannerType
-                        ? 'border-blue-500 bg-blue-50/80 text-blue-950 ring-1 ring-blue-500 font-bold'
-                        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                    }`}
+                    id="trigger-db-backup-btn"
+                    onClick={handleTriggerDatabaseSnapshot}
+                    disabled={isExportingSnapshot}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl shadow transition-all active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11px] flex items-center gap-1 font-bold">
-                        <Sparkles className="w-3 h-3 text-amber-500" />
-                        អង្គរវត្តថ្ងៃលិច
-                      </span>
-                      {(formData.bannerType === 'angkor_twilight' || !formData.bannerType) && (
-                        <Check className="w-3.5 h-3.5 text-blue-600" />
-                      )}
-                    </div>
-                    <span className="text-[9px] text-slate-500">Twilight Sunset</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleFieldChange('bannerType', 'angkor_sunrise')}
-                    className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
-                      formData.bannerType === 'angkor_sunrise'
-                        ? 'border-blue-500 bg-blue-50/80 text-blue-950 ring-1 ring-blue-500 font-bold'
-                        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11px] flex items-center gap-1 font-bold">
-                        <Sparkles className="w-3 h-3 text-rose-500" />
-                        អង្គរវត្តថ្ងៃរះ
-                      </span>
-                      {formData.bannerType === 'angkor_sunrise' && (
-                        <Check className="w-3.5 h-3.5 text-blue-600" />
-                      )}
-                    </div>
-                    <span className="text-[9px] text-slate-500">Morning Sunrise</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleFieldChange('bannerType', 'angkor_golden')}
-                    className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
-                      formData.bannerType === 'angkor_golden'
-                        ? 'border-blue-500 bg-blue-50/80 text-blue-950 ring-1 ring-blue-500 font-bold'
-                        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11px] flex items-center gap-1 font-bold">
-                        <Sparkles className="w-3 h-3 text-yellow-500" />
-                        អង្គរវត្តពន្លឺមាស
-                      </span>
-                      {formData.bannerType === 'angkor_golden' && (
-                        <Check className="w-3.5 h-3.5 text-blue-600" />
-                      )}
-                    </div>
-                    <span className="text-[9px] text-slate-500">Golden Reflection</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleFieldChange('bannerType', 'custom')}
-                    className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
-                      formData.bannerType === 'custom'
-                        ? 'border-blue-500 bg-blue-50/80 text-blue-950 ring-1 ring-blue-500 font-bold'
-                        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11px] flex items-center gap-1 font-bold">
-                        <Upload className="w-3 h-3 text-blue-500" />
-                        រូបភាពផ្ទាល់ខ្លួន
-                      </span>
-                      {formData.bannerType === 'custom' && (
-                        <Check className="w-3.5 h-3.5 text-blue-600" />
-                      )}
-                    </div>
-                    <span className="text-[9px] text-slate-500">Upload / Image URL</span>
+                    <Download className="w-4 h-4" />
+                    <span>{isExportingSnapshot ? 'កំពុងដំណើរការ...' : 'ទាញយក Backup ឥឡូវនេះ'}</span>
                   </button>
                 </div>
 
-                {formData.bannerType === 'custom' && (
-                  <div className="space-y-2 pt-1 animate-in fade-in">
-                    <label className="block text-[11px] font-bold text-slate-700">
-                      តំណភ្ជាប់រូបភាពផ្ទាល់ខ្លួន (Banner Image URL)
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.bannerUrl || ''}
-                      onChange={(e) => handleFieldChange('bannerUrl', e.target.value)}
-                      placeholder="https://..."
-                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-times text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
+                {/* Database Statistics Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                  <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                    <span className="text-indigo-200 text-[10px] block">ទិន្នន័យសិស្ស</span>
+                    <strong className="text-sm font-bold font-times text-white">{students.length} នាក់</strong>
                   </div>
-                )}
+                  <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                    <span className="text-indigo-200 text-[10px] block">កំណត់ត្រាពិន្ទុ</span>
+                    <strong className="text-sm font-bold font-times text-white">{scores.length} កំណត់ត្រា</strong>
+                  </div>
+                  <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                    <span className="text-indigo-200 text-[10px] block">កំណត់ត្រាវត្តមាន</span>
+                    <strong className="text-sm font-bold font-times text-white">{attendanceRecords.length} ថ្ងៃ</strong>
+                  </div>
+                  <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                    <span className="text-indigo-200 text-[10px] block">ពិនិត្យសុខភាពប្រចាំថ្ងៃ</span>
+                    <strong className="text-sm font-bold font-times text-white">{dailyHealthChecks.length} កំណត់ត្រា</strong>
+                  </div>
+                </div>
 
-                <div className="pt-1">
-                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 mb-1">
-                    <span>កម្រិតស្រមោលងងឹតលើផ្ទាំងធំ (Overlay Opacity): {formData.bannerOverlayOpacity !== undefined ? formData.bannerOverlayOpacity : 80}%</span>
+                {/* Last Backup Info */}
+                <div className="flex items-center gap-2 text-[11px] text-indigo-300 bg-white/5 px-3 py-2 rounded-xl border border-white/10">
+                  <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>
+                    កាលបរិច្ឆេទចម្លងទិន្នន័យចុងក្រោយ៖{' '}
+                    <strong className="text-white font-times">
+                      {formData.lastDatabaseBackup
+                        ? new Date(formData.lastDatabaseBackup).toLocaleString('km-KH')
+                        : 'មិនទាន់ធ្លាប់បានបម្រុងទុកដោយដៃ'}
+                    </strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Session Persistence & Remember Me Settings Card */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0">
+                    <Lock className="w-4 h-4" />
                   </div>
-                  <input
-                    type="range"
-                    min="30"
-                    max="95"
-                    step="5"
-                    value={formData.bannerOverlayOpacity !== undefined ? formData.bannerOverlayOpacity : 80}
-                    onChange={(e) => handleFieldChange('bannerOverlayOpacity', Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                  />
+                  <div>
+                    <h4 className="font-bold text-xs text-slate-900">
+                      សុពលភាពចងចាំគណនីចូលប្រព័ន្ធ (Session "Remember Me" Persistence)
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      កំណត់រយៈពេលរក្សាវត្តមានចូលប្រើប្រាស់ប្រព័ន្ធដោយស្វ័យប្រវត្តិកុំឱ្យទាមទារ Password ញឹកញាប់
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                  {[
+                    { days: 1, label: '១ ថ្ងៃ (1 Day)', desc: 'ទាមទារចូលរាល់ថ្ងៃ សុវត្ថិភាពខ្ពស់' },
+                    { days: 7, label: '៧ ថ្ងៃ (1 Week)', desc: 'រក្សាទុក ១ សប្តាហ៍' },
+                    { days: 14, label: '១៤ ថ្ងៃ (2 Weeks)', desc: 'រក្សាទុក ២ សប្តាហ៍' },
+                    { days: 30, label: '៣០ ថ្ងៃ (1 Month)', desc: 'ជម្រើសណែនាំទូទៅ (Default)' },
+                    { days: 365, label: '១ ឆ្នាំ (Permanent)', desc: 'រក្សាទុកយូរអង្វែងលើកុំព្យូទ័រផ្ទាល់ខ្លួន' }
+                  ].map(item => {
+                    const isSelected = (formData.sessionRememberDays || 30) === item.days;
+                    return (
+                      <label
+                        key={item.days}
+                        className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${
+                          isSelected
+                            ? 'bg-blue-50 border-blue-500 text-blue-950 ring-1 ring-blue-500 shadow-xs'
+                            : 'bg-white border-slate-200 hover:bg-slate-100/80 text-slate-700'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="sessionRememberDays"
+                          checked={isSelected}
+                          onChange={() => handleFieldChange('sessionRememberDays', item.days)}
+                          className="mt-0.5"
+                        />
+                        <div>
+                          <p className="font-bold text-xs">{item.label}</p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">{item.desc}</p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Persistence Strategy Note */}
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 flex items-start gap-2">
+                <Shield className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">ស្តង់ដារសុវត្ថិភាពទិន្នន័យ (MoEYS Dual-Storage Persistence)</p>
+                  <p className="text-amber-800 mt-0.5">
+                    ប្រព័ន្ធដំណើរការស្របគ្នាលើ Local Storage (កុំព្យូទ័រអ្នក) និងពពកទិន្នន័យ Google Cloud Firestore ដោយស្វ័យប្រវត្តិ។ ការទាញយក Snapshot ដោយដៃជួយការពារទិន្នន័យបន្ថែមនៅពេលប្តូរឧបករណ៍ ឬដំឡើង Windows ថ្មី។
+                  </p>
                 </div>
               </div>
             </div>
           )}
 
           {/* Live Preview Card */}
-          <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+          <div className="bg-slate-50 p-3 sm:p-3.5 rounded-xl border border-slate-200">
             <p className="font-bold text-[11px] text-slate-600 mb-1.5 flex items-center gap-1">
               <Info className="w-3.5 h-3.5 text-blue-600" />
               ទិដ្ឋភាពសង្ខេបបឋមកថាសាលា (Live Header Preview)
             </p>
-            <div className="relative rounded-xl overflow-hidden border border-slate-300 shadow-sm min-h-[90px] p-4 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-              <AngkorBannerArtwork
-                bannerType={formData.bannerType || 'angkor_twilight'}
-                bannerUrl={formData.bannerUrl}
-                overlayOpacity={formData.bannerOverlayOpacity !== undefined ? formData.bannerOverlayOpacity : 80}
-              />
-              <div className="relative z-10 space-y-0.5">
-                <p className="font-moul text-white text-sm drop-shadow-sm">{formData.nameKhmer || 'ឈ្មោះសាលារៀន'}</p>
-                <p className="font-times text-amber-200 text-[11px]">{formData.nameLatin || 'School Latin Name'}</p>
-                <p className="text-[11px] text-slate-200 mt-0.5">
+            <div className="bg-white p-3 rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="min-w-0">
+                <p className="font-moul text-blue-900 text-xs sm:text-sm truncate">{formData.nameKhmer || 'ឈ្មោះសាលារៀន'}</p>
+                <p className="font-times text-slate-500 text-[11px] truncate">{formData.nameLatin || 'School Latin Name'}</p>
+                <p className="text-[11px] text-slate-600 mt-0.5">
                   {formData.village && `${formData.village}, `}
                   {formData.commune && `${formData.commune}, `}
                   {formData.district && `${formData.district}, `}
                   {formData.province}
                 </p>
               </div>
-              <div className="relative z-10 text-right text-[11px] text-slate-200 space-y-0.5 border-t sm:border-t-0 pt-1 sm:pt-0">
+              <div className="text-left sm:text-right text-[11px] text-slate-600 space-y-0.5 border-t sm:border-t-0 pt-1.5 sm:pt-0 shrink-0">
                 <p>
-                  <span className="font-bold text-white">នាយក៖</span> {formData.principalName || '...'}
+                  <span className="font-bold">នាយក៖</span> {formData.principalName || '...'}
                 </p>
-                <p className="font-times font-bold text-emerald-300">
+                <p className="font-times font-bold text-slate-800">
                   {formData.principalPhone || '...'}
                 </p>
-                <div className="flex items-center justify-end gap-2 text-[10px] text-amber-200">
-                  {formData.mapUrl && <span className="flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5 text-rose-400" /> Maps</span>}
-                  {formData.facebookPage && <span className="flex items-center gap-0.5"><Facebook className="w-2.5 h-2.5 text-sky-400" /> Facebook</span>}
+                <div className="flex items-center sm:justify-end gap-2 text-[10px] text-blue-600">
+                  {formData.mapUrl && <span className="flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5 text-red-500" /> Maps</span>}
+                  {formData.facebookPage && <span className="flex items-center gap-0.5"><Facebook className="w-2.5 h-2.5" /> Facebook</span>}
                 </div>
               </div>
             </div>
@@ -1083,7 +1261,7 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
         </form>
 
         {/* Modal Footer Actions */}
-        <div className="p-4 bg-slate-100 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+        <div className="p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2 shrink-0">
           <button
             type="button"
             onClick={() => {
@@ -1092,18 +1270,19 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
               setTouched({});
               showToast('បានកំណត់ទិន្នន័យដើមឡើងវិញ', 'info');
             }}
-            className="text-xs text-slate-600 hover:text-slate-900 flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1 transition-colors cursor-pointer py-2 px-2 rounded-lg hover:bg-slate-200/60 shrink-0"
+            title="កំណត់ទិន្នន័យដើមឡើងវិញ"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>កំណត់ទិន្នន័យដើម</span>
+            <span className="hidden sm:inline">កំណត់ដើម</span>
           </button>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2 flex-1 sm:flex-none justify-end">
             <button
               type="button"
               id="cancel-school-profile-btn"
               onClick={onClose}
-              className="px-4 py-2 bg-white hover:bg-slate-200 text-slate-700 font-bold rounded-xl border border-slate-300 transition-colors text-xs cursor-pointer"
+              className="flex-1 sm:flex-none px-3.5 py-2 sm:px-4 sm:py-2 bg-white hover:bg-slate-100 text-slate-700 font-bold rounded-xl border border-slate-300 transition-colors text-xs cursor-pointer text-center"
             >
               បោះបង់
             </button>
@@ -1111,10 +1290,10 @@ export const SchoolProfileModal: React.FC<SchoolProfileModalProps> = ({
               type="button"
               id="save-school-profile-btn"
               onClick={handleSubmit}
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow flex items-center gap-2 transition-transform active:scale-95 text-xs cursor-pointer"
+              className="flex-1 sm:flex-none px-4 py-2 sm:px-5 sm:py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-transform active:scale-95 text-xs cursor-pointer text-center"
             >
-              <Save className="w-4 h-4" />
-              <span>រក្សាទុកព័ត៌មាន</span>
+              <Save className="w-4 h-4 shrink-0" />
+              <span>រក្សាទុក</span>
             </button>
           </div>
         </div>

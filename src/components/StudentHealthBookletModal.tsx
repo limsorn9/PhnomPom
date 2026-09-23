@@ -34,12 +34,13 @@ export const StudentHealthBookletModal: React.FC<StudentHealthBookletModalProps>
   selectedStudent,
   students,
   schoolProfile,
-  academicYear = '២០២៥-២០២៦',
+  academicYear,
   onSaveStudentHealth
 }) => {
+  const activeAcademicYear = academicYear || schoolProfile?.academicYear || '២០២៥-២០២៦';
   // Active student selection
   const [currentStudentId, setCurrentStudentId] = useState<string>(
-    selectedStudent?.id || (students.length > 0 ? students[0].id : '')
+    selectedStudent?.id || (Array.isArray(students) && students.length > 0 ? students[0]?.id || '' : '')
   );
 
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -49,7 +50,8 @@ export const StudentHealthBookletModal: React.FC<StudentHealthBookletModalProps>
 
   // Active student object
   const currentStudent = useMemo(() => {
-    return students.find(s => s.id === currentStudentId) || selectedStudent || students[0] || {
+    const safeStudents = Array.isArray(students) ? students.filter(Boolean) : [];
+    return safeStudents.find(s => s && s.id === currentStudentId) || selectedStudent || safeStudents[0] || {
       id: 'demo-1',
       code: 'STU-2024-001',
       nameKhmer: 'ខុម សុធីតា',
@@ -777,7 +779,7 @@ export const StudentHealthBookletModal: React.FC<StudentHealthBookletModalProps>
                     ថ្នាក់ទី{currentStudent.grade} "{currentStudent.section}"
                   </div>
                   <div className="p-2 border-r-2 border-blue-900 font-moul text-blue-950 text-xs sm:text-sm">
-                    ឆ្នាំសិក្សា {academicYear}
+                    ឆ្នាំសិក្សា {activeAcademicYear}
                   </div>
                   <div className="p-2 font-moul text-blue-950 text-xs sm:text-sm">
                     អាយុ {studentAge} ឆ្នាំ

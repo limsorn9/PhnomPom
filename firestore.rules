@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Catch-all default
+    match /{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Schools collection containing main school database record
+    match /schools/{schoolId} {
+      allow read, write: if true;
+    }
+
+    // User profile records
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+  }
+}
+

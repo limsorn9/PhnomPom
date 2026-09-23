@@ -1,5 +1,7 @@
 export type AITeacherSubTab = 
   | 'dashboard'
+  | 'moeys_standards'
+  | 'weekly_lesson'
   | 'lesson_slide'
   | 'curriculum'
   | 'test_generator'
@@ -8,6 +10,69 @@ export type AITeacherSubTab =
 
 export type StudentLevel = 'beginner' | 'average' | 'advanced' | 'mixed';
 export type TeachingStyle = 'visual' | 'interactive' | 'discussion' | 'project_based' | 'game_based' | 'traditional';
+
+export interface WeeklyLessonPlanFormInput {
+  subject: string;
+  grade: number;
+  weekNumber: number;
+  semester: 'semester_1' | 'semester_2';
+  academicYear: string;
+  themeUnit: string;
+  teachingDaysCount: number; // 5 days (Mon-Fri) or 6 days (Mon-Sat)
+  periodsPerDay: number;
+  studentLevel: StudentLevel;
+  teachingStyle: TeachingStyle;
+  curriculumReference?: string;
+  coreObjectives: string;
+  materialsInClass: string;
+}
+
+export interface WeeklyLessonDayItem {
+  id: string;
+  dayIndex: number;
+  dayOfWeek: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+  dayNameKh: string;
+  lessonNumber: string;
+  topicTitle: string;
+  periodsCount: number;
+  objectives: {
+    knowledge: string;
+    skills: string;
+    attitude: string;
+  };
+  teachingSteps: {
+    step1_admin: string;
+    step2_review: string;
+    step3_newLesson: string;
+    step4_consolidation: string;
+    step5_homework: string;
+  };
+  materials: string[];
+  assessmentMethod: string;
+  differentiatedSupport: {
+    slowLearners: string;
+    fastLearners: string;
+  };
+  notes?: string;
+}
+
+export interface AIWeeklyLessonPlan {
+  id: string;
+  title: string;
+  grade: number;
+  subject: string;
+  weekNumber: number;
+  semester: 'semester_1' | 'semester_2';
+  academicYear: string;
+  themeUnit: string;
+  totalPeriods: number;
+  generalObjectives: string[];
+  days: WeeklyLessonDayItem[];
+  teachingAidsRequired: string[];
+  weeklySummaryNotes: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface LessonPlanFormInput {
   subject: string;
@@ -282,7 +347,7 @@ export interface StudentPlayer {
 
 export interface AICreationItem {
   id: string;
-  type: 'lesson' | 'slide' | 'curriculum' | 'test' | 'game';
+  type: 'lesson' | 'slide' | 'curriculum' | 'test' | 'game' | 'weekly_lesson';
   typeNameKh: string;
   title: string;
   subject: string;

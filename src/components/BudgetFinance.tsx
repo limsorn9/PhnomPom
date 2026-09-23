@@ -3,6 +3,8 @@ import { useSchool } from '../context/SchoolContext';
 import { BudgetTransaction, BudgetSource } from '../types';
 import { exportFinanceToGoogleSheets } from '../services/googleSheets';
 import { getAccessToken, googleSignIn } from '../services/googleAuth';
+import { MonthlyBudgetSheetsSync } from './MonthlyBudgetSheetsSync';
+import { D3BudgetCategoryPieChart } from './D3BudgetCategoryPieChart';
 import {
   CircleDollarSign,
   TrendingUp,
@@ -29,13 +31,14 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } fro
 
 export const BudgetFinance: React.FC = () => {
   const {
-    budgetTransactions,
+    budgetTransactions, selectedAcademicYear,
     addBudgetTransaction,
     deleteBudgetTransaction,
     getTotalIncome,
     getTotalExpense,
     getBalance,
     schoolProfile,
+    currentUser,
     showToast
   } = useSchool();
 
@@ -44,6 +47,7 @@ export const BudgetFinance: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isExportingSheets, setIsExportingSheets] = useState(false);
+  const [financeSubTab, setFinanceSubTab] = useState<'general' | 'monthly_sheets'>('general');
 
 
   // Form State
@@ -54,7 +58,7 @@ export const BudgetFinance: React.FC = () => {
     category: 'សម្ភារៈឧបទេស',
     amountRiel: 500000,
     date: new Date().toISOString().split('T')[0],
-    recordedBy: 'អ្នកគ្រូ ពេជ្រ ធីតា',
+    recordedBy: currentUser?.nameKhmer || currentUser?.name || 'នាយកសាលា',
     description: '',
     status: 'approved' as const
   };
@@ -66,7 +70,9 @@ export const BudgetFinance: React.FC = () => {
   const balanceRiel = getBalance();
   const balanceUsd = Math.round(balanceRiel / 4050);
 
-  const filteredTransactions = budgetTransactions.filter(tx => {
+  const currentTransactions = budgetTransactions.filter(tx => !tx.academicYear || tx.academicYear === selectedAcademicYear);
+
+  const filteredTransactions = currentTransactions.filter(tx => {
     const matchesType = filterType === 'all' || tx.type === filterType;
     const matchesSource = filterSource === 'all' || tx.source === filterSource;
     const matchesSearch =
@@ -92,7 +98,8 @@ export const BudgetFinance: React.FC = () => {
       date: formData.date,
       recordedBy: formData.recordedBy,
       description: formData.description,
-      status: formData.status
+      status: formData.status,
+      academicYear: selectedAcademicYear
     });
 
     setIsAddModalOpen(false);
@@ -108,10 +115,10 @@ export const BudgetFinance: React.FC = () => {
   ];
 
   const sourceChartData = sourcesList.map(src => {
-    const income = budgetTransactions
+    const income = currentTransactions
       .filter(tx => tx.source === src && tx.type === 'income')
       .reduce((sum, tx) => sum + tx.amountRiel, 0);
-    const expense = budgetTransactions
+    const expense = currentTransactions
       .filter(tx => tx.source === src && tx.type === 'expense')
       .reduce((sum, tx) => sum + tx.amountRiel, 0);
 
@@ -166,7 +173,7 @@ export const BudgetFinance: React.FC = () => {
 
     setIsExportingSheets(true);
     try {
-      const res = await exportFinanceToGoogleSheets(schoolProfile, budgetTransactions);
+      const res = await exportFinanceToGoogleSheets(schoolProfile, currentTransactions);
       showToast(`បានបង្កើត Google Sheet «${res.title}» ដោយជោគជ័យ!`);
       window.open(res.spreadsheetUrl, '_blank');
     } catch (err: any) {
@@ -276,10 +283,39 @@ export const BudgetFinance: React.FC = () => {
             </span>
           </div>
         </div>
+
+        {/* Sub-tabs Navigation */}
+        <div className="flex items-center gap-2 mt-5 pt-4 border-t border-slate-100">
+          <button
+            onClick={() => setFinanceSubTab('general')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
+              financeSubTab === 'general'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            ប្រតិបត្តិការទូទៅ & ក្រាហ្វិក
+          </button>
+          <button
+            onClick={() => setFinanceSubTab('monthly_sheets')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 ${
+              financeSubTab === 'monthly_sheets'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>តាមដានថវិកាប្រចាំខែ (១២ ខែ & Google Sheets)</span>
+          </button>
+        </div>
       </div>
 
-      {/* Chart: Income vs Expense by Source */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+      {financeSubTab === 'monthly_sheets' ? (
+        <MonthlyBudgetSheetsSync />
+      ) : (
+        <>
+          {/* Chart: Income vs Expense by Source */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-sm font-bold text-slate-900 font-kantumruy">
@@ -306,6 +342,9 @@ export const BudgetFinance: React.FC = () => {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* D3.js Category Breakdown Pie/Donut Chart */}
+      <D3BudgetCategoryPieChart />
 
       {/* Transactions Ledger Table */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
@@ -375,7 +414,8 @@ export const BudgetFinance: React.FC = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-100 text-[11px] font-bold text-slate-700 border-b border-slate-200">
@@ -440,6 +480,71 @@ export const BudgetFinance: React.FC = () => {
           </table>
         </div>
 
+        {/* Mobile Transaction Card View (md:hidden) */}
+        <div className="md:hidden divide-y divide-slate-200">
+          {filteredTransactions.length > 0 ? (
+            filteredTransactions.map((tx) => (
+              <div key={`mob-tx-${tx.id}`} className="p-4 bg-white hover:bg-slate-50 transition-colors">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-mono text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-bold">
+                      {tx.referenceCode}
+                    </span>
+                    <h4 className="font-bold text-slate-900 text-sm mt-1">{tx.title}</h4>
+                    <p className="text-xs text-slate-500">{tx.category}</p>
+                  </div>
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                      tx.type === 'income'
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : 'bg-rose-100 text-rose-800 border border-rose-200'
+                    }`}
+                  >
+                    {tx.type === 'income' ? 'ចំណូល' : 'ចំណាយ'}
+                  </span>
+                </div>
+
+                <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-slate-500 block">ប្រភពថវិកា</span>
+                    <span className="text-xs font-semibold text-slate-800">{tx.source}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-500 block">ទឹកប្រាក់</span>
+                    <span className={`text-sm font-mono font-bold ${tx.type === 'income' ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      {tx.type === 'income' ? '+' : '-'}{tx.amountRiel.toLocaleString()} ៛
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-2.5 pt-2 text-xs text-slate-500">
+                  <div className="flex items-center gap-1.5">
+                    <span>{tx.date}</span>
+                    <span>•</span>
+                    <span>{tx.recordedBy}</span>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`តើអ្នកចង់លុបប្រតិបត្តិការ «${tx.title}» ឬទេ?`)) {
+                        deleteBudgetTransaction(tx.id);
+                      }
+                    }}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                    title="លុបប្រតិបត្តិការ"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="py-8 text-center text-slate-500 text-xs">
+              មិនមានប្រតិបត្តិការត្រូវនឹងលក្ខខណ្ឌស្វែងរកនេះទេ
+            </div>
+          )}
+        </div>
+
         {/* Official Signatures on Print */}
         <div className="hidden print:flex justify-between items-end mt-8 text-xs text-slate-800 p-6 pt-2">
           <div className="text-center">
@@ -457,6 +562,8 @@ export const BudgetFinance: React.FC = () => {
           </div>
         </div>
       </div>
+      </>
+      )}
 
       {/* Add Transaction Modal */}
       {isAddModalOpen && (

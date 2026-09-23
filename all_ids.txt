@@ -1,0 +1,1371 @@
+src/types.ts:1817:   memberId: string; // student.id or teacher.id
+src/components/StudentHealthMetricTrendsChart.tsx:68:       const s = students.find(item => item.id === studentFilter);
+src/components/StudentHealthMetricTrendsChart.tsx:113:     const singleStudent = studentFilter !== 'all' ? students.find(s => s.id === studentFilter) : null;
+src/components/StudentHealthMetricTrendsChart.tsx:310:               <option key={s.id} value={s.id}>
+src/components/TeacherManagement.tsx:209:       updateTeacher(editingTeacher.id, teacherData);
+src/components/TeacherManagement.tsx:430:               {filteredTeachers.filter(t => getTeacherCheckInStatus(t.id)?.status === 'present').length} / {filteredTeachers.filter(t => t.status === 'active').length} បាន Check-in
+src/components/TeacherManagement.tsx:438:                 activeOnes.forEach(t => recordTeacherQuickCheckIn(t.id, 'present'));
+src/components/TeacherManagement.tsx:454:           const checkInRecord = getTeacherCheckInStatus(teacher.id);
+src/components/TeacherManagement.tsx:459:             key={teacher.id}
+src/components/TeacherManagement.tsx:512:                     recordTeacherQuickCheckIn(teacher.id, isCheckedIn ? 'absent' : 'present');
+src/components/TeacherManagement.tsx:586:                         deleteTeacher(teacher.id);
+src/components/TeacherManagement.tsx:650:               <tr key={t.id} className="border-b border-slate-200">
+src/components/SecurityAndSessionManager.tsx:116:     const onlyCurrentSession = sessions.filter(s => s.isCurrent || s.id === currentSessionId);
+src/components/SecurityAndSessionManager.tsx:121:       userId: currentUser.id,
+src/components/SecurityAndSessionManager.tsx:133:     onUpdateUser(currentUser.id, {
+src/components/SecurityAndSessionManager.tsx:143:     const updated = sessions.filter(s => s.id !== sessionId);
+src/components/SecurityAndSessionManager.tsx:144:     onUpdateUser(currentUser.id, { activeSessions: updated });
+src/components/SecurityAndSessionManager.tsx:150:     onUpdateUser(currentUser.id, {
+src/components/SecurityAndSessionManager.tsx:197:     onUpdateUser(currentUser.id, {
+src/components/SecurityAndSessionManager.tsx:448:                   key={sess.id}
+src/components/SecurityAndSessionManager.tsx:525:                         onClick={() => handleTerminateSession(sess.id)}
+src/components/DeleteAccountModal.tsx:54:     onConfirmDelete(user.id, reason.trim());
+src/components/Sidebar.tsx:137:   const savedFavoriteItems = (allResourcesList || []).filter(item => item && (savedFavoriteIds || []).includes(item.id));
+src/components/Sidebar.tsx:364:   const filteredNavItems = allNavItems.filter(item => canAccessTab(item.id));
+src/components/Sidebar.tsx:512:           const isActive = activeTab === item.id;
+src/components/Sidebar.tsx:518:               key={item.id}
+src/components/Sidebar.tsx:519:               id={`sidebar-nav-${item.id}`}
+src/components/Sidebar.tsx:520:               onClick={() => handleNavClick(item.id)}
+src/components/Sidebar.tsx:567:                 key={fav.id}
+src/components/InteractiveSeatingChart.tsx:27:           studentId: student ? student.id : undefined
+src/components/InteractiveSeatingChart.tsx:40:     return students.find(s => s.id === studentId);
+src/components/InteractiveSeatingChart.tsx:58:       const sourceIndex = newDesks.findIndex(d => d.id === draggedDeskId);
+src/components/InteractiveSeatingChart.tsx:59:       const targetIndex = newDesks.findIndex(d => d.id === targetDeskId);
+src/components/InteractiveSeatingChart.tsx:91:               return { ...d, studentId: student ? student.id : undefined };
+src/components/InteractiveSeatingChart.tsx:112:           const isSelected = selectedDeskId === desk.id;
+src/components/InteractiveSeatingChart.tsx:116:               key={desk.id}
+src/components/InteractiveSeatingChart.tsx:118:               onDragStart={(e) => handleDragStart(e, desk.id)}
+src/components/InteractiveSeatingChart.tsx:120:               onDrop={(e) => handleDrop(e, desk.id)}
+src/components/InteractiveSeatingChart.tsx:121:               onClick={() => setSelectedDeskId(desk.id)}
+src/components/InteractiveSeatingChart.tsx:129:                 <span>โต๊ะ #{desk.id}</span>
+src/components/InteractiveSeatingChart.tsx:160:                     onClick={() => onAttendanceQuickMark(student.id, 'present')}
+src/components/InteractiveSeatingChart.tsx:167:                     onClick={() => onAttendanceQuickMark(student.id, 'absent')}
+src/components/ClassStudentStatisticsPriModal.tsx:180:       if (st.livingCondition === 'ក្រ១' || st.livingCondition === 'ក្រ២' || st.idPoorCardNumber) {
+src/components/StudentHouseholdMap.tsx:332:       const isHighlighted = h.id === selectedHouseholdId || h.id === hoveredHouseholdId || h.id === activeRouteHousehold?.id;
+src/components/StudentHouseholdMap.tsx:401:               id="btn-route-${h.id}"
+src/components/StudentHouseholdMap.tsx:408:               id="btn-view-${h.id}"
+src/components/StudentHouseholdMap.tsx:422:         const routeBtn = document.getElementById(`btn-route-${h.id}`);
+src/components/StudentHouseholdMap.tsx:430:         const viewBtn = document.getElementById(`btn-view-${h.id}`);
+src/components/StudentHouseholdMap.tsx:439:         setHoveredHouseholdId(h.id);
+src/components/StudentHouseholdMap.tsx:450:     const target = households.find(h => h.id === selectedHouseholdId);
+src/components/StudentHouseholdMap.tsx:802:                   const isSelected = h.id === selectedHouseholdId || h.id === activeRouteHousehold?.id;
+src/components/StudentHouseholdMap.tsx:807:                       key={h.id}
+src/components/StudentHouseholdMap.tsx:811:                           setHoveredHouseholdId(h.id);
+src/components/StudentHouseholdMap.tsx:837:                             <span key={st.id || st.name} className="px-1.5 py-0.2 bg-blue-900/40 text-blue-300 border border-blue-800/60 rounded text-[10px]">
+src/components/NotificationsModal.tsx:337:               key={tab.id}
+src/components/NotificationsModal.tsx:339:               onClick={() => setActiveFilter(tab.id as any)}
+src/components/NotificationsModal.tsx:341:                 activeFilter === tab.id
+src/components/NotificationsModal.tsx:362:                   key={notif.id}
+src/components/NotificationsModal.tsx:363:                   onClick={() => markNotificationRead(notif.id)}
+src/components/NotificationsModal.tsx:446:                               markNotificationRead(notif.id);
+src/components/NotificationsModal.tsx:469:                                 approveDirectorPasswordRequest(notif.id);
+src/components/NotificationsModal.tsx:485:                         clearNotification(notif.id);
+src/components/StudentAnalyticsDashboard.tsx:124:         (currentUser?.studentId && s.id === currentUser.studentId) ||
+src/components/StudentAnalyticsDashboard.tsx:147:     if (isStudent && currentStudentSelf) return currentStudentSelf.id;
+src/components/StudentAnalyticsDashboard.tsx:175:       setSelectedStudentId(currentStudentSelf.id);
+src/components/StudentAnalyticsDashboard.tsx:192:         return student.id === currentStudentSelf.id;
+src/components/StudentAnalyticsDashboard.tsx:212:     return students.find(s => s.id === selectedStudentId) || null;
+src/components/StudentAnalyticsDashboard.tsx:230:         if (score.studentId !== currentStudentSelf.id) {
+src/components/StudentAnalyticsDashboard.tsx:251:         if (att.studentId !== currentStudentSelf.id) {
+src/components/StudentAnalyticsDashboard.tsx:285:         const studScore = scores.find(s => s.studentId === activeStudent.id && s.monthOrSemester === month);
+src/components/StudentAnalyticsDashboard.tsx:331:           .filter(s => s.studentId === activeStudent.id)
+src/components/StudentAnalyticsDashboard.tsx:410:       const studScores = scores.filter(s => s.studentId === st.id);
+src/components/StudentAnalyticsDashboard.tsx:419:       const studAtt = attendanceRecords.filter(a => a.studentId === st.id);
+src/components/StudentAnalyticsDashboard.tsx:477:       const studScores = scores.filter(s => s.studentId === st.id);
+src/components/StudentAnalyticsDashboard.tsx:482:       const studAtt = attendanceRecords.filter(a => a.studentId === st.id);
+src/components/StudentAnalyticsDashboard.tsx:759:                   <option key={s.id} value={s.id}>
+src/components/StudentAnalyticsDashboard.tsx:1184:                     const studScores = scores.filter(s => s.studentId === st.id);
+src/components/StudentAnalyticsDashboard.tsx:1189:                     const studAtt = attendanceRecords.filter(a => a.studentId === st.id);
+src/components/StudentAnalyticsDashboard.tsx:1198:                       <tr key={st.id} className="hover:bg-blue-50/50 transition-colors">
+src/components/StudentAnalyticsDashboard.tsx:1248:                               setSelectedStudentId(st.id);
+src/components/HealthAttendance.tsx:82:       const student = students.find(s => s.id === id);
+src/components/HealthAttendance.tsx:137:     const student = students.find(s => s.id === studentId);
+src/components/HealthAttendance.tsx:182:         .filter(r => r.studentId === stu.id)
+src/components/HealthAttendance.tsx:212:       const found = existing.find(e => e.studentId === st.id);
+src/components/HealthAttendance.tsx:214:         initialMap[st.id] = { status: found.status, notes: found.notes || '' };
+src/components/HealthAttendance.tsx:216:         initialMap[st.id] = { status: 'present', notes: '' };
+src/components/HealthAttendance.tsx:235:       const found = existingHealth.find(e => e.studentId === st.id);
+src/components/HealthAttendance.tsx:237:         initialHealthMap[st.id] = {
+src/components/HealthAttendance.tsx:244:         initialHealthMap[st.id] = {
+src/components/HealthAttendance.tsx:269:       updated[st.id] = { status: 'present', notes: '' };
+src/components/HealthAttendance.tsx:276:       const state = attendanceState[st.id] || { status: 'present' };
+src/components/HealthAttendance.tsx:281:         studentId: st.id,
+src/components/HealthAttendance.tsx:361:       updated[st.id] = {
+src/components/HealthAttendance.tsx:374:       const state = dailyHealthState[st.id] || {
+src/components/HealthAttendance.tsx:384:         studentId: st.id,
+src/components/HealthAttendance.tsx:430:     updateStudent(editingStudentHealth.id, {
+src/components/HealthAttendance.tsx:759:                     const state = attendanceState[student.id] || { status: 'present', notes: '' };
+src/components/HealthAttendance.tsx:761:                       <tr key={student.id} className="hover:bg-slate-50/60 transition-colors">
+src/components/HealthAttendance.tsx:779:                               id={`att-present-${student.id}`}
+src/components/HealthAttendance.tsx:780:                               onClick={() => handleStatusChange(student.id, 'present')}
+src/components/HealthAttendance.tsx:790:                               id={`att-permission-${student.id}`}
+src/components/HealthAttendance.tsx:791:                               onClick={() => handleStatusChange(student.id, 'permission')}
+src/components/HealthAttendance.tsx:801:                               id={`att-absent-${student.id}`}
+src/components/HealthAttendance.tsx:802:                               onClick={() => handleStatusChange(student.id, 'absent')}
+src/components/HealthAttendance.tsx:820:                                 [student.id]: {
+src/components/HealthAttendance.tsx:821:                                   ...prev[student.id],
+src/components/HealthAttendance.tsx:1045:                       const state = dailyHealthState[student.id] || {
+src/components/HealthAttendance.tsx:1074:                         <tr key={student.id} className={`transition-colors ${rowBgClass}`}>
+src/components/HealthAttendance.tsx:1117:                                     handleHealthFieldChange(student.id, 'temperature', nextTemp);
+src/components/HealthAttendance.tsx:1131:                                     onChange={(e) => handleHealthFieldChange(student.id, 'temperature', parseFloat(e.target.value) || 36.6)}
+src/components/HealthAttendance.tsx:1145:                                     handleHealthFieldChange(student.id, 'temperature', nextTemp);
+src/components/HealthAttendance.tsx:1160:                                     onClick={() => handleHealthFieldChange(student.id, 'temperature', preset)}
+src/components/HealthAttendance.tsx:1188:                                     onClick={() => handleHealthFieldChange(student.id, 'status', item.status)}
+src/components/HealthAttendance.tsx:1209:                                     onClick={() => handleToggleSymptom(student.id, symptom)}
+src/components/HealthAttendance.tsx:1229:                               onChange={(e) => handleHealthFieldChange(student.id, 'notes', e.target.value)}
+src/components/HealthAttendance.tsx:1579:                         <tr key={student.id} className="hover:bg-slate-50/80 transition-colors">
+src/components/HealthAttendance.tsx:1672:                                 id={`edit-health-${student.id}`}
+src/components/MoEYSStudentRecordMasterModal.tsx:371:                       key={r.id || idx}
+src/components/AcademicCalendar.tsx:264:       updateCalendarEvent(selectedEvent.id, formState);
+src/components/AcademicCalendar.tsx:282:     setSyncingEventId(event.id);
+src/components/AcademicCalendar.tsx:295:         markEventSynced(event.id, res.eventId);
+src/components/AcademicCalendar.tsx:337:           markEventSynced(r.id);
+src/components/AcademicCalendar.tsx:458:               key={evt.id}
+src/components/AcademicCalendar.tsx:652:                           key={evt.id}
+src/components/AcademicCalendar.tsx:693:                   key={evt.id}
+src/components/AcademicCalendar.tsx:763:                       disabled={syncingEventId === evt.id}
+src/components/AcademicCalendar.tsx:767:                       <RefreshCw className={`w-4 h-4 ${syncingEventId === evt.id ? 'animate-spin text-emerald-600' : ''}`} />
+src/components/AcademicCalendar.tsx:789:                       onClick={() => handleDeleteEvent(evt.id)}
+src/components/AcademicCalendar.tsx:837:               <tr key={evt.id}>
+src/components/AcademicCalendar.tsx:1018:                     onClick={() => handleDeleteEvent(selectedEvent.id)}
+src/components/OfflineSyncStatusBadge.tsx:245:                     <div key={report.id} className="p-3.5 bg-white hover:bg-slate-50 transition-colors flex items-center justify-between gap-3">
+src/components/SecurityLogsTab.tsx:71:       userId: currentUser?.id || 'usr-01',
+src/components/SecurityLogsTab.tsx:84:       userId: currentUser?.id || 'usr-01',
+src/components/SecurityLogsTab.tsx:97:       userId: currentUser?.id || 'usr-01',
+src/components/SecurityLogsTab.tsx:110:       userId: currentUser?.id || 'usr-01',
+src/components/SecurityLogsTab.tsx:123:       userId: currentUser?.id || 'usr-01',
+src/components/SecurityLogsTab.tsx:136:       userId: currentUser?.id || 'usr-01',
+src/components/SecurityLogsTab.tsx:149:       userId: currentUser?.id || 'usr-01',
+src/components/SecurityLogsTab.tsx:162:       userId: currentUser?.id || 'usr-01',
+src/components/SecurityLogsTab.tsx:173:   ], [currentUser?.id, currentUser?.email]);
+src/components/SecurityLogsTab.tsx:573:                     key={log.id}
+src/components/SecurityLogsTab.tsx:816:                       <tr key={log.id} className={idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'}>
+src/components/ClassroomScores.tsx:168:   const classStudentIds = new Set(classStudents.map(s => s.id));
+src/components/ClassroomScores.tsx:193:     const existing = getStudentScore(student.id);
+src/components/ClassroomScores.tsx:271:       studentId: activeStudentForScoreEdit.id,
+src/components/ClassroomScores.tsx:314:       const existing = getStudentScore(stu.id);
+src/components/ClassroomScores.tsx:316:         initialBatch[stu.id] = Number(existing.scores[selectedSubjectCode]);
+src/components/ClassroomScores.tsx:318:         if (selectedSubjectCode === 'reading' || selectedSubjectCode === 'khmerReading') initialBatch[stu.id] = existing.scores.khmerReading ?? 8.0;
+src/components/ClassroomScores.tsx:319:         else if (selectedSubjectCode === 'writing' || selectedSubjectCode === 'khmerWriting') initialBatch[stu.id] = existing.scores.khmerWriting ?? 8.0;
+src/components/ClassroomScores.tsx:320:         else if (selectedSubjectCode === 'numbers' || selectedSubjectCode === 'mathematics') initialBatch[stu.id] = existing.scores.mathematics ?? 8.0;
+src/components/ClassroomScores.tsx:321:         else if (selectedSubjectCode === 'science' || selectedSubjectCode === 'socialStudies' || selectedSubjectCode === 'scienceSocial') initialBatch[stu.id] = existing.scores.scienceSocial ?? 8.0;
+src/components/ClassroomScores.tsx:322:         else if (selectedSubjectCode === 'moralCivics') initialBatch[stu.id] = existing.scores.moralCivics ?? 8.5;
+src/components/ClassroomScores.tsx:323:         else if (selectedSubjectCode === 'homeEconomicsArts' || selectedSubjectCode === 'physicalHealth' || selectedSubjectCode === 'artsPhysical') initialBatch[stu.id] = existing.scores.artsPhysical ?? 8.5;
+src/components/ClassroomScores.tsx:324:         else initialBatch[stu.id] = 8.0;
+src/components/ClassroomScores.tsx:326:         initialBatch[stu.id] = 8.0;
+src/components/ClassroomScores.tsx:338:       const studentScoreVal = Number(batchSubjectScores[stu.id] ?? 8.0);
+src/components/ClassroomScores.tsx:347:       const existing = getStudentScore(stu.id);
+src/components/ClassroomScores.tsx:348:       const studentScoreVal = Number(batchSubjectScores[stu.id] ?? 8.0);
+src/components/ClassroomScores.tsx:368:         studentId: stu.id,
+src/components/ClassroomScores.tsx:772:                 key={sub.id || sub.code}
+src/components/ClassroomScores.tsx:806:                   const scoreRec = getStudentScore(student.id);
+src/components/ClassroomScores.tsx:807:                   const currentScore = batchSubjectScores[student.id] ?? 8.0;
+src/components/ClassroomScores.tsx:809:                     <tr key={student.id} className="hover:bg-indigo-50/20 transition-colors">
+src/components/ClassroomScores.tsx:829:                             [student.id]: Number(e.target.value)
+src/components/ClassroomScores.tsx:842:                                 [student.id]: scoreVal
+src/components/ClassroomScores.tsx:948:                     <th key={sub.id || sub.code} className="py-3 px-2 bg-slate-200/50">
+src/components/ClassroomScores.tsx:962:                     const scoreRec = getStudentScore(student.id);
+src/components/ClassroomScores.tsx:965:                         key={student.id}
+src/components/ClassroomScores.tsx:1007:                           <td key={sub.id || sub.code} className="py-3 px-2 font-mono">
+src/components/ClassroomScores.tsx:1062:                               id={`edit-score-${student.id}`}
+src/components/ClassroomScores.tsx:1071:                               id={`report-card-${student.id}`}
+src/components/ClassroomScores.tsx:1081:                                 id={`honor-cert-${student.id}`}
+src/components/ClassroomScores.tsx:1206:                   key={fb.id}
+src/components/ClassroomScores.tsx:1231:                         onClick={() => toggleAcknowledgeFeedback(fb.id)}
+src/components/ClassroomScores.tsx:1245:                             deleteStudentFeedback(fb.id);
+src/components/ClassroomScores.tsx:1273:                             setReplyingFeedbackId(fb.id);
+src/components/ClassroomScores.tsx:1290:                   ) : replyingFeedbackId === fb.id ? (
+src/components/ClassroomScores.tsx:1315:                             replyStudentFeedback(fb.id, replyText.trim());
+src/components/ClassroomScores.tsx:1330:                           setReplyingFeedbackId(fb.id);
+src/components/ClassroomScores.tsx:1467:                     <div key={sub.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+src/components/ClassroomScores.tsx:1706:                     <div key={sub.id}>
+src/components/ClassroomScores.tsx:1773:             s.studentId === selectedStudentForReportCard.id &&
+src/components/ClassroomScores.tsx:1781:           studentId: selectedStudentForReportCard.id,
+src/components/ClassroomScores.tsx:1806:               entityId: selectedStudentForReportCard.id,
+src/components/ClassroomScores.tsx:1814:                 studentId: selectedStudentForReportCard.id,
+src/components/ClassroomScores.tsx:1956:                             s.studentId === selectedStudentForReportCard.id &&
+src/components/TeacherMeetingMinutesManager.tsx:121:     const tmpl = resolutionTemplates.find(t => t.id === tmplId);
+src/components/TeacherMeetingMinutesManager.tsx:210:         id: act.id,
+src/components/TeacherMeetingMinutesManager.tsx:257:     setSyncingMeetingId(meeting.id);
+src/components/TeacherMeetingMinutesManager.tsx:275:       updateTeacherMeeting(meeting.id, {
+src/components/TeacherMeetingMinutesManager.tsx:321:           updateTeacherMeeting(m.id, {
+src/components/TeacherMeetingMinutesManager.tsx:344:     setSyncingDriveMeetingId(meeting.id);
+src/components/TeacherMeetingMinutesManager.tsx:346:       await syncMeetingToDrive(meeting.id);
+src/components/TeacherMeetingMinutesManager.tsx:626:                 key={meeting.id}
+src/components/TeacherMeetingMinutesManager.tsx:683:                       disabled={syncingDriveMeetingId === meeting.id || isDriveSyncing}
+src/components/TeacherMeetingMinutesManager.tsx:691:                       {syncingDriveMeetingId === meeting.id ? (
+src/components/TeacherMeetingMinutesManager.tsx:715:                       disabled={syncingMeetingId === meeting.id}
+src/components/TeacherMeetingMinutesManager.tsx:722:                       {syncingMeetingId === meeting.id ? (
+src/components/TeacherMeetingMinutesManager.tsx:743:                           deleteTeacherMeeting(meeting.id);
+src/components/TeacherMeetingMinutesManager.tsx:805:                         <div key={item.id} className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/60 flex items-center justify-between text-xs">
+src/components/TeacherMeetingMinutesManager.tsx:865:                       key={tmpl.id}
+src/components/TeacherMeetingMinutesManager.tsx:867:                       onClick={() => handleApplyTemplate(tmpl.id)}
+src/components/TeacherMeetingMinutesManager.tsx:869:                         selectedTemplate === tmpl.id
+src/components/MultiStudentProfileSummaryPdfModal.tsx:55:       .filter(s => s.studentId === student.id || s.studentCode === student.code)
+src/components/MultiStudentProfileSummaryPdfModal.tsx:226:               const attStats = getStudentAttendanceStats(student.id);
+src/components/MultiStudentProfileSummaryPdfModal.tsx:227:               const badges = getStudentBadges(student.id);
+src/components/MultiStudentProfileSummaryPdfModal.tsx:228:               const totalPts = getStudentTotalPoints(student.id);
+src/components/MultiStudentProfileSummaryPdfModal.tsx:232:                   key={student.id}
+src/components/MultiStudentProfileSummaryPdfModal.tsx:352:                         <p><strong>ជីវភាព៖</strong> {student.livingCondition || 'ទូទៅ'} {student.idPoorCardNumber ? `(កាត៖ ${student.idPoorCardNumber})` : ''}</p>
+src/components/MultiStudentProfileSummaryPdfModal.tsx:443:                                 <tr key={sc.id} className="hover:bg-slate-50">
+src/components/SchoolHealthEpidemiologyD3Panel.tsx:76:           if (cat.id === 'nutrition') {
+src/components/SchoolHealthEpidemiologyD3Panel.tsx:78:           } else if (cat.id === 'fever' && (notes.includes('ក្តៅ') || notes.includes('ផ្តាសាយ'))) {
+src/components/SchoolHealthEpidemiologyD3Panel.tsx:80:           } else if (cat.id === 'dental' && (notes.includes('ធ្មេញ') || notes.includes('ពុក'))) {
+src/components/SchoolHealthEpidemiologyD3Panel.tsx:82:           } else if (cat.id === 'vision' && (notes.includes('ភ្នែក') || notes.includes('វ៉ែនតា'))) {
+src/components/SchoolHealthEpidemiologyD3Panel.tsx:84:           } else if (cat.id === 'injury' && (notes.includes('របួស') || notes.includes('ដួល'))) {
+src/components/SchoolHealthEpidemiologyD3Panel.tsx:86:           } else if (cat.id === 'stomach' && (notes.includes('ពោះ') || notes.includes('ចង្អោរ'))) {
+src/components/SchoolHealthEpidemiologyD3Panel.tsx:101:         const defaultMock = gradeBaseMultipliers[cat.id]?.[gradeNum - 1] || 2;
+src/components/SchoolHealthEpidemiologyD3Panel.tsx:113:         category: cat.id,
+src/components/RecentActivityDashboard.tsx:196:       const itemA = enrichedLogs.find(l => l.id === selectedDiffIds[0]);
+src/components/RecentActivityDashboard.tsx:197:       const itemB = enrichedLogs.find(l => l.id === selectedDiffIds[1]);
+src/components/RecentActivityDashboard.tsx:209:       l => l.id !== item.id && (l.entityId === item.entityId || (l.entityCode && l.entityCode === item.entityCode))
+src/components/RecentActivityDashboard.tsx:211:     const fallbackLog = enrichedLogs.find(l => l.id !== item.id) || item;
+src/components/RecentActivityDashboard.tsx:369:     setActiveViewId(view.id);
+src/components/RecentActivityDashboard.tsx:399:     const currentIds = displayedLogs.map(l => l.id);
+src/components/RecentActivityDashboard.tsx:414:       const updated = activityLogs.filter(l => !selectedLogIds.includes(l.id));
+src/components/RecentActivityDashboard.tsx:419:         selectedLogIds.includes(l.id) ? { ...l, isArchived: true } : l
+src/components/RecentActivityDashboard.tsx:425:         selectedLogIds.includes(l.id) ? { ...l, isArchived: false } : l
+src/components/RecentActivityDashboard.tsx:452:           const el = document.getElementById(`activity-row-${displayedLogs[next]?.id}`) || document.getElementById(`activity-item-${displayedLogs[next]?.id}`);
+src/components/RecentActivityDashboard.tsx:460:           const el = document.getElementById(`activity-row-${displayedLogs[next]?.id}`) || document.getElementById(`activity-item-${displayedLogs[next]?.id}`);
+src/components/RecentActivityDashboard.tsx:474:           toggleSelectLog(displayedLogs[focusedIndex].id);
+src/components/RecentActivityDashboard.tsx:1326:                 {displayedLogs.length > 0 && displayedLogs.every(l => selectedLogIds.includes(l.id)) ? (
+src/components/RecentActivityDashboard.tsx:1484:                 const isDiffSelected = selectedDiffIds.includes(item.id);
+src/components/RecentActivityDashboard.tsx:1485:                 const isRowSelected = selectedLogIds.includes(item.id);
+src/components/RecentActivityDashboard.tsx:1492:                     key={item.id}
+src/components/RecentActivityDashboard.tsx:1493:                     id={`activity-item-${item.id}`}
+src/components/RecentActivityDashboard.tsx:1497:                         toggleDiffSelect(item.id);
+src/components/RecentActivityDashboard.tsx:1523:                             toggleDiffSelect(item.id);
+src/components/RecentActivityDashboard.tsx:1525:                             toggleSelectLog(item.id);
+src/components/RecentActivityDashboard.tsx:1783:                           id={`quick-action-btn-${item.id}`}
+src/components/RecentActivityDashboard.tsx:1892:                     ID: {selectedItemForDetail.id}
+src/components/RecentActivityDashboard.tsx:2282:                   const logA = enrichedLogs.find(l => l.id === selectedLogIds[0]);
+src/components/RecentActivityDashboard.tsx:2283:                   const logB = enrichedLogs.find(l => l.id === selectedLogIds[1]);
+src/components/RecentActivityDashboard.tsx:2334:           selectedLogs={enrichedLogs.filter(l => selectedLogIds.includes(l.id))}
+src/components/StudentProgressTrendChart.tsx:50:       .filter(s => s && (s.studentId === student.id || s.studentCode === student.code || s.studentId === student.code))
+src/components/StudentProgressTrendChart.tsx:56:   }, [scores, student.id, student.code]);
+src/components/StudentProgressTrendChart.tsx:88:         const stRecord = (rec as any).records.find((r: any) => r && (r.studentId === student.id || r.studentId === student.code));
+src/components/StudentProgressTrendChart.tsx:95:       } else if (rec.studentId === student.id || rec.studentId === student.code) {
+src/components/StudentProgressTrendChart.tsx:111:   }, [dailyAttendance, student.id, student.code]);
+src/components/ScoreTablePrintModal.tsx:92:     const scoreA = getStudentScore(a.id);
+src/components/ScoreTablePrintModal.tsx:93:     const scoreB = getStudentScore(b.id);
+src/components/ScoreTablePrintModal.tsx:109:     const stu = classStudents.find(cs => cs.id === s.studentId);
+src/components/ScoreTablePrintModal.tsx:171:       const rec = getStudentScore(stu.id);
+src/components/ScoreTablePrintModal.tsx:475:                       <th key={sub.id || sub.code} rowSpan={2} className="border border-slate-800 py-2 px-1 text-center font-bold bg-slate-100">
+src/components/ScoreTablePrintModal.tsx:506:                       const scoreRec = getStudentScore(student.id);
+src/components/ScoreTablePrintModal.tsx:510:                           key={student.id}
+src/components/ScoreTablePrintModal.tsx:552:                             <td key={sub.id || sub.code} className="border border-slate-800 py-1 px-1 font-mono text-slate-900">
+src/components/BulkDataImportExportModal.tsx:188:                s.id === rawCode ||
+src/components/BulkDataImportExportModal.tsx:220:           studentId: matchedStudent?.id || null,
+src/components/BulkDataImportExportModal.tsx:261:         updateStudent(item.matchedStudent.id, {
+src/components/GoogleWorkspaceHub.tsx:303:       await deleteDriveItem(itemToDelete.id);
+src/components/GoogleWorkspaceHub.tsx:355:     setCurrentFolderId(target.id);
+src/components/GoogleWorkspaceHub.tsx:951:                         <tr key={file.id} className="hover:bg-slate-50 transition-colors">
+src/components/GoogleWorkspaceHub.tsx:957:                                   onClick={() => navigateToFolder(file.id, file.name)}
+src/components/StudentHealthBookletModal.tsx:42:     selectedStudent?.id || (students.length > 0 ? students[0].id : '')
+src/components/StudentHealthBookletModal.tsx:52:     return students.find(s => s.id === currentStudentId) || selectedStudent || students[0] || {
+src/components/StudentHealthBookletModal.tsx:237:                   <option key={st.id} value={st.id}>
+src/components/MobileBottomNav.tsx:34:           const isActive = activeTab === tab.id;
+src/components/MobileBottomNav.tsx:37:               key={tab.id}
+src/components/MobileBottomNav.tsx:38:               onClick={() => setActiveTab(tab.id)}
+src/components/GmailManager.tsx:258:       await deleteGmailMessage(messageToDelete.id);
+src/components/GmailManager.tsx:261:       if (selectedMessage?.id === messageToDelete.id) {
+src/components/GmailManager.tsx:274:     const selectedStudent = students.find(s => s.id === templateStudentId) || students[0];
+src/components/GmailManager.tsx:276:       s => s.studentId === selectedStudent?.id && s.monthOrSemester === templateMonth
+src/components/GmailManager.tsx:638:                       key={msg.id}
+src/components/GmailManager.tsx:891:                           <option key={s.id} value={s.id}>
+src/components/AccountsManagement.tsx:129:       updateUser(currentUser.id, {
+src/components/AccountsManagement.tsx:151:         userId: currentUser?.id || 'usr-01',
+src/components/AccountsManagement.tsx:209:         updateUser(u.id, { forcePasswordChange: true });
+src/components/AccountsManagement.tsx:223:     updateUser(user.id, { forcePasswordChange: nextVal });
+src/components/AccountsManagement.tsx:266:     updateUser(currentUser.id, {
+src/components/AccountsManagement.tsx:611:           updateUser(currentUser.id, {
+src/components/AccountsManagement.tsx:781:                   key={tab.id}
+src/components/AccountsManagement.tsx:783:                   onClick={() => setRoleFilter(tab.id)}
+src/components/AccountsManagement.tsx:785:                     roleFilter === tab.id
+src/components/AccountsManagement.tsx:813:                     <tr key={user.id} className="hover:bg-slate-50/80 transition-colors">
+src/components/AccountsManagement.tsx:878:                           {isDirector && user.id !== currentUser?.id && (
+src/components/AccountsManagement.tsx:922:                             (isLibrarian && user.id === currentUser?.id)) && (
+src/components/AccountsManagement.tsx:958:                           {isDirector && user.id !== currentUser?.id && (
+src/components/AccountsManagement.tsx:1050:                   key={req.id}
+src/components/AccountsManagement.tsx:1089:                           onClick={() => approveProfileEditRequest(req.id)}
+src/components/AccountsManagement.tsx:1096:                           onClick={() => rejectProfileEditRequest(req.id)}
+src/components/AccountsManagement.tsx:1375:                 updateUser(selectedUserForEdit.id, updatedData);
+src/components/GradeTrendAnalysis.tsx:19:       const studentScores = scores.filter(s => s.studentId === student.id || s.studentCode === student.code);
+src/components/GradeTrendAnalysis.tsx:20:       const studentAttendances = attendanceRecords.filter(a => a.studentId === student.id || a.studentCode === student.code);
+src/components/GradeTrendAnalysis.tsx:83:                 <tr key={student.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+src/components/BudgetFinance.tsx:430:                   <tr key={tx.id} className="hover:bg-slate-50/60 transition-colors">
+src/components/BudgetFinance.tsx:457:                             deleteBudgetTransaction(tx.id);
+src/components/ClassCommitteePrintModal.tsx:214:         setMembers(prev => prev.map(m => m.id === memberId ? { ...m, photoUrl: result } : m));
+src/components/ClassCommitteePrintModal.tsx:543:                       <tr key={m.id} className="hover:bg-slate-50/80 transition-colors">
+src/components/ClassCommitteePrintModal.tsx:768:                     <div key={member.id || idx} className="flex flex-col items-center">
+src/components/ClassCommitteePrintModal.tsx:904:                       key={member.id}
+src/components/ClassCommitteePrintModal.tsx:925:                               onChange={e => handlePhotoUpload(e, member.id)}
+src/components/ClassCommitteePrintModal.tsx:953:                               setMembers(prev => prev.map(m => m.id === member.id ? { ...m, honorific: val } : m));
+src/components/ClassCommitteePrintModal.tsx:966:                               setMembers(prev => prev.map(m => m.id === member.id ? { ...m, fullName: val } : m));
+src/components/ClassCommitteePrintModal.tsx:979:                               setMembers(prev => prev.map(m => m.id === member.id ? { ...m, phone: val } : m));
+src/components/ClassCommitteePrintModal.tsx:992:                               setMembers(prev => prev.map(m => m.id === member.id ? { ...m, occupation: val, occupationCategory: val } : m));
+src/components/SecurityPatternsDashboard.tsx:260:               key={r.id}
+src/components/SecurityPatternsDashboard.tsx:262:               onClick={() => setActiveTimeRange(r.id as any)}
+src/components/SecurityPatternsDashboard.tsx:264:                 activeTimeRange === r.id
+src/components/SchoolAdmin.tsx:216:       updateCorrespondence(editingCor.id, corForm);
+src/components/SchoolAdmin.tsx:249:         staffId: defaultTeacher ? defaultTeacher.id : '',
+src/components/SchoolAdmin.tsx:278:       updateStaffAdminRecord(editingStaffRec.id, staffForm);
+src/components/SchoolAdmin.tsx:336:       members: prev.members.filter(m => m.id !== id)
+src/components/SchoolAdmin.tsx:363:       updateSchoolCommittee(editingComm.id, commForm);
+src/components/SchoolAdmin.tsx:536:                       <tr key={cor.id} className="hover:bg-slate-50 transition-colors">
+src/components/SchoolAdmin.tsx:597:                                   deleteCorrespondence(cor.id);
+src/components/SchoolAdmin.tsx:679:                       <tr key={rec.id} className="hover:bg-slate-50 transition-colors">
+src/components/SchoolAdmin.tsx:728:                                   deleteStaffAdminRecord(rec.id);
+src/components/SchoolAdmin.tsx:766:               <div key={comm.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
+src/components/SchoolAdmin.tsx:785:                         <div key={m.id} className="flex items-center justify-between text-xs bg-slate-50 p-2 rounded-xl">
+src/components/SchoolAdmin.tsx:823:                         deleteSchoolCommittee(comm.id);
+src/components/SchoolAdmin.tsx:1011:                       const sel = teachers.find(t => t.id === e.target.value);
+src/components/SchoolAdmin.tsx:1015:                           staffId: sel.id,
+src/components/SchoolAdmin.tsx:1024:                       <option key={t.id} value={t.id}>
+src/components/SchoolAdmin.tsx:1185:                     <div key={m.id} className="flex items-center justify-between text-xs bg-white p-2 rounded-lg border border-slate-200">
+src/components/SchoolAdmin.tsx:1189:                         onClick={() => handleRemoveMember(m.id)}
+src/components/SuspiciousAlertsBanner.tsx:56:           id: `suspicious-force-${u.id}`,
+src/components/SuspiciousAlertsBanner.tsx:57:           userId: u.id,
+src/components/SuspiciousAlertsBanner.tsx:74:           id: `suspicious-suspend-${u.id}`,
+src/components/SuspiciousAlertsBanner.tsx:75:           userId: u.id,
+src/components/SuspiciousAlertsBanner.tsx:95:           id: `suspicious-demo-${targetStaff.id}`,
+src/components/SuspiciousAlertsBanner.tsx:96:           userId: targetStaff.id,
+src/components/SuspiciousAlertsBanner.tsx:111:     return alerts.filter(a => !dismissedAlertIds.includes(a.id));
+src/components/SuspiciousAlertsBanner.tsx:131:           key={alert.id}
+src/components/SuspiciousAlertsBanner.tsx:243:                 onClick={() => handleDismiss(alert.id)}
+src/components/StudentManagement.tsx:105:         const canvas = document.getElementById(`student-qr-canvas-${selectedStudentForView.id}`) as HTMLCanvasElement;
+src/components/StudentManagement.tsx:108:             id: selectedStudentForView.id,
+src/components/StudentManagement.tsx:281:         matchesVulnerability = student.livingCondition === 'ក្រ១' || student.livingCondition === 'ក្រ២' || Boolean(student.idPoorCardNumber);
+src/components/StudentManagement.tsx:293:       const alert = studentAlertsMap.get(student.id);
+src/components/StudentManagement.tsx:439:       updateStudent(editingStudent.id, newStudentData);
+src/components/StudentManagement.tsx:684:                   setSelectedStudentIds(filteredStudents.map(s => s.id));
+src/components/StudentManagement.tsx:990:                   onClick={() => setSelectedStudentIds(filteredStudents.map(s => s.id))}
+src/components/StudentManagement.tsx:1016:                         setSelectedStudentIds(filteredStudents.map(s => s.id));
+src/components/StudentManagement.tsx:1037:                   const studentBadges = getStudentBadges(student.id);
+src/components/StudentManagement.tsx:1038:                   const totalPoints = getStudentTotalPoints(student.id);
+src/components/StudentManagement.tsx:1039:                   const isSelected = selectedStudentIds.includes(student.id);
+src/components/StudentManagement.tsx:1040:                   const riskAlert = studentAlertsMap.get(student.id);
+src/components/StudentManagement.tsx:1044:                       key={student.id}
+src/components/StudentManagement.tsx:1055:                               prev.includes(student.id)
+src/components/StudentManagement.tsx:1056:                                 ? prev.filter(id => id !== student.id)
+src/components/StudentManagement.tsx:1057:                                 : [...prev, student.id]
+src/components/StudentManagement.tsx:1194:                               id={`analytics-student-${student.id}`}
+src/components/StudentManagement.tsx:1196:                                 setSelectedStudentForAnalyticsId(student.id);
+src/components/StudentManagement.tsx:1206:                             id={`award-badge-${student.id}`}
+src/components/StudentManagement.tsx:1214:                             id={`print-student-${student.id}`}
+src/components/StudentManagement.tsx:1222:                             id={`view-student-${student.id}`}
+src/components/StudentManagement.tsx:1230:                             id={`edit-student-${student.id}`}
+src/components/StudentManagement.tsx:1238:                             id={`delete-student-${student.id}`}
+src/components/StudentManagement.tsx:1241:                                 deleteStudent(student.id);
+src/components/StudentManagement.tsx:1559:                     <canvas id={`student-qr-canvas-${selectedStudentForView.id}`} className="w-28 h-28" />
+src/components/StudentManagement.tsx:1602:                   const studentBadges = getStudentBadges(selectedStudentForView.id);
+src/components/StudentManagement.tsx:1603:                   const totalPts = getStudentTotalPoints(selectedStudentForView.id);
+src/components/StudentManagement.tsx:1637:                             key={item.id}
+src/components/StudentManagement.tsx:1692:           badges={getStudentBadges(selectedStudentForPdfPrint.id)}
+src/components/StudentManagement.tsx:1693:           totalBadgePoints={getStudentTotalPoints(selectedStudentForPdfPrint.id)}
+src/components/StudentManagement.tsx:2408:               ? students.filter(s => selectedStudentIds.includes(s.id))
+src/components/ExportStudentIdBadgeModal.tsx:42:     initialStudentId || (students[0]?.id ?? '')
+src/components/ExportStudentIdBadgeModal.tsx:67:   const selectedStudent = students.find(s => s.id === selectedStudentId) || students[0];
+src/components/ExportStudentIdBadgeModal.tsx:107:         id: selectedStudent.id,
+src/components/ExportStudentIdBadgeModal.tsx:196:                   const isSelected = st.id === selectedStudent?.id;
+src/components/ExportStudentIdBadgeModal.tsx:199:                       key={st.id}
+src/components/ExportStudentIdBadgeModal.tsx:201:                       onClick={() => setSelectedStudentId(st.id)}
+src/components/OtherLearningResources.tsx:155:     const defaultIds = new Set(defaultList.map(r => r.id));
+src/components/OtherLearningResources.tsx:156:     const uniqueCustom = customList.filter(r => r && !defaultIds.has(r.id));
+src/components/OtherLearningResources.tsx:249:       const item = allCombinedResources.find(r => r.id === id);
+src/components/OtherLearningResources.tsx:307:     const current = playlistProgressMap[resource.id] || {
+src/components/OtherLearningResources.tsx:308:       resourceId: resource.id,
+src/components/OtherLearningResources.tsx:329:         const nextMap = { ...prev, [resource.id]: updated };
+src/components/OtherLearningResources.tsx:338:       trackResourceAccess(resource.id);
+src/components/OtherLearningResources.tsx:348:       const existingIds = new Set(prev.map(r => r.id));
+src/components/OtherLearningResources.tsx:349:       const filteredNew = newResources.filter(r => !existingIds.has(r.id));
+src/components/OtherLearningResources.tsx:360:     const newIds = newResources.map(r => r.id);
+src/components/OtherLearningResources.tsx:380:         `"${res.id.replace(/"/g, '""')}"`,
+src/components/OtherLearningResources.tsx:484:       const updated = prev.map(c => (c.id === commentId ? { ...c, likes: c.likes + 1 } : c));
+src/components/OtherLearningResources.tsx:520:     trackResourceAccess(item.id);
+src/components/OtherLearningResources.tsx:537:       handleCopyLink(item.url, item.id, item.titleKhmer);
+src/components/OtherLearningResources.tsx:579:       if (onlyFavorites && !safeFavoriteIds.includes(item.id)) {
+src/components/OtherLearningResources.tsx:585:         const { avg } = getAverageRating(item.id);
+src/components/OtherLearningResources.tsx:591:         const count = safeComments.filter(c => c && c.resourceId === item.id).length;
+src/components/OtherLearningResources.tsx:597:         if (!safeTeacherNotes[item.id]) return false;
+src/components/OtherLearningResources.tsx:610:         const matchesTips = safeComments.some(c => c && c.resourceId === item.id && ((c.content || '').toLowerCase().includes(q) || (c.authorName || '').toLowerCase().includes(q)));
+src/components/OtherLearningResources.tsx:612:         const note = safeTeacherNotes[item.id];
+src/components/OtherLearningResources.tsx:626:     return safeResources.filter(r => r && safeFavoriteIds.includes(r.id));
+src/components/OtherLearningResources.tsx:636:         const item = safeResources.find(r => r && r.id === rv.resourceId);
+src/components/OtherLearningResources.tsx:645:     return safeResources.find(r => r && r.id === activeCommentDrawerId);
+src/components/OtherLearningResources.tsx:791:                 key={`recent-${item.id}`}
+src/components/OtherLearningResources.tsx:807:                   onClick={() => trackResourceAccess(item.id)}
+src/components/OtherLearningResources.tsx:819:                     onClick={() => trackResourceAccess(item.id)}
+src/components/OtherLearningResources.tsx:840:           trackResourceAccess(res.id);
+src/components/OtherLearningResources.tsx:844:         onOpenQrModal={(res) => handleOpenQrModal(res.titleKhmer, res.url, res.id)}
+src/components/OtherLearningResources.tsx:906:                 key={fav.id}
+src/components/OtherLearningResources.tsx:913:                   onClick={() => trackResourceAccess(fav.id)}
+src/components/OtherLearningResources.tsx:923:                   onClick={() => toggleFavorite(fav.id)}
+src/components/OtherLearningResources.tsx:1043:               key={tagItem.id}
+src/components/OtherLearningResources.tsx:1045:               onClick={() => setSelectedTag(selectedTag === tagItem.id ? 'all' : tagItem.id)}
+src/components/OtherLearningResources.tsx:1047:                 selectedTag === tagItem.id
+src/components/OtherLearningResources.tsx:1053:               {selectedTag === tagItem.id && <Check className="w-3 h-3" />}
+src/components/OtherLearningResources.tsx:1244:           const isFav = favoriteIds.includes(item.id);
+src/components/OtherLearningResources.tsx:1247:           const { avg: avgRating, count: ratingCount, userVote } = getAverageRating(item.id);
+src/components/OtherLearningResources.tsx:1248:           const commentsCount = commentsList.filter(c => c.resourceId === item.id).length;
+src/components/OtherLearningResources.tsx:1249:           const currentHover = hoverRating[item.id] || 0;
+src/components/OtherLearningResources.tsx:1250:           const teacherNote = teacherNotesMap[item.id];
+src/components/OtherLearningResources.tsx:1251:           const progress = playlistProgressMap[item.id];
+src/components/OtherLearningResources.tsx:1258:               key={item.id}
+src/components/OtherLearningResources.tsx:1280:                         item.id === 'plp' ? <BookOpen className="w-5 h-5" /> : <MonitorPlay className="w-5 h-5" />
+src/components/OtherLearningResources.tsx:1298:                         {item.id.startsWith('custom-') && (
+src/components/OtherLearningResources.tsx:1323:                       onClick={() => toggleFavorite(item.id)}
+src/components/OtherLearningResources.tsx:1362:                       onMouseLeave={() => setHoverRating(prev => ({ ...prev, [item.id]: 0 }))}
+src/components/OtherLearningResources.tsx:1370:                             onMouseEnter={() => setHoverRating(prev => ({ ...prev, [item.id]: starNum }))}
+src/components/OtherLearningResources.tsx:1371:                             onClick={() => handleRateResource(item.id, starNum)}
+src/components/OtherLearningResources.tsx:1492:                     onClick={() => trackResourceAccess(item.id)}
+src/components/OtherLearningResources.tsx:1532:                     onClick={() => handleCopyLink(item.url, item.id, item.titleKhmer)}
+src/components/OtherLearningResources.tsx:1536:                     {copiedId === item.id ? (
+src/components/OtherLearningResources.tsx:1545:                     onClick={() => handleOpenQrModal(item.titleKhmer, item.url, item.id)}
+src/components/OtherLearningResources.tsx:1557:                     setActiveCommentDrawerId(item.id);
+src/components/OtherLearningResources.tsx:1558:                     trackResourceAccess(item.id);
+src/components/OtherLearningResources.tsx:1689:                   onClick={() => handleCopyLink(shareModalItem.url, shareModalItem.id, shareModalItem.titleKhmer)}
+src/components/OtherLearningResources.tsx:1846:                     onClick={() => handleAddComment(activeCommentResource.id)}
+src/components/OtherLearningResources.tsx:1875:                       key={comment.id}
+src/components/OtherLearningResources.tsx:1906:                           onClick={() => handleLikeComment(comment.id)}
+src/components/OtherLearningResources.tsx:2007:         currentNote={activeNotesResource ? teacherNotesMap[activeNotesResource.id] : undefined}
+src/components/OtherLearningResources.tsx:2017:         currentProgress={activeProgressResource ? playlistProgressMap[activeProgressResource.id] : undefined}
+src/components/OtherLearningResources.tsx:2067:                   <tr key={res.id} className="border-b border-slate-200">
+src/components/RolePermissionsInspectorModal.tsx:206:     preselectedUser?.id || (safeUsers.find(u => u && u.role === 'teacher')?.id || safeUsers[0]?.id || '')
+src/components/RolePermissionsInspectorModal.tsx:214:   const targetUser = safeUsers.find(u => u && u.id === selectedUserId) || preselectedUser || safeUsers[0];
+src/components/RolePermissionsInspectorModal.tsx:216:     t => t && (t.id === targetUser.id.replace('u-', '') ||
+src/components/RolePermissionsInspectorModal.tsx:276:       action: targetUser?.status !== 'active' && onUpdateUser ? () => onUpdateUser(targetUser.id, { status: 'active' }) : null,
+src/components/RolePermissionsInspectorModal.tsx:305:       action: targetUser?.forcePasswordChange && onUpdateUser ? () => onUpdateUser(targetUser.id, { forcePasswordChange: false }) : null,
+src/components/RolePermissionsInspectorModal.tsx:399:                       <option key={u.id} value={u.id}>
+src/components/RolePermissionsInspectorModal.tsx:504:                           <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
+src/components/RolePermissionsInspectorModal.tsx:578:                         <tr key={item.id} className="hover:bg-slate-50/70">
+src/components/WebcamQRScannerModal.tsx:174:         student.id,
+src/components/WebcamQRScannerModal.tsx:185:         entityId: student.id,
+src/components/WebcamQRScannerModal.tsx:285:           s => s.code.toLowerCase() === raw.toLowerCase() || s.id === raw
+src/components/WebcamQRScannerModal.tsx:292:             const targetCode = parsed.code || parsed.studentCode || parsed.id;
+src/components/WebcamQRScannerModal.tsx:295:                 s => s.code.toLowerCase() === String(targetCode).toLowerCase() || s.id === targetCode
+src/components/WebcamQRScannerModal.tsx:347:       currentScannedStudent.id,
+src/components/WebcamQRScannerModal.tsx:358:       ...prev.filter(i => i.student.id !== currentScannedStudent.id).slice(0, 19)
+src/components/VaccinationRenewalAlertModal.tsx:120:       setSelectedStudentIds(filteredAuditList.map(a => a.student.id));
+src/components/VaccinationRenewalAlertModal.tsx:142:     const idsToUpdate = selectedStudentIds.length > 0 ? selectedStudentIds : filteredAuditList.map(a => a.student.id);
+src/components/VaccinationRenewalAlertModal.tsx:354:               const isSelected = selectedStudentIds.includes(student.id);
+src/components/VaccinationRenewalAlertModal.tsx:357:                   key={student.id}
+src/components/VaccinationRenewalAlertModal.tsx:358:                   onClick={() => toggleSelectStudent(student.id)}
+src/components/GoogleDriveSyncModal.tsx:436:                       <div key={meeting.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
+src/components/GoogleDriveSyncModal.tsx:485:                             onClick={() => handleSyncMeeting(meeting.id)}
+src/components/GoogleDriveSyncModal.tsx:486:                             disabled={singleSyncingId === meeting.id || isDriveSyncing}
+src/components/GoogleDriveSyncModal.tsx:493:                             <RefreshCw className={`w-3.5 h-3.5 ${singleSyncingId === meeting.id ? 'animate-spin' : ''}`} />
+src/components/GoogleDriveSyncModal.tsx:494:                             <span>{singleSyncingId === meeting.id ? 'កំពុង Sync...' : isSynced ? 'Sync ឡើងវិញ' : 'Sync ទៅ Drive'}</span>
+src/components/GoogleDriveSyncModal.tsx:584:                       <div key={item.id} className="p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50">
+src/components/TelegramBotStudio.tsx:357:       if (cmd.id === cmdId) {
+src/components/TelegramBotStudio.tsx:1202:                 key={cmd.id}
+src/components/TelegramBotStudio.tsx:1237:                 key={msg.id} 
+src/components/TelegramBotStudio.tsx:1367:                     key={cmd.id}
+src/components/TelegramBotStudio.tsx:1410:                           onClick={() => handleToggleCommand(cmd.id)}
+src/components/TelegramBotStudio.tsx:1648:                       <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+src/components/SchoolEquipmentLoanManager.tsx:67:     equipmentId: equipmentItems[0]?.id || '',
+src/components/SchoolEquipmentLoanManager.tsx:145:     const selectedEq = equipmentItems.find(item => item.id === formData.equipmentId);
+src/components/SchoolEquipmentLoanManager.tsx:160:       equipmentId: selectedEq.id,
+src/components/SchoolEquipmentLoanManager.tsx:186:     updateEquipmentLoan(returnModalItem.id, {
+src/components/SchoolEquipmentLoanManager.tsx:220:           updateEquipmentLoan(loan.id, { syncedToGoogleSheets: true });
+src/components/SchoolEquipmentLoanManager.tsx:461:                       <tr key={loan.id} className="hover:bg-slate-50/80 transition-colors">
+src/components/SchoolEquipmentLoanManager.tsx:539:                               onClick={() => deleteEquipmentLoan(loan.id)}
+src/components/SchoolEquipmentLoanManager.tsx:561:                 key={item.id}
+src/components/SchoolEquipmentLoanManager.tsx:606:                     setFormData({ ...formData, equipmentId: item.id });
+src/components/SchoolEquipmentLoanManager.tsx:656:                     <option key={item.id} value={item.id} disabled={item.availableQuantity <= 0}>
+src/components/StudentProgressAnalysis.tsx:104:       .filter(s => s.studentId === student.id || (student.code && s.studentCode === student.code))
+src/components/StudentProgressAnalysis.tsx:110:   }, [scores, student.id, student.code]);
+src/components/StudentProgressAnalysis.tsx:133:       if (record.studentId === student.id) {
+src/components/StudentProgressAnalysis.tsx:142:   }, [dailyAttendance, student.id]);
+src/components/StudentPortal.tsx:76:       (currentUser?.studentId && s.id === currentUser.studentId) ||
+src/components/StudentPortal.tsx:81:   const studentScores = scores.filter(sc => sc.studentId === studentData?.id);
+src/components/StudentPortal.tsx:85:   const studentAttendance = attendanceRecords.filter(a => a.studentId === studentData?.id);
+src/components/StudentPortal.tsx:108:     return studentFeedbacks.filter(f => f.studentId === studentData?.id);
+src/components/StudentPortal.tsx:118:       updateUser(currentUser.id, { password: newPassword });
+src/components/StudentPortal.tsx:139:       studentId: studentData.id,
+src/components/StudentPortal.tsx:435:                       <div key={sc.id} className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 space-y-3">
+src/components/StudentPortal.tsx:493:                       key={evt.id}
+src/components/StudentPortal.tsx:676:                 <div key={book.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+src/components/StudentPortal.tsx:838:                     <div key={fb.id} className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 space-y-2">
+src/components/StudentRankingSystem.tsx:104:       student.id,
+src/components/StudentRankingSystem.tsx:108:   }, [scores, allStudents, student.id, selectedMonth, schoolProfile.academicYear]);
+src/components/StudentRankingSystem.tsx:666:                 const isCurrentStudent = item.studentId === student.id;
+src/components/RecentlyDeletedTab.tsx:187:                     <tr key={record.id} className="hover:bg-rose-50/30 transition-colors">
+src/components/RecentlyDeletedTab.tsx:247:                           onClick={() => onRestore(record.id)}
+src/components/RecentlyDeletedTab.tsx:304:                   onPermanentDelete(selectedRecordForPurge.id);
+src/components/LibraryManagement.tsx:88:     bookId: libraryBooks[0]?.id || '',
+src/components/LibraryManagement.tsx:90:     studentId: students[0]?.id || '',
+src/components/LibraryManagement.tsx:180:     setEditingBookId(book.id);
+src/components/LibraryManagement.tsx:223:       bookId: targetBook?.id || '',
+src/components/LibraryManagement.tsx:225:       studentId: targetStudent?.id || '',
+src/components/LibraryManagement.tsx:257:     updateReadingLog(log.id, {
+src/components/LibraryManagement.tsx:504:               key={b.id}
+src/components/LibraryManagement.tsx:584:                       deleteLibraryBook(b.id);
+src/components/LibraryManagement.tsx:632:                   <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+src/components/LibraryManagement.tsx:677:                               deleteReadingLog(log.id);
+src/components/LibraryManagement.tsx:796:               <tr key={log.id} className="border-b border-slate-800 text-slate-900">
+src/components/LibraryManagement.tsx:999:                     const st = students.find(s => s.id === e.target.value);
+src/components/LibraryManagement.tsx:1003:                         studentId: st.id,
+src/components/LibraryManagement.tsx:1014:                     <option key={s.id} value={s.id}>
+src/components/LibraryManagement.tsx:1027:                     const bk = libraryBooks.find(b => b.id === e.target.value);
+src/components/LibraryManagement.tsx:1031:                         bookId: bk.id,
+src/components/LibraryManagement.tsx:1039:                     <option key={b.id} value={b.id}>
+src/components/QuickAttendanceModal.tsx:13:   const [selectedClassId, setSelectedClassId] = useState<string>(classrooms[0]?.id || '');
+src/components/QuickAttendanceModal.tsx:19:   const currentClass = classrooms.find(c => c.id === selectedClassId) || classrooms[0];
+src/components/QuickAttendanceModal.tsx:34:       studentId: s.id,
+src/components/QuickAttendanceModal.tsx:85:                   <option key={c.id} value={c.id}>
+src/components/OfficialDocumentCenter.tsx:392:   const [selectedStudentId, setSelectedStudentId] = useState<string>(students[0]?.id || '');
+src/components/OfficialDocumentCenter.tsx:393:   const [selectedTeacherId, setSelectedTeacherId] = useState<string>(teachers[0]?.id || '');
+src/components/OfficialDocumentCenter.tsx:428:     return students.find(s => s.id === selectedStudentId) || students[0];
+src/components/OfficialDocumentCenter.tsx:432:     return teachers.find(t => t.id === selectedTeacherId) || teachers[0];
+src/components/OfficialDocumentCenter.tsx:450:       s => s.studentId === selectedStudent?.id && s.monthOrSemester === selectedMonth
+src/components/OfficialDocumentCenter.tsx:455:     return DOCUMENT_TEMPLATES.find(t => t.id === selectedDoc) || DOCUMENT_TEMPLATES[0];
+src/components/OfficialDocumentCenter.tsx:668:               const isSelected = selectedDoc === template.id;
+src/components/OfficialDocumentCenter.tsx:672:                   key={template.id}
+src/components/OfficialDocumentCenter.tsx:673:                   onClick={() => setSelectedDoc(template.id)}
+src/components/OfficialDocumentCenter.tsx:768:                       const s = students.find(item => item.id === e.target.value);
+src/components/OfficialDocumentCenter.tsx:777:                       <option key={s.id} value={s.id}>
+src/components/OfficialDocumentCenter.tsx:814:                       <option key={t.id} value={t.id}>
+src/components/OfficialDocumentCenter.tsx:835:             {(activeTemplateMeta.targetType === 'classroom' || activeTemplateMeta.id === 'student_scorecard') && (
+src/components/OfficialDocumentCenter.tsx:865:             {activeTemplateMeta.id === 'student_scorecard' && (
+src/components/OfficialDocumentCenter.tsx:1679:                             <tr key={c.id}>
+src/components/OfficialDocumentCenter.tsx:1720:                         <tr key={a.id}>
+src/components/OfficialDocumentCenter.tsx:1782:                       {teachers.find(t => t.id === selectedTeacherId)?.nameKhmer || 'សែម ស្រីភឿន'}
+src/components/OfficialDocumentCenter.tsx:1802:           homeroomTeacher={teachers.find(t => t.id === selectedTeacherId)}
+src/components/OfficialDocumentCenter.tsx:1816:           homeroomTeacher={teachers.find(t => t.id === selectedTeacherId || (t.assignedGrade === selectedGrade && t.assignedSection === selectedSection))}
+src/components/ActivityLog.tsx:387:                   key={item.id}
+src/components/ActivityLog.tsx:546:               <tr key={log.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+src/components/SchoolActivityFeed.tsx:330:                 key={log.id}
+src/components/TeacherDailyAgendaPanel.tsx:122:       teacherId: currentUser?.id || 't1',
+src/components/TeacherDailyAgendaPanel.tsx:307:                 key={task.id}
+src/components/TeacherDailyAgendaPanel.tsx:314:                     onClick={() => toggleTaskCompleted(task.id)}
+src/components/TeacherDailyAgendaPanel.tsx:373:                   onClick={() => deleteTeacherDailyTask(task.id)}
+src/components/TeacherDailyAgendaPanel.tsx:397:               <div key={event.id || idx} className="flex items-center justify-between text-slate-700 bg-white/80 px-2.5 py-1 rounded-lg border border-blue-100/50">
+src/components/StudentProfilePdfModal.tsx:51:       id: student.id,
+src/components/StudentProfilePdfModal.tsx:69:     .filter(s => s.studentId === student.id || s.studentCode === student.code)
+src/components/StudentProfilePdfModal.tsx:83:     if (rec.studentId === student.id) {
+src/components/NewClassroomWizardModal.tsx:17:   const [teacherId, setTeacherId] = useState<string>(teachers[0]?.id || '');
+src/components/NewClassroomWizardModal.tsx:22:   const selectedTeacher = teachers.find(t => t.id === teacherId) || teachers[0];
+src/components/NewClassroomWizardModal.tsx:35:       homeroomTeacherId: selectedTeacher?.id || 't-1',
+src/components/NewClassroomWizardModal.tsx:148:                     <option key={t.id} value={t.id}>
+src/components/TeacherDailyTasks.tsx:115:           id: e.id,
+src/components/TeacherDailyTasks.tsx:304:             <div key={notif.id} className="pt-1.5 flex items-center justify-between text-xs gap-2">
+src/components/TeacherDailyTasks.tsx:336:               key={dl.id}
+src/components/TeacherDailyTasks.tsx:439:                 key={task.id}
+src/components/TeacherDailyTasks.tsx:448:                     onClick={() => toggleTaskCompleted(task.id)}
+src/components/TeacherDailyTasks.tsx:526:                   onClick={() => deleteTeacherDailyTask(task.id)}
+src/components/QuickSearchSpotlightModal.tsx:59:         id: s.id,
+src/components/QuickSearchSpotlightModal.tsx:72:         id: t.id,
+src/components/QuickSearchSpotlightModal.tsx:239:                   key={`${res.type}-${res.id}`}
+src/components/HouseholdCensus.tsx:244:     setEditingId(h.id);
+src/components/HouseholdCensus.tsx:311:         id: `mem-fat-${firstStudent.id}`,
+src/components/HouseholdCensus.tsx:326:         id: `mem-mot-${firstStudent.id}`,
+src/components/HouseholdCensus.tsx:341:         id: `mem-stu-${s.id}-${idx}`,
+src/components/HouseholdCensus.tsx:403:       members: prev.members.filter(m => m.id !== memId)
+src/components/HouseholdCensus.tsx:698:                 key={h.id}
+src/components/HouseholdCensus.tsx:810:                           deleteHousehold(h.id);
+src/components/HouseholdCensus.tsx:847:                   <tr key={h.id} className="hover:bg-slate-50 transition-colors">
+src/components/HouseholdCensus.tsx:891:                               deleteHousehold(h.id);
+src/components/HouseholdCensus.tsx:951:                     key={h.id}
+src/components/HouseholdCensus.tsx:1008:               <tr key={h.id} className="border-b border-slate-800 text-slate-900">
+src/components/HouseholdCensus.tsx:1352:                         key={m.id}
+src/components/HouseholdCensus.tsx:1374:                           onClick={() => handleRemoveMemberFromForm(m.id)}
+src/components/HouseholdCensus.tsx:1619:                         <tr key={m.id} className="hover:bg-slate-50">
+src/components/StudentTransferManagement.tsx:143:     const stu = students.find(s => s.id === studentId);
+src/components/StudentTransferManagement.tsx:147:       studentId: stu.id,
+src/components/StudentTransferManagement.tsx:197:       updateTransfer(editingTransfer.id, payload);
+src/components/StudentTransferManagement.tsx:435:                   <tr key={record.id} className="hover:bg-slate-50/80 transition-colors">
+src/components/StudentTransferManagement.tsx:526:                               deleteTransfer(record.id);
+src/components/StudentTransferManagement.tsx:619:                       <option key={s.id} value={s.id}>
+src/components/QuickCareObservationModal.tsx:193:     onSaveObservation(student.id, updatedNotes, selectedTags[0]);
+src/components/QuickCareObservationModal.tsx:262:                     key={tag.id}
+src/components/BatchStudentAttendanceModal.tsx:77:         r => r.studentId === st.id && r.session === selectedSession
+src/components/BatchStudentAttendanceModal.tsx:80:         map[st.id] = { status: existing.status, notes: existing.notes || '' };
+src/components/BatchStudentAttendanceModal.tsx:83:         map[st.id] = { status: 'present', notes: '' };
+src/components/BatchStudentAttendanceModal.tsx:126:         next[st.id] = {
+src/components/BatchStudentAttendanceModal.tsx:127:           ...next[st.id],
+src/components/BatchStudentAttendanceModal.tsx:140:       setSelectedStudentIds(filteredClassStudents.map(st => st.id));
+src/components/BatchStudentAttendanceModal.tsx:184:         const item = attendanceMap[st.id] || { status: 'present', notes: '' };
+src/components/BatchStudentAttendanceModal.tsx:189:           studentId: st.id,
+src/components/BatchStudentAttendanceModal.tsx:437:                     const isSelected = selectedStudentIds.includes(st.id);
+src/components/BatchStudentAttendanceModal.tsx:438:                     const currentStatus = attendanceMap[st.id]?.status || 'present';
+src/components/BatchStudentAttendanceModal.tsx:439:                     const currentNotes = attendanceMap[st.id]?.notes || '';
+src/components/BatchStudentAttendanceModal.tsx:443:                         key={st.id}
+src/components/BatchStudentAttendanceModal.tsx:452:                             onChange={() => handleToggleSelectStudent(st.id)}
+src/components/BatchStudentAttendanceModal.tsx:481:                               onClick={() => handleIndividualStatusChange(st.id, 'present')}
+src/components/BatchStudentAttendanceModal.tsx:493:                               onClick={() => handleIndividualStatusChange(st.id, 'permission')}
+src/components/BatchStudentAttendanceModal.tsx:505:                               onClick={() => handleIndividualStatusChange(st.id, 'absent')}
+src/components/BatchStudentAttendanceModal.tsx:520:                             onChange={e => handleIndividualNoteChange(st.id, e.target.value)}
+src/components/SchoolManagement.tsx:88:       s.id,
+src/components/SchoolManagement.tsx:111:       t.id,
+src/components/SchoolManagement.tsx:135:       tx.id,
+src/components/SchoolManagement.tsx:301:       updateSchoolStrategicPlan(editingPlan.id, planForm);
+src/components/SchoolManagement.tsx:352:       updateSchoolAsset(editingAsset.id, assetForm);
+src/components/SchoolManagement.tsx:604:                           <div key={criterion.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+src/components/SchoolManagement.tsx:626:                                   onClick={() => updateModelSchoolCriterion(group.standardNumber, criterion.id, { currentScore: 5, status: 'excellent' })}
+src/components/SchoolManagement.tsx:638:                                   onClick={() => updateModelSchoolCriterion(group.standardNumber, criterion.id, { currentScore: 4, status: 'good' })}
+src/components/SchoolManagement.tsx:650:                                   onClick={() => updateModelSchoolCriterion(group.standardNumber, criterion.id, { currentScore: 3, status: 'average' })}
+src/components/SchoolManagement.tsx:719:                 <div key={plan.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:border-amber-300 transition-all flex flex-col justify-between">
+src/components/SchoolManagement.tsx:784:                           deleteSchoolStrategicPlan(plan.id);
+src/components/SchoolManagement.tsx:864:                       <tr key={asset.id} className="hover:bg-slate-50 transition-colors">
+src/components/SchoolManagement.tsx:920:                                   deleteSchoolAsset(asset.id);
+src/components/ReportsAndQR.tsx:146:     ? students.filter(st => selectedBatchReportCardStudentIds.includes(st.id))
+src/components/ReportsAndQR.tsx:165:     ? students.filter(st => selectedStudentBatchIds.includes(st.id))
+src/components/ReportsAndQR.tsx:185:       studentId: student.id,
+src/components/ReportsAndQR.tsx:202:       entityId: student.id,
+src/components/ReportsAndQR.tsx:210:         studentId: student.id,
+src/components/ReportsAndQR.tsx:295:       const sc = (activeScores || []).find(s => s && (s.studentId === st.id || s.studentCode === st.code));
+src/components/ReportsAndQR.tsx:413:                 setSelectedStudentForBadgeId(classStudents[0]?.id || students[0]?.id);
+src/components/ReportsAndQR.tsx:863:                     const sc = activeScores.find(s => s.studentId === st.id);
+src/components/ReportsAndQR.tsx:865:                       <tr key={st.id} className="hover:bg-slate-50">
+src/components/ReportsAndQR.tsx:935:                     <tr key={tx.id} className="hover:bg-slate-50">
+src/components/ReportsAndQR.tsx:998:                   key={st.id}
+src/components/ReportsAndQR.tsx:1144:                         setSelectedStudentBatchIds(filteredBatchStudents.map(s => s.id));
+src/components/ReportsAndQR.tsx:1187:                   const isSelected = selectedStudentBatchIds.includes(st.id);
+src/components/ReportsAndQR.tsx:1190:                       key={st.id}
+src/components/ReportsAndQR.tsx:1194:                           prev.includes(st.id) ? prev.filter(id => id !== st.id) : [...prev, st.id]
+src/components/ReportsAndQR.tsx:1240:                     key={st.id}
+src/components/ReportsAndQR.tsx:1291:                   key={t.id}
+src/components/ReportsAndQR.tsx:1597:                       <tr key={t.id} className="hover:bg-slate-50">
+src/components/ReportsAndQR.tsx:1764:                       value={selectedStudentForReportCard?.id || (classStudents[0]?.id || '')}
+src/components/ReportsAndQR.tsx:1766:                         const st = students.find(s => s.id === e.target.value) || null;
+src/components/ReportsAndQR.tsx:1775:                         <option key={s.id} value={s.id}>
+src/components/ReportsAndQR.tsx:1780:                         <option key={s.id} value={s.id}>
+src/components/ReportsAndQR.tsx:1790:                       const customTs = signatureRenewalTimestamps[curSt.id];
+src/components/ReportsAndQR.tsx:1816:                                 [curSt.id]: nowIso
+src/components/ReportsAndQR.tsx:1921:                           const allFilteredIds = filteredBatchReportCardStudents.map(s => s.id);
+src/components/ReportsAndQR.tsx:1951:                         const isSelected = selectedBatchReportCardStudentIds.includes(st.id);
+src/components/ReportsAndQR.tsx:1954:                             key={st.id}
+src/components/ReportsAndQR.tsx:1958:                                 setSelectedBatchReportCardStudentIds(prev => prev.filter(id => id !== st.id));
+src/components/ReportsAndQR.tsx:1960:                                 setSelectedBatchReportCardStudentIds(prev => [...prev, st.id]);
+src/components/ReportsAndQR.tsx:2043:                 const stScore = activeScores.find(s => s.studentId === currentSt.id);
+src/components/ReportsAndQR.tsx:2050:                 const customTs = signatureRenewalTimestamps[currentSt.id];
+src/components/ReportsAndQR.tsx:2055:                   studentId: currentSt.id,
+src/components/ReportsAndQR.tsx:2226:                     s => s.studentId === st.id && s.monthOrSemester === selectedMonth
+src/components/ReportsAndQR.tsx:2227:                   ) || scores.find(s => s.studentId === st.id);
+src/components/ReportsAndQR.tsx:2235:                   const customTs = signatureRenewalTimestamps[st.id];
+src/components/ReportsAndQR.tsx:2240:                     studentId: st.id,
+src/components/ReportsAndQR.tsx:2261:                       key={st.id}
+src/components/ReportsAndQR.tsx:2632:                             <tr key={log.id} className="hover:bg-slate-50/70 transition-all">
+src/components/ReportsAndQR.tsx:2740:                                         const targetSt = students.find(s => s.id === log.studentId);
+src/components/ReportsAndQR.tsx:2747:                                             [targetSt.id]: nowIso
+src/components/ReportsAndQR.tsx:2764:                                       deleteQRScanVerificationLog(log.id);
+src/components/SuperAdminHub.tsx:112:       setAppUsers(prev => prev.map(u => u.id === userId ? { ...u, password: newPass } : u));
+src/components/SuperAdminHub.tsx:119:     setAppUsers(prev => prev.map(u => u.id === userId ? { ...u, status: nextStatus as any } : u));
+src/components/SuperAdminHub.tsx:458:                       <tr key={dir.id} className="hover:bg-slate-50 transition-colors">
+src/components/SuperAdminHub.tsx:487:                               onClick={() => handleResetPassword(dir.id, dir.nameKhmer)}
+src/components/SuperAdminHub.tsx:494:                               onClick={() => handleToggleStatus(dir.id, dir.status)}
+src/components/SuperAdminHub.tsx:610:               <div key={log.id} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+src/components/TeachingResourceHub.tsx:137:           driveFileId = driveResult.id;
+src/components/TeachingResourceHub.tsx:276:               key={resource.id}
+src/components/TeachingResourceHub.tsx:324:                     onClick={() => deleteTeachingResource(resource.id)}
+src/components/AccountAuditLogTab.tsx:325:                   <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
+src/components/GroupManagement.tsx:124:     if (!selectedGroup || !selectedGroup.id) return safeSchoolGroups[0] || null;
+src/components/GroupManagement.tsx:125:     return safeSchoolGroups.find(g => g && g.id === selectedGroup.id) || safeSchoolGroups[0] || null;
+src/components/GroupManagement.tsx:180:         .filter(t => t && !currentMemberIds.has(t.id) && !currentMemberIds.has(t.staffCode))
+src/components/GroupManagement.tsx:183:           id: t.id,
+src/components/GroupManagement.tsx:192:         .filter(s => s && !currentMemberIds.has(s.id) && !currentMemberIds.has(s.studentId))
+src/components/GroupManagement.tsx:195:           id: s.id,
+src/components/GroupManagement.tsx:214:       if (currentMemberIds.has(s.id) || currentMemberIds.has(s.studentId)) return false;
+src/components/GroupManagement.tsx:269:       updateSchoolGroup(editingGroup.id, groupForm);
+src/components/GroupManagement.tsx:282:       deleteSchoolGroup(group.id);
+src/components/GroupManagement.tsx:283:       if (activeGroup?.id === group.id) {
+src/components/GroupManagement.tsx:293:     const candidate = candidateList.find(c => c.id === newMemberCandidate.memberId);
+src/components/GroupManagement.tsx:296:     addMemberToGroup(activeGroup.id, {
+src/components/GroupManagement.tsx:298:       memberId: candidate.id,
+src/components/GroupManagement.tsx:316:       .filter(s => selectedBulkStudentIds.includes(s.id))
+src/components/GroupManagement.tsx:319:         memberId: s.id,
+src/components/GroupManagement.tsx:327:     bulkAddMembersToGroup(activeGroup.id, studentsToAdd);
+src/components/GroupManagement.tsx:421:             const isSelected = selectedCategory === cat.id;
+src/components/GroupManagement.tsx:424:                 key={cat.id}
+src/components/GroupManagement.tsx:425:                 id={`cat-filter-btn-${cat.id}`}
+src/components/GroupManagement.tsx:426:                 onClick={() => setSelectedCategory(cat.id)}
+src/components/GroupManagement.tsx:482:                   const isSelected = activeGroup?.id === group.id;
+src/components/GroupManagement.tsx:489:                       key={group.id}
+src/components/GroupManagement.tsx:490:                       id={`group-card-item-${group.id}`}
+src/components/GroupManagement.tsx:738:                               <tr key={member.id} className="hover:bg-slate-50/80 transition-colors">
+src/components/GroupManagement.tsx:784:                                     onChange={e => updateGroupMemberRole(activeGroup.id, member.id, e.target.value as GroupMemberRole)}
+src/components/GroupManagement.tsx:802:                                     onClick={() => removeMemberFromGroup(activeGroup.id, member.id)}
+src/components/GroupManagement.tsx:1112:                       const isSelected = newMemberCandidate.memberId === c.id;
+src/components/GroupManagement.tsx:1115:                           key={c.id}
+src/components/GroupManagement.tsx:1116:                           onClick={() => setNewMemberCandidate(prev => ({ ...prev, memberId: c.id }))}
+src/components/GroupManagement.tsx:1240:                     onClick={() => setSelectedBulkStudentIds(bulkAvailableStudents.map(s => s.id))}
+src/components/GroupManagement.tsx:1267:                     const isChecked = selectedBulkStudentIds.includes(s.id);
+src/components/GroupManagement.tsx:1270:                         key={s.id}
+src/components/GroupManagement.tsx:1281:                                 isChecked ? prev.filter(id => id !== s.id) : [...prev, s.id]
+src/components/GroupManagement.tsx:1412:                       <tr key={m.id} className="border-b border-slate-300">
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:216:         id: s.id,
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:426:           setRevealedBoxIndex(activeCandidates.findIndex(c => c.id === chosen.id));
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:457:       initialPos[c.id] = 0;
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:465:     const currentModeConfig = PRESET_MODES.find(m => m.id === activeMode);
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:503:           const isTarget = c.id === targetWinner.id;
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:506:           const randomWobble = Math.sin(elapsed / 300 + parseInt(c.id.slice(-2) || '1', 10)) * 6;
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:518:           next[c.id] = Math.max(0, Math.min(100, targetProgress));
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:528:           [targetWinner.id]: 100
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:591:         c.id === winnerCandidate.id ? { ...c, eliminated: true } : c
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:772:         onAwardScoreToStudent(winner.id, winner.name, 100);
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:780:   const currentModeInfo = PRESET_MODES.find(m => m.id === activeMode);
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:813:                 <linearGradient id={`duckGrad-${cand.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:829:               <path d="M 25 45 C 15 50 15 65 35 68 C 65 72 80 62 82 48 C 84 38 72 35 60 38 C 55 25 70 12 55 8 C 42 5 38 18 42 30 C 32 35 25 40 25 45 Z" fill={`url(#duckGrad-${cand.id})`} stroke="#854d0e" strokeWidth="2" />
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:860:                 <linearGradient id={`bikeGrad-${cand.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:873:               <path d="M 25 50 L 55 45 L 80 50 L 95 50 L 70 30 L 45 32 Z" fill={`url(#bikeGrad-${cand.id})`} stroke="#0f172a" strokeWidth="2" />
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:906:                 <linearGradient id={`jetGrad-${cand.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:922:               <path d="M 25 30 L 45 12 L 65 30 L 115 30 L 75 48 L 50 30 Z" fill={`url(#jetGrad-${cand.id})`} stroke="#0c4a6e" strokeWidth="1.5" />
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:1242:             const isSelected = activeMode === mode.id;
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:1245:                 key={mode.id}
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:1247:                   setActiveMode(mode.id);
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:1394:                     const isWinnerBox = winner?.id === cand.id;
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:1397:                         key={cand.id}
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:1428:                       key={cand.id}
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:1456:                   const progress = runnerPositions[cand.id] || 0;
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:1457:                   const isWinningLane = winner?.id === cand.id;
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:1477:                       key={cand.id}
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:1563:                         onAwardScoreToStudent(winner.id, winner.name, 50);
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:1646:                   key={cand.id}
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:1660:                       onClick={() => setCandidates(prev => prev.map(c => c.id === cand.id ? { ...c, eliminated: !c.eliminated } : c))}
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:1666:                       onClick={() => setCandidates(prev => prev.filter(c => c.id !== cand.id))}
+src/components/ai-teacher/ClassroomPickerRaceArena.tsx:1799:                     onAwardScoreToStudent(winner.id, winner.name, 100);
+src/components/ai-teacher/AIAssistantSidePanel.tsx:156:             key={m.id}
+src/components/ai-teacher/TestQuestionGenerator.tsx:84:         id: generated.id,
+src/components/ai-teacher/TestQuestionGenerator.tsx:114:     const updatedQuestions = testPaper.questions.filter(q => q.id !== qId);
+src/components/ai-teacher/TestQuestionGenerator.tsx:400:                     key={q.id} 
+src/components/ai-teacher/TestQuestionGenerator.tsx:422:                         onClick={() => handleDeleteQuestion(q.id)}
+src/components/ai-teacher/TestQuestionGenerator.tsx:463:                 <div key={q.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-2 text-xs">
+src/components/ai-teacher/CurriculumGenerator.tsx:71:         id: generated.id,
+src/components/ai-teacher/CurriculumGenerator.tsx:92:       if (w.id === weekId) {
+src/components/ai-teacher/CurriculumGenerator.tsx:125:     const updated = curriculum.weeks.filter(w => w.id !== weekId);
+src/components/ai-teacher/CurriculumGenerator.tsx:369:                   <tr key={week.id} className="hover:bg-blue-50/30 transition-all">
+src/components/ai-teacher/CurriculumGenerator.tsx:380:                       {editingWeekId === week.id ? (
+src/components/ai-teacher/CurriculumGenerator.tsx:384:                           onChange={e => handleUpdateWeek(week.id, 'topic', e.target.value)}
+src/components/ai-teacher/CurriculumGenerator.tsx:393:                       {editingWeekId === week.id ? (
+src/components/ai-teacher/CurriculumGenerator.tsx:397:                           onChange={e => handleUpdateWeek(week.id, 'learningObjectives', e.target.value)}
+src/components/ai-teacher/CurriculumGenerator.tsx:406:                       {editingWeekId === week.id ? (
+src/components/ai-teacher/CurriculumGenerator.tsx:410:                           onChange={e => handleUpdateWeek(week.id, 'keyActivities', e.target.value)}
+src/components/ai-teacher/CurriculumGenerator.tsx:419:                       {editingWeekId === week.id ? (
+src/components/ai-teacher/CurriculumGenerator.tsx:423:                           onChange={e => handleUpdateWeek(week.id, 'assessmentMethod', e.target.value)}
+src/components/ai-teacher/CurriculumGenerator.tsx:436:                           onClick={() => setEditingWeekId(editingWeekId === week.id ? null : week.id)}
+src/components/ai-teacher/CurriculumGenerator.tsx:438:                             editingWeekId === week.id ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 text-slate-500'
+src/components/ai-teacher/CurriculumGenerator.tsx:440:                           title={editingWeekId === week.id ? 'រក្សាទុក' : 'កែប្រែ'}
+src/components/ai-teacher/CurriculumGenerator.tsx:445:                           onClick={() => handleDeleteWeek(week.id)}
+src/components/ai-teacher/StudentGameModeModal.tsx:55:         id: s.id,
+src/components/ai-teacher/StudentGameModeModal.tsx:251:                       key={player.id} 
+src/components/ai-teacher/StudentGameModeModal.tsx:389:                   <div key={p.id} className="p-3 bg-white/10 rounded-xl flex items-center justify-between text-xs">
+src/components/ai-teacher/LessonSlideGenerator.tsx:104:         id: generated.id,
+src/components/ai-teacher/LessonSlideGenerator.tsx:140:         id: slides.id,
+src/components/ai-teacher/LessonSlideGenerator.tsx:802:                     key={t.id}
+src/components/ai-teacher/LessonSlideGenerator.tsx:803:                     onClick={() => handleThemeChange(t.id as SlideTheme)}
+src/components/ai-teacher/LessonSlideGenerator.tsx:806:                       selectedTheme === t.id ? 'ring-2 ring-blue-600 ring-offset-2 scale-110' : 'opacity-70 hover:opacity-100'
+src/components/ai-teacher/LessonSlideGenerator.tsx:856:                   key={s.id}
+src/components/ai-teacher/AITeacherHub.tsx:102:           const isActive = activeSubTab === item.id;
+src/components/ai-teacher/AITeacherHub.tsx:105:               key={item.id}
+src/components/ai-teacher/AITeacherHub.tsx:107:                 setActiveSubTab(item.id);
+src/components/ai-teacher/MoEYSPrimaryCurriculumHub.tsx:68:         initial[ind.id] = 4; // default good rating
+src/components/ai-teacher/MoEYSPrimaryCurriculumHub.tsx:314:                         const isSelected = selectedLesson?.id === lesson.id;
+src/components/ai-teacher/MoEYSPrimaryCurriculumHub.tsx:317:                             key={lesson.id}
+src/components/ai-teacher/MoEYSPrimaryCurriculumHub.tsx:472:               const standardScore = standard.indicators.reduce((sum, ind) => sum + (indicatorScores[ind.id] || 0), 0);
+src/components/ai-teacher/MoEYSPrimaryCurriculumHub.tsx:477:                 <div key={standard.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+src/components/ai-teacher/MoEYSPrimaryCurriculumHub.tsx:503:                       const currentScore = indicatorScores[ind.id] || 4;
+src/components/ai-teacher/MoEYSPrimaryCurriculumHub.tsx:506:                         <div key={ind.id} className="p-5 hover:bg-slate-50/60 transition-colors space-y-3">
+src/components/ai-teacher/MoEYSPrimaryCurriculumHub.tsx:554:                                       setIndicatorScores(prev => ({ ...prev, [ind.id]: pts }));
+src/components/ai-teacher/MoEYSPrimaryCurriculumHub.tsx:901:                 const stdScore = std.indicators.reduce((sum, ind) => sum + (indicatorScores[ind.id] || 0), 0);
+src/components/ai-teacher/MoEYSPrimaryCurriculumHub.tsx:905:                   <tr key={std.id}>
+src/components/ai-teacher/AICreationsHistory.tsx:108:               key={f.id}
+src/components/ai-teacher/AICreationsHistory.tsx:109:               onClick={() => setSelectedFilter(f.id as any)}
+src/components/ai-teacher/AICreationsHistory.tsx:111:                 selectedFilter === f.id
+src/components/ai-teacher/AICreationsHistory.tsx:132:               key={item.id}
+src/components/ai-teacher/AICreationsHistory.tsx:160:                     onClick={(e) => handleDelete(item.id, e)}
+src/components/ai-teacher/WeeklyLessonPlanGenerator.tsx:101:       id: weeklyPlan.id,
+src/components/ai-teacher/WeeklyLessonPlanGenerator.tsx:527:                     key={day.id || idx}
+src/components/ai-teacher/WeeklyLessonPlanGenerator.tsx:564:                       key={day.id || idx} 
+src/components/ai-teacher/WeeklyLessonPlanGenerator.tsx:665:                       <tr key={day.id} className="align-top">
+src/components/ai-teacher/ClassroomDuckRace.tsx:114:         id: s.id,
+src/components/ai-teacher/ClassroomDuckRace.tsx:139:       map[c.id] = DUCK_COSTUMES[idx % DUCK_COSTUMES.length].id;
+src/components/ai-teacher/ClassroomDuckRace.tsx:306:           color: DUCK_COSTUMES.find(c => c.id === player1.costume)?.color || '#facc15',
+src/components/ai-teacher/ClassroomDuckRace.tsx:314:           color: DUCK_COSTUMES.find(c => c.id === player2.costume)?.color || '#f97316',
+src/components/ai-teacher/ClassroomDuckRace.tsx:439:     activeCandidates.forEach(c => { initPos[c.id] = 0; });
+src/components/ai-teacher/ClassroomDuckRace.tsx:480:           const isChosenWinner = cand.id === chosenWinner.id;
+src/components/ai-teacher/ClassroomDuckRace.tsx:498:           next[cand.id] = Math.max(0, Math.min(100, targetPercent));
+src/components/ai-teacher/ClassroomDuckRace.tsx:554:       const isP1 = winnerCandidate.id === 'p1';
+src/components/ai-teacher/ClassroomDuckRace.tsx:579:       ? (winnerCandidate.id === 'p1' ? player1.costume : player2.costume)
+src/components/ai-teacher/ClassroomDuckRace.tsx:580:       : (candidateCostumes[winnerCandidate.id] || 'classic_yellow');
+src/components/ai-teacher/ClassroomDuckRace.tsx:650:         c.id === winner.id ? { ...c, eliminated: true } : c
+src/components/ai-teacher/ClassroomDuckRace.tsx:665:     activeCandidates.forEach(c => { initPos[c.id] = 0; });
+src/components/ai-teacher/ClassroomDuckRace.tsx:719:     const isLeadWinner = raceFinished && winner?.id === cand.id;
+src/components/ai-teacher/ClassroomDuckRace.tsx:845:               <linearGradient id={`duckYellow-${cand.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+src/components/ai-teacher/ClassroomDuckRace.tsx:852:               <linearGradient id={`duckHeadGrad-${cand.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+src/components/ai-teacher/ClassroomDuckRace.tsx:898:                 fill={`url(#duckYellow-${cand.id})`} 
+src/components/ai-teacher/ClassroomDuckRace.tsx:917:                   fill={`url(#duckYellow-${cand.id})`} 
+src/components/ai-teacher/ClassroomDuckRace.tsx:936:                   fill={`url(#duckYellow-${cand.id})`} 
+src/components/ai-teacher/ClassroomDuckRace.tsx:950:                   fill={`url(#duckYellow-${cand.id})`} 
+src/components/ai-teacher/ClassroomDuckRace.tsx:967:                   fill={`url(#duckYellow-${cand.id})`} 
+src/components/ai-teacher/ClassroomDuckRace.tsx:983:                   fill={`url(#duckYellow-${cand.id})`} 
+src/components/ai-teacher/ClassroomDuckRace.tsx:997:                   fill={`url(#duckYellow-${cand.id})`} 
+src/components/ai-teacher/ClassroomDuckRace.tsx:1011:                 fill={`url(#duckYellow-${cand.id})`} 
+src/components/ai-teacher/ClassroomDuckRace.tsx:1020:               <circle cx="58" cy="20" r="15" fill={`url(#duckHeadGrad-${cand.id})`} />
+src/components/ai-teacher/ClassroomDuckRace.tsx:1413:                           <span className="text-[9px] bg-blue-500/30 text-blue-200 px-1 rounded-sm">{DUCK_COSTUMES.find(c => c.id === player1.costume)?.nameKh}</span>
+src/components/ai-teacher/ClassroomDuckRace.tsx:1440:                           <span className="text-[9px] bg-purple-500/30 text-purple-200 px-1 rounded-sm">{DUCK_COSTUMES.find(c => c.id === player2.costume)?.nameKh}</span>
+src/components/ai-teacher/ClassroomDuckRace.tsx:1542:                   const progressVal = Math.max(0, Math.min(100, duckPositions[cand.id] || 0));
+src/components/ai-teacher/ClassroomDuckRace.tsx:1543:                   const isLead = Math.max(...activeCandidates.map(c => duckPositions[c.id] || 0)) === progressVal;
+src/components/ai-teacher/ClassroomDuckRace.tsx:1546:                       key={cand.id}
+src/components/ai-teacher/ClassroomDuckRace.tsx:1560:                 const leadDuck = [...activeCandidates].sort((a, b) => (duckPositions[b.id] || 0) - (duckPositions[a.id] || 0))[0];
+src/components/ai-teacher/ClassroomDuckRace.tsx:1561:                 const leadProgress = Math.round(duckPositions[leadDuck?.id] || 0);
+src/components/ai-teacher/ClassroomDuckRace.tsx:1615:             const progress = isRacing ? (duckPositions[cand.id] || 0) : (raceFinished && winner?.id === cand.id ? 100 : 0);
+src/components/ai-teacher/ClassroomDuckRace.tsx:1619:               ? (cand.id === 'p1' ? player1.costume : player2.costume)
+src/components/ai-teacher/ClassroomDuckRace.tsx:1620:               : (candidateCostumes[cand.id] || DUCK_COSTUMES[idx % DUCK_COSTUMES.length].id);
+src/components/ai-teacher/ClassroomDuckRace.tsx:1621:             const isWinnerDuck = winner?.id === cand.id;
+src/components/ai-teacher/ClassroomDuckRace.tsx:1626:                 key={cand.id}
+src/components/ai-teacher/ClassroomDuckRace.tsx:1635:                       cand.id === 'p1' ? 'bg-blue-600/80 text-white border-blue-400' : 'bg-purple-600/80 text-white border-purple-400'
+src/components/ai-teacher/ClassroomDuckRace.tsx:1637:                       {cand.id === 'p1' ? '🔵 LANE 1 (P1)' : '🟣 LANE 2 (P2)'}
+src/components/ai-teacher/ClassroomDuckRace.tsx:1640:                       {cand.id === 'p1' ? `"${player1.motto}"` : `"${player2.motto}"`}
+src/components/ai-teacher/ClassroomDuckRace.tsx:1651:                         : cand.id === 'p1'
+src/components/ai-teacher/ClassroomDuckRace.tsx:1653:                         : cand.id === 'p2'
+src/components/ai-teacher/ClassroomDuckRace.tsx:1673:                             ? `calc(${Math.min(72, (duckPositions[cand.id] || (45 + (idx % 4) * 6)) * 0.78)}% + 14px)`
+src/components/ai-teacher/ClassroomDuckRace.tsx:1706:                     DUCK_COSTUMES[costumeCarouselIndex].id,
+src/components/ai-teacher/ClassroomDuckRace.tsx:1756:                   <div className={`flex flex-col items-center ${winner.id === 'p1' ? 'text-blue-700 font-black' : 'text-slate-600'}`}>
+src/components/ai-teacher/ClassroomDuckRace.tsx:1761:                   <div className={`flex flex-col items-center ${winner.id === 'p2' ? 'text-purple-700 font-black' : 'text-slate-600'}`}>
+src/components/ai-teacher/ClassroomDuckRace.tsx:1907:                   key={cand.id}
+src/components/ai-teacher/ClassroomDuckRace.tsx:1923:                           c.id === cand.id ? { ...c, eliminated: !c.eliminated } : c
+src/components/ai-teacher/ClassroomDuckRace.tsx:1934:                         setCandidates(prev => prev.filter(c => c.id !== cand.id));
+src/components/ai-teacher/ClassroomDuckRace.tsx:2010:                             onAwardScore(item.candidate.id, item.candidate.name, 50);
+src/components/ai-teacher/ClassroomDuckRace.tsx:2124:                         { id: 'p1_prev', name: player1.name, color: DUCK_COSTUMES.find(c => c.id === player1.costume)?.color || '#facc15', eliminated: false, score: 0 },
+src/components/ai-teacher/ClassroomDuckRace.tsx:2202:                         key={costume.id}
+src/components/ai-teacher/ClassroomDuckRace.tsx:2204:                           setPlayer1(prev => ({ ...prev, costume: costume.id }));
+src/components/ai-teacher/ClassroomDuckRace.tsx:2208:                           player1.costume === costume.id
+src/components/ai-teacher/ClassroomDuckRace.tsx:2215:                             { id: `c_p1_${costume.id}`, name: '', color: costume.color, eliminated: false, score: 0 },
+src/components/ai-teacher/ClassroomDuckRace.tsx:2217:                             costume.id,
+src/components/ai-teacher/ClassroomDuckRace.tsx:2271:                         { id: 'p2_prev', name: player2.name, color: DUCK_COSTUMES.find(c => c.id === player2.costume)?.color || '#f97316', eliminated: false, score: 0 },
+src/components/ai-teacher/ClassroomDuckRace.tsx:2349:                         key={costume.id}
+src/components/ai-teacher/ClassroomDuckRace.tsx:2351:                           setPlayer2(prev => ({ ...prev, costume: costume.id }));
+src/components/ai-teacher/ClassroomDuckRace.tsx:2355:                           player2.costume === costume.id
+src/components/ai-teacher/ClassroomDuckRace.tsx:2362:                             { id: `c_p2_${costume.id}`, name: '', color: costume.color, eliminated: false, score: 0 },
+src/components/ai-teacher/ClassroomDuckRace.tsx:2364:                             costume.id,
+src/components/ai-teacher/ClassroomDuckRace.tsx:2414:                           { id: 'p1_vs', name: '', color: DUCK_COSTUMES.find(c => c.id === player1.costume)?.color || '#facc15', eliminated: false, score: 0 },
+src/components/ai-teacher/ClassroomDuckRace.tsx:2443:                           { id: 'p2_vs', name: '', color: DUCK_COSTUMES.find(c => c.id === player2.costume)?.color || '#f97316', eliminated: false, score: 0 },
+src/components/ai-teacher/AITeacherDashboard.tsx:168:               key={card.id}
+src/components/ai-teacher/AITeacherDashboard.tsx:169:               onClick={() => onSelectTab(card.id)}
+src/components/ai-teacher/AITeacherDashboard.tsx:226:                 key={item.id}
+src/components/ai-teacher/EducationalGameGenerator.tsx:69:     const targetStudent = students.find(s => s.id === studentId || s.nameKhmer === studentName);
+src/components/ai-teacher/EducationalGameGenerator.tsx:71:       updateStudent(targetStudent.id, {
+src/components/ai-teacher/EducationalGameGenerator.tsx:109:         id: generated.id,
+src/components/ai-teacher/EducationalGameGenerator.tsx:287:                     key={t.id}
+src/components/ai-teacher/EducationalGameGenerator.tsx:288:                     onClick={() => setSelectedGameType(t.id)}
+src/components/ai-teacher/EducationalGameGenerator.tsx:290:                       selectedGameType === t.id
+src/components/ai-teacher/EducationalGameGenerator.tsx:554:                       <div key={card.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-2 text-xs">
+src/components/ai-teacher/CurriculumStandardsAuditModal.tsx:182:                   key={c.id}
+src/components/telegram/TelegramSmartAutoResponder.tsx:314:       setRules(prev => prev.map(r => r.id === selectedRule.id ? {
+src/components/telegram/TelegramSmartAutoResponder.tsx:360:       if (r.id === ruleId) {
+src/components/telegram/TelegramSmartAutoResponder.tsx:376:       setRules(prev => prev.filter(r => r.id !== ruleId));
+src/components/telegram/TelegramSmartAutoResponder.tsx:680:                   key={rule.id}
+src/components/telegram/TelegramSmartAutoResponder.tsx:729:                             onClick={() => handleToggleRule(rule.id)}
+src/components/telegram/TelegramSmartAutoResponder.tsx:765:                             onClick={() => handleDeleteRule(rule.id)}
+src/components/telegram/TelegramClassroomGroupRouter.tsx:126:   const [selectedTargetClassId, setSelectedTargetClassId] = useState<string>(classrooms[0]?.id || '');
+src/components/telegram/TelegramClassroomGroupRouter.tsx:146:         const teacher = teachers.find(t => t.id === c.homeroomTeacherId);
+src/components/telegram/TelegramClassroomGroupRouter.tsx:178:     updateClassroom(editingClassroom.id, {
+src/components/telegram/TelegramClassroomGroupRouter.tsx:193:       g.id === editingSpecialGroup.id ? { ...g, nameKhmer: specialEditName.trim(), chatId: specialEditChatId.trim() } : g
+src/components/telegram/TelegramClassroomGroupRouter.tsx:238:       let targetClassInfo = classrooms.find(c => c.id === selectedTargetClassId);
+src/components/telegram/TelegramClassroomGroupRouter.tsx:320:       const cls = classrooms.find(c => c.id === selectedTargetClassId);
+src/components/telegram/TelegramClassroomGroupRouter.tsx:505:                   const testStatus = testStatusMap[cls.id];
+src/components/telegram/TelegramClassroomGroupRouter.tsx:509:                       key={cls.id}
+src/components/telegram/TelegramClassroomGroupRouter.tsx:556:                           onClick={() => handleTestPing(cls.id, `ថ្នាក់ទី ${cls.grade}${cls.section}`, cls.telegramChatId || '240224709')}
+src/components/telegram/TelegramClassroomGroupRouter.tsx:557:                           disabled={testingTargetId === cls.id}
+src/components/telegram/TelegramClassroomGroupRouter.tsx:561:                           <RefreshCw className={`w-3 h-3 ${testingTargetId === cls.id ? 'animate-spin text-indigo-600' : ''}`} />
+src/components/telegram/TelegramClassroomGroupRouter.tsx:597:                 const testStatus = testStatusMap[grp.id];
+src/components/telegram/TelegramClassroomGroupRouter.tsx:601:                     key={grp.id}
+src/components/telegram/TelegramClassroomGroupRouter.tsx:631:                         onClick={() => handleTestPing(grp.id, grp.nameKhmer, grp.chatId)}
+src/components/telegram/TelegramClassroomGroupRouter.tsx:632:                         disabled={testingTargetId === grp.id}
+src/components/telegram/TelegramClassroomGroupRouter.tsx:635:                         <RefreshCw className={`w-3 h-3 ${testingTargetId === grp.id ? 'animate-spin text-purple-600' : ''}`} />
+src/components/telegram/TelegramClassroomGroupRouter.tsx:754:                       <option key={c.id} value={c.id}>
+src/components/telegram/TelegramBotAlertSystem.tsx:503:                   <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+src/components/telegram/TelegramGroupIdInspector.tsx:65:   const [selectedTargetClassId, setSelectedTargetClassId] = useState<string>(classrooms[0]?.id || '');
+src/components/telegram/TelegramGroupIdInspector.tsx:184:       const cls = classrooms.find(c => c.id === selectedTargetClassId);
+src/components/telegram/TelegramGroupIdInspector.tsx:186:         updateClassroom(cls.id, {
+src/components/telegram/TelegramGroupIdInspector.tsx:199:       const matchIndex = list.findIndex(g => g.category === selectedSpecialTarget || g.id === selectedSpecialTarget);
+src/components/telegram/TelegramGroupIdInspector.tsx:695:                       const t = teachers.find(tch => tch.id === c.homeroomTeacherId);
+src/components/telegram/TelegramGroupIdInspector.tsx:697:                         <option key={c.id} value={c.id}>
+src/components/telegram/TelegramGroupConfiguration.tsx:59:           id: `rule-cls-${cls.id}`,
+src/components/telegram/TelegramGroupConfiguration.tsx:90:     const exists = rules.some(r => r.id === editingRule.id);
+src/components/telegram/TelegramGroupConfiguration.tsx:93:       updated = rules.map(r => (r.id === editingRule.id ? { ...editingRule, lastUpdated: new Date().toISOString().slice(0, 10) } : r));
+src/components/telegram/TelegramGroupConfiguration.tsx:107:       const updated = rules.filter(r => r.id !== id);
+src/components/telegram/TelegramGroupConfiguration.tsx:116:       if (r.id === id) {
+src/components/telegram/TelegramGroupConfiguration.tsx:128:     setVerifyingGroupId(rule.id);
+src/components/telegram/TelegramGroupConfiguration.tsx:260:             key={rule.id}
+src/components/telegram/TelegramGroupConfiguration.tsx:287:                 onClick={() => handleToggleEnable(rule.id)}
+src/components/telegram/TelegramGroupConfiguration.tsx:359:                 disabled={verifyingGroupId === rule.id}
+src/components/telegram/TelegramGroupConfiguration.tsx:363:                 <Zap className={`w-3.5 h-3.5 ${verifyingGroupId === rule.id ? 'animate-spin' : ''}`} />
+src/components/telegram/TelegramGroupConfiguration.tsx:364:                 <span>{verifyingGroupId === rule.id ? 'កំពុងតេស្ត...' : 'Verify Connection'}</span>
+src/components/telegram/TelegramGroupConfiguration.tsx:382:                   onClick={() => handleDeleteRule(rule.id, rule.groupTitle)}
+src/components/telegram/TelegramGroupConfiguration.tsx:405:                     {editingRule.id ? 'កែសម្រួល Notification Rule សម្រាប់ក្រុម' : 'បន្ថែម Group Notification Rule ថ្មី'}
+src/components/telegram/TelegramTransmissionTimelineChart.tsx:479:                 <tr key={item.id || idx} className="hover:bg-slate-50/80 transition-colors">
+src/components/telegram/TelegramChannelValidator.tsx:114:     const targetClass = classrooms.find(c => c.id === classroomId);
+src/components/telegram/TelegramChannelValidator.tsx:203:                   key={c.id}
+src/components/telegram/TelegramChannelValidator.tsx:346:                       <option key={c.id} value={c.id}>
+src/components/telegram/TelegramBotActivityLog.tsx:82:     setRetryingLogId(logItem.id);
+src/components/telegram/TelegramBotActivityLog.tsx:105:         if (selectedLogForModal?.id === logItem.id) {
+src/components/telegram/TelegramBotActivityLog.tsx:327:                     key={item.id}
+src/components/telegram/TelegramBotActivityLog.tsx:391:                             disabled={retryingLogId === item.id}
+src/components/telegram/TelegramBotActivityLog.tsx:395:                             <RotateCcw className={`w-3 h-3 ${retryingLogId === item.id ? 'animate-spin' : ''}`} />
+src/components/telegram/TelegramBotActivityLog.tsx:396:                             <span>{retryingLogId === item.id ? 'កំពុង Retry...' : 'Retry ផ្ញើ'}</span>
+src/components/telegram/TelegramBotActivityLog.tsx:532:                 disabled={retryingLogId === selectedLogForModal.id}
+src/components/telegram/TelegramBotActivityLog.tsx:535:                 <RotateCcw className={`w-3.5 h-3.5 ${retryingLogId === selectedLogForModal.id ? 'animate-spin' : ''}`} />
+src/components/telegram/TelegramBotActivityLog.tsx:536:                 <span>{retryingLogId === selectedLogForModal.id ? 'កំពុងផ្ញើឡើងវិញ...' : 'ផ្ញើសារឡើងវិញ (Retry Send)'}</span>
+src/components/telegram/TelegramAutomatedTasks.tsx:185:       if (t.id === id) {
+src/components/telegram/TelegramAutomatedTasks.tsx:198:     setRunningTaskId(task.id);
+src/components/telegram/TelegramAutomatedTasks.tsx:202:         setTasks(prev => prev.map(t => t.id === task.id ? {
+src/components/telegram/TelegramAutomatedTasks.tsx:252:       setTasks(prev => prev.map(t => t.id === editingTask.id ? {
+src/components/telegram/TelegramAutomatedTasks.tsx:288:       setTasks(prev => prev.filter(t => t.id !== id));
+src/components/telegram/TelegramAutomatedTasks.tsx:325:           const isRunning = runningTaskId === task.id;
+src/components/telegram/TelegramAutomatedTasks.tsx:328:               key={task.id}
+src/components/telegram/TelegramAutomatedTasks.tsx:364:                   onClick={() => handleToggleTask(task.id)}
+src/components/telegram/TelegramAutomatedTasks.tsx:424:                     onClick={() => handleDeleteTask(task.id)}
+src/components/telegram/TelegramTemplateManager.tsx:162:   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(INITIAL_PRESET_TEMPLATES[0].id);
+src/components/telegram/TelegramTemplateManager.tsx:195:     return templates.find(t => t.id === selectedTemplateId) || templates[0];
+src/components/telegram/TelegramTemplateManager.tsx:259:       setTemplates(prev => prev.map(t => t.id === editingTemplate.id ? {
+src/components/telegram/TelegramTemplateManager.tsx:280:       setSelectedTemplateId(newTmpl.id);
+src/components/telegram/TelegramTemplateManager.tsx:289:       setTemplates(prev => prev.filter(t => t.id !== id));
+src/components/telegram/TelegramTemplateManager.tsx:291:         setSelectedTemplateId(templates.find(t => t.id !== id)?.id || '');
+src/components/telegram/TelegramTemplateManager.tsx:306:     setSelectedTemplateId(copyTmpl.id);
+src/components/telegram/TelegramTemplateManager.tsx:434:               const isSelected = tmpl.id === selectedTemplateId;
+src/components/telegram/TelegramTemplateManager.tsx:437:                   key={tmpl.id}
+src/components/telegram/TelegramTemplateManager.tsx:438:                   onClick={() => setSelectedTemplateId(tmpl.id)}
+src/components/telegram/TelegramTemplateManager.tsx:485:                           onClick={() => handleDeleteTemplate(tmpl.id)}
+src/components/homeroom/AttendanceTab.tsx:81:       nextStatuses[s.id] = 'present';
+src/components/homeroom/AttendanceTab.tsx:88:       studentId: s.id,
+src/components/homeroom/AttendanceTab.tsx:94:       status: getStudentStatus(s.id),
+src/components/homeroom/AttendanceTab.tsx:95:       notes: getStudentReason(s.id)
+src/components/homeroom/AttendanceTab.tsx:102:   const presentCount = classStudents.filter(s => getStudentStatus(s.id) === 'present').length;
+src/components/homeroom/AttendanceTab.tsx:103:   const permissionCount = classStudents.filter(s => getStudentStatus(s.id) === 'permission').length;
+src/components/homeroom/AttendanceTab.tsx:104:   const absentCount = classStudents.filter(s => getStudentStatus(s.id) === 'absent').length;
+src/components/homeroom/AttendanceTab.tsx:226:                 const currentStatus = getStudentStatus(s.id);
+src/components/homeroom/AttendanceTab.tsx:228:                   <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
+src/components/homeroom/AttendanceTab.tsx:249:                           onClick={() => handleStatusChange(s.id, 'present')}
+src/components/homeroom/AttendanceTab.tsx:260:                           onClick={() => handleStatusChange(s.id, 'permission')}
+src/components/homeroom/AttendanceTab.tsx:271:                           onClick={() => handleStatusChange(s.id, 'absent')}
+src/components/homeroom/AttendanceTab.tsx:286:                         value={getStudentReason(s.id)}
+src/components/homeroom/AttendanceTab.tsx:287:                         onChange={e => handleReasonChange(s.id, e.target.value)}
+src/components/homeroom/AttendanceTab.tsx:312:               key={s.id}
+src/components/homeroom/GradesTab.tsx:90:       const current = getStudentScore(s.id);
+src/components/homeroom/GradesTab.tsx:93:         studentId: s.id,
+src/components/homeroom/GradesTab.tsx:113:     const current = getStudentScore(s.id);
+src/components/homeroom/GradesTab.tsx:210:               key={s.student.id}
+src/components/homeroom/GradesTab.tsx:266:                   <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
+src/components/homeroom/GradesTab.tsx:296:                             onChange={e => handleScoreChange(s.id, sub, parseFloat(e.target.value) || 0)}
+src/components/homeroom/TeacherMeetingNotesTab.tsx:145:     const tmpl = resolutionTemplates.find(t => t.id === tmplId);
+src/components/homeroom/TeacherMeetingNotesTab.tsx:172:           m.creatorId === currentUser?.id || 
+src/components/homeroom/TeacherMeetingNotesTab.tsx:254:       creatorId: editingMeeting?.creatorId || currentUser?.id,
+src/components/homeroom/TeacherMeetingNotesTab.tsx:273:               id: editingMeeting?.id || 'temp_' + Date.now(),
+src/components/homeroom/TeacherMeetingNotesTab.tsx:292:       updateTeacherMeeting(editingMeeting.id, {
+src/components/homeroom/TeacherMeetingNotesTab.tsx:316:     setSyncingMeetingId(meeting.id);
+src/components/homeroom/TeacherMeetingNotesTab.tsx:333:         updateTeacherMeeting(meeting.id, {
+src/components/homeroom/TeacherMeetingNotesTab.tsx:350:     setSyncingDriveMeetingId(meeting.id);
+src/components/homeroom/TeacherMeetingNotesTab.tsx:432:                 <div key={m.id} className="bg-white/5 p-2 rounded-lg border border-white/10 space-y-1 shadow-xs">
+src/components/homeroom/TeacherMeetingNotesTab.tsx:643:               key={meeting.id}
+src/components/homeroom/TeacherMeetingNotesTab.tsx:725:                     disabled={syncingMeetingId === meeting.id}
+src/components/homeroom/TeacherMeetingNotesTab.tsx:733:                     {syncingMeetingId === meeting.id ? (
+src/components/homeroom/TeacherMeetingNotesTab.tsx:744:                     disabled={syncingDriveMeetingId === meeting.id || isDriveSyncing}
+src/components/homeroom/TeacherMeetingNotesTab.tsx:748:                     {syncingDriveMeetingId === meeting.id ? (
+src/components/homeroom/TeacherMeetingNotesTab.tsx:778:                         deleteTeacherMeeting(meeting.id);
+src/components/homeroom/TeacherMeetingNotesTab.tsx:865:                             key={action.id || idx}
+src/components/homeroom/TeacherMeetingNotesTab.tsx:924:                     key={tmpl.id}
+src/components/homeroom/TeacherMeetingNotesTab.tsx:926:                     onClick={() => handleApplyTemplate(tmpl.id)}
+src/components/homeroom/TeacherMeetingNotesTab.tsx:928:                       selectedTemplate === tmpl.id
+src/components/homeroom/LessonPlansTab.tsx:150:               key={plan.id}
+src/components/homeroom/LessonPlansTab.tsx:207:                     onClick={() => onDeletePlan(plan.id)}
+src/components/homeroom/DailyClassLogsTab.tsx:308:       onUpdateDailyClassLog(editingLog.id, {
+src/components/homeroom/DailyClassLogsTab.tsx:443:                 key={pill.id}
+src/components/homeroom/DailyClassLogsTab.tsx:444:                 onClick={() => setDateFilterRange(pill.id as any)}
+src/components/homeroom/DailyClassLogsTab.tsx:446:                   dateFilterRange === pill.id
+src/components/homeroom/DailyClassLogsTab.tsx:579:                 key={log.id}
+src/components/homeroom/DailyClassLogsTab.tsx:693:                       onClick={() => onToggleArchiveDailyClassLog(log.id)}
+src/components/homeroom/DailyClassLogsTab.tsx:703:                           onDeleteDailyClassLog(log.id);
+src/components/homeroom/DailyClassLogsTab.tsx:741:                     <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
+src/components/homeroom/DailyClassLogsTab.tsx:790:                                 onDeleteDailyClassLog(log.id);
+src/components/homeroom/DailyClassLogsTab.tsx:1201:                       <tr key={log.id} className="border-b border-slate-300">
+src/components/homeroom/HomeroomNotificationsTab.tsx:139:         a => a.studentId === stu.id && a.status === 'absent'
+src/components/homeroom/HomeroomNotificationsTab.tsx:143:           id: `alert-absent-${stu.id}`,
+src/components/homeroom/HomeroomNotificationsTab.tsx:144:           studentId: stu.id,
+src/components/homeroom/HomeroomNotificationsTab.tsx:156:       const stuScores = scores.filter(s => s.studentId === stu.id);
+src/components/homeroom/HomeroomNotificationsTab.tsx:161:             id: `alert-score-${stu.id}`,
+src/components/homeroom/HomeroomNotificationsTab.tsx:162:             studentId: stu.id,
+src/components/homeroom/HomeroomNotificationsTab.tsx:205:     const stu = classStudents.find(s => s.id === stuId);
+src/components/homeroom/HomeroomNotificationsTab.tsx:217:     const stu = classStudents.find(s => s.id === newStudentId);
+src/components/homeroom/HomeroomNotificationsTab.tsx:221:       studentId: stu.id,
+src/components/homeroom/HomeroomNotificationsTab.tsx:254:     onResolveParentRequest(replyingRequest.id, replyText.trim(), replyStatus);
+src/components/homeroom/HomeroomNotificationsTab.tsx:597:                   key={meeting.id}
+src/components/homeroom/HomeroomNotificationsTab.tsx:671:                 key={alert.id}
+src/components/homeroom/HomeroomNotificationsTab.tsx:778:                   key={req.id}
+src/components/homeroom/HomeroomNotificationsTab.tsx:883:                               req.id,
+src/components/homeroom/HomeroomNotificationsTab.tsx:911:                             onDeleteParentRequest(req.id);
+src/components/homeroom/HomeroomNotificationsTab.tsx:968:                     <option key={stu.id} value={stu.id}>
+src/components/homeroom/MyClassTab.tsx:207:                           key={s.id}
+src/components/homeroom/MyClassTab.tsx:300:                   key={s.id}
+src/components/homeroom/MyClassTab.tsx:558:                       <option key={s.id} value={s.nameKhmer}>
+src/components/homeroom/ParentMeetingsTab.tsx:181:               key={m.id}
+src/components/homeroom/AtRiskStudentsTab.tsx:143:     return classStudents.filter(s => !enrolledIds.has(s.id));
+src/components/homeroom/AtRiskStudentsTab.tsx:150:       const studentScores = scores.filter(sc => sc.studentId === student.id);
+src/components/homeroom/AtRiskStudentsTab.tsx:157:       const studentAttendances = attendanceRecords.filter(a => a.studentId === student.id);
+src/components/homeroom/AtRiskStudentsTab.tsx:217:       setFormStudentId(prefillStudent.id);
+src/components/homeroom/AtRiskStudentsTab.tsx:221:       setFormStudentId(unenrolledClassStudents[0]?.id || '');
+src/components/homeroom/AtRiskStudentsTab.tsx:252:     const targetStudentObj = students.find(s => s.id === formStudentId);
+src/components/homeroom/AtRiskStudentsTab.tsx:255:     const buddyObj = students.find(s => s.id === formAssignedBuddyId);
+src/components/homeroom/AtRiskStudentsTab.tsx:258:       onUpdateAtRiskStudent(editingStudent.id, {
+src/components/homeroom/AtRiskStudentsTab.tsx:271:         studentId: targetStudentObj.id,
+src/components/homeroom/AtRiskStudentsTab.tsx:309:     onAddInterventionLog(selectedStudentForAction.id, {
+src/components/homeroom/AtRiskStudentsTab.tsx:422:                       key={item.student.id}
+src/components/homeroom/AtRiskStudentsTab.tsx:574:                   const studentObj = students.find(s => s.id === item.studentId);
+src/components/homeroom/AtRiskStudentsTab.tsx:586:                     <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+src/components/homeroom/AtRiskStudentsTab.tsx:748:                                 onDeleteAtRiskStudent(item.id);
+src/components/homeroom/AtRiskStudentsTab.tsx:811:                       <option key={s.id} value={s.id}>
+src/components/homeroom/AtRiskStudentsTab.tsx:923:                     .filter(s => s.id !== formStudentId)
+src/components/homeroom/AtRiskStudentsTab.tsx:925:                       <option key={s.id} value={s.id}>
+src/components/homeroom/AtRiskStudentsTab.tsx:1221:                   <div key={log.id} className="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1.5 text-xs">
+src/components/homeroom/AtRiskStudentsTab.tsx:1339:                     <tr key={s.id} className="text-left">
+src/components/badges/StudentBadgesManagementTab.tsx:118:       const stats = studentStatsMap[s.id] || { count: 0, points: 0, badges: [] };
+src/components/badges/StudentBadgesManagementTab.tsx:147:       const stats = studentStatsMap[s.id] || { count: 0, points: 0, badges: [] };
+src/components/badges/StudentBadgesManagementTab.tsx:452:                       const stats = studentStatsMap[student.id] || { count: 0, points: 0, badges: [] };
+src/components/badges/StudentBadgesManagementTab.tsx:455:                           key={student.id}
+src/components/badges/StudentBadgesManagementTab.tsx:495:                                     key={asgn.id}
+src/components/badges/StudentBadgesManagementTab.tsx:604:                     key={asgn.id}
+src/components/badges/StudentBadgesManagementTab.tsx:651:                           onClick={() => handleDeleteAssignment(asgn.id, asgn.badge.titleKhmer)}
+src/components/badges/StudentBadgesManagementTab.tsx:776:                     <tr key={item.student.id} className="hover:bg-slate-50 transition-colors">
+src/components/badges/StudentBadgesManagementTab.tsx:791:                               key={asgn.id}
+src/components/badges/StudentBadgesManagementTab.tsx:853:                   key={badge.id}
+src/components/badges/StudentBadgesManagementTab.tsx:898:                     {badge.id.startsWith('bdg-custom') && (
+src/components/badges/StudentBadgesManagementTab.tsx:903:                             deleteBadgeDefinition(badge.id);
+src/components/badges/AwardBadgeModal.tsx:44:   const [selectedStudentId, setSelectedStudentId] = useState<string>(initialStudent?.id || '');
+src/components/badges/AwardBadgeModal.tsx:64:     return students.find(s => s.id === selectedStudentId) || initialStudent || null;
+src/components/badges/AwardBadgeModal.tsx:72:         .filter(a => a.studentId === currentStudent.id)
+src/components/badges/AwardBadgeModal.tsx:80:     return autoSuggestBadgesForStudent(currentStudent.id);
+src/components/badges/AwardBadgeModal.tsx:127:     setSelectedBadgeId(badge.id);
+src/components/badges/AwardBadgeModal.tsx:143:       setBulkSelectedStudentIds(filteredStudents.map(s => s.id));
+src/components/badges/AwardBadgeModal.tsx:176:         studentId: currentStudent.id,
+src/components/badges/AwardBadgeModal.tsx:193:   const selectedBadgeObj = studentBadgeDefinitions.find(b => b.id === selectedBadgeId);
+src/components/badges/AwardBadgeModal.tsx:304:                       <option key={s.id} value={s.id}>
+src/components/badges/AwardBadgeModal.tsx:366:                   const isChecked = bulkSelectedStudentIds.includes(s.id);
+src/components/badges/AwardBadgeModal.tsx:369:                       key={s.id}
+src/components/badges/AwardBadgeModal.tsx:379:                         onChange={() => handleToggleBulkStudent(s.id)}
+src/components/badges/AwardBadgeModal.tsx:475:                 const isSelected = selectedBadgeId === badge.id;
+src/components/badges/AwardBadgeModal.tsx:476:                 const isAlreadyEarned = studentExistingBadgeIds.has(badge.id);
+src/components/badges/AwardBadgeModal.tsx:481:                     key={badge.id}
+src/components/badges/AwardBadgeModal.tsx:578:                   <option key={yr.id} value={yr.name}>{yr.name}</option>
+src/components/badges/StudentBadgeShowcaseModal.tsx:42:   const studentBadges = getStudentBadges(student.id);
+src/components/badges/StudentBadgeShowcaseModal.tsx:43:   const totalPoints = getStudentTotalPoints(student.id);
+src/components/badges/StudentBadgeShowcaseModal.tsx:176:                       key={assignment.id}
+src/components/badges/StudentBadgeShowcaseModal.tsx:230:                             onClick={() => handleDeleteAssignment(assignment.id, assignment.badge.titleKhmer)}
+src/components/activity/ActivitySavedViewsBar.tsx:114:               const isActive = activeViewId === view.id;
+src/components/activity/ActivitySavedViewsBar.tsx:117:                   key={view.id}
+src/components/activity/ActivitySavedViewsBar.tsx:296:                     key={view.id}
+src/components/activity/ActivitySavedViewsBar.tsx:332:                           onClick={() => handleDeleteCustomView(view.id, view.name)}
+src/components/activity/ActivityCommentsModal.tsx:45:   const comments = getCommentsForLog(item.id, item);
+src/components/activity/ActivityCommentsModal.tsx:63:       item.id,
+src/components/activity/ActivityCommentsModal.tsx:75:     const { updatedLogs } = deleteCommentFromLog(item.id, commentId);
+src/components/activity/ActivityCommentsModal.tsx:219:                     key={c.id}
+src/components/activity/ActivityCommentsModal.tsx:239:                       onClick={() => handleDeleteComment(c.id)}
+src/components/activity/ActivityQuickActionModal.tsx:72:           s.id === logItem.entityId ||
+src/components/activity/ActivityQuickActionModal.tsx:88:           t.id === logItem.entityId ||
+src/components/activity/ActivityQuickActionModal.tsx:103:           b.id === logItem.entityId ||
+src/components/activity/ActivityQuickActionModal.tsx:156:   const studentBadges = matchedStudent ? getStudentBadges(matchedStudent.id) : [];
+src/components/activity/ActivityQuickActionModal.tsx:157:   const studentPoints = matchedStudent ? getStudentTotalPoints(matchedStudent.id) : 0;
+src/components/activity/ActivityQuickActionModal.tsx:174:                   #{logItem.id.slice(0, 10)}
+src/components/activity/ActivityQuickActionModal.tsx:278:                       onOpenAnalytics(matchedStudent.id);
+src/components/activity/ActivityDiffModal.tsx:62:     l => (l.entityId === logA.entityId || l.entityName === logA.entityName) && l.id !== logA.id && l.id !== logB.id
+src/components/activity/ActivityDiffModal.tsx:130:               ដូចគ្នា {diffResult.changesSummary.identicalCount} វាល
+src/components/activity/ActivityDiffModal.tsx:140:                     key={r.id}
+src/components/activity/ActivityBulkActionModal.tsx:104:                 <div key={log.id} className="p-2 flex items-center justify-between gap-2 text-xs">
+src/components/activity/ActivityDriveScheduleModal.tsx:399:                       key={run.id}
+src/components/activity/ActivityAnomalySidePanel.tsx:200:                   key={anomaly.id}
+src/components/activity/ActivityAnomalySidePanel.tsx:201:                   id={`anomaly-card-${anomaly.id}`}
+src/components/activity/ActivityAnomalySidePanel.tsx:251:                       id={`btn-inspect-anomaly-${anomaly.id}`}
+src/components/activity/ActivityPrintReportModal.tsx:399:                           key={item.id}
+src/components/activity/ActivityTableView.tsx:73:   const isAllSelected = logs.length > 0 && logs.every(log => selectedIds.includes(log.id));
+src/components/activity/ActivityTableView.tsx:117:             const isSelected = selectedIds.includes(item.id);
+src/components/activity/ActivityTableView.tsx:127:                 key={item.id}
+src/components/activity/ActivityTableView.tsx:128:                 id={`activity-row-${item.id}`}
+src/components/activity/ActivityTableView.tsx:145:                     onToggleSelect(item.id);
+src/components/learning-resources/RecommendedResourcesSection.tsx:52:     const favoritedItems = resourcesList.filter(r => r && favIdsList.includes(r.id));
+src/components/learning-resources/RecommendedResourcesSection.tsx:107:       const rating = safeRatings[resource.id];
+src/components/learning-resources/RecommendedResourcesSection.tsx:116:       const isFavorited = favIdsList.includes(resource.id);
+src/components/learning-resources/RecommendedResourcesSection.tsx:183:           const rating = ratingsMap[resource.id] || { totalVotes: 0, sumScore: 0 };
+src/components/learning-resources/RecommendedResourcesSection.tsx:185:           const hasNote = !!teacherNotesMap[resource.id];
+src/components/learning-resources/RecommendedResourcesSection.tsx:189:               key={resource.id}
+src/components/learning-resources/RecommendedResourcesSection.tsx:199:                     onClick={() => onToggleFavorite(resource.id)}
+src/components/learning-resources/TeacherNotesModal.tsx:119:       resourceId: resource.id,
+src/components/learning-resources/TeacherNotesModal.tsx:379:                     onDeleteNote(resource.id);
+src/components/learning-resources/PlaylistProgressModal.tsx:114:       resourceId: resource.id,
+src/services/aiTeacherService.ts:44:     const existingIndex = items.findIndex(i => i.id === item.id);
+src/services/aiTeacherService.ts:59:     const items = getSavedAICreations().filter(i => i.id !== id);
+src/services/aiTeacherService.ts:447:       lessonId: lessonPlan?.id,
+src/services/aiTeacherService.ts:624:     lessonId: lessonPlan?.id,
+src/services/firestoreSync.ts:96:         summary += `${k}:${val.length}_${val[0]?.id || ''};`;
+src/services/googleCalendar.ts:96:     eventId: data.id,
+src/services/googleCalendar.ts:122:       results.push({ id: event.id, success: true });
+src/services/googleCalendar.ts:127:       results.push({ id: event.id, success: false, error: err.message });
+src/services/googleCalendar.ts:184:     icsContent.push(`UID:${event.id}-${Date.now()}@phnompom.edu.kh`);
+src/services/googleCalendar.ts:254:     id: item.id,
+src/services/googleCalendar.ts:336:     eventId: data.id,
+src/services/googleCalendar.ts:391:     eventId: data.id,
+src/services/gmail.ts:167:     id: msg.id,
+src/services/gmail.ts:219:       const msgRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${item.id}?format=full`, {
+src/services/gmail.ts:227:       console.error('Error fetching message details for', item.id, e);
+src/services/offlineSyncService.ts:68:   const id = reportData.id || `rep_${reportData.studentId}_${Date.now()}`;
+src/services/offlineSyncService.ts:169:   const reportDocRef = doc(db, 'student_progress_reports', report.id);
+src/services/offlineSyncService.ts:221:         console.error(`Failed to sync report ${report.id}:`, err);
+src/utils/searchIndex.ts:114:       const idPoorNorm = normalizeSearchText(s.idPoorCardNumber);
+src/utils/searchIndex.ts:129:         matchedIds.add(s.id);
+src/utils/searchIndex.ts:138:       if (!matchedIds.has(res.item.id)) {
+src/utils/searchIndex.ts:145:         matchedIds.add(res.item.id);
+src/utils/searchIndex.ts:234:         matchedIds.add(t.id);
+src/utils/searchIndex.ts:243:       if (!matchedIds.has(res.item.id)) {
+src/utils/searchIndex.ts:250:         matchedIds.add(res.item.id);
+src/utils/searchIndex.ts:282:       id: s.id,
+src/utils/searchIndex.ts:298:       id: t.id,
+src/utils/activityHealthMonitor.ts:70:         l.id !== item.id &&
+src/utils/printUtils.ts:170:         iframe.id = 'print-sandbox-iframe';
+src/utils/printUtils.ts:369:     antiScrollbarStyle.id = '__pdf_anti_scrollbar_style__';
+src/utils/activityTracker.ts:227:       expiredLogIds.push(log.id);
+src/utils/activityTracker.ts:277:       id: `anom-offhours-${log.id}`,
+src/utils/activityTracker.ts:283:       logId: log.id
+src/utils/activityTracker.ts:298:         id: `anom-bulkdel-${log.id}`,
+src/utils/activityTracker.ts:304:         logId: log.id
+src/utils/activityTracker.ts:308:         id: `anom-del-${log.id}`,
+src/utils/activityTracker.ts:314:         logId: log.id
+src/utils/activityTracker.ts:324:       id: `anom-finance-${log.id}`,
+src/utils/activityTracker.ts:330:       logId: log.id
+src/utils/activityTracker.ts:344:       id: `anom-rapid-${log.id}`,
+src/utils/activityTracker.ts:350:       logId: log.id
+src/utils/activityTracker.ts:614:       id: `act-seed-fin-${tx.id}`,
+src/utils/activityTracker.ts:619:       entityId: tx.id,
+src/utils/activityTracker.ts:642:       id: `act-seed-stu-${stu.id}`,
+src/utils/activityTracker.ts:647:       entityId: stu.id,
+src/utils/activityTracker.ts:673:       id: `act-seed-tea-${tea.id}`,
+src/utils/activityTracker.ts:678:       entityId: tea.id,
+src/utils/activityTracker.ts:697:       id: `act-seed-tr-${tr.id}`,
+src/utils/activityTracker.ts:702:       entityId: tr.id,
+src/utils/activityTracker.ts:716:       id: `act-seed-score-${sc.id}`,
+src/utils/activityTracker.ts:721:       entityId: sc.id,
+src/utils/studentMoeyHelpers.ts:124:     id: student.id,
+src/utils/reportCardSignatureQR.tsx:261:       s => s.code.toLowerCase() === (student.code || '').toLowerCase() || s.id === student.id
+src/utils/reportCardSignatureQR.tsx:282:       studentId: student.id || matchedStudent?.id,
+src/utils/reportCardSignatureQR.tsx:324:     s => s.code.toLowerCase() === trimmed.toLowerCase() || s.id === trimmed
+src/utils/reportCardSignatureQR.tsx:330:       studentId: matchedStudent.id,
+src/utils/activityCommentManager.ts:72:     if (item.id === logId) {
+src/utils/activityCommentManager.ts:94:     map[logId] = map[logId].filter(c => c.id !== commentId);
+src/utils/activityCommentManager.ts:100:     if (item.id === logId) {
+src/utils/activityCommentManager.ts:119:     const comments = map[item.id] || item.comments || [];
+src/utils/activitySavedViews.ts:203:       const filtered = existingCustom.filter(v => v.id !== id);
+src/utils/studentRankingEngine.ts:340:   const student = (allStudents || []).find(s => s && (s.id === studentId || s.code === studentId));
+src/utils/studentRankingEngine.ts:352:   const studentRankItem = (classStats?.rankings || []).find(r => r && (r.studentId === student.id || r.studentCode === student.code));
+src/utils/studentRankingEngine.ts:366:     const mItem = (mStats?.rankings || []).find(r => r && (r.studentId === student.id || r.studentCode === student.code));
+src/utils/studentRankingEngine.ts:554:       studentId: payload.student.id,
+src/utils/studentRiskAlerts.ts:25:     .filter(r => r.studentId === student.id)
+src/utils/studentRiskAlerts.ts:54:     .filter(s => s.studentId === student.id)
+src/utils/studentRiskAlerts.ts:101:     studentId: student.id,
+src/utils/studentRiskAlerts.ts:120:     map.set(st.id, getStudentRiskAlert(st, scores, attendance));
+src/context/SchoolContext.tsx:675:       id: `hc-${st.id}-${todayStr}`,
+src/context/SchoolContext.tsx:679:       studentId: st.id,
+src/context/SchoolContext.tsx:959:     setQrScanVerificationLogs(prev => prev.filter(l => l.id !== id));
+src/context/SchoolContext.tsx:999:         f.id === feedbackId
+src/context/SchoolContext.tsx:1015:         f.id === feedbackId
+src/context/SchoolContext.tsx:1026:     setStudentFeedbacks(prev => prev.filter(f => f.id !== feedbackId));
+src/context/SchoolContext.tsx:1047:     setLessonPlans(prev => prev.map(p => (p.id === id ? { ...p, ...updated } : p)));
+src/context/SchoolContext.tsx:1052:     setLessonPlans(prev => prev.filter(p => p.id !== id));
+src/context/SchoolContext.tsx:1073:     setParentMeetings(prev => prev.map(m => (m.id === id ? { ...m, ...updated } : m)));
+src/context/SchoolContext.tsx:1078:     setParentMeetings(prev => prev.filter(m => m.id !== id));
+src/context/SchoolContext.tsx:1107:     setParentRequests(prev => prev.map(r => (r.id === id ? { ...r, ...updated } : r)));
+src/context/SchoolContext.tsx:1118:         r.id === id
+src/context/SchoolContext.tsx:1132:     setParentRequests(prev => prev.filter(r => r.id !== id));
+src/context/SchoolContext.tsx:1210:       actorId: activity.actorId || currentUser?.id || 'sys-admin-01',
+src/context/SchoolContext.tsx:1252:       prev.map(s => (s.id === id ? { ...s, ...updated, updatedAt: new Date().toISOString().split('T')[0] } : s))
+src/context/SchoolContext.tsx:1265:         if (s.id === atRiskId) {
+src/context/SchoolContext.tsx:1282:     setAtRiskStudents(prev => prev.filter(s => s.id !== id));
+src/context/SchoolContext.tsx:1311:       prev.map(l => (l.id === id ? { ...l, ...updated, updatedAt: now } : l))
+src/context/SchoolContext.tsx:1317:     setDailyClassLogs(prev => prev.filter(l => l.id !== id));
+src/context/SchoolContext.tsx:1323:       prev.map(l => (l.id === id ? { ...l, isArchived: !l.isArchived, updatedAt: new Date().toISOString().split('T')[0] } : l))
+src/context/SchoolContext.tsx:1348:     const badgeDef = studentBadgeDefinitions.find(b => b.id === assignment.badgeId);
+src/context/SchoolContext.tsx:1381:     const badgeDef = studentBadgeDefinitions.find(b => b.id === badgeId);
+src/context/SchoolContext.tsx:1389:       const student = students.find(s => s.id === sId);
+src/context/SchoolContext.tsx:1395:         studentId: student.id,
+src/context/SchoolContext.tsx:1423:     setStudentBadgeAssignments(prev => prev.filter(a => a.id !== assignmentId));
+src/context/SchoolContext.tsx:1439:       prev.map(b => (b.id === id ? { ...b, ...updated } : b))
+src/context/SchoolContext.tsx:1448:     setStudentBadgeDefinitions(prev => prev.filter(b => b.id !== id));
+src/context/SchoolContext.tsx:1462:     const student = students.find(s => s.id === studentId);
+src/context/SchoolContext.tsx:1469:     const perfectAttBadge = studentBadgeDefinitions.find(b => b.id === 'bdg-att-01');
+src/context/SchoolContext.tsx:1470:     if (perfectAttBadge && !earnedBadgeIds.has(perfectAttBadge.id)) {
+src/context/SchoolContext.tsx:1473:           badgeId: perfectAttBadge.id,
+src/context/SchoolContext.tsx:1482:     const starStudentBadge = studentBadgeDefinitions.find(b => b.id === 'bdg-acad-01');
+src/context/SchoolContext.tsx:1483:     const mathBadge = studentBadgeDefinitions.find(b => b.id === 'bdg-acad-02');
+src/context/SchoolContext.tsx:1489:       if (avgScore >= 8.5 && starStudentBadge && !earnedBadgeIds.has(starStudentBadge.id)) {
+src/context/SchoolContext.tsx:1491:           badgeId: starStudentBadge.id,
+src/context/SchoolContext.tsx:1500:       if (avgMath >= 9.0 && mathBadge && !earnedBadgeIds.has(mathBadge.id)) {
+src/context/SchoolContext.tsx:1502:           badgeId: mathBadge.id,
+src/context/SchoolContext.tsx:1511:     const readingBadge = studentBadgeDefinitions.find(b => b.id === 'bdg-read-01');
+src/context/SchoolContext.tsx:1513:     if (readingBadge && !earnedBadgeIds.has(readingBadge.id) && studentReadingLogs.length >= 3) {
+src/context/SchoolContext.tsx:1515:         badgeId: readingBadge.id,
+src/context/SchoolContext.tsx:1523:     const progressBadge = studentBadgeDefinitions.find(b => b.id === 'bdg-prog-01');
+src/context/SchoolContext.tsx:1525:     if (progressBadge && !earnedBadgeIds.has(progressBadge.id) && atRiskData) {
+src/context/SchoolContext.tsx:1529:           badgeId: progressBadge.id,
+src/context/SchoolContext.tsx:1556:     setCorrespondences(prev => prev.map(c => (c.id === id ? { ...c, ...updated } : c)));
+src/context/SchoolContext.tsx:1561:     setCorrespondences(prev => prev.filter(c => c.id !== id));
+src/context/SchoolContext.tsx:1582:     setStaffAdminRecords(prev => prev.map(r => (r.id === id ? { ...r, ...updated } : r)));
+src/context/SchoolContext.tsx:1587:     setStaffAdminRecords(prev => prev.filter(r => r.id !== id));
+src/context/SchoolContext.tsx:1607:     setSchoolCommittees(prev => prev.map(c => (c.id === id ? { ...c, ...updated } : c)));
+src/context/SchoolContext.tsx:1612:     setSchoolCommittees(prev => prev.filter(c => c.id !== id));
+src/context/SchoolContext.tsx:1632:     setSchoolStrategicPlans(prev => prev.map(p => (p.id === id ? { ...p, ...updated } : p)));
+src/context/SchoolContext.tsx:1637:     setSchoolStrategicPlans(prev => prev.filter(p => p.id !== id));
+src/context/SchoolContext.tsx:1653:           criteria: grp.criteria.map(c => (c.id === criterionId ? { ...c, ...updated } : c))
+src/context/SchoolContext.tsx:1676:     setSchoolAssets(prev => prev.map(a => (a.id === id ? { ...a, ...updated } : a)));
+src/context/SchoolContext.tsx:1681:     setSchoolAssets(prev => prev.filter(a => a.id !== id));
+src/context/SchoolContext.tsx:1714:     setSchoolGroups(prev => (Array.isArray(prev) ? prev : []).map(g => (g && g.id === id ? { ...g, ...updated, updatedAt: new Date().toISOString() } : g)));
+src/context/SchoolContext.tsx:1719:     setSchoolGroups(prev => (Array.isArray(prev) ? prev : []).filter(g => g && g.id !== id));
+src/context/SchoolContext.tsx:1727:         if (!g || g.id !== groupId) return g;
+src/context/SchoolContext.tsx:1752:         if (!g || g.id !== groupId) return g;
+src/context/SchoolContext.tsx:1756:           members: currentMembers.filter(m => m && m.id !== memberUniqueId && m.memberId !== memberUniqueId),
+src/context/SchoolContext.tsx:1767:         if (!g || g.id !== groupId) return g;
+src/context/SchoolContext.tsx:1771:           members: currentMembers.map(m => (m && (m.id === memberUniqueId || m.memberId === memberUniqueId) ? { ...m, role: newRole } : m)),
+src/context/SchoolContext.tsx:1783:         if (!g || g.id !== groupId) return g;
+src/context/SchoolContext.tsx:1831:         if (eq.id === loan.equipmentId && eq.availableQuantity > 0) {
+src/context/SchoolContext.tsx:1844:         if (loan.id === id) {
+src/context/SchoolContext.tsx:1849:               items.map(eq => (eq.id === loan.equipmentId ? { ...eq, availableQuantity: Math.min(eq.totalQuantity, eq.availableQuantity + 1) } : eq))
+src/context/SchoolContext.tsx:1861:     setEquipmentLoans(prev => prev.filter(l => l.id !== id));
+src/context/SchoolContext.tsx:1875:     setEquipmentItems(prev => prev.map(item => (item.id === id ? { ...item, ...updated } : item)));
+src/context/SchoolContext.tsx:1898:     setTeacherDailyTasks(prev => prev.map(t => (t.id === id ? { ...t, ...updated } : t)));
+src/context/SchoolContext.tsx:1905:         if (t.id === id) {
+src/context/SchoolContext.tsx:1919:     setTeacherDailyTasks(prev => prev.filter(t => t.id !== id));
+src/context/SchoolContext.tsx:1944:       prev.map(m => (m.id === id ? { ...m, ...updated, updatedAt: new Date().toISOString() } : m))
+src/context/SchoolContext.tsx:1950:     setTeacherMeetings(prev => prev.filter(m => m.id !== id));
+src/context/SchoolContext.tsx:1973:     setTeachingResources(prev => prev.filter(r => r.id !== id));
+src/context/SchoolContext.tsx:2136:       meeting = teacherMeetings.find(m => m.id === meetingId);
+src/context/SchoolContext.tsx:2139:       meetingId = meetingOrId.id;
+src/context/SchoolContext.tsx:2160:           m.id === meetingId
+src/context/SchoolContext.tsx:2164:                 googleDriveFileId: driveItem.id,
+src/context/SchoolContext.tsx:2181:         driveFileId: driveItem.id,
+src/context/SchoolContext.tsx:2234:               m.id === meeting.id
+src/context/SchoolContext.tsx:2238:                     googleDriveFileId: driveItem.id,
+src/context/SchoolContext.tsx:2247:             id: `sync-batch-${Date.now()}-${meeting.id}`,
+src/context/SchoolContext.tsx:2254:             driveFileId: driveItem.id,
+src/context/SchoolContext.tsx:2310:         driveFileId: driveItem.id,
+src/context/SchoolContext.tsx:2362:                 m.id === meeting.id
+src/context/SchoolContext.tsx:2366:                       googleDriveFileId: driveItem.id,
+src/context/SchoolContext.tsx:2833:               const cloudIds = new Set(cloudData.teachers.map((t: Teacher) => t.id || t.staffCode || t.email));
+src/context/SchoolContext.tsx:2834:               const localOnly = prev.filter(t => !cloudIds.has(t.id) && !cloudIds.has(t.staffCode) && (!t.email || !cloudIds.has(t.email)));
+src/context/SchoolContext.tsx:2847:               const cloudKeys = new Set(cloudData.appUsers.map((u: AppUser) => u.id || u.email?.toLowerCase() || u.username?.toLowerCase()));
+src/context/SchoolContext.tsx:2848:               const localOnly = prev.filter(u => !cloudKeys.has(u.id) && (!u.email || !cloudKeys.has(u.email.toLowerCase())) && (!u.username || !cloudKeys.has(u.username.toLowerCase())));
+src/context/SchoolContext.tsx:2864:             const cloudIds = new Set(cloudData.teachers.map((t: Teacher) => t.id || t.staffCode || t.email));
+src/context/SchoolContext.tsx:2865:             const localOnly = prev.filter(t => !cloudIds.has(t.id) && !cloudIds.has(t.staffCode) && (!t.email || !cloudIds.has(t.email)));
+src/context/SchoolContext.tsx:2878:             const cloudKeys = new Set(cloudData.appUsers.map((u: AppUser) => u.id || u.email?.toLowerCase() || u.username?.toLowerCase()));
+src/context/SchoolContext.tsx:2879:             const localOnly = prev.filter(u => !cloudKeys.has(u.id) && (!u.email || !cloudKeys.has(u.email.toLowerCase())) && (!u.username || !cloudKeys.has(u.username.toLowerCase())));
+src/context/SchoolContext.tsx:2958:           const rawUsername = teacherMatch.nameLatin ? teacherMatch.nameLatin.toLowerCase().replace(/[^a-z0-9]/g, '') : `teacher_${teacherMatch.id.slice(-4)}`;
+src/context/SchoolContext.tsx:2960:             id: `u-${teacherMatch.id}`,
+src/context/SchoolContext.tsx:3019:         const rawUsername = teacherMatch.nameLatin ? teacherMatch.nameLatin.toLowerCase().replace(/[^a-z0-9]/g, '') : `teacher_${teacherMatch.id.slice(-4)}`;
+src/context/SchoolContext.tsx:3021:           id: `u-${teacherMatch.id}`,
+src/context/SchoolContext.tsx:3138:     const target = appUsers.find(u => u.id === userId);
+src/context/SchoolContext.tsx:3159:     let studentUser = appUsers.find(u => u.studentId === student.id || u.studentCode === student.code);
+src/context/SchoolContext.tsx:3162:         id: `usr-stu-${student.id}`,
+src/context/SchoolContext.tsx:3163:         username: student.code || `student_${student.id}`,
+src/context/SchoolContext.tsx:3169:         studentId: student.id,
+src/context/SchoolContext.tsx:3232:     setExamSubjects(prev => prev.map(s => (s.id === id ? { ...s, ...updated } : s)));
+src/context/SchoolContext.tsx:3237:     setExamSubjects(prev => prev.filter(s => s.id !== id));
+src/context/SchoolContext.tsx:3271:     const targetReq = profileEditRequests.find(r => r.id === requestId);
+src/context/SchoolContext.tsx:3276:         r.id === requestId
+src/context/SchoolContext.tsx:3291:         prev.map(t => (t.id === targetReq.targetId ? { ...t, ...targetReq.requestedFields } : t))
+src/context/SchoolContext.tsx:3295:         prev.map(s => (s.id === targetReq.targetId ? { ...s, ...targetReq.requestedFields } : s))
+src/context/SchoolContext.tsx:3311:     const targetReq = profileEditRequests.find(r => r.id === requestId);
+src/context/SchoolContext.tsx:3316:         r.id === requestId
+src/context/SchoolContext.tsx:3407:       createdBy: currentUser.id,
+src/context/SchoolContext.tsx:3418:           t.id === newUser.id.replace('u-', '') || 
+src/context/SchoolContext.tsx:3427:           id: newUser.id.startsWith('u-t-') ? newUser.id.replace('u-', '') : `t-${Date.now()}`,
+src/context/SchoolContext.tsx:3457:       targetUserId: newUser.id,
+src/context/SchoolContext.tsx:3463:         id: currentUser.id,
+src/context/SchoolContext.tsx:3477:     const existing = appUsers.find(u => u.id === id);
+src/context/SchoolContext.tsx:3478:     setAppUsers(prev => prev.map(u => (u.id === id ? { ...u, ...updated } : u)));
+src/context/SchoolContext.tsx:3479:     if (currentUser && currentUser.id === id) {
+src/context/SchoolContext.tsx:3518:           id: currentUser?.id,
+src/context/SchoolContext.tsx:3533:     if (currentUser && currentUser.id === id) {
+src/context/SchoolContext.tsx:3538:     const targetUser = appUsers.find(u => u.id === id);
+src/context/SchoolContext.tsx:3546:       t => t.id === targetUser.id.replace('u-', '') ||
+src/context/SchoolContext.tsx:3553:     setAppUsers(prev => prev.filter(u => u.id !== id));
+src/context/SchoolContext.tsx:3557:       setTeachers(prev => prev.filter(t => t.id !== teacherBackup.id));
+src/context/SchoolContext.tsx:3562:       id: `del-${Date.now()}-${targetUser.id}`,
+src/context/SchoolContext.tsx:3568:         id: currentUser?.id,
+src/context/SchoolContext.tsx:3581:       targetUserId: targetUser.id,
+src/context/SchoolContext.tsx:3587:         id: currentUser?.id,
+src/context/SchoolContext.tsx:3600:     const deletedRecord = deletedUsers.find(d => d.id === deletedId);
+src/context/SchoolContext.tsx:3612:       const filtered = prev.filter(u => u.id !== restoredUser.id && u.email?.toLowerCase() !== restoredUser.email?.toLowerCase());
+src/context/SchoolContext.tsx:3620:         const filtered = prev.filter(t => t.id !== restoredTeacher.id && t.staffCode !== restoredTeacher.staffCode);
+src/context/SchoolContext.tsx:3626:     setDeletedUsers(prev => prev.filter(d => d.id !== deletedId));
+src/context/SchoolContext.tsx:3631:       targetUserId: restoredUser.id,
+src/context/SchoolContext.tsx:3637:         id: currentUser?.id,
+src/context/SchoolContext.tsx:3651:     const deletedRecord = deletedUsers.find(d => d.id === deletedId);
+src/context/SchoolContext.tsx:3656:     setDeletedUsers(prev => prev.filter(d => d.id !== deletedId));
+src/context/SchoolContext.tsx:3660:       targetUserId: deletedRecord.user.id,
+src/context/SchoolContext.tsx:3666:         id: currentUser?.id,
+src/context/SchoolContext.tsx:3690:         id: currentUser?.id,
+src/context/SchoolContext.tsx:3789:         prev.map(u => (u.id === targetUser!.id ? { ...u, password: newPassword, passwordUpdatedAt: new Date().toISOString() } : u))
+src/context/SchoolContext.tsx:3820:         studentId: targetStudent.id,
+src/context/SchoolContext.tsx:3861:       entityId: targetUser?.id || cleanEmail,
+src/context/SchoolContext.tsx:3906:           prev.map(u => (u.id === targetUser.id ? { ...u, password: newPassword, passwordUpdatedAt: new Date().toISOString() } : u))
+src/context/SchoolContext.tsx:3945:         prev.map(u => (u.id === anyUser.id ? { ...u, password: newPassword, passwordUpdatedAt: new Date().toISOString() } : u))
+src/context/SchoolContext.tsx:3978:             prev.map(u => (u.id === targetUser!.id ? { ...u, password: passToSet } : u))
+src/context/SchoolContext.tsx:4061:       u => u.role === 'student' && (u.studentCode === foundStudent.code || u.studentId === foundStudent.id)
+src/context/SchoolContext.tsx:4066:         prev.map(u => (u.id === existingUser.id ? { ...u, password: newPassword } : u))
+src/context/SchoolContext.tsx:4077:         studentId: foundStudent.id,
+src/context/SchoolContext.tsx:4098:         studentId: foundStudent.id,
+src/context/SchoolContext.tsx:4152:     setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
+src/context/SchoolContext.tsx:4160:     setNotifications(prev => prev.filter(n => n.id !== id));
+src/context/SchoolContext.tsx:4172:     setAppUsers(prev => prev.map(u => (u.id === currentUser.id ? updatedUser : u)));
+src/context/SchoolContext.tsx:4187:         requesterUserId: currentUser.id,
+src/context/SchoolContext.tsx:4199:     const notif = notifications.find(n => n.id === notificationId);
+src/context/SchoolContext.tsx:4207:       prev.map(u => (u.id === requesterUserId ? { ...u, password: newPass, passwordUpdatedAt: new Date().toISOString() } : u))
+src/context/SchoolContext.tsx:4311:         ? students.find(s => s.id === student || s.code === student)
+src/context/SchoolContext.tsx:4341:         ? students.find(s => s.id === student || s.code === student)
+src/context/SchoolContext.tsx:4349:         (currentUser.studentId && studentObj.id === currentUser.studentId) ||
+src/context/SchoolContext.tsx:4391:       entityId: newStudent.id,
+src/context/SchoolContext.tsx:4407:     const existing = students.find(s => s.id === id);
+src/context/SchoolContext.tsx:4408:     setStudents(prev => prev.map(s => (s.id === id ? { ...s, ...updated } : s)));
+src/context/SchoolContext.tsx:4438:     const existing = students.find(s => s.id === id);
+src/context/SchoolContext.tsx:4439:     setStudents(prev => prev.filter(s => s.id !== id));
+src/context/SchoolContext.tsx:4460:     return students.find(s => s.id === id);
+src/context/SchoolContext.tsx:4475:           prev.map(s => (s.id === newTransfer.studentId ? { ...s, status: 'transferred' } : s))
+src/context/SchoolContext.tsx:4487:       entityId: newTransfer.id,
+src/context/SchoolContext.tsx:4500:         if (t.id === id) {
+src/context/SchoolContext.tsx:4505:                 stus.map(s => (s.id === updatedRecord.studentId ? { ...s, status: 'transferred' } : s))
+src/context/SchoolContext.tsx:4518:     setTransfers(prev => prev.filter(t => t.id !== id));
+src/context/SchoolContext.tsx:4543:       id: `u-${newTeacher.id}`,
+src/context/SchoolContext.tsx:4561:         u => u.id !== teacherUser.id &&
+src/context/SchoolContext.tsx:4575:       entityId: newTeacher.id,
+src/context/SchoolContext.tsx:4586:     const existing = teachers.find(t => t.id === id);
+src/context/SchoolContext.tsx:4587:     setTeachers(prev => prev.map(t => (t.id === id ? { ...t, ...updated } : t)));
+src/context/SchoolContext.tsx:4592:         if (u.id === `u-${id}` || (existing && (u.email === existing.email || (existing.phone && u.phone === existing.phone)))) {
+src/context/SchoolContext.tsx:4628:     const existing = teachers.find(t => t.id === id);
+src/context/SchoolContext.tsx:4629:     setTeachers(prev => prev.filter(t => t.id !== id));
+src/context/SchoolContext.tsx:4632:     setAppUsers(prev => prev.filter(u => u.id !== `u-${id}` && (!existing || (u.email !== existing.email && (!existing.phone || u.phone !== existing.phone)))));
+src/context/SchoolContext.tsx:4662:     setClassrooms(prev => prev.map(c => (c.id === id ? { ...c, ...updated } : c)));
+src/context/SchoolContext.tsx:4667:     setClassrooms(prev => prev.filter(c => c.id !== id));
+src/context/SchoolContext.tsx:4722:       id: existingIndex >= 0 ? scores[existingIndex].id : `sc-${Date.now()}`,
+src/context/SchoolContext.tsx:4723:       studentId: student.id,
+src/context/SchoolContext.tsx:4755:       idToRank.set(item.id, index + 1);
+src/context/SchoolContext.tsx:4759:       if (idToRank.has(s.id)) {
+src/context/SchoolContext.tsx:4760:         return { ...s, rank: idToRank.get(s.id)! };
+src/context/SchoolContext.tsx:4773:       entityId: record.id,
+src/context/SchoolContext.tsx:4797:       idToRank.set(item.id, index + 1);
+src/context/SchoolContext.tsx:4802:         if (idToRank.has(s.id)) {
+src/context/SchoolContext.tsx:4803:           return { ...s, rank: idToRank.get(s.id)! };
+src/context/SchoolContext.tsx:4884:     const teacher = teachers.find(t => t.id === teacherId);
+src/context/SchoolContext.tsx:4890:       const existingIdx = prev.findIndex(r => r.id === recordId || (r.studentId === teacherId && r.date === today));
+src/context/SchoolContext.tsx:4896:         studentId: teacher.id,
+src/context/SchoolContext.tsx:4917:       entityId: teacher.id,
+src/context/SchoolContext.tsx:4930:     const record = attendanceRecords.find(r => (r.studentId === teacherId || r.id === `att-teacher-${teacherId}-${date}`) && r.date === date);
+src/context/SchoolContext.tsx:4997:       entityId: newTx.id,
+src/context/SchoolContext.tsx:5016:     const existing = budgetTransactions.find(t => t.id === id);
+src/context/SchoolContext.tsx:5017:     setBudgetTransactions(prev => prev.filter(t => t.id !== id));
+src/context/SchoolContext.tsx:5065:       prev.map(e => (e.id === id ? { ...e, ...updated } : e)).sort((a, b) => a.startDate.localeCompare(b.startDate))
+src/context/SchoolContext.tsx:5071:     setCalendarEvents(prev => prev.filter(e => e.id !== id));
+src/context/SchoolContext.tsx:5078:         e.id === id
+src/context/SchoolContext.tsx:5100:     setHouseholds(prev => prev.map(h => (h.id === id ? { ...h, ...updated } : h)));
+src/context/SchoolContext.tsx:5105:     setHouseholds(prev => prev.filter(h => h.id !== id));
+src/context/SchoolContext.tsx:5126:     setLibraryBooks(prev => prev.map(b => (b.id === id ? { ...b, ...updated } : b)));
+src/context/SchoolContext.tsx:5131:     setLibraryBooks(prev => prev.filter(b => b.id !== id));
+src/context/SchoolContext.tsx:5143:         prev.map(b => (b.id === log.bookId ? { ...b, availableCopies: Math.max(0, b.availableCopies - 1) } : b))
+src/context/SchoolContext.tsx:5150:     const oldLog = readingLogs.find(l => l.id === id);
+src/context/SchoolContext.tsx:5151:     setReadingLogs(prev => prev.map(l => (l.id === id ? { ...l, ...updated } : l)));
+src/context/SchoolContext.tsx:5154:         prev.map(b => (b.id === oldLog.bookId ? { ...b, availableCopies: Math.min(b.totalCopies, b.availableCopies + 1) } : b))
+src/context/SchoolContext.tsx:5161:     setReadingLogs(prev => prev.filter(l => l.id !== id));

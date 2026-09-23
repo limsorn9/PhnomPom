@@ -1,15 +1,21 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import QRCode from 'qrcode';
 import { useSchool } from '../context/SchoolContext';
 import { Student, Gender, LivingCondition, AcademicHistoryStatus, OrphanStatus } from '../types';
+import { AddressSelector } from './common/AddressSelector';
 import { exportStudentsToGoogleSheets } from '../services/googleSheets';
 import { getAccessToken, googleSignIn } from '../services/googleAuth';
 import { StudentSearchIndex } from '../utils/searchIndex';
 import {
   UserPlus,
+  UserCheck,
+  ShieldAlert,
+  Check,
   Search,
   Filter,
   Eye,
   Edit2,
+  Key,
   Trash2,
   QrCode,
   HeartPulse,
@@ -23,6 +29,7 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   GraduationCap,
+  School,
   ExternalLink,
   RefreshCw,
   Award,
@@ -34,9 +41,27 @@ import {
   Trophy,
   Medal,
   Camera,
-  Copy,
-  Check
+  UploadCloud,
+  Loader2,
+  Image as ImageIcon,
+  TrendingUp,
+  BarChart3,
+  Lock,
+  CalendarDays,
+  History,
+  ChevronLeft,
+  ChevronRight,
+  Crop,
+  Video
 } from 'lucide-react';
+import { DirectCameraCaptureModal } from './common/DirectCameraCaptureModal';
+import { PhotoCropAndAlignModal } from './common/PhotoCropAndAlignModal';
+import { BatchStudentPhotoImportModal } from './common/BatchStudentPhotoImportModal';
+import { BatchClassStudentAccountsModal } from './BatchClassStudentAccountsModal';
+import { AddStudentModal } from './AddStudentModal';
+import { BulkImportStudentsModal } from './BulkImportStudentsModal';
+import { uploadStudentProfilePhoto, compressImageFile } from '../services/firebaseStorage';
+import { uploadProfilePhotoToDrive } from '../services/googleDrive';
 import {
   MoEYSRoyalHeader,
   AngkorPageWatermark
@@ -46,71 +71,182 @@ import { BadgeIcon } from './badges/BadgeIcon';
 import { AwardBadgeModal } from './badges/AwardBadgeModal';
 import { StudentBadgeShowcaseModal } from './badges/StudentBadgeShowcaseModal';
 import { CertificateModal } from './badges/CertificateModal';
-import { StudentPrintView } from './StudentPrintView';
-import { StudentPrintPreviewModal } from './StudentPrintPreviewModal';
-import { StudentQRModal } from './StudentQRModal';
-import { StudentQRScannerModal } from './StudentQRScannerModal';
-import { StudentSummaryCard } from './StudentSummaryCard';
-import { StudentAttendanceSparkline } from './StudentAttendanceSparkline';
-import { generateStudentQRDataUrl, getStudentLookupUrl } from '../utils/qrUtils';
+import { useFormAutoSave } from '../hooks/useFormAutoSave';
+import { FormAutoSaveIndicator } from './common/FormAutoSaveIndicator';
+import { ConfirmDeleteDialog } from './common/ConfirmDeleteDialog';
+import { StudentProgressTrendChart } from './StudentProgressTrendChart';
+import { MultiStudentProfileSummaryPdfModal } from './MultiStudentProfileSummaryPdfModal';
+import { StudentProfilePdfModal } from './StudentProfilePdfModal';
+import { getStudentRiskAlert, getAllStudentRiskAlerts } from '../utils/studentRiskAlerts';
+import { StudentAnalyticsDashboard } from './StudentAnalyticsDashboard';
+import { MoEYSStudentRecordMasterModal } from './MoEYSStudentRecordMasterModal';
+import { splitName, calculateStudentAge, formatStudentToMoEYSRow } from '../utils/studentMoeyHelpers';
 
 export const StudentManagement: React.FC = () => {
   const {
+    currentUser,
     students,
-    teachers,
-    attendanceRecords,
     addStudent,
     updateStudent,
     deleteStudent,
+    deleteAllStudents,
+    pullStudentsToClass,
     searchQuery,
     schoolProfile,
     showToast,
     setActiveTab,
+    scores,
+    attendanceRecords,
     studentBadgeAssignments,
     getStudentBadges,
-    getStudentTotalPoints
+    getStudentTotalPoints,
+    verifyAndResetStudentPassword,
+    canAccessStudentDashboard,
+    academicYears,
+    selectedAcademicYear,
+    setSelectedAcademicYear,
+    confirmAction,
+    isStudentRegisteredInAccounts,
+    autoGenerateStudentAccounts
   } = useSchool();
 
-  // Mode: 'roster' | 'badges' | 'printer-friendly'
-  const [viewMode, setViewMode] = useState<'roster' | 'badges' | 'printer-friendly'>('roster');
+  const isDirector = currentUser?.role === 'director' || currentUser?.role === 'super_admin';
+  const isSecretary = currentUser?.role === 'secretary';
+  const isTeacher = currentUser?.role === 'teacher';
+  const teacherGrade = currentUser?.assignedGrade || 1;
+  const teacherSection = currentUser?.assignedSection || 'ក';
+
+  // Academic Year Filter for Student Management ('all' or specific year like '២០២៤ - ២០២៥')
+  const [selectedAcademicYearFilter, setSelectedAcademicYearFilter] = useState<string>(selectedAcademicYear || 'all');
+
+  // Keep filter synced when user switches global year if currently viewing a single year
+  useEffect(() => {
+    if (selectedAcademicYear && selectedAcademicYearFilter !== 'all' && selectedAcademicYearFilter !== selectedAcademicYear) {
+      setSelectedAcademicYearFilter(selectedAcademicYear);
+    }
+  }, [selectedAcademicYear]);
+
+  // Base list of students accessible by the current user
+  const accessibleStudents = useMemo(() => {
+    if (isTeacher) {
+      return students.filter(s => s.grade === teacherGrade && s.section === teacherSection);
+    }
+    return students;
+  }, [students, isTeacher, teacherGrade, teacherSection]);
+
+  // Pull Students To Class State (for Teacher)
+  const [isPullModalOpen, setIsPullModalOpen] = useState(false);
+  const [selectedPullStudentIds, setSelectedPullStudentIds] = useState<string[]>([]);
+  const [pullSearchQuery, setPullSearchQuery] = useState('');
+  const [pullGradeFilter, setPullGradeFilter] = useState<number | 'all'>('all');
+
+  // Mode: 'roster' | 'badges' | 'analytics'
+  const [viewMode, setViewMode] = useState<'roster' | 'badges' | 'analytics'>('roster');
+  const [selectedStudentForAnalyticsId, setSelectedStudentForAnalyticsId] = useState<string | null>(null);
   const [selectedStudentForBadgeShowcase, setSelectedStudentForBadgeShowcase] = useState<Student | null>(null);
   const [selectedStudentForAwardBadge, setSelectedStudentForAwardBadge] = useState<Student | null>(null);
   const [selectedCertificateForView, setSelectedCertificateForView] = useState<any | null>(null);
 
-  const [selectedGrade, setSelectedGrade] = useState<number | 'all'>('all');
+  const [selectedGrade, setSelectedGrade] = useState<number | 'all'>(isTeacher ? teacherGrade : 'all');
   const [selectedGender, setSelectedGender] = useState<Gender | 'all'>('all');
   const [selectedVulnerability, setSelectedVulnerability] = useState<'all' | 'idpoor' | 'scholarship' | 'orphan' | 'disability' | 'repeater'>('all');
+  const [selectedRiskFilter, setSelectedRiskFilter] = useState<'all' | 'at_risk' | 'consecutive_absent' | 'score_drop' | 'normal'>('all');
   const [localSearch, setLocalSearch] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isNewAddStudentModalOpen, setIsNewAddStudentModalOpen] = useState(false);
+  const [isBulkImportStudentsModalOpen, setIsBulkImportStudentsModalOpen] = useState(false);
+  const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
+  const [isSingleDeleteDialogOpen, setIsSingleDeleteDialogOpen] = useState(false);
+  const [isMoeyMasterModalOpen, setIsMoeyMasterModalOpen] = useState(false);
+  const [isBatchClassAccountsModalOpen, setIsBatchClassAccountsModalOpen] = useState(false);
   const [selectedStudentForView, setSelectedStudentForView] = useState<Student | null>(null);
+  const [selectedStudentForPdfPrint, setSelectedStudentForPdfPrint] = useState<Student | null>(null);
+
+  // Generate QR Code when viewing a student
+  useEffect(() => {
+    if (selectedStudentForView) {
+      setTimeout(() => {
+        const canvas = document.getElementById(`student-qr-canvas-${selectedStudentForView.id}`) as HTMLCanvasElement;
+        if (canvas) {
+          const qrData = JSON.stringify({
+            id: selectedStudentForView.id,
+            code: selectedStudentForView.code,
+            name: selectedStudentForView.nameKhmer,
+            grade: `${selectedStudentForView.grade}${selectedStudentForView.section}`,
+            school: schoolProfile.nameKhmer,
+            phone: selectedStudentForView.phone || selectedStudentForView.guardianPhone || 'N/A'
+          });
+          QRCode.toCanvas(canvas, qrData, { width: 112, margin: 1 }, (error) => {
+            if (error) console.error('QR generation error:', error);
+          });
+        }
+      }, 100);
+    }
+  }, [selectedStudentForView]);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isExportingSheets, setIsExportingSheets] = useState(false);
-  const [isPrintPreviewModalOpen, setIsPrintPreviewModalOpen] = useState(false);
-  const [selectedStudentForQR, setSelectedStudentForQR] = useState<Student | null>(null);
-  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [isMultiPdfModalOpen, setIsMultiPdfModalOpen] = useState(false);
 
-  // Auto-detect and open student profile from URL search query (e.g. ?studentId=... or ?studentCode=...)
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const searchParams = new URLSearchParams(window.location.search);
-      const targetId = searchParams.get('studentId') || searchParams.get('id');
-      const targetCode = searchParams.get('studentCode') || searchParams.get('code');
+  // Profile Photo Upload State
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isDragOverPhoto, setIsDragOverPhoto] = useState(false);
+  const [photoUploadSource, setPhotoUploadSource] = useState<'firebase' | 'base64' | 'url' | null>(null);
+  const [isBatchPhotoModalOpen, setIsBatchPhotoModalOpen] = useState(false);
+  const [isDirectCameraOpen, setIsDirectCameraOpen] = useState(false);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [cropModalImageSrc, setCropModalImageSrc] = useState<string | null>(null);
 
-      if (targetId || targetCode) {
-        const found = students.find(
-          s => (targetId && s.id.toLowerCase() === targetId.toLowerCase()) ||
-               (targetCode && s.code.toLowerCase() === targetCode.toLowerCase())
-        );
-        if (found) {
-          setSelectedStudentForView(found);
-          showToast(`បានបើកប្រវត្តិរូបសិស្ស «${found.nameKhmer}» (${found.code}) តាមរយៈ QR Code!`);
-        }
-      }
-    } catch {
-      // Ignore URL parsing errors
+  // Handle Photo File Upload directly to Google Drive (with storage/base64 fallback)
+  const handlePhotoFileUpload = async (file: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('សូមជ្រើសរើសឯកសាររូបភាពប៉ុណ្ណោះ (JPG, PNG, WebP)', 'error');
+      return;
     }
-  }, [students, showToast]);
+    
+    if (file.size > 12 * 1024 * 1024) {
+      showToast('ទំហំរូបភាពធំពេក សូមជ្រើសរើសរូបក្រោម 12MB', 'error');
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const studentIdentifier = formData.nameLatin || formData.nameKhmer || 'student';
+      const compressedBlob = await compressImageFile(file, 800, 800, 0.88);
+      
+      try {
+        const driveResult = await uploadProfilePhotoToDrive(
+          compressedBlob,
+          `student_${studentIdentifier}_${Date.now()}.jpg`
+        );
+        if (driveResult && driveResult.directPhotoUrl) {
+          setFormData(prev => ({ ...prev, avatarUrl: driveResult.directPhotoUrl }));
+          setPhotoUploadSource('url');
+          showToast('បានផ្ទុកឡើងរូបថតសិស្សទៅកាន់ Google Drive ដោយជោគជ័យ!', 'success');
+          return;
+        }
+      } catch (driveErr: any) {
+        console.warn('Google Drive direct upload fallback:', driveErr);
+      }
+
+      // Fallback
+      const result = await uploadStudentProfilePhoto(file, studentIdentifier);
+      setFormData(prev => ({ ...prev, avatarUrl: result.downloadUrl }));
+      setPhotoUploadSource(result.isFirebaseStorage ? 'firebase' : 'base64');
+      if (result.isFirebaseStorage) {
+        showToast('បាន Upload រូបថតសិស្សទៅកាន់ Storage ជោគជ័យ!', 'success');
+      } else {
+        showToast('បានរក្សាទុក និង Compress រូបថតសិស្សដោយជោគជ័យ!', 'success');
+      }
+    } catch (err: any) {
+      console.error('Photo upload error:', err);
+      showToast('មានបញ្ហាក្នុងការ Upload រូបថត', 'error');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   // New Student Form State
   const initialFormState = {
@@ -155,35 +291,79 @@ export const StudentManagement: React.FC = () => {
     previousSchool: '',
     admissionDate: new Date().toISOString().split('T')[0],
     status: 'active' as const,
+    avatarUrl: '',
     // Health
     heightCm: 120,
     weightKg: 22,
     bloodType: 'O+',
     vaccinated: true,
-    notes: ''
+    notes: '',
+    academicYear: selectedAcademicYear || schoolProfile.academicYear || '២០២៤ - ២០២៥'
   };
 
-  const [formData, setFormData] = useState(initialFormState);
+  const {
+    formData,
+    setFormData,
+    resetForm,
+    clearDraft,
+    discardDraft,
+    hasSavedDraft,
+    lastSavedTime,
+    isSaving
+  } = useFormAutoSave('phnom_pom_draft_student_registration', initialFormState, {
+    enabled: isAddModalOpen && !editingStudent
+  });
 
-  // Build and memoize Fuzzy Search Index for students
+  // Build and memoize Fuzzy Search Index for students (scoped to accessibleStudents)
   const studentSearchIndex = useMemo(() => {
-    return new StudentSearchIndex(students);
-  }, [students]);
+    return new StudentSearchIndex(accessibleStudents);
+  }, [accessibleStudents]);
+
+  // Compute Risk Alerts Map for accessible students (>3 consecutive absences or score drop)
+  const studentAlertsMap = useMemo(() => {
+    return getAllStudentRiskAlerts(accessibleStudents, scores, attendanceRecords || []);
+  }, [accessibleStudents, scores, attendanceRecords]);
+
+  const atRiskCount = useMemo(() => {
+    let count = 0;
+    studentAlertsMap.forEach(alert => {
+      if (alert.hasConsecutiveAbsenceAlert || alert.hasScoreDropAlert) count++;
+    });
+    return count;
+  }, [studentAlertsMap]);
+
+  const absenceAlertCount = useMemo(() => {
+    let count = 0;
+    studentAlertsMap.forEach(alert => {
+      if (alert.hasConsecutiveAbsenceAlert) count++;
+    });
+    return count;
+  }, [studentAlertsMap]);
+
+  const scoreDropAlertCount = useMemo(() => {
+    let count = 0;
+    studentAlertsMap.forEach(alert => {
+      if (alert.hasScoreDropAlert) count++;
+    });
+    return count;
+  }, [studentAlertsMap]);
 
   // Filter and fuzzy search students
   const filteredStudents = useMemo(() => {
     const query = (searchQuery || localSearch).trim();
     
     // Step 1: Apply Fuzzy Search Index if query exists
-    let candidateStudents = students;
+    let candidateStudents = accessibleStudents;
     if (query) {
       const searchResults = studentSearchIndex.search(query);
       candidateStudents = searchResults.map(res => res.item);
     }
 
-    // Step 2: Apply categorical filters (Grade, Gender, Vulnerability)
+    // Step 2: Apply categorical filters (Grade, Gender, Vulnerability, Risk Alerts)
     return candidateStudents.filter(student => {
-      const matchesGrade = selectedGrade === 'all' || student.grade === selectedGrade;
+      const matchesGrade = isTeacher
+        ? (student.grade === teacherGrade && student.section === teacherSection)
+        : (selectedGrade === 'all' || student.grade === selectedGrade);
       const matchesGender = selectedGender === 'all' || student.gender === selectedGender;
 
       let matchesVulnerability = true;
@@ -199,72 +379,26 @@ export const StudentManagement: React.FC = () => {
         matchesVulnerability = student.academicHistory === 'ត្រួតថ្នាក់';
       }
 
-      return matchesGrade && matchesGender && matchesVulnerability;
-    });
-  }, [students, studentSearchIndex, searchQuery, localSearch, selectedGrade, selectedGender, selectedVulnerability]);
-
-  // Calculate Summary Statistics for Top Summary Card
-  const summaryStats = useMemo(() => {
-    const total = filteredStudents.length;
-    const allSchoolStudentsCount = students.length;
-    const maleCount = filteredStudents.filter(s => s.gender === 'M').length;
-    const femaleCount = filteredStudents.filter(s => s.gender === 'F').length;
-    const malePercent = total > 0 ? Math.round((maleCount / total) * 100) : 0;
-    const femalePercent = total > 0 ? (100 - malePercent) : 0;
-
-    let totalPresentDays = 0;
-    let totalPossibleDays = 0;
-    let totalPermissionDays = 0;
-    let totalAbsentDays = 0;
-
-    filteredStudents.forEach(student => {
-      if (student.attendance && student.attendance.totalDays > 0) {
-        totalPresentDays += student.attendance.present || 0;
-        totalPermissionDays += student.attendance.absentWithPermission || 0;
-        totalAbsentDays += student.attendance.absentWithoutPermission || 0;
-        totalPossibleDays += student.attendance.totalDays;
-      } else if (attendanceRecords && attendanceRecords.length > 0) {
-        const studentLogs = attendanceRecords.filter(r => r.studentId === student.id);
-        studentLogs.forEach(r => {
-          totalPossibleDays += 1;
-          if (r.status === 'present') totalPresentDays += 1;
-          else if (r.status === 'permission') totalPermissionDays += 1;
-          else totalAbsentDays += 1;
-        });
+      let matchesRisk = true;
+      const alert = studentAlertsMap.get(student.id);
+      if (selectedRiskFilter === 'at_risk') {
+        matchesRisk = Boolean(alert && (alert.hasConsecutiveAbsenceAlert || alert.hasScoreDropAlert));
+      } else if (selectedRiskFilter === 'consecutive_absent') {
+        matchesRisk = Boolean(alert && alert.hasConsecutiveAbsenceAlert);
+      } else if (selectedRiskFilter === 'score_drop') {
+        matchesRisk = Boolean(alert && alert.hasScoreDropAlert);
+      } else if (selectedRiskFilter === 'normal') {
+        matchesRisk = !alert || (!alert.hasConsecutiveAbsenceAlert && !alert.hasScoreDropAlert);
       }
+
+      // Academic Year Filter: 'all' matches all, otherwise matches student.academicYear or default school academicYear
+      const matchesAcademicYear = selectedAcademicYearFilter === 'all'
+        ? true
+        : (student.academicYear ? student.academicYear === selectedAcademicYearFilter : selectedAcademicYearFilter === schoolProfile.academicYear);
+
+      return matchesGrade && matchesGender && matchesVulnerability && matchesRisk && matchesAcademicYear;
     });
-
-    const averageAttendanceRate = totalPossibleDays > 0
-      ? Number(((totalPresentDays / totalPossibleDays) * 100).toFixed(1))
-      : 96.8;
-
-    const permissionRate = totalPossibleDays > 0
-      ? Number(((totalPermissionDays / totalPossibleDays) * 100).toFixed(1))
-      : 2.2;
-
-    const absentRate = totalPossibleDays > 0
-      ? Number(((totalAbsentDays / totalPossibleDays) * 100).toFixed(1))
-      : 1.0;
-
-    const activeCount = filteredStudents.filter(s => s.status === 'active' || !s.status).length;
-    const idPoorCount = filteredStudents.filter(s => s.livingCondition === 'ក្រ១' || s.livingCondition === 'ក្រ២' || s.idPoorCardNumber).length;
-    const scholarshipCount = filteredStudents.filter(s => s.scholarship && s.scholarship !== 'មិនមាន').length;
-
-    return {
-      total,
-      allSchoolStudentsCount,
-      maleCount,
-      femaleCount,
-      malePercent,
-      femalePercent,
-      averageAttendanceRate,
-      permissionRate,
-      absentRate,
-      activeCount,
-      idPoorCount,
-      scholarshipCount
-    };
-  }, [filteredStudents, students, attendanceRecords]);
+  }, [accessibleStudents, isTeacher, teacherGrade, teacherSection, studentSearchIndex, searchQuery, localSearch, selectedGrade, selectedGender, selectedVulnerability, selectedRiskFilter, studentAlertsMap, selectedAcademicYearFilter, schoolProfile.academicYear]);
 
   const handleCreateStudent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -280,6 +414,61 @@ export const StudentManagement: React.FC = () => {
     if (bmi < 14) nutritionStatus = 'underweight';
     else if (bmi > 20) nutritionStatus = 'overweight';
 
+    // MoEYS Standard Validation
+    const errors: string[] = [];
+
+    // 1. Khmer Name Validation (Required, at least 2 chars, Khmer script preferred)
+    if (!formData.nameKhmer || formData.nameKhmer.trim().length < 2) {
+      errors.push('សូមបញ្ចូលគោត្តនាម និងនាមសិស្សជាភាសាខ្មែរ (យ៉ាងហោចណាស់ ២ តួអក្សរ)');
+    }
+
+    // 2. Date of Birth & MoEYS Primary School Age Validation (Normally 5 to 16 years old)
+    if (editingStudent) {
+      if (!formData.dob) {
+      errors.push('សូមជ្រើសរើសថ្ងៃខែឆ្នាំកំណើតរបស់សិស្ស');
+    } else {
+      const birthDate = new Date(formData.dob);
+      const today = new Date();
+      if (isNaN(birthDate.getTime())) {
+        errors.push('ថ្ងៃខែឆ្នាំកំណើតមិនត្រឹមត្រូវតាមទម្រង់');
+      } else {
+        const ageInYears = today.getFullYear() - birthDate.getFullYear();
+        if (birthDate > today) {
+          errors.push('ថ្ងៃខែឆ្នាំកំណើតមិនអាចលើសពីថ្ងៃបច្ចុប្បន្នបានទេ');
+        } else if (ageInYears < 5) {
+          errors.push(`អាយុសិស្សតូចពេកសម្រាប់បឋមសិក្សា (អាយុ ${ageInYears} ឆ្នាំ - ស្តង់ដារក្រសួងគឺចាប់ពី ៦ ឆ្នាំឡើង)`);
+        } else if (ageInYears > 18) {
+          errors.push(`អាយុសិស្សលើសពី ១៨ ឆ្នាំ សូមពិនិត្យមើលថ្ងៃខែឆ្នាំកំណើតឡើងវិញ`);
+        }
+      }
+    }
+    }
+
+    // 3. Grade & Section Validation
+    if (!formData.grade || formData.grade < 1 || formData.grade > 6) {
+      errors.push('សូមជ្រើសរើសកម្រិតថ្នាក់ពី ថ្នាក់ទី១ ដល់ ថ្នាក់ទី៦');
+    }
+
+    if (!formData.section || formData.section.trim().length === 0) {
+      errors.push('សូមបញ្ជាក់បន្ទប់/ផ្នែក (ឧ. ក, ខ, គ)');
+    }
+
+    // 4. Guardian / Parent Contact Validation
+    const contactPhone = formData.guardianPhone || formData.phone;
+    if (contactPhone && contactPhone.trim()) {
+      // Basic phone format check: digits, spaces, dashes (8-12 digits)
+      const cleanPhone = contactPhone.replace(/[\s\-\.]/g, '');
+      if (!/^\+?[0-9]{8,15}$/.test(cleanPhone)) {
+        errors.push('លេខទូរស័ព្ទទាក់ទងមិនត្រឹមត្រូវតាមទម្រង់ (ឧ. 012 345 678)');
+      }
+    }
+
+    // If validation errors exist, notify user and prevent saving
+    if (errors.length > 0) {
+      showToast(`⚠️ សូមបំពេញទិន្នន័យឱ្យបានត្រឹមត្រូវតាមស្តង់ដារក្រសួង៖\n• ${errors.join('\n• ')}`, 'error');
+      return;
+    }
+
     const pobFormatted = [formData.pobVillage && `ភូមិ${formData.pobVillage}`, formData.pobCommune && `ឃុំ${formData.pobCommune}`, formData.pobDistrict && `ស្រុក${formData.pobDistrict}`, formData.pobProvince].filter(Boolean).join(' ') || 'ខេត្តបាត់ដំបង';
     const addressFormatted = [formData.currentHouseNumber && `ផ្ទះលេខ${formData.currentHouseNumber}`, formData.currentStreetNumber && `ផ្លូវ${formData.currentStreetNumber}`, formData.currentVillage && `ភូមិ${formData.currentVillage}`, formData.currentCommune && `ឃុំ${formData.currentCommune}`, formData.currentDistrict && `ស្រុក${formData.currentDistrict}`, formData.currentProvince].filter(Boolean).join(' ') || 'ស្រុកភ្នំព្រឹក ខេត្តបាត់ដំបង';
 
@@ -287,7 +476,7 @@ export const StudentManagement: React.FC = () => {
       nameKhmer: formData.nameKhmer,
       nameLatin: formData.nameLatin,
       gender: formData.gender,
-      dob: formData.dob,
+      dob: formData.dob || '2015-01-01',
       pob: pobFormatted,
       pobVillage: formData.pobVillage,
       pobCommune: formData.pobCommune,
@@ -324,10 +513,13 @@ export const StudentManagement: React.FC = () => {
       specialCharacteristics: formData.specialCharacteristics,
       previousSchool: formData.previousSchool,
       admissionDate: formData.admissionDate,
+      academicYear: formData.academicYear || selectedAcademicYear || schoolProfile.academicYear,
       status: formData.status,
-      avatarUrl: formData.gender === 'F'
-        ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'
-        : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+      avatarUrl: formData.avatarUrl && formData.avatarUrl.trim() !== ''
+        ? formData.avatarUrl
+        : (formData.gender === 'F'
+          ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'
+          : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'),
       health: {
         heightCm: Number(formData.heightCm) || 120,
         weightKg: Number(formData.weightKg) || 22,
@@ -341,15 +533,28 @@ export const StudentManagement: React.FC = () => {
       attendance: editingStudent ? editingStudent.attendance : { present: 0, absentWithPermission: 0, absentWithoutPermission: 0, totalDays: 0 }
     };
 
-    if (editingStudent) {
-      updateStudent(editingStudent.id, newStudentData);
-      setEditingStudent(null);
-    } else {
-      addStudent(newStudentData);
-    }
-
-    setIsAddModalOpen(false);
-    setFormData(initialFormState);
+    confirmAction({
+      title: editingStudent ? 'បញ្ជាក់ការកែប្រែទិន្នន័យសិស្ស' : 'បញ្ជាក់ការចុះឈ្មោះសិស្សថ្មី',
+      description: editingStudent
+        ? `តើអ្នកពិតជាចង់រក្សាទុកការកែប្រែព័ត៌មានសម្រាប់សិស្ស «${formData.nameKhmer}» មែនទេ?`
+        : `តើអ្នកពិតជាចង់ចុះឈ្មោះសិស្សថ្មី «${formData.nameKhmer}» ចូលថ្នាក់ទី ${formData.grade}«${formData.section}» មែនទេ?`,
+      confirmLabel: editingStudent ? 'យល់ព្រម រក្សាទុក' : 'យល់ព្រម ចុះឈ្មោះ',
+      cancelLabel: 'ត្រឡប់ក្រោយ',
+      intent: 'primary',
+      onConfirm: () => {
+        if (editingStudent) {
+          updateStudent(editingStudent.id, newStudentData);
+          setEditingStudent(null);
+          resetForm(initialFormState);
+          showToast(`បានកែប្រែទិន្នន័យសិស្ស «${formData.nameKhmer}» ដោយជោគជ័យ!`, 'success');
+        } else {
+          addStudent(newStudentData);
+          resetForm(initialFormState);
+          showToast(`បានចុះឈ្មោះសិស្សថ្មី «${formData.nameKhmer}» ដោយជោគជ័យ!`, 'success');
+        }
+        setIsAddModalOpen(false);
+      }
+    });
   };
 
   const handleEditClick = (student: Student) => {
@@ -391,7 +596,9 @@ export const StudentManagement: React.FC = () => {
       specialCharacteristics: student.specialCharacteristics || '',
       previousSchool: student.previousSchool || '',
       admissionDate: student.admissionDate,
+      academicYear: student.academicYear || schoolProfile.academicYear || selectedAcademicYear,
       status: student.status,
+      avatarUrl: student.avatarUrl || '',
       heightCm: student.health.heightCm,
       weightKg: student.health.weightKg,
       bloodType: student.health.bloodType,
@@ -401,86 +608,44 @@ export const StudentManagement: React.FC = () => {
     setIsAddModalOpen(true);
   };
 
-  const escapeCsvCell = (val: string | number | undefined | null): string => {
-    if (val === undefined || val === null) return '""';
-    const str = String(val);
-    return `"${str.replace(/"/g, '""')}"`;
-  };
-
   const exportStudentsToCSV = () => {
-    if (filteredStudents.length === 0) {
-      showToast('មិនមានទិន្នន័យសិស្សដើម្បីទាញយកទេ!', 'info');
-      return;
-    }
-
     const headers = [
-      'ល.រ',
       'អត្តលេខ',
-      'គោត្តនាម និងនាម',
+      'ឈ្មោះខ្មែរ',
       'ឈ្មោះឡាតាំង',
       'ភេទ',
       'ថ្ងៃខែឆ្នាំកំណើត',
-      'កម្រិតថ្នាក់',
-      'ទីកន្លែងកំណើត',
-      'អាសយដ្ឋានបច្ចុប្បន្ន',
-      'ឈ្មោះឪពុក',
-      'ឈ្មោះម្តាយ',
+      'ថ្នាក់',
+      'ស្ថានភាពសិក្សា',
+      'ស្ថានភាពរស់នៅ',
+      'អាហារូបករណ៍',
       'អាណាព្យាបាល',
       'លេខទូរស័ព្ទ',
-      'ស្ថានភាពសិក្សា',
-      'ស្ថានភាពរស់នៅ (ក្រីក្រ)',
-      'អាហារូបករណ៍',
-      'ស្ថានភាពកំព្រា',
-      'ពិការភាព',
-      'ជនជាតិដើមភាគតិច',
-      'កម្ពស់ (cm)',
-      'ទម្ងន់ (kg)',
-      'BMI',
-      'ស្ថានភាព'
+      'អាសយដ្ឋាន'
     ];
-
-    const rows = filteredStudents.map((s, idx) => [
-      escapeCsvCell(idx + 1),
-      escapeCsvCell(s.code),
-      escapeCsvCell(s.nameKhmer),
-      escapeCsvCell(s.nameLatin || ''),
-      escapeCsvCell(s.gender === 'F' ? 'ស្រី' : 'ប្រុស'),
-      escapeCsvCell(s.dob),
-      escapeCsvCell(`ថ្នាក់ទី ${s.grade}${s.section || ''}`),
-      escapeCsvCell(s.pob || ''),
-      escapeCsvCell(s.address || ''),
-      escapeCsvCell(s.fatherName || ''),
-      escapeCsvCell(s.motherName || ''),
-      escapeCsvCell(s.guardianName || ''),
-      escapeCsvCell(s.guardianPhone || s.phone || ''),
-      escapeCsvCell(s.academicHistory || 'ឡើងថ្នាក់'),
-      escapeCsvCell(s.livingCondition || 'ទូទៅ'),
-      escapeCsvCell(s.scholarship || 'មិនមាន'),
-      escapeCsvCell(s.orphanStatus || 'មិនកំព្រា'),
-      escapeCsvCell(s.disability || 'មិនពិការ'),
-      escapeCsvCell(s.ethnicMinority || 'ខ្មែរ'),
-      escapeCsvCell(s.health?.heightCm ?? ''),
-      escapeCsvCell(s.health?.weightKg ?? ''),
-      escapeCsvCell(s.health?.bmi ?? ''),
-      escapeCsvCell(s.status === 'active' ? 'កំពុងរៀន' : s.status === 'transferred' ? 'ផ្ទេរចេញ' : s.status === 'graduated' ? 'បញ្ចប់ការសិក្សា' : 'ផ្អាក')
+    const rows = filteredStudents.map(s => [
+      s.code,
+      s.nameKhmer,
+      s.nameLatin || '',
+      s.gender === 'F' ? 'ស្រី' : 'ប្រុស',
+      s.dob,
+      `ថ្នាក់ទី ${s.grade}${s.section}`,
+      s.academicHistory || 'ឡើងថ្នាក់',
+      s.livingCondition || 'ទូទៅ',
+      s.scholarship || 'មិនមាន',
+      s.guardianName || '',
+      s.guardianPhone || '',
+      `"${s.address || ''}"`
     ]);
 
-    const csvContent = '\uFEFF' + [headers.map(h => `"${h}"`).join(','), ...rows.map(e => e.join(','))].join('\r\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
-    const gradeLabel = selectedGrade === 'all' ? 'គ្រប់ថ្នាក់' : `ថ្នាក់ទី${selectedGrade}`;
-    const dateStr = new Date().toISOString().split('T')[0];
-    const fileName = `បញ្ជីសិស្ស_${(schoolProfile.nameKhmer || 'សាលារៀន').replace(/\s+/g, '_')}_${gradeLabel}_${dateStr}.csv`;
-
-    link.setAttribute('href', url);
-    link.setAttribute('download', fileName);
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `បញ្ជីឈ្មោះសិស្ស_MoEYS_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    showToast(`បានទាញយកបញ្ជីសិស្ស (${filteredStudents.length} នាក់) ជាឯកសារ CSV ដោយជោគជ័យ!`);
   };
 
   const handleExportToGoogleSheets = async () => {
@@ -518,7 +683,7 @@ export const StudentManagement: React.FC = () => {
     <div className="space-y-6 font-battambang">
       {/* Top Main Mode Navigation Tabs */}
       <div className="flex items-center justify-between gap-3 bg-white p-2.5 rounded-2xl border border-slate-200 shadow-xs">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setViewMode('roster')}
@@ -537,22 +702,6 @@ export const StudentManagement: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => setViewMode('printer-friendly')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              viewMode === 'printer-friendly'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <Printer className="w-4 h-4" />
-            <span>ទម្រង់បោះពុម្ព A4 (Printer-Friendly)</span>
-            <span className={`text-[11px] px-2 py-0.5 rounded-full ${viewMode === 'printer-friendly' ? 'bg-white/20 text-white' : 'bg-indigo-100 text-indigo-800'}`}>
-              {filteredStudents.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => setViewMode('badges')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               viewMode === 'badges'
@@ -566,6 +715,24 @@ export const StudentManagement: React.FC = () => {
               {studentBadgeAssignments.length}
             </span>
           </button>
+
+          {canAccessStudentDashboard().allowed && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedStudentForAnalyticsId(null);
+                setViewMode('analytics');
+              }}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                viewMode === 'analytics'
+                  ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4 text-indigo-300" />
+              <span>ផ្ទាំងវិភាគសមិទ្ធផល (Analytics)</span>
+            </button>
+          )}
         </div>
 
         {viewMode === 'roster' && (
@@ -582,14 +749,10 @@ export const StudentManagement: React.FC = () => {
         )}
       </div>
 
-      {viewMode === 'printer-friendly' ? (
-        <StudentPrintView
-          students={filteredStudents}
-          schoolProfile={schoolProfile}
-          teachers={teachers}
-          selectedGrade={selectedGrade}
-          selectedVulnerability={selectedVulnerability}
-          onClose={() => setViewMode('roster')}
+      {viewMode === 'analytics' ? (
+        <StudentAnalyticsDashboard
+          onBackToRoster={() => setViewMode('roster')}
+          initialStudentId={selectedStudentForAnalyticsId || undefined}
         />
       ) : viewMode === 'badges' ? (
         <StudentBadgesManagementTab onBackToStudents={() => setViewMode('roster')} />
@@ -617,19 +780,33 @@ export const StudentManagement: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2.5">
             <button
-              id="scan-student-qr-header-btn"
-              onClick={() => setIsQRScannerOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
-              title="ស្កេនកាត QR Code សិស្ស ឬស្វែងរករហ័ស (Scan QR Code & Quick Lookup)"
+              id="open-moeys-master-modal-btn"
+              onClick={() => setIsMoeyMasterModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-amber-300/60"
+              title="មើល និងបោះពុម្ពតារាងប្រវត្តិសិស្សស្តង់ដារក្រសួងអប់រំ ១២ ជួរឈរពេញលេញ (MoEYS Master Student Roster Table)"
             >
-              <Camera className="w-4 h-4" />
-              <span>ស្កេន QR / ស្វែងរករហ័ស</span>
+              <Sparkles className="w-4 h-4 text-amber-200" />
+              <span>តារាងប្រវត្តិសិស្សស្តង់ដារក្រសួង (MoEYS)</span>
+            </button>
+            <button
+              id="export-multi-student-pdf-btn"
+              onClick={() => {
+                if (selectedStudentIds.length === 0 && filteredStudents.length > 0) {
+                  setSelectedStudentIds(filteredStudents.map(s => s.id));
+                }
+                setIsMultiPdfModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 text-white text-xs font-bold rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer ring-2 ring-indigo-400/30"
+              title="បង្កើតឯកសារ PDF សង្ខេបលទ្ធផល និងប្រវត្តិពិន្ទុសិស្សច្រើននាក់ក្នុងឯកសារតែមួយ"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-blue-200" />
+              <span>PDF សង្ខេបពិន្ទុជាក្រុម {selectedStudentIds.length > 0 ? `(${selectedStudentIds.length})` : ''}</span>
             </button>
             <button
               id="export-students-sheets-btn"
               onClick={handleExportToGoogleSheets}
               disabled={isExportingSheets}
-              className="flex items-center gap-2 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50"
             >
               {isExportingSheets ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -641,42 +818,171 @@ export const StudentManagement: React.FC = () => {
             <button
               id="export-students-csv-btn"
               onClick={exportStudentsToCSV}
-              className="flex items-center gap-2 px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer"
-              title="ទាញយកបញ្ជីសិស្សតាមតម្រងបច្ចុប្បន្នជាឯកសារ CSV (Download Filtered Students List as CSV)"
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-all shadow-sm active:scale-95"
             >
-              <Download className="w-4 h-4 text-emerald-600" />
-              <span>ទាញយក CSV (Download CSV)</span>
+              <Download className="w-4 h-4" />
+              <span>CSV ឯកសារ</span>
             </button>
             <button
               id="print-students-list-btn"
-              onClick={() => setIsPrintPreviewModalOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-bold rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
-              title="បើកផ្ទាំងផ្ទៀងផ្ទាត់ និងជ្រើសរើសជួរឈរមុនបោះពុម្ព (Print Preview & Column Customizer)"
+              onClick={() => window.print()}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-semibold rounded-xl transition-all shadow-sm active:scale-95"
+              title="បោះពុម្ពបញ្ជីរាយនាមសិស្សផ្លូវការ"
             >
               <Printer className="w-4 h-4 text-indigo-600" />
-              <span>បោះពុម្ពបញ្ជី A4</span>
+              <span>បោះពុម្ពបញ្ជី</span>
             </button>
             <button
               onClick={() => setActiveTab('transfers')}
-              className="flex items-center gap-2 px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold rounded-xl transition-all shadow-sm active:scale-95"
             >
               <ArrowRightLeft className="w-4 h-4 text-amber-600" />
               <span>ផ្ទេរសិស្សចេញ/ចូល</span>
             </button>
+            {(isDirector || isSecretary) && students.length > 0 && (
+              <button
+                id="delete-all-students-btn"
+                type="button"
+                onClick={() => setIsDeleteAllModalOpen(true)}
+                className="flex items-center gap-2 px-3.5 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer"
+                title="លុបទិន្នន័យឈ្មោះសិស្សទាំងអស់ចេញពីប្រព័ន្ធ"
+              >
+                <Trash2 className="w-4 h-4 text-red-600" />
+                <span>លុបសិស្សទាំងអស់</span>
+              </button>
+            )}
+            {(isDirector || isSecretary) && students.some(s => !isStudentRegisteredInAccounts(s)) && (
+              <button
+                id="generate-missing-student-accounts-btn"
+                type="button"
+                onClick={() => {
+                  const missing = students.filter(s => !isStudentRegisteredInAccounts(s));
+                  confirmAction({
+                    title: 'បង្កើតគណនីសិស្សទាំងអស់ដែលមិនទាន់មាន',
+                    description: `តើអ្នកចង់បង្កើតគណនីប្រព័ន្ធជូនសិស្សចំនួន ${missing.length} នាក់ដែលមិនទាន់មានគណនីមែនទេ? (ពាក្យសម្ងាត់លំនាំដើម៖ អត្តលេខសិស្ស)`,
+                    confirmLabel: 'យល់ព្រម បង្កើតទាំងអស់',
+                    cancelLabel: 'បោះបង់',
+                    intent: 'primary',
+                    onConfirm: () => {
+                      const count = autoGenerateStudentAccounts(missing.map(s => s.id));
+                      showToast(`បានបង្កើតគណនីសិស្សចំនួន ${count} នាក់ដោយជោគជ័យ!`, 'success');
+                    }
+                  });
+                }}
+                className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-purple-300/60"
+                title="បង្កើតគណនីចូលប្រើប្រព័ន្ធសម្រាប់សិស្សទាំងអស់ដែលមិនទាន់មានគណនី"
+              >
+                <UserCheck className="w-4 h-4 text-purple-200" />
+                <span>បង្កើតគណនីសិស្សដែលខ្វះ ({students.filter(s => !isStudentRegisteredInAccounts(s)).length})</span>
+              </button>
+            )}
+
+            {(isDirector || isSecretary || isTeacher) && (
+              <button
+                type="button"
+                onClick={() => setIsBatchClassAccountsModalOpen(true)}
+                className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-800 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-purple-300/60"
+                title="បង្កើតគណនីសិស្សម្តងមួយថ្នាក់ ដោយអាប់ឡូតឯកសារពីគំរូ CSV"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-amber-300" />
+                <span>+ បង្កើតគណនីម្តង១ថ្នាក់ (គំរូ CSV)</span>
+              </button>
+            )}
+
             <button
-              id="add-student-btn"
-              onClick={() => {
-                setEditingStudent(null);
-                setFormData(initialFormState);
-                setIsAddModalOpen(true);
-              }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
+              type="button"
+              onClick={() => setIsBulkImportStudentsModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-emerald-300/60"
+              title="នាំចូលបញ្ជីសិស្សតាមរយៈ Excel PLP-SMS ឬ Copy-Paste"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
+              <span>📥 នាំចូលសិស្សច្រើននាក់ (Excel/Paste)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsNewAddStudentModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-blue-300"
+              title="បន្ថែមសិស្សថ្មីក្នុងប្រព័ន្ធ (MoEYS Standard)"
             >
               <UserPlus className="w-4 h-4" />
-              <span>+ បញ្ចូលសិស្សថ្មី</span>
+              <span>+ បន្ថែមសិស្ស (Add Student)</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setIsBatchPhotoModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-700 hover:to-orange-800 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-amber-300/60"
+              title="Upload រូបថតសិស្សច្រើននាក់ព្រមគ្នា និងផ្គូផ្គងស្វ័យប្រវត្តិតាមអត្តលេខ ឬឈ្មោះ"
+            >
+              <Camera className="w-4 h-4 text-amber-200" />
+              <span>Upload រូបថតច្រើននាក់ (Batch)</span>
+            </button>
+
+            {(isDirector || isSecretary) ? (
+              <button
+                id="add-student-btn"
+                onClick={() => {
+                  setEditingStudent(null);
+                  setFormData(initialFormState);
+                  setIsAddModalOpen(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
+                title="ចុះឈ្មោះបង្កើតសិស្សថ្មីក្នុងប្រព័ន្ធ (ទម្រង់បុរាណ)"
+              >
+                <Plus className="w-4 h-4" />
+                <span>ចុះឈ្មោះទម្រង់ចាស់</span>
+              </button>
+            ) : isTeacher ? (
+              <button
+                id="pull-students-to-class-btn"
+                onClick={() => {
+                  setSelectedPullStudentIds([]);
+                  setPullSearchQuery('');
+                  setPullGradeFilter('all');
+                  setIsPullModalOpen(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-blue-300"
+                title={`ទាញសិស្សពីថ្នាក់ផ្សេង ឬសិស្សមិនទាន់មានថ្នាក់ ចូលមកថ្នាក់ទី ${teacherGrade}«${teacherSection}» របស់ខ្ញុំ`}
+              >
+                <UserCheck className="w-4 h-4" />
+                <span>📥 ទាញសិស្សចូលថ្នាក់ {teacherGrade}{teacherSection}</span>
+              </button>
+            ) : null}
           </div>
         </div>
+
+        {/* Role Privileges Banner for Teachers */}
+        {isTeacher && (
+          <div className="mt-4 p-3.5 bg-blue-50/90 border border-blue-200/90 rounded-xl flex items-center justify-between gap-3 text-xs text-blue-900">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+                <ShieldAlert className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="font-bold text-blue-950">
+                  សិទ្ធិរបស់លោកគ្រូ-អ្នកគ្រូ (បន្ទុកថ្នាក់ទី {teacherGrade}«${teacherSection}»)
+                </p>
+                <p className="text-blue-700 mt-0.5">
+                  លោកគ្រូ-អ្នកគ្រូមានសិទ្ធិ <span className="font-bold text-blue-950">កែសម្រួលប្រវត្តិរូបសិស្ស</span> និង <span className="font-bold text-blue-950">ទាញសិស្សចូលមកថ្នាក់របស់ខ្លួន</span> (ការបង្កើតសិស្សថ្មីជាសិទ្ធិផ្តាច់មុខរបស់នាយកសាលា)
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedPullStudentIds([]);
+                setPullSearchQuery('');
+                setPullGradeFilter('all');
+                setIsPullModalOpen(true);
+              }}
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg whitespace-nowrap shadow-xs active:scale-95 flex items-center gap-1.5 text-xs transition-colors"
+            >
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>ទាញសិស្សចូលថ្នាក់ខ្ញុំ</span>
+            </button>
+          </div>
+        )}
 
         {/* Quick Vulnerability Filter Chips */}
         <div className="flex items-center gap-2 mt-5 pt-4 border-t border-slate-100 overflow-x-auto pb-1 text-xs">
@@ -742,32 +1048,195 @@ export const StudentManagement: React.FC = () => {
             សិស្សត្រួតថ្នាក់
           </button>
         </div>
-      </div>
 
-      {/* Top Student Overview Summary Cards */}
-      <StudentSummaryCard
-        totalStudents={summaryStats.total}
-        allSchoolStudentsCount={summaryStats.allSchoolStudentsCount}
-        maleCount={summaryStats.maleCount}
-        femaleCount={summaryStats.femaleCount}
-        malePercent={summaryStats.malePercent}
-        femalePercent={summaryStats.femalePercent}
-        averageAttendanceRate={summaryStats.averageAttendanceRate}
-        permissionRate={summaryStats.permissionRate}
-        absentRate={summaryStats.absentRate}
-        activeCount={summaryStats.activeCount}
-        idPoorCount={summaryStats.idPoorCount}
-        scholarshipCount={summaryStats.scholarshipCount}
-        selectedGrade={selectedGrade}
-        selectedGender={selectedGender}
-        selectedVulnerability={selectedVulnerability}
-        onSelectGender={setSelectedGender}
-        onSelectGrade={setSelectedGrade}
-        onSelectVulnerability={setSelectedVulnerability}
-      />
+        {/* Early Warning & Academic Risk Notification Banner */}
+        <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-indigo-500/10 border border-amber-200/80">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 text-white flex items-center justify-center shadow-xs flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 font-moul">
+                    ប្រព័ន្ធជូនដំណឹង & តាមដានសិស្សប្រឈម (Early Warning Alerts)
+                  </h4>
+                  {atRiskCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-600 text-white animate-pulse">
+                      រកឃើញ {atRiskCount} នាក់
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-600 mt-0.5">
+                  ត្រួតពិនិត្យសិស្សដែលមានអវត្តមានលើសពី ៣ ថ្ងៃជាប់គ្នា ឬមានពិន្ទុមធ្យមភាគធ្លាក់ចុះធៀបនឹងខែមុន
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Risk Filter Buttons */}
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setSelectedRiskFilter('all')}
+                className={`px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                  selectedRiskFilter === 'all'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-white/80 text-slate-700 hover:bg-white border border-slate-200'
+                }`}
+              >
+                ទាំងអស់ ({students.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedRiskFilter('at_risk')}
+                className={`px-2.5 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  selectedRiskFilter === 'at_risk'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100'
+                }`}
+              >
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>សិស្សប្រឈមសរុប ({atRiskCount})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedRiskFilter('consecutive_absent')}
+                className={`px-2.5 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  selectedRiskFilter === 'consecutive_absent'
+                    ? 'bg-red-700 text-white shadow-xs'
+                    : 'bg-red-50 text-red-800 border border-red-200 hover:bg-red-100'
+                }`}
+              >
+                <span>🚫 អវត្តមាន ៣+ ថ្ងៃ ({absenceAlertCount})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedRiskFilter('score_drop')}
+                className={`px-2.5 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  selectedRiskFilter === 'score_drop'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
+                }`}
+              >
+                <span>📉 ពិន្ទុធ្លាក់ចុះ ({scoreDropAlertCount})</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Filter and Table Container */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        {/* Academic Year Selection & History Archive Control Bar */}
+        <div className="p-3.5 sm:p-4 bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3.5 border-b border-indigo-800/80">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-400/40 flex items-center justify-center text-blue-300 flex-shrink-0 shadow-inner">
+                <CalendarDays className="w-5 h-5 text-blue-300" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs sm:text-sm font-bold text-white font-moul">ឆ្នាំសិក្សា & បណ្ណសារប្រវត្តិសិស្ស</h4>
+                  {selectedAcademicYearFilter === 'all' ? (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/30 text-blue-200 border border-blue-400/30">
+                      📁 គ្រប់ជំនាន់ទាំងអស់
+                    </span>
+                  ) : selectedAcademicYearFilter === schoolProfile.academicYear ? (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>★ ឆ្នាំសិក្សាសកម្ម</span>
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/30 text-amber-200 border border-amber-400/40 flex items-center gap-1">
+                      <History className="w-3 h-3 text-amber-300" />
+                      <span>បណ្ណសារប្រវត្តិ ({selectedAcademicYearFilter})</span>
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  ត្រួតពិនិត្យ និងស្វែងរកសិស្សានុសិស្សតាមឆ្នាំសិក្សាពី ២០១៦-២០១៧ ដល់ ២០៥០
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            {/* Quick Navigation Stepper */}
+            <div className="flex items-center bg-slate-800/90 rounded-xl p-1 border border-slate-700 shadow-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  const currentIndex = academicYears.indexOf(selectedAcademicYearFilter);
+                  if (currentIndex > 0) {
+                    setSelectedAcademicYearFilter(academicYears[currentIndex - 1]);
+                  }
+                }}
+                disabled={selectedAcademicYearFilter === 'all' || selectedAcademicYearFilter === academicYears[0]}
+                className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
+                title="ថយទៅឆ្នាំសិក្សាមុន"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <select
+                id="student-academic-year-selector"
+                value={selectedAcademicYearFilter}
+                onChange={(e) => setSelectedAcademicYearFilter(e.target.value)}
+                className="bg-slate-900 text-white font-bold text-xs px-3 py-1.5 rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
+              >
+                <option value="all">📁 គ្រប់ឆ្នាំសិក្សាទាំងអស់ (All Years)</option>
+                {academicYears.map((yr) => {
+                  const isCurrent = yr === schoolProfile.academicYear;
+                  return (
+                    <option key={yr} value={yr}>
+                      {yr} {isCurrent ? '★ (ឆ្នាំសកម្ម)' : ''}
+                    </option>
+                  );
+                })}
+              </select>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const currentIndex = academicYears.indexOf(selectedAcademicYearFilter);
+                  if (currentIndex !== -1 && currentIndex < academicYears.length - 1) {
+                    setSelectedAcademicYearFilter(academicYears[currentIndex + 1]);
+                  }
+                }}
+                disabled={selectedAcademicYearFilter === 'all' || selectedAcademicYearFilter === academicYears[academicYears.length - 1]}
+                className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
+                title="ទៅឆ្នាំសិក្សាបន្ទាប់"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick Year Shortcuts */}
+            <button
+              type="button"
+              onClick={() => setSelectedAcademicYearFilter(schoolProfile.academicYear)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                selectedAcademicYearFilter === schoolProfile.academicYear
+                  ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-400/40'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+              }`}
+            >
+              ឆ្នាំបច្ចុប្បន្ន
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedAcademicYearFilter('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                selectedAcademicYearFilter === 'all'
+                  ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-400/40'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+              }`}
+            >
+              គ្រប់ឆ្នាំ ({accessibleStudents.length})
+            </button>
+          </div>
+        </div>
+
         {/* Search & Filters Toolbar */}
         <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row gap-3 items-center justify-between">
           <div className="relative flex-1 w-full max-w-md">
@@ -797,19 +1266,26 @@ export const StudentManagement: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2.5 w-full sm:w-auto">
-            <select
-              value={selectedGrade}
-              onChange={e => setSelectedGrade(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-              className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">គ្រប់កម្រិតថ្នាក់</option>
-              <option value="1">ថ្នាក់ទី១</option>
-              <option value="2">ថ្នាក់ទី២</option>
-              <option value="3">ថ្នាក់ទី៣</option>
-              <option value="4">ថ្នាក់ទី៤</option>
-              <option value="5">ថ្នាក់ទី៥</option>
-              <option value="6">ថ្នាក់ទី៦</option>
-            </select>
+            {isTeacher ? (
+              <div className="px-3.5 py-2 bg-blue-50 border border-blue-200 text-blue-900 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                <span>ថ្នាក់ទី {teacherGrade}«{teacherSection}»</span>
+              </div>
+            ) : (
+              <select
+                value={selectedGrade}
+                onChange={e => setSelectedGrade(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">គ្រប់កម្រិតថ្នាក់</option>
+                <option value="1">ថ្នាក់ទី១</option>
+                <option value="2">ថ្នាក់ទី២</option>
+                <option value="3">ថ្នាក់ទី៣</option>
+                <option value="4">ថ្នាក់ទី៤</option>
+                <option value="5">ថ្នាក់ទី៥</option>
+                <option value="6">ថ្នាក់ទី៦</option>
+              </select>
+            )}
 
             <select
               value={selectedGender}
@@ -820,24 +1296,6 @@ export const StudentManagement: React.FC = () => {
               <option value="M">ប្រុស</option>
               <option value="F">ស្រី</option>
             </select>
-
-            <button
-              onClick={exportStudentsToCSV}
-              className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 hover:text-emerald-800 border border-emerald-200 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-xs active:scale-95 cursor-pointer whitespace-nowrap"
-              title={`ទាញយកបញ្ជីសិស្សដែលបានចម្រាញ់ (${filteredStudents.length} នាក់) ជាឯកសារ CSV`}
-            >
-              <Download className="w-3.5 h-3.5 text-emerald-600" />
-              <span>CSV ({filteredStudents.length})</span>
-            </button>
-
-            <button
-              onClick={() => setIsPrintPreviewModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 border border-indigo-200 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-xs active:scale-95 cursor-pointer whitespace-nowrap"
-              title="បើកផ្ទាំងផ្ទៀងផ្ទាត់ និងជ្រើសរើសជួរឈរមុនបោះពុម្ព (Print Preview Modal)"
-            >
-              <Printer className="w-3.5 h-3.5 text-indigo-600" />
-              <span>មើលទម្រង់បោះពុម្ព A4 ({filteredStudents.length})</span>
-            </button>
           </div>
         </div>
 
@@ -869,216 +1327,615 @@ export const StudentManagement: React.FC = () => {
             </div>
           </div>
 
-          <table className="w-full text-left text-xs sm:text-sm">
-            <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
-              <tr>
-                <th className="py-3.5 px-4">អត្តលេខ & ឈ្មោះសិស្ស</th>
-                <th className="py-3.5 px-4 text-center">ភេទ</th>
-                <th className="py-3.5 px-4">ថ្ងៃកំណើត</th>
-                <th className="py-3.5 px-4">ថ្នាក់/បន្ទប់</th>
-                <th className="py-3.5 px-4">ស្ថានភាព & ជីវភាព</th>
-                <th className="py-3.5 px-4">វត្តមាន ៣០ ថ្ងៃ (Sparkline)</th>
-                <th className="py-3.5 px-4">អាណាព្យាបាល & ទំនាក់ទំនង</th>
-                <th className="py-3.5 px-4">សុខភាព (BMI)</th>
-                <th className="py-3.5 px-4 text-center">ផ្លាកសញ្ញា & ពិន្ទុ</th>
-                <th className="py-3.5 px-4 text-center">សកម្មភាព</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredStudents.length > 0 ? (
-                filteredStudents.map(student => {
-                  const studentBadges = getStudentBadges(student.id);
-                  const totalPoints = getStudentTotalPoints(student.id);
+          {/* Floating Batch Action Bar */}
+          {selectedStudentIds.length > 0 && (
+            <div className="no-print p-3 sm:p-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white rounded-2xl shadow-lg border border-slate-700 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs font-bold">
+                  បានជ្រើសរើសសិស្សចំនួន <strong className="text-blue-300 font-mono text-sm px-1.5 py-0.5 bg-white/10 rounded">{selectedStudentIds.length}</strong> នាក់
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setIsMultiPdfModalOpen(true)}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer ring-2 ring-blue-400/40"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>បង្កើតឯកសារ PDF សង្ខេបពិន្ទុ & ប្រវត្តិរូប ({selectedStudentIds.length} ទំព័រ A4)</span>
+                </button>
+                <button
+                  onClick={() => setSelectedStudentIds(filteredStudents.map(s => s.id))}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-xl transition-colors"
+                >
+                  ជ្រើសរើសទាំងអស់ ({filteredStudents.length})
+                </button>
+                <button
+                  onClick={() => setSelectedStudentIds([])}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-200 text-xs font-medium rounded-xl transition-colors"
+                >
+                  លុបការជ្រើសរើស
+                </button>
+              </div>
+            </div>
+          )}
 
-                  return (
-                    <tr key={student.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={student.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'}
-                            alt={student.nameKhmer}
-                            referrerPolicy="no-referrer"
-                            className="w-9 h-9 rounded-full object-cover border border-slate-200 flex-shrink-0"
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+                <tr>
+                  <th className="py-3.5 px-3 text-center no-print w-10">
+                    <input
+                      type="checkbox"
+                      checked={filteredStudents.length > 0 && selectedStudentIds.length === filteredStudents.length}
+                      onChange={() => {
+                        if (selectedStudentIds.length === filteredStudents.length && filteredStudents.length > 0) {
+                          setSelectedStudentIds([]);
+                        } else {
+                          setSelectedStudentIds(filteredStudents.map(s => s.id));
+                        }
+                      }}
+                      className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                      title="ជ្រើសរើសទាំងអស់"
+                    />
+                  </th>
+                  <th className="py-3.5 px-4">អត្តលេខ & ឈ្មោះសិស្ស</th>
+                  <th className="py-3.5 px-4 text-center">ភេទ</th>
+                  <th className="py-3.5 px-4">ថ្ងៃកំណើត</th>
+                  <th className="py-3.5 px-4">ថ្នាក់/បន្ទប់</th>
+                  <th className="py-3.5 px-4">ស្ថានភាព & ជីវភាព</th>
+                  <th className="py-3.5 px-4">អាណាព្យាបាល & ទំនាក់ទំនង</th>
+                  <th className="py-3.5 px-4">សុខភាព (BMI)</th>
+                  <th className="py-3.5 px-4 text-center">ផ្លាកសញ្ញា & ពិន្ទុ</th>
+                  <th className="py-3.5 px-4 text-center no-print">សកម្មភាព</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredStudents.length > 0 ? (
+                  filteredStudents.map(student => {
+                    const studentBadges = getStudentBadges(student.id);
+                    const totalPoints = getStudentTotalPoints(student.id);
+                    const isSelected = selectedStudentIds.includes(student.id);
+                    const riskAlert = studentAlertsMap.get(student.id);
+
+                    return (
+                      <tr
+                        key={student.id}
+                        className={`hover:bg-slate-50/80 transition-colors ${
+                          isSelected ? 'bg-blue-50/50' : ''
+                        }`}
+                      >
+                        <td className="py-3 px-3 text-center no-print" onClick={e => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              setSelectedStudentIds(prev =>
+                                prev.includes(student.id)
+                                  ? prev.filter(id => id !== student.id)
+                                  : [...prev, student.id]
+                              );
+                            }}
+                            className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
                           />
-                          <div>
-                            <div className="font-bold text-slate-900">{student.nameKhmer}</div>
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-                              {student.nameLatin && <span className="font-times">{student.nameLatin}</span>}
-                              <span>•</span>
-                              <button
-                                type="button"
-                                onClick={() => setSelectedStudentForQR(student)}
-                                className="inline-flex items-center gap-1 font-times text-blue-600 hover:text-indigo-700 font-semibold hover:underline cursor-pointer group"
-                                title="មើល និងបោះពុម្ព QR Code សិស្ស"
-                              >
-                                <span>{student.code}</span>
-                                <QrCode className="w-3 h-3 text-indigo-500 opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-transform" />
-                              </button>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={student.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'}
+                              alt={student.nameKhmer}
+                              referrerPolicy="no-referrer"
+                              className="w-9 h-9 rounded-full object-cover border border-slate-200 flex-shrink-0"
+                            />
+                            <div>
+                              <div className="font-bold text-slate-900">{student.nameKhmer}</div>
+                              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+                                {student.nameLatin && <span className="font-times">{student.nameLatin}</span>}
+                                <span>•</span>
+                                <span className="font-times text-blue-600 font-semibold">{student.code}</span>
+                                <span>•</span>
+                                {isStudentRegisteredInAccounts(student) ? (
+                                  <span className="inline-flex items-center text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md">
+                                    ✓ មានគណនី
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-md">
+                                    ✕ គ្មានគណនី
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Risk Alert Badges */}
+                              {riskAlert && (riskAlert.hasConsecutiveAbsenceAlert || riskAlert.hasScoreDropAlert) && (
+                                <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                  {riskAlert.hasConsecutiveAbsenceAlert && (
+                                    <span
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200 text-[10px] font-bold"
+                                      title={`អវត្តមាន ${riskAlert.consecutiveAbsenceCount} ថ្ងៃជាប់គ្នា៖ ${riskAlert.consecutiveAbsenceDates.join(', ')}`}
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
+                                      <span>🚫 អវត្តមាន {riskAlert.consecutiveAbsenceCount} ថ្ងៃជាប់គ្នា</span>
+                                    </span>
+                                  )}
+                                  {riskAlert.hasScoreDropAlert && (
+                                    <span
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-bold"
+                                      title={`ពិន្ទុធ្លាក់ចុះ -${riskAlert.scoreDropAmount} (ពី ${riskAlert.previousPeriodScore?.period} ${riskAlert.previousPeriodScore?.average} មក ${riskAlert.latestPeriodScore?.period} ${riskAlert.latestPeriodScore?.average})`}
+                                    >
+                                      <span>📉 ធ្លាក់ពិន្ទុ (-{riskAlert.scoreDropAmount})</span>
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                            student.gender === 'F'
-                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                              : 'bg-blue-50 text-blue-700 border border-blue-200'
-                          }`}
-                        >
-                          {student.gender === 'F' ? 'ស្រី' : 'ប្រុស'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600 whitespace-nowrap font-times">
-                        {student.dob}
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <span className="font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md text-xs">
-                          ថ្នាក់ទី {student.grade}{student.section}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex flex-wrap gap-1 items-center">
-                          {student.livingCondition === 'ក្រ១' && (
-                            <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">ក្រ១</span>
-                          )}
-                          {student.livingCondition === 'ក្រ២' && (
-                            <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">ក្រ២</span>
-                          )}
-                          {student.scholarship && student.scholarship !== 'មិនមាន' && (
-                            <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 text-[10px] font-bold">អាហារូបករណ៍</span>
-                          )}
-                          {student.orphanStatus && student.orphanStatus !== 'មិនកំព្រា' && (
-                            <span className="px-1.5 py-0.5 rounded bg-orange-100 text-orange-800 text-[10px] font-bold">{student.orphanStatus}</span>
-                          )}
-                          {student.academicHistory === 'ត្រួតថ្នាក់' && (
-                            <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 text-[10px] font-bold">ត្រួតថ្នាក់</span>
-                          )}
-                          {(!student.livingCondition || student.livingCondition === 'ទូទៅ') && (!student.scholarship || student.scholarship === 'មិនមាន') && (
-                            <span className="text-[11px] text-slate-500">ទូទៅ</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <StudentAttendanceSparkline
-                          student={student}
-                          attendanceRecords={attendanceRecords}
-                          daysCount={30}
-                          width={110}
-                          height={28}
-                        />
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-slate-800">{student.guardianName || student.fatherName || student.motherName || 'អាណាព្យាបាល'}</div>
-                        <div className="text-[11px] text-slate-500 flex items-center gap-1 font-times">
-                          <Phone className="w-3 h-3 text-slate-400" />
-                          {student.guardianPhone || student.phone || 'N/A'}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
+                        </td>
+                        <td className="py-3 px-4 text-center whitespace-nowrap">
                           <span
-                            className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
-                              student.health.nutritionStatus === 'normal'
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                              student.gender === 'F'
+                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                : 'bg-blue-50 text-blue-700 border border-blue-200'
                             }`}
                           >
-                            BMI: {student.health.bmi} ({student.health.nutritionStatus === 'normal' ? 'ធម្មតា' : 'ស្គម'})
+                            {student.gender === 'F' ? 'ស្រី' : 'ប្រុស'}
                           </span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedStudentForBadgeShowcase(student)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50/90 hover:bg-amber-100 border border-amber-200 text-slate-800 transition-all group cursor-pointer active:scale-95 shadow-2xs"
-                          title="ចុចដើម្បីមើលលិខិតសរសើរ និងផ្លាកសញ្ញាទាំងអស់"
-                        >
-                          <div className="flex -space-x-1 items-center">
-                            {studentBadges.slice(0, 3).map((b, idx) => (
-                              <div key={idx} className="scale-75 origin-center -mr-1">
-                                <BadgeIcon iconName={b.badge.iconName} tier={b.badge.tier} size="sm" showGlow={false} />
-                              </div>
-                            ))}
-                            {studentBadges.length === 0 && (
-                              <Award className="w-3.5 h-3.5 text-amber-500" />
+                        </td>
+                        <td className="py-3 px-4 text-slate-600 whitespace-nowrap font-times">
+                          {student.dob}
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <div className="flex flex-col gap-1 items-start">
+                            <span className="font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md text-xs">
+                              ថ្នាក់ទី {student.grade}{student.section}
+                            </span>
+                            {(selectedAcademicYearFilter === 'all' || student.academicYear !== schoolProfile.academicYear) && (
+                              <span className="text-[10px] font-medium text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded">
+                                {student.academicYear || schoolProfile.academicYear}
+                              </span>
                             )}
                           </div>
-                          <span className="font-bold text-xs text-amber-950">
-                            {studentBadges.length > 0 ? `${studentBadges.length}` : '0'}
-                          </span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-200/80 text-amber-950 font-times">
-                            {totalPoints} pts
-                          </span>
-                        </button>
-                      </td>
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-1">
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex flex-wrap gap-1 items-center">
+                            {student.livingCondition === 'ក្រ១' && (
+                              <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">ក្រ១</span>
+                            )}
+                            {student.livingCondition === 'ក្រ២' && (
+                              <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">ក្រ២</span>
+                            )}
+                            {student.scholarship && student.scholarship !== 'មិនមាន' && (
+                              <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 text-[10px] font-bold">អាហារូបករណ៍</span>
+                            )}
+                            {student.orphanStatus && student.orphanStatus !== 'មិនកំព្រា' && (
+                              <span className="px-1.5 py-0.5 rounded bg-orange-100 text-orange-800 text-[10px] font-bold">{student.orphanStatus}</span>
+                            )}
+                            {student.academicHistory === 'ត្រួតថ្នាក់' && (
+                              <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 text-[10px] font-bold">ត្រួតថ្នាក់</span>
+                            )}
+                            {(!student.livingCondition || student.livingCondition === 'ទូទៅ') && (!student.scholarship || student.scholarship === 'មិនមាន') && (
+                              <span className="text-[11px] text-slate-500">ទូទៅ</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="font-medium text-slate-800">{student.guardianName || student.fatherName || student.motherName || 'អាណាព្យាបាល'}</div>
+                          <div className="text-[11px] text-slate-500 flex items-center gap-1 font-times">
+                            <Phone className="w-3 h-3 text-slate-400" />
+                            {student.guardianPhone || student.phone || 'N/A'}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                                student.health.nutritionStatus === 'normal'
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+                              }`}
+                            >
+                              BMI: {student.health.bmi} ({student.health.nutritionStatus === 'normal' ? 'ធម្មតា' : 'ស្គម'})
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-center whitespace-nowrap">
                           <button
-                            id={`qr-student-${student.id}`}
-                            onClick={() => setSelectedStudentForQR(student)}
-                            title="មើល និងបោះពុម្ពប័ណ្ណ QR Code សិស្ស (Student QR Pass)"
-                            className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                            type="button"
+                            onClick={() => setSelectedStudentForBadgeShowcase(student)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50/90 hover:bg-amber-100 border border-amber-200 text-slate-800 transition-all group cursor-pointer active:scale-95 shadow-2xs"
+                            title="ចុចដើម្បីមើលលិខិតសរសើរ និងផ្លាកសញ្ញាទាំងអស់"
                           >
-                            <QrCode className="w-4 h-4 text-indigo-600" />
+                            <div className="flex -space-x-1 items-center">
+                              {studentBadges.slice(0, 3).map((b, idx) => (
+                                <div key={idx} className="scale-75 origin-center -mr-1">
+                                  <BadgeIcon iconName={b.badge.iconName} tier={b.badge.tier} size="sm" showGlow={false} />
+                                </div>
+                              ))}
+                              {studentBadges.length === 0 && (
+                                <Award className="w-3.5 h-3.5 text-amber-500" />
+                              )}
+                            </div>
+                            <span className="font-bold text-xs text-amber-950">
+                              {studentBadges.length > 0 ? `${studentBadges.length}` : '0'}
+                            </span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-200/80 text-amber-950 font-times">
+                              {totalPoints} pts
+                            </span>
                           </button>
+                        </td>
+                        <td className="py-3 px-4 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1">
+                            {canAccessStudentDashboard(student).allowed && (
+                              <button
+                                id={`analytics-student-${student.id}`}
+                                onClick={() => {
+                                  setSelectedStudentForAnalyticsId(student.id);
+                                  setViewMode('analytics');
+                                }}
+                                title="មើលផ្ទាំងវិភាគសមិទ្ធផល & ក្រាហ្វិកពិន្ទុ"
+                                className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <TrendingUp className="w-4 h-4 text-indigo-600" />
+                              </button>
+                            )}
+                            <button
+                              id={`award-badge-${student.id}`}
+                              onClick={() => setSelectedStudentForAwardBadge(student)}
+                              title="ប្រគល់ផ្លាកសញ្ញា ឬមេដាយ"
+                              className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                            >
+                              <Award className="w-4 h-4" />
+                            </button>
+                            {isTeacher && (student.grade !== teacherGrade || student.section !== teacherSection) && (
+                              <button
+                                id={`pull-row-student-${student.id}`}
+                                onClick={() => {
+                                  pullStudentsToClass([student.id], teacherGrade, teacherSection);
+                                }}
+                                title={`ទាញសិស្ស «${student.nameKhmer}» ចូលថ្នាក់ទី ${teacherGrade}«${teacherSection}» របស់ខ្ញុំ`}
+                                className="flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-bold rounded-lg border border-blue-200 transition-colors whitespace-nowrap"
+                              >
+                                <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                                <span>ទាញចូលថ្នាក់ {teacherGrade}{teacherSection}</span>
+                              </button>
+                            )}
+                            <button
+                              id={`print-student-${student.id}`}
+                              onClick={() => setSelectedStudentForPdfPrint(student)}
+                              title="បោះពុម្ពប្រវត្តិរូបសិស្សជាទម្រង់ A4 PDF ស្តង់ដារ"
+                              className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Printer className="w-4 h-4" />
+                            </button>
+                            <button
+                              id={`view-student-${student.id}`}
+                              onClick={() => setSelectedStudentForView(student)}
+                              title="មើលប្រវត្តិរូបលម្អិត"
+                              className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              id={`edit-student-${student.id}`}
+                              onClick={() => handleEditClick(student)}
+                              title="កែប្រែព័ត៌មាន (លោកគ្រូ-អ្នកគ្រូ និងនាយកអាចកែសម្រួលបាន)"
+                              className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                const newPass = prompt(`សូមបញ្ចូលពាក្យសម្ងាត់ថ្មីសម្រាប់សិស្ស «${student.nameKhmer}» (អត្តលេខ ${student.code}):`, student.code);
+                                if (newPass) {
+                                  const res = verifyAndResetStudentPassword(student.nameKhmer, student.code, newPass);
+                                  if (res.success) {
+                                    showToast('ពាក្យសម្ងាត់ត្រូវបានផ្លាស់ប្តូរដោយជោគជ័យ!', 'success');
+                                  } else {
+                                    showToast(res.message, 'error');
+                                  }
+                                }
+                              }}
+                              title="ប្តូរពាក្យសម្ងាត់សិស្ស"
+                              className="p-1.5 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                            >
+                              <Key className="w-4 h-4" />
+                            </button>
+                            {(isDirector || isSecretary) && (
+                              <button
+                                id={`delete-student-${student.id}`}
+                                onClick={() => {
+                                  setStudentToDelete(student);
+                                  setIsSingleDeleteDialogOpen(true);
+                                }}
+                                title="លុបទិន្នន័យ (មានការបញ្ជាក់សុវត្ថិភាព)"
+                                className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={9} className="text-center py-16 px-4">
+                      <div className="max-w-md mx-auto flex flex-col items-center justify-center text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-3.5 shadow-xs">
+                          <GraduationCap className="w-8 h-8 text-blue-600" />
+                        </div>
+                        <h4 className="text-base font-bold text-slate-800 mb-1">
+                          {students.length === 0 ? 'មិនទាន់មានទិន្នន័យសិស្សក្នុងប្រព័ន្ធនៅឡើយទេ' : 'មិនមានទិន្នន័យសិស្សត្រូវនឹងលក្ខខណ្ឌស្វែងរកនេះទេ'}
+                        </h4>
+                        <p className="text-xs text-slate-500 max-w-sm mb-4 leading-relaxed">
+                          {students.length === 0
+                            ? 'លោកអ្នកអាចចុះឈ្មោះសិស្សថ្មីម្តងម្នាក់តាមស្តង់ដារក្រសួង MoEYS ឬនាំចូលទិន្នន័យសិស្សពី Excel/CSV'
+                            : 'សូមសាកល្បងផ្លាស់ប្តូរពាក្យគន្លឹះស្វែងរក ឬជម្រើសចម្រោះកម្រិតថ្នាក់'}
+                        </p>
+                        {students.length === 0 && isDirector && (
                           <button
-                            id={`award-badge-${student.id}`}
-                            onClick={() => setSelectedStudentForAwardBadge(student)}
-                            title="ប្រគល់ផ្លាកសញ្ញា ឬមេដាយ"
-                            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                          >
-                            <Award className="w-4 h-4" />
-                          </button>
-                          <button
-                            id={`view-student-${student.id}`}
-                            onClick={() => setSelectedStudentForView(student)}
-                            title="មើលប្រវត្តិរូបលម្អិត"
-                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            id={`edit-student-${student.id}`}
-                            onClick={() => handleEditClick(student)}
-                            title="កែប្រែព័ត៌មាន"
-                            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            id={`delete-student-${student.id}`}
+                            type="button"
                             onClick={() => {
-                              if (window.confirm(`តើអ្នកពិតជាចង់លុបសិស្ស «${student.nameKhmer}» ឬទេ?`)) {
-                                deleteStudent(student.id);
-                              }
+                              setEditingStudent(null);
+                              setFormData(initialFormState);
+                              setIsAddModalOpen(true);
                             }}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
+                          >
+                            <UserPlus className="w-4 h-4" />
+                            <span>+ ចុះឈ្មោះសិស្សដំបូង (MoEYS)</span>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View (md:hidden) - Display each student as a touch-friendly, legible card */}
+          <div className="md:hidden divide-y divide-slate-200">
+            {filteredStudents.length > 0 ? (
+              filteredStudents.map((student) => {
+                const studentBadges = getStudentBadges(student.id);
+                const totalPoints = getStudentTotalPoints(student.id);
+                const isSelected = selectedStudentIds.includes(student.id);
+                const riskAlert = studentAlertsMap.get(student.id);
+
+                return (
+                  <div
+                    key={`mobile-student-${student.id}`}
+                    className={`p-4 transition-colors ${isSelected ? 'bg-blue-50/70' : 'bg-white hover:bg-slate-50/80'}`}
+                  >
+                    {/* Top Row: Checkbox, Avatar, Name, Code, Grade & Gender */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="pt-1 no-print">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              setSelectedStudentIds(prev =>
+                                prev.includes(student.id)
+                                  ? prev.filter(id => id !== student.id)
+                                  : [...prev, student.id]
+                              );
+                            }}
+                            className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </div>
+                        <img
+                          src={student.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'}
+                          alt={student.nameKhmer}
+                          referrerPolicy="no-referrer"
+                          className="w-12 h-12 rounded-full object-cover border-2 border-slate-200 shadow-2xs flex-shrink-0"
+                        />
+                        <div>
+                          <div className="font-bold text-slate-950 text-sm">{student.nameKhmer}</div>
+                          {student.nameLatin && <div className="text-xs font-times text-slate-600 font-medium">{student.nameLatin}</div>}
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            <span className="font-times text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md text-[11px] font-bold">
+                              {student.code}
+                            </span>
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                student.gender === 'F'
+                                  ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                  : 'bg-blue-50 text-blue-700 border border-blue-200'
+                              }`}
+                            >
+                              {student.gender === 'F' ? 'ស្រី' : 'ប្រុស'}
+                            </span>
+                            <span className="font-bold text-slate-800 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md text-[10px]">
+                              ថ្នាក់ទី {student.grade}{student.section}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Account Status Pill */}
+                      <div>
+                        {isStudentRegisteredInAccounts(student) ? (
+                          <span className="inline-flex items-center text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                            ✓ មានគណនី
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                            ✕ គ្មានគណនី
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Risk Alerts */}
+                    {riskAlert && (riskAlert.hasConsecutiveAbsenceAlert || riskAlert.hasScoreDropAlert) && (
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100">
+                        {riskAlert.hasConsecutiveAbsenceAlert && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-200 text-[10px] font-bold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
+                            <span>🚫 អវត្តមាន {riskAlert.consecutiveAbsenceCount} ថ្ងៃជាប់គ្នា</span>
+                          </span>
+                        )}
+                        {riskAlert.hasScoreDropAlert && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-bold">
+                            <span>📉 ធ្លាក់ពិន្ទុ (-{riskAlert.scoreDropAmount})</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Metadata Details in 2-column Grid */}
+                    <div className="grid grid-cols-2 gap-2 mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-500 block font-medium">ថ្ងៃខែឆ្នាំកំណើត</span>
+                        <span className="font-times font-semibold text-slate-800">{student.dob}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 block font-medium">សុខភាព (BMI)</span>
+                        <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                          student.health.nutritionStatus === 'normal'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
+                          BMI {student.health.bmi} ({student.health.nutritionStatus === 'normal' ? 'ធម្មតា' : 'ស្គម'})
+                        </span>
+                      </div>
+                      <div className="col-span-2 flex items-center justify-between pt-1.5 border-t border-slate-200/60">
+                        <div>
+                          <span className="text-[10px] text-slate-500 block font-medium">អាណាព្យាបាល</span>
+                          <span className="font-medium text-slate-800">
+                            {student.guardianName || student.fatherName || student.motherName || 'អាណាព្យាបាល'}
+                          </span>
+                        </div>
+                        {(student.guardianPhone || student.phone) && (
+                          <a
+                            href={`tel:${student.guardianPhone || student.phone}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-bold border border-blue-200"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                            <span className="font-times">{student.guardianPhone || student.phone}</span>
+                          </a>
+                        )}
+                      </div>
+                      {(student.livingCondition || student.scholarship || student.orphanStatus || student.academicHistory === 'ត្រួតថ្នាក់') && (
+                        <div className="col-span-2 flex flex-wrap gap-1 items-center pt-1 border-t border-slate-200/60">
+                          <span className="text-[10px] text-slate-500 mr-1">ស្ថានភាព៖</span>
+                          {student.livingCondition === 'ក្រ១' && <span className="px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">ក្រ១</span>}
+                          {student.livingCondition === 'ក្រ២' && <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">ក្រ២</span>}
+                          {student.scholarship && student.scholarship !== 'មិនមាន' && <span className="px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 text-[10px] font-bold">អាហារូបករណ៍</span>}
+                          {student.orphanStatus && student.orphanStatus !== 'មិនកំព្រា' && <span className="px-1.5 py-0.2 rounded bg-orange-100 text-orange-800 text-[10px] font-bold">{student.orphanStatus}</span>}
+                          {student.academicHistory === 'ត្រួតថ្នាក់' && <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-800 text-[10px] font-bold">ត្រួតថ្នាក់</span>}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bottom Row: Badges & Action Buttons */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-2.5 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStudentForBadgeShowcase(student)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-slate-800 transition-all active:scale-95"
+                      >
+                        <Award className="w-3.5 h-3.5 text-amber-500" />
+                        <span className="text-xs font-bold text-amber-950">
+                          {studentBadges.length} ផ្លាកសញ្ញា
+                        </span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-200/80 text-amber-950 font-times">
+                          {totalPoints} pts
+                        </span>
+                      </button>
+
+                      {/* Touch-Friendly Action Buttons */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setSelectedStudentForView(student)}
+                          className="p-2 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-200 transition-colors"
+                          title="មើលប្រវត្តិរូបលម្អិត"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditClick(student)}
+                          className="p-2 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl border border-amber-200 transition-colors"
+                          title="កែប្រែព័ត៌មាន"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setSelectedStudentForPdfPrint(student)}
+                          className="p-2 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl border border-indigo-200 transition-colors"
+                          title="បោះពុម្ព A4 PDF"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </button>
+                        {canAccessStudentDashboard(student).allowed && (
+                          <button
+                            onClick={() => {
+                              setSelectedStudentForAnalyticsId(student.id);
+                              setViewMode('analytics');
+                            }}
+                            className="p-2 text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-xl border border-purple-200 transition-colors"
+                            title="ក្រាហ្វិកពិន្ទុ"
+                          >
+                            <TrendingUp className="w-4 h-4" />
+                          </button>
+                        )}
+                        {(isDirector || isSecretary) && (
+                          <button
+                            onClick={() => {
+                              setStudentToDelete(student);
+                              setIsSingleDeleteDialogOpen(true);
+                            }}
+                            className="p-2 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition-colors"
                             title="លុប"
-                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={9} className="text-center py-10 text-slate-500">
-                    មិនមានទិន្នន័យសិស្សត្រូវនឹងលក្ខខណ្ឌស្វែងរកនេះទេ
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="py-12 px-4 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mx-auto mb-2 shadow-xs">
+                  <GraduationCap className="w-6 h-6 text-blue-600" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-800 mb-1">
+                  {students.length === 0 ? 'មិនទាន់មានទិន្នន័យសិស្សក្នុងប្រព័ន្ធនៅឡើយទេ' : 'មិនមានទិន្នន័យសិស្សត្រូវនឹងលក្ខខណ្ឌស្វែងរកនេះទេ'}
+                </h4>
+                <p className="text-xs text-slate-500 max-w-sm mb-3">
+                  {students.length === 0
+                    ? 'លោកអ្នកអាចចុះឈ្មោះសិស្សថ្មីម្តងម្នាក់តាមស្តង់ដារក្រសួង MoEYS'
+                    : 'សូមសាកល្បងផ្លាស់ប្តូរពាក្យគន្លឹះស្វែងរក'}
+                </p>
+                {students.length === 0 && isDirector && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingStudent(null);
+                      setFormData(initialFormState);
+                      setIsAddModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>+ ចុះឈ្មោះសិស្សដំបូង</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Official Signatures Footer on Print */}
           <div className="hidden print:flex justify-between items-end mt-8 text-xs text-slate-800 pt-6">
             <div className="text-center">
               <p>បានឃើញ និងឯកភាព</p>
-              <strong className="block mt-1 font-moul text-slate-900">នាយិកាសាលា</strong>
+              <strong className="block mt-1 font-moul text-slate-900">នាយកសាលា</strong>
               <div className="h-16" />
               <p className="font-bold">{schoolProfile.principalName}</p>
             </div>
@@ -1087,7 +1944,7 @@ export const StudentManagement: React.FC = () => {
               <p>{schoolProfile.district}, ថ្ងៃទី {new Date().getDate()} ខែ {new Date().getMonth() + 1} ឆ្នាំ២០២៤</p>
               <strong className="block mt-1 font-moul text-slate-900">អ្នករៀបចំបញ្ជី</strong>
               <div className="h-16" />
-              <p className="font-bold">អ្នកគ្រូ ពេជ្រ ធីតា</p>
+              <p className="font-bold">{currentUser?.nameKhmer || currentUser?.name || 'លេខាធិការដ្ឋាន'}</p>
             </div>
           </div>
         </div>
@@ -1118,24 +1975,19 @@ export const StudentManagement: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  type="button"
-                  onClick={() => setSelectedStudentForQR(selectedStudentForView)}
-                  className="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-amber-300 hover:text-amber-200 border border-white/20 transition-all flex items-center gap-1.5 text-xs font-bold shadow-xs cursor-pointer active:scale-95"
-                  title="បើកប័ណ្ណសម្គាល់ QR Code សិស្ស"
+                  id="btn-print-student-profile-header"
+                  onClick={() => setSelectedStudentForPdfPrint(selectedStudentForView)}
+                  className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer hover:scale-102 active:scale-98"
+                  title="បោះពុម្ពប្រវត្តិរូបសិស្សជាទម្រង់ A4 PDF ស្តង់ដារ (Print Full Student Profile)"
                 >
-                  <QrCode className="w-4 h-4 text-amber-300" />
-                  <span>កាត QR Code</span>
+                  <Printer className="w-4 h-4 text-white" />
+                  <span>បោះពុម្ពប្រវត្តិរូប (Print Profile)</span>
                 </button>
                 <button
-                  onClick={() => window.print()}
-                  className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-                  title="បោះពុម្ពប្រវត្តិរូប"
-                >
-                  <Printer className="w-5 h-5" />
-                </button>
-                <button
+                  id="btn-close-student-profile-header"
                   onClick={() => setSelectedStudentForView(null)}
                   className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  title="បិទ"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1168,6 +2020,51 @@ export const StudentManagement: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {/* Student Risk & Early Warning Assessment Box (if any) */}
+              {(() => {
+                const modalRiskAlert = getStudentRiskAlert(selectedStudentForView, scores, attendanceRecords || []);
+                if (!modalRiskAlert.hasConsecutiveAbsenceAlert && !modalRiskAlert.hasScoreDropAlert) return null;
+
+                return (
+                  <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-slate-800 space-y-2">
+                    <div className="flex items-center gap-2 text-rose-900 font-bold font-moul text-xs">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 animate-pulse" />
+                      <span>ការជូនដំណឹងពីហានិភ័យសិក្សា & អវត្តមាន (Early Warning Alert)</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
+                      {modalRiskAlert.hasConsecutiveAbsenceAlert && (
+                        <div className="bg-white p-3 rounded-xl border border-rose-200 shadow-2xs space-y-1">
+                          <p className="font-bold text-rose-700 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-rose-600" />
+                            អវត្តមានជាប់គ្នា ៖ {modalRiskAlert.consecutiveAbsenceCount} ថ្ងៃ
+                          </p>
+                          <p className="text-[11px] text-slate-600">
+                            កាលបរិច្ឆេទអវត្តមាន៖ {modalRiskAlert.consecutiveAbsenceDates.join(', ')}
+                          </p>
+                          <p className="text-[10px] text-rose-600 italic">
+                            * តម្រូវឱ្យគ្រូបន្ទុកថ្នាក់ទាក់ទងទៅកាន់អាណាព្យាបាលជាបន្ទាន់
+                          </p>
+                        </div>
+                      )}
+                      {modalRiskAlert.hasScoreDropAlert && (
+                        <div className="bg-white p-3 rounded-xl border border-amber-200 shadow-2xs space-y-1">
+                          <p className="font-bold text-amber-700 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-amber-600" />
+                            ធ្លាក់ចុះពិន្ទុមធ្យមភាគ ៖ -{modalRiskAlert.scoreDropAmount} ពិន្ទុ
+                          </p>
+                          <p className="text-[11px] text-slate-600">
+                            ពិន្ទុខែមុន ({modalRiskAlert.previousPeriodScore?.period}) ៖ <strong className="text-slate-800">{modalRiskAlert.previousPeriodScore?.average}</strong> ➔ ពិន្ទុខែនេះ ({modalRiskAlert.latestPeriodScore?.period}) ៖ <strong className="text-rose-700">{modalRiskAlert.latestPeriodScore?.average}</strong>
+                          </p>
+                          <p className="text-[10px] text-amber-700 italic">
+                            * ណែនាំឱ្យមានការបំប៉នបន្ថែម ឬពិភាក្សាជាមួយអាណាព្យាបាល
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Core Information Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 relative z-1">
@@ -1315,38 +2212,36 @@ export const StudentManagement: React.FC = () => {
                 </div>
               </div>
 
-              {/* Attendance & 30-Day Sparkline Section */}
+              {/* Student Identity Card QR Code Generator Section */}
               <div className="border-t border-slate-200 pt-4">
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4 text-emerald-600" />
-                  ប្រវត្តិវត្តមាន និងនិន្នាការ ៣០ ថ្ងៃ (Attendance & 30-Day Sparkline)
-                </h4>
-                <div className="bg-emerald-50/40 p-4 rounded-xl border border-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <span className="text-slate-600 text-xs block mb-1">ស្ថិតិវត្តមាន ៣០ ថ្ងៃចុងក្រោយ</span>
-                    <StudentAttendanceSparkline
-                      student={selectedStudentForView}
-                      attendanceRecords={attendanceRecords}
-                      daysCount={30}
-                      width={180}
-                      height={38}
-                    />
+                <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-4 rounded-2xl text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md">
+                  <div className="space-y-1 text-center sm:text-left">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/30 text-blue-200 text-[11px] font-bold">
+                      <QrCode className="w-3.5 h-3.5" />
+                      <span>អត្តសញ្ញាណប័ណ្ណសិស្សឌីជីថល (Student ID Card QR)</span>
+                    </div>
+                    <h4 className="font-bold font-moul text-sm sm:text-base">{selectedStudentForView.nameKhmer}</h4>
+                    <p className="text-xs text-blue-100">
+                      អត្តលេខសិស្ស៖ <span className="font-times font-bold">{selectedStudentForView.code}</span> • ថ្នាក់ទី {selectedStudentForView.grade}{selectedStudentForView.section}
+                    </p>
+                    <p className="text-[11px] text-slate-300">
+                      សាលា៖ {schoolProfile.nameKhmer}
+                    </p>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
-                    <div className="bg-white px-3 py-2 rounded-lg border border-emerald-100 text-center shadow-xs">
-                      <span className="text-[10px] text-slate-500 block">សរុបវត្តមាន</span>
-                      <strong className="text-emerald-700 font-bold text-sm font-times">{selectedStudentForView.attendance?.present || 0} ថ្ងៃ</strong>
-                    </div>
-                    <div className="bg-white px-3 py-2 rounded-lg border border-amber-100 text-center shadow-xs">
-                      <span className="text-[10px] text-slate-500 block">សុំច្បាប់</span>
-                      <strong className="text-amber-700 font-bold text-sm font-times">{selectedStudentForView.attendance?.absentWithPermission || 0} ថ្ងៃ</strong>
-                    </div>
-                    <div className="bg-white px-3 py-2 rounded-lg border border-rose-100 text-center shadow-xs">
-                      <span className="text-[10px] text-slate-500 block">អវត្តមាន</span>
-                      <strong className="text-rose-700 font-bold text-sm font-times">{selectedStudentForView.attendance?.absentWithoutPermission || 0} ថ្ងៃ</strong>
-                    </div>
+                  <div className="bg-white p-3 rounded-xl shadow-md flex flex-col items-center gap-2">
+                    <canvas id={`student-qr-canvas-${selectedStudentForView.id}`} className="w-28 h-28" />
+                    <span className="text-[10px] text-slate-700 font-bold font-moul">ស្កេនពិនិត្យព័ត៌មាន</span>
                   </div>
                 </div>
+              </div>
+
+              {/* Recharts Progress Trend Line Chart Section */}
+              <div className="border-t border-slate-200 pt-4">
+                <StudentProgressTrendChart
+                  student={selectedStudentForView}
+                  scores={scores}
+                  dailyAttendance={attendanceRecords}
+                />
               </div>
 
               {/* Digital Badges & Achievements Section */}
@@ -1451,71 +2346,35 @@ export const StudentManagement: React.FC = () => {
                   );
                 })()}
               </div>
+            </div>
 
-              {/* QR Code Pass & Quick Lookup Section */}
-              <div className="border-t border-slate-200 pt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                    <QrCode className="w-4 h-4 text-indigo-600" />
-                    ប័ណ្ណសម្គាល់ QR Code សិស្សផ្លូវការ (Digital Student QR Pass)
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedStudentForQR(selectedStudentForView)}
-                    className="px-2.5 py-1 text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
-                  >
-                    <Printer className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>បោះពុម្ពប័ណ្ណកាត</span>
-                  </button>
-                </div>
-
-                <div className="p-4 bg-gradient-to-br from-indigo-50/60 via-slate-50 to-blue-50/40 rounded-2xl border border-indigo-100/80 flex flex-col sm:flex-row items-center gap-4">
-                  <div className="bg-white p-2.5 rounded-xl border border-indigo-200/80 shadow-xs flex flex-col items-center flex-shrink-0">
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(getStudentLookupUrl(selectedStudentForView))}`}
-                      alt="Student QR Code"
-                      className="w-24 h-24 sm:w-28 sm:h-28 object-contain"
-                    />
-                    <span className="text-[10px] font-bold text-indigo-900 font-times mt-1">
-                      {selectedStudentForView.code}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 text-xs flex-1 w-full text-left">
-                    <div>
-                      <span className="font-bold text-slate-900 block">តំណភ្ជាប់ស្កេនទិន្នន័យ (QR Deep Link):</span>
-                      <p className="text-[11px] text-slate-500 font-times break-all bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 mt-1 select-all">
-                        {getStudentLookupUrl(selectedStudentForView)}
-                      </p>
-                    </div>
-                    <p className="text-[11px] text-slate-600 leading-relaxed">
-                      នៅពេលស្កេន QR Code នេះដោយកាមេរ៉ាទូរស័ព្ទ ឬឧបករណ៍ស្កេនក្នុងប្រព័ន្ធ នោះព័ត៌មានលម្អិតរបស់សិស្សនឹងត្រូវបានបង្ហាញភ្លាមៗដោយស្វ័យប្រវត្តិ។
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedStudentForQR(selectedStudentForView)}
-                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <QrCode className="w-3.5 h-3.5" />
-                        <span>បើកផ្ទាំងប័ណ្ណធំ & ទាញយក</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (navigator.clipboard) {
-                            navigator.clipboard.writeText(getStudentLookupUrl(selectedStudentForView));
-                            showToast('បានចម្លងតំណភ្ជាប់ QR Code សិស្ស!');
-                          }
-                        }}
-                        className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Copy className="w-3.5 h-3.5 text-slate-500" />
-                        <span>ចម្លងតំណភ្ជាប់ (Copy URL)</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+            {/* Modal Sticky Footer Action Bar */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-b-2xl">
+              <div className="text-xs text-slate-500 flex items-center gap-2">
+                <span className="font-moul text-slate-700">{selectedStudentForView.nameKhmer}</span>
+                <span>•</span>
+                <span>អត្តលេខ៖ <strong className="font-times text-slate-800">{selectedStudentForView.code}</strong></span>
+                <span>•</span>
+                <span>ថ្នាក់ទី {selectedStudentForView.grade}{selectedStudentForView.section}</span>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  id="btn-close-student-profile-footer"
+                  onClick={() => setSelectedStudentForView(null)}
+                  className="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  បិទ (Close)
+                </button>
+                <button
+                  type="button"
+                  id="btn-print-student-profile-footer"
+                  onClick={() => setSelectedStudentForPdfPrint(selectedStudentForView)}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-2 shadow-md transition-all cursor-pointer hover:scale-102 active:scale-98"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>បោះពុម្ពប្រវត្តិរូបសិស្ស A4 (Print Profile)</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1524,6 +2383,19 @@ export const StudentManagement: React.FC = () => {
 
       {/* Roster Mode End */}
       </>
+      )}
+
+      {/* Individual Student Profile A4 PDF Modal */}
+      {selectedStudentForPdfPrint && (
+        <StudentProfilePdfModal
+          student={selectedStudentForPdfPrint}
+          scores={scores}
+          dailyAttendance={attendanceRecords}
+          schoolProfile={schoolProfile}
+          badges={getStudentBadges(selectedStudentForPdfPrint.id)}
+          totalBadgePoints={getStudentTotalPoints(selectedStudentForPdfPrint.id)}
+          onClose={() => setSelectedStudentForPdfPrint(null)}
+        />
       )}
 
       {/* Student Badge Showcase Modal */}
@@ -1554,39 +2426,351 @@ export const StudentManagement: React.FC = () => {
 
       {/* Add / Edit Student Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200">
+        <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+            {/* Mobile Drag Indicator */}
+            <div className="pt-2 sm:hidden bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 flex justify-center">
+              <div className="w-12 h-1 bg-white/40 rounded-full" />
+            </div>
+
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-5 text-white flex items-center justify-between rounded-t-2xl sticky top-0 z-10">
+            <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-4 sm:p-5 text-white flex items-center justify-between sticky top-0 z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                  <UserPlus className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                  <UserPlus className="w-5 h-5 text-blue-200" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold font-moul">
-                    {editingStudent ? 'កែប្រែព័ត៌មានសិស្ស' : 'បញ្ចូលសិស្សថ្មីក្នុងប្រព័ន្ធ'}
+                  <h3 className="text-sm sm:text-base font-bold font-moul leading-tight">
+                    {editingStudent ? 'កែប្រែព័ត៌មានសិស្ស' : 'ទម្រង់ចុះឈ្មោះសិស្សថ្មី (MoEYS Standard)'}
                   </h3>
-                  <p className="text-xs text-blue-100">
-                    ទម្រង់ប្រមូលទិន្នន័យសិស្សលម្អិតស្របតាមទម្រង់ក្រសួងអប់រំ យុវជន និងកីឡា (MoEYS)
+                  <p className="text-[11px] sm:text-xs text-blue-100 line-clamp-1 sm:line-clamp-none mt-0.5">
+                    ទម្រង់ប្រមូលទិន្នន័យសិស្សលម្អិតស្របតាមស្តង់ដារក្រសួងអប់រំ យុវជន និងកីឡា
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleCreateStudent} className="p-6 space-y-6 text-xs sm:text-sm">
+            <form onSubmit={handleCreateStudent} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 text-xs sm:text-sm">
+              {/* Auto-Save Draft Indicator */}
+              <FormAutoSaveIndicator
+                hasSavedDraft={hasSavedDraft}
+                lastSavedTime={lastSavedTime}
+                isSaving={isSaving}
+                onDiscardDraft={discardDraft}
+                isEditing={!!editingStudent}
+              />
+
+              {!editingStudent ? (
+                 <div className="space-y-4">
+                    <p className="text-emerald-700 bg-emerald-50 p-3 sm:p-4 rounded-2xl border border-emerald-200 shadow-2xs leading-relaxed text-xs">
+                      <span className="font-bold">📝 បញ្ចូលតែព័ត៌មានចាំបាច់សិនបានហើយ៖</span><br/>
+                      ពេលបញ្ចូលរួច ប្រព័ន្ធនឹងបង្កើតគណនី និងពាក្យសម្ងាត់ជូនសិស្សដោយស្វ័យប្រវត្តិ (អត្តលេខសិស្ស = Username & Password)។
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-slate-700 font-bold mb-1.5 flex items-center gap-1.5">
+                          <Users className="w-4 h-4 text-blue-600" />
+                          <span>គោត្តនាម និងនាម</span>
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={formData.nameKhmer}
+                          onChange={(e) => setFormData(prev => ({ ...prev, nameKhmer: e.target.value }))}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all font-bold text-sm bg-white"
+                          placeholder="ឧ. សុខ សាន្ត"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-bold mb-1.5">
+                          ភេទ <span className="text-red-500">*</span>
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, gender: 'M' }))}
+                            className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 font-bold text-xs transition-all active:scale-95 ${
+                              formData.gender === 'M'
+                                ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                            }`}
+                          >
+                            <span>👦</span>
+                            <span>ប្រុស (M)</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, gender: 'F' }))}
+                            className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 font-bold text-xs transition-all active:scale-95 ${
+                              formData.gender === 'F'
+                                ? 'bg-rose-600 border-rose-600 text-white shadow-xs'
+                                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                            }`}
+                          >
+                            <span>👧</span>
+                            <span>ស្រី (F)</span>
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-bold mb-1.5 flex items-center gap-1.5">
+                          <GraduationCap className="w-4 h-4 text-indigo-600" />
+                          <span>ថ្នាក់ទី</span>
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <div className="grid grid-cols-6 gap-1">
+                          {[1, 2, 3, 4, 5, 6].map((g) => (
+                            <button
+                              key={g}
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, grade: g }))}
+                              className={`py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
+                                formData.grade === g
+                                  ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              {g}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-bold mb-1.5 flex items-center gap-1.5">
+                          <School className="w-4 h-4 text-emerald-600" />
+                          <span>បន្ទប់</span>
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {['ក', 'ខ', 'គ', 'ឃ'].map((sec) => (
+                            <button
+                              key={sec}
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, section: sec }))}
+                              className={`py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
+                                formData.section === sec
+                                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              បន្ទប់ {sec}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-slate-700 font-bold mb-1.5 flex items-center gap-1.5">
+                          <Phone className="w-4 h-4 text-teal-600" />
+                          <span>លេខទូរស័ព្ទអាណាព្យាបាល</span>
+                        </label>
+                        <input
+                          type="tel"
+                          inputMode="tel"
+                          value={formData.phone}
+                          onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all font-bold text-left bg-white text-sm"
+                          placeholder="ឧ. 012 345 678"
+                          dir="ltr"
+                        />
+                      </div>
+                    </div>
+                 </div>
+              ) : (
+              <>
               {/* Section 1: Core Identification */}
               <div className="space-y-4">
-                <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-2">
-                  <Sparkles className="w-4 h-4 text-amber-500" />
-                  ១. អត្តសញ្ញាណទូទៅ និងកម្រិតថ្នាក់
-                </h4>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-200 pb-2 gap-2">
+                  <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    ១. អត្តសញ្ញាណទូទៅ និងរូបថតសិស្ស (Student Photo & Identity)
+                  </h4>
+                </div>
+
+                {/* Student Photo Upload & Preview Bar */}
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragOverPhoto(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    setIsDragOverPhoto(false);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragOverPhoto(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) {
+                      handlePhotoFileUpload(file);
+                    }
+                  }}
+                  className={`p-4 rounded-xl border transition-all ${
+                    isDragOverPhoto
+                      ? 'bg-blue-50 border-blue-400 ring-2 ring-blue-300'
+                      : 'bg-slate-50 border-slate-200'
+                  } flex flex-col sm:flex-row items-center gap-4`}
+                >
+                  <div className="relative w-20 h-24 sm:w-24 sm:h-28 rounded-xl overflow-hidden border-2 border-blue-200 bg-white flex items-center justify-center flex-shrink-0 shadow-xs group">
+                    {isUploadingPhoto ? (
+                      <div className="flex flex-col items-center justify-center p-2 text-center text-blue-600">
+                        <Loader2 className="w-6 h-6 animate-spin mb-1 text-blue-600" />
+                        <span className="text-[10px] font-semibold">កំពុង Upload...</span>
+                      </div>
+                    ) : formData.avatarUrl ? (
+                      <>
+                        <img
+                          src={formData.avatarUrl}
+                          alt="រូបថតសិស្ស"
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <label className="cursor-pointer text-white p-1 hover:text-blue-200">
+                            <Camera className="w-5 h-5" />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handlePhotoFileUpload(file);
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center p-2 text-slate-400 text-[10px]">
+                        <Users className="w-7 h-7 mx-auto mb-1 text-slate-300" />
+                        <span className="font-medium">គ្មានរូបថត</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 w-full space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                          <UploadCloud className="w-4 h-4 text-blue-600" />
+                          រូបថតសិស្ស (Firebase Storage Profile Photo)
+                        </label>
+                        {photoUploadSource === 'firebase' && (
+                          <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full">
+                            Cloud Storage
+                          </span>
+                        )}
+                      </div>
+                      {formData.avatarUrl && !isUploadingPhoto && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, avatarUrl: '' });
+                            setPhotoUploadSource(null);
+                          }}
+                          className="text-[11px] text-rose-600 hover:text-rose-700 hover:underline font-semibold transition-colors"
+                        >
+                          លុបរូបថតចេញ
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsDirectCameraOpen(true)}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
+                        title="បើកកាមេរ៉ា Webcam ថតផ្ទាល់"
+                      >
+                        <Video className="w-4 h-4" />
+                        <span>ថតផ្ទាល់ (Camera)</span>
+                      </button>
+
+                      <label
+                        className={`cursor-pointer flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-100 border rounded-lg text-xs font-bold shadow-2xs transition-all ${
+                          isUploadingPhoto
+                            ? 'opacity-60 pointer-events-none border-slate-200 text-slate-400'
+                            : 'border-blue-300 text-blue-700 hover:border-blue-400 hover:bg-blue-50/50'
+                        }`}
+                      >
+                        {isUploadingPhoto ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                        ) : (
+                          <Camera className="w-4 h-4 text-blue-600" />
+                        )}
+                        <span>{isUploadingPhoto ? 'កំពុងផ្ទុក...' : 'ជ្រើសរើសរូប (Upload)'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={isUploadingPhoto}
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handlePhotoFileUpload(file);
+                          }}
+                        />
+                      </label>
+
+                      {formData.avatarUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCropModalImageSrc(formData.avatarUrl);
+                            setIsCropModalOpen(true);
+                          }}
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                        >
+                          <Crop className="w-4 h-4 text-amber-600" />
+                          <span>ច្រឹប/តម្រឹម 3x4</span>
+                        </button>
+                      ) : (
+                        <div className="relative">
+                          <input
+                            type="url"
+                            value={formData.avatarUrl || ''}
+                            onChange={(e) => {
+                              setFormData({ ...formData, avatarUrl: e.target.value });
+                              setPhotoUploadSource(e.target.value ? 'url' : null);
+                            }}
+                            placeholder="បិទភ្ជាប់ Image URL..."
+                            className="w-full px-2.5 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none placeholder:text-slate-400"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {formData.avatarUrl && (
+                      <div className="relative">
+                        <input
+                          type="url"
+                          value={formData.avatarUrl || ''}
+                          onChange={(e) => {
+                            setFormData({ ...formData, avatarUrl: e.target.value });
+                            setPhotoUploadSource(e.target.value ? 'url' : null);
+                          }}
+                          placeholder="ឬបិទភ្ជាប់ Image URL (Google Drive / Web)..."
+                          className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none placeholder:text-slate-400"
+                        />
+                      </div>
+                    )}
+
+                    <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                      <span>💡</span>
+                      <span>
+                        អ្នកអាចចុច Upload ជ្រើសរើសរូបថត ឬទាញទម្លាក់ (Drag & Drop) ចូលទីនេះ។ រូបភាពនឹងត្រូវផ្ទុកឡើង <strong>Firebase Storage</strong> ដោយស្វ័យប្រវត្តិ។
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -1628,7 +2812,7 @@ export const StudentManagement: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-3.5">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       ថ្ងៃខែឆ្នាំកំណើត *
@@ -1640,6 +2824,25 @@ export const StudentManagement: React.FC = () => {
                       onChange={e => setFormData({ ...formData, dob: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm font-times focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      ឆ្នាំសិក្សា *
+                    </label>
+                    <select
+                      value={formData.academicYear || selectedAcademicYear || schoolProfile.academicYear}
+                      onChange={e => setFormData({ ...formData, academicYear: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium"
+                    >
+                      {academicYears.map((yr) => {
+                        const isCurrent = yr === schoolProfile.academicYear;
+                        return (
+                          <option key={yr} value={yr}>
+                            {yr} {isCurrent ? '★ (បច្ចុប្បន្ន)' : ''}
+                          </option>
+                        );
+                      })}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -1739,11 +2942,27 @@ export const StudentManagement: React.FC = () => {
               <div className="space-y-4">
                 <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-2">
                   <MapPin className="w-4 h-4 text-emerald-500" />
-                  ៣. ទីលំនៅបច្ចុប្បន្នលម្អិត (Current Address Breakdown)
+                  ៣. ទីលំនៅបច្ចុប្បន្នលម្អិត (ខេត្ត ➔ ស្រុក ➔ ឃុំ ➔ ភូមិ ➔ សាលារៀន)
                 </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                <AddressSelector
+                  province={formData.currentProvince || 'ខេត្តបាត់ដំបង'}
+                  district={formData.currentDistrict || 'ស្រុកភ្នំព្រឹក'}
+                  commune={formData.currentCommune || ''}
+                  village={formData.currentVillage || ''}
+                  showSchoolSelector={false}
+                  onChange={(addr) => {
+                    setFormData({
+                      ...formData,
+                      currentProvince: addr.province,
+                      currentDistrict: addr.district,
+                      currentCommune: addr.commune,
+                      currentVillage: addr.village
+                    });
+                  }}
+                />
+                <div className="grid grid-cols-2 gap-3.5 pt-1">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">ផ្ទះលេខ / ផ្លូវលេខ</label>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">ផ្ទះលេខ</label>
                     <input
                       type="text"
                       value={formData.currentHouseNumber}
@@ -1753,32 +2972,12 @@ export const StudentManagement: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">ភូមិបច្ចុប្បន្ន</label>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">ផ្លូវលេខ</label>
                     <input
                       type="text"
-                      value={formData.currentVillage}
-                      onChange={e => setFormData({ ...formData, currentVillage: e.target.value })}
-                      placeholder="ឧ. អូរគល់សំយ៉ុង"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">ឃុំ/សង្កាត់បច្ចុប្បន្ន</label>
-                    <input
-                      type="text"
-                      value={formData.currentCommune}
-                      onChange={e => setFormData({ ...formData, currentCommune: e.target.value })}
-                      placeholder="ឧ. បារាំងធ្លាក់"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">ស្រុក & ខេត្ត</label>
-                    <input
-                      type="text"
-                      value={formData.currentDistrict}
-                      onChange={e => setFormData({ ...formData, currentDistrict: e.target.value })}
-                      placeholder="ឧ. ភ្នំព្រឹក ខេត្តបាត់ដំបង"
+                      value={formData.currentStreetNumber}
+                      onChange={e => setFormData({ ...formData, currentStreetNumber: e.target.value })}
+                      placeholder="ឧ. ផ្លូវលេខ ២០"
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     />
                   </div>
@@ -2063,18 +3262,21 @@ export const StudentManagement: React.FC = () => {
                 </div>
               </div>
 
+              </>
+              )}
+
               {/* Form Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+              <div className="sticky bottom-0 bg-white/95 backdrop-blur-md pt-3 pb-1 border-t border-slate-200 flex items-center justify-end gap-3 z-10">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 border border-slate-300 rounded-xl text-slate-700 hover:bg-slate-100 font-medium transition-colors"
+                  className="px-4 py-2 border border-slate-300 rounded-xl text-slate-700 hover:bg-slate-100 font-bold transition-colors"
                 >
                   បោះបង់
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" />
                   <span>{editingStudent ? 'រក្សាទុកការកែប្រែ' : 'បញ្ចូលសិស្ស'}</span>
@@ -2085,34 +3287,347 @@ export const StudentManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Print Preview Overlay Modal with Column Customizer */}
-      <StudentPrintPreviewModal
-        isOpen={isPrintPreviewModalOpen}
-        onClose={() => setIsPrintPreviewModalOpen(false)}
-        students={filteredStudents}
-        schoolProfile={schoolProfile}
-        teachers={teachers}
-        selectedGrade={selectedGrade}
-        selectedVulnerability={selectedVulnerability}
-      />
-
-      {/* Student QR Code Modal */}
-      {selectedStudentForQR && (
-        <StudentQRModal
-          student={selectedStudentForQR}
-          isOpen={Boolean(selectedStudentForQR)}
-          onClose={() => setSelectedStudentForQR(null)}
+      {/* Multi-Student Profile & Score History Multi-Page PDF Modal */}
+      {isMultiPdfModalOpen && (
+        <MultiStudentProfileSummaryPdfModal
+          students={
+            selectedStudentIds.length > 0
+              ? students.filter(s => selectedStudentIds.includes(s.id))
+              : filteredStudents
+          }
+          scores={scores}
+          dailyAttendance={attendanceRecords}
           schoolProfile={schoolProfile}
+          getStudentBadges={getStudentBadges}
+          getStudentTotalPoints={getStudentTotalPoints}
+          onClose={() => setIsMultiPdfModalOpen(false)}
         />
       )}
 
-      {/* Student QR Scanner Modal */}
-      <StudentQRScannerModal
-        isOpen={isQRScannerOpen}
-        onClose={() => setIsQRScannerOpen(false)}
-        onSelectStudent={(student) => {
-          setSelectedStudentForView(student);
+      {/* MoEYS Standard Student Record Master Table Modal (12 Columns & Official Print) */}
+      {isMoeyMasterModalOpen && (
+        <MoEYSStudentRecordMasterModal
+          students={students}
+          schoolProfile={schoolProfile}
+          initialGrade={selectedGrade === 'all' ? 'all' : selectedGrade}
+          onClose={() => setIsMoeyMasterModalOpen(false)}
+        />
+      )}
+
+      {/* Pull Students To Class Modal (for Teacher) */}
+      {isPullModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-gradient-to-r from-blue-700 to-indigo-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                  <UserCheck className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold font-moul">ទាញសិស្សចូលមកថ្នាក់ទី {teacherGrade}«{teacherSection}» របស់ខ្ញុំ</h3>
+                  <p className="text-xs text-blue-100 mt-0.5">
+                    ជ្រើសរើសសិស្សដែលមិនទាន់មានថ្នាក់ ឬពីថ្នាក់ផ្សេង ដើម្បីទាញចូលមកក្នុងបញ្ជីថ្នាក់របស់លោកគ្រូ-អ្នកគ្រូ
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPullModalOpen(false)}
+                className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-[240px]">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={pullSearchQuery}
+                  onChange={e => setPullSearchQuery(e.target.value)}
+                  placeholder="ស្វែងរកតាមឈ្មោះ អត្តលេខ ឬលេខទូរស័ព្ទអាណាព្យាបាល..."
+                  className="w-full pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-600">មកពីកម្រិតថ្នាក់៖</span>
+                <select
+                  value={pullGradeFilter}
+                  onChange={e => setPullGradeFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                  className="px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                  <option value="all">ថ្នាក់ផ្សេងៗទាំងអស់</option>
+                  {[1, 2, 3, 4, 5, 6].map(g => (
+                    <option key={g} value={g}>ថ្នាក់ទី {g}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Quick Select All */}
+              {(() => {
+                const pullableCandidates = students.filter(s => {
+                  if (s.grade === teacherGrade && s.section === teacherSection) return false;
+                  if (pullGradeFilter !== 'all' && s.grade !== pullGradeFilter) return false;
+                  if (pullSearchQuery.trim()) {
+                    const q = pullSearchQuery.toLowerCase();
+                    const matchName = s.nameKhmer.toLowerCase().includes(q) || (s.nameLatin && s.nameLatin.toLowerCase().includes(q));
+                    const matchCode = s.code.toLowerCase().includes(q);
+                    const matchPhone = (s.guardianPhone && s.guardianPhone.includes(q)) || (s.phone && s.phone.includes(q));
+                    if (!matchName && !matchCode && !matchPhone) return false;
+                  }
+                  return true;
+                });
+
+                const isAllSelected = pullableCandidates.length > 0 && pullableCandidates.every(s => selectedPullStudentIds.includes(s.id));
+
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isAllSelected) {
+                        setSelectedPullStudentIds([]);
+                      } else {
+                        setSelectedPullStudentIds(pullableCandidates.map(s => s.id));
+                      }
+                    }}
+                    className="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Check className={`w-3.5 h-3.5 ${isAllSelected ? 'text-blue-600' : 'text-slate-400'}`} />
+                    <span>{isAllSelected ? 'ដកការជ្រើសរើសទាំងអស់' : 'ជ្រើសរើសទាំងអស់'}</span>
+                  </button>
+                );
+              })()}
+            </div>
+
+            {/* Students Candidate List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 max-h-[50vh]">
+              {(() => {
+                const pullableCandidates = students.filter(s => {
+                  if (s.grade === teacherGrade && s.section === teacherSection) return false;
+                  if (pullGradeFilter !== 'all' && s.grade !== pullGradeFilter) return false;
+                  if (pullSearchQuery.trim()) {
+                    const q = pullSearchQuery.toLowerCase();
+                    const matchName = s.nameKhmer.toLowerCase().includes(q) || (s.nameLatin && s.nameLatin.toLowerCase().includes(q));
+                    const matchCode = s.code.toLowerCase().includes(q);
+                    const matchPhone = (s.guardianPhone && s.guardianPhone.includes(q)) || (s.phone && s.phone.includes(q));
+                    if (!matchName && !matchCode && !matchPhone) return false;
+                  }
+                  return true;
+                });
+
+                if (pullableCandidates.length === 0) {
+                  return (
+                    <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                      <Users className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                      <p className="text-sm font-bold text-slate-600">មិនមានសិស្សដែលអាចទាញចូលបានតាមលក្ខខណ្ឌនេះឡើយ</p>
+                      <p className="text-xs text-slate-400 mt-1">សិស្សទាំងអស់ប្រហែលជាស្ថិតក្នុងថ្នាក់ទី {teacherGrade}«{teacherSection}» រួចរាល់ហើយ ឬពុំត្រូវនឹងពាក្យស្វែងរក</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                    {pullableCandidates.map(s => {
+                      const isSelected = selectedPullStudentIds.includes(s.id);
+                      return (
+                        <div
+                          key={s.id}
+                          onClick={() => {
+                            setSelectedPullStudentIds(prev =>
+                              prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                            );
+                          }}
+                          className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                            isSelected
+                              ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400 shadow-xs'
+                              : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {}}
+                              className="w-4 h-4 text-blue-600 rounded-sm border-slate-300 focus:ring-blue-500 cursor-pointer"
+                            />
+                            <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs flex-shrink-0">
+                              {s.gender === 'F' ? '👧' : '👦'}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-slate-900 text-xs truncate">{s.nameKhmer}</p>
+                              <p className="text-[11px] text-slate-500 truncate">{s.code} • ថ្នាក់បច្ចុប្បន្ន៖ <span className="font-semibold text-slate-700">ថ្នាក់ទី {s.grade}{s.section}</span></p>
+                              {s.guardianPhone && (
+                                <p className="text-[10px] text-slate-400 truncate">អាណាព្យាបាល៖ {s.guardianName || 'N/A'} ({s.guardianPhone})</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold whitespace-nowrap ${
+                            isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {isSelected ? 'បានជ្រើសរើស' : 'ចុចដើម្បីរើស'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-white border-t border-slate-200 flex items-center justify-between gap-3">
+              <p className="text-xs text-slate-600 font-medium">
+                បានជ្រើសរើសសិស្ស៖ <span className="font-bold text-blue-700 text-sm">{selectedPullStudentIds.length} នាក់</span>
+              </p>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsPullModalOpen(false)}
+                  className="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  បោះបង់
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedPullStudentIds.length === 0}
+                  onClick={() => {
+                    pullStudentsToClass(selectedPullStudentIds, teacherGrade, teacherSection);
+                    setSelectedPullStudentIds([]);
+                    setIsPullModalOpen(false);
+                  }}
+                  className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span>ទាញសិស្ស ({selectedPullStudentIds.length}) ចូលថ្នាក់ទី {teacherGrade}«{teacherSection}»</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete All Students Confirmation Modal */}
+      {isDeleteAllModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-red-100 animate-in zoom-in-95 duration-150">
+            <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center mx-auto mb-4 shadow-inner">
+              <AlertTriangle className="w-7 h-7 text-red-600" />
+            </div>
+            <h3 className="text-base sm:text-lg font-bold text-center text-slate-900 font-moul mb-2">
+              បញ្ជាក់ការលុបទិន្នន័យសិស្សទាំងអស់
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-600 text-center mb-6 leading-relaxed">
+              តើលោកអ្នកពិតជាចង់លុបទិន្នន័យឈ្មោះសិស្សទាំងអស់ (<span className="font-bold text-red-600">{students.length} នាក់</span>) ចេញពីប្រព័ន្ធមែនទេ? សកម្មភាពនេះនឹងសម្អាតបញ្ជីសិស្សទាំងអស់ ហើយមិនអាចត្រឡប់វិញបានឡើយ។
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setIsDeleteAllModalOpen(false)}
+                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                បោះបង់
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteAllStudents();
+                  setIsDeleteAllModalOpen(false);
+                }}
+                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-colors shadow-md active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>លុបទាំងអស់</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Single Student Delete Dialog */}
+      <ConfirmDeleteDialog
+        isOpen={isSingleDeleteDialogOpen}
+        onClose={() => {
+          setIsSingleDeleteDialogOpen(false);
+          setStudentToDelete(null);
         }}
+        onConfirm={() => {
+          if (studentToDelete) {
+            deleteStudent(studentToDelete.id);
+            setIsSingleDeleteDialogOpen(false);
+            setStudentToDelete(null);
+          }
+        }}
+        title="បញ្ជាក់ការលុបទិន្នន័យសិស្ស"
+        student={studentToDelete}
+        warningMessage="តើលោកអ្នកពិតជាចង់លុបទិន្នន័យសិស្សរូបនេះចេញពីប្រព័ន្ធមែនឬទេ? ការលុបនេះនឹងលុបចេញជាអចិន្ត្រៃយ៍ ដើម្បីការពារការបាត់បង់ទិន្នន័យដោយអចេតនា។"
+      />
+
+      {/* Direct Webcam Camera Snapshot Modal */}
+      <DirectCameraCaptureModal
+        isOpen={isDirectCameraOpen}
+        onClose={() => setIsDirectCameraOpen(false)}
+        onCapture={(blob, dataUrl) => {
+          setFormData(prev => ({ ...prev, avatarUrl: dataUrl }));
+          setPhotoUploadSource('base64');
+          showToast('បានថតរូបភាពសិស្សជោគជ័យ!', 'success');
+        }}
+        onOpenCropEditor={(dataUrl) => {
+          setCropModalImageSrc(dataUrl);
+          setIsCropModalOpen(true);
+        }}
+        title="ថតរូបសិស្សផ្ទាល់ពីកាមេរ៉ា (Camera Snapshot)"
+        subtitle="ថតរូបភាពសិស្សតាមខ្នាតស្តង់ដារ 3x4 សម្រាប់បណ្ណសិស្ស និងប្រវត្តិរូប MoEYS"
+      />
+
+      {/* Photo Crop & Adjust Modal */}
+      <PhotoCropAndAlignModal
+        isOpen={isCropModalOpen}
+        imageSrc={cropModalImageSrc}
+        onClose={() => {
+          setIsCropModalOpen(false);
+          setCropModalImageSrc(null);
+        }}
+        onConfirmCrop={(blob, dataUrl) => {
+          setFormData(prev => ({ ...prev, avatarUrl: dataUrl }));
+          setPhotoUploadSource('base64');
+          showToast('បានច្រឹប និងតម្រឹមកែសម្រួលរូបថតសិស្សជោគជ័យ!', 'success');
+        }}
+        title="ច្រឹប និងតម្រឹមកែសម្រួលរូបថតសិស្ស (3x4 Passport)"
+      />
+
+      {/* Batch Student Photo Import Modal */}
+      <BatchStudentPhotoImportModal
+        isOpen={isBatchPhotoModalOpen}
+        onClose={() => setIsBatchPhotoModalOpen(false)}
+      />
+
+      {/* Batch Class Student Accounts Creator Modal */}
+      <BatchClassStudentAccountsModal
+        isOpen={isBatchClassAccountsModalOpen}
+        onClose={() => setIsBatchClassAccountsModalOpen(false)}
+        initialGrade={selectedGrade === 'all' ? (isTeacher ? teacherGrade : 1) : Number(selectedGrade)}
+        initialSection={isTeacher ? teacherSection : 'ក'}
+      />
+
+      {/* New MoEYS Compliant Add Student Modal */}
+      <AddStudentModal
+        isOpen={isNewAddStudentModalOpen}
+        onClose={() => setIsNewAddStudentModalOpen(false)}
+        defaultGrade={selectedGrade === 'all' ? (isTeacher ? teacherGrade : 1) : Number(selectedGrade)}
+        defaultSection={isTeacher ? teacherSection : 'ក'}
+      />
+
+      {/* Bulk Import Students Modal (Excel & Copy-Paste) */}
+      <BulkImportStudentsModal
+        isOpen={isBulkImportStudentsModalOpen}
+        onClose={() => setIsBulkImportStudentsModalOpen(false)}
+        targetGrade={selectedGrade === 'all' ? (isTeacher ? teacherGrade : 1) : Number(selectedGrade)}
+        targetSection={isTeacher ? teacherSection : 'ក'}
       />
     </div>
   );

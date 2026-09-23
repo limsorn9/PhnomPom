@@ -61,12 +61,7 @@ export const StudentGameModeModal: React.FC<Props> = ({ isOpen, onClose, game })
         isOnline: true
       }));
 
-      setJoinedPlayers(sample.length > 0 ? sample : [
-        { id: '1', name: 'សុខ វិបុល', score: 0, answeredCount: 0, streak: 0, avatar: '🦁', isOnline: true },
-        { id: '2', name: 'ជា ចាន់រ៉ា', score: 0, answeredCount: 0, streak: 0, avatar: '🐯', isOnline: true },
-        { id: '3', name: 'លី ស្រីនាង', score: 0, answeredCount: 0, streak: 0, avatar: '🐼', isOnline: true },
-        { id: '4', name: 'ខៀវ ពិសិដ្ឋ', score: 0, answeredCount: 0, streak: 0, avatar: '🦊', isOnline: true },
-      ]);
+      setJoinedPlayers(sample);
     }
   }, [isOpen, game, students]);
 

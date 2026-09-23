@@ -3,6 +3,47 @@ export type LivingCondition = 'ទូទៅ' | 'ក្រ១' | 'ក្រ២' |
 export type AcademicHistoryStatus = 'ឡើងថ្នាក់' | 'ត្រួតថ្នាក់' | 'ចូលរៀនឡើងវិញ' | 'ផ្ទេរចូល' | string;
 export type OrphanStatus = 'មិនកំព្រា' | 'កំព្រាឪពុក' | 'កំព្រាម្តាយ' | 'កំព្រាទាំងពីរ' | string;
 
+export interface VaccinationItem {
+  id: string;
+  vaccineName: string; // e.g. វ៉ាក់សាំងកញ្ជ្រឹល-ស្អូច (MR), វ៉ាក់សាំងស្វិតដៃជើង (Polio), វ៉ាក់សាំងកូវីដ-១៩, វ៉ាក់សាំងតេតាណូស (Tetanus), វ៉ាក់សាំងថ្លើមប្រភេទ B (Hep B)
+  doseNumber: string; // e.g. ដូសទី១, ដូសទី២, ដូសជំរុញ (Booster)
+  administeredDate: string; // YYYY-MM-DD
+  administeredPlace?: string; // e.g. មណ្ឌលសុខភាពភ្នំព្រឹក, យុទ្ធនាការសាលារៀន
+  batchNumber?: string; // លេខឡូត៍
+  status: 'completed' | 'scheduled' | 'overdue';
+  verifiedByDoctor?: string; // ឈ្មោះគ្រូពេទ្យ/បុគ្គលិកសុខាភិបាល
+}
+
+export interface ChronicHealthCondition {
+  id: string;
+  conditionName: string; // e.g. ជំងឺហឺត (Asthma), អាឡែកហ្ស៊ីចំណីអាហារ/ថ្នាំ (Allergy), បេះដូងពីកំណើត (Congenital Heart), ប្រកាច់ (Epilepsy), ទឹកនោមផ្អែមប្រភេទ១ (Type 1 Diabetes)
+  severity: 'mild' | 'moderate' | 'severe';
+  diagnosedDate?: string;
+  symptomsAndTriggers?: string; // រោគសញ្ញា ឬកត្តាជំរុញ
+  emergencyMedication?: string; // ថ្នាំសង្គ្រោះបន្ទាន់ (e.g. ថ្នាំបាញ់ហឺត Inhaler, ថ្នាំលេប)
+  careInstructions?: string; // ការណែនាំសម្រាប់លោកគ្រូអ្នកគ្រូពេលមានអាសន្ន
+  hospitalContact?: string; // ទំនាក់ទំនងមន្ទីរពេទ្យ/គ្រូពេទ្យផ្ទាល់
+}
+
+export interface PhysicalExaminationRecord {
+  id: string;
+  examDate: string; // YYYY-MM-DD
+  examinerName: string; // គ្រូពេទ្យពិនិត្យ ឬបុគ្គលិកសុខាភិបាល
+  examinerRole?: string; // វេជ្ជបណ្ឌិត, គិលានុបដ្ឋាក, គ្រូទទួលបន្ទុកសុខភាព
+  heightCm: number;
+  weightKg: number;
+  bmi: number;
+  visionLeft?: string; // ភ្នែកឆ្វេង (e.g. 10/10, 6/10)
+  visionRight?: string; // ភ្នែកស្តាំ (e.g. 10/10, 8/10)
+  hearingStatus?: 'normal' | 'impaired_mild' | 'impaired_severe'; // សោតវិញ្ញាណ/ការស្តាប់
+  dentalHealth?: 'good' | 'cavities' | 'inflamed_gums' | 'needs_treatment'; // សុខភាពមាត់ធ្មេញ
+  postureAndSpine?: 'normal' | 'scoliosis_risk' | 'abnormal'; // ឆ្អឹងខ្នង និងឥរិយាបថ
+  skinAndHygiene?: 'clean' | 'rash' | 'fungal' | 'pediculosis'; // ស្បែក និងអនាម័យទូទៅ
+  generalNotes?: string;
+  followUpRequired?: boolean;
+  followUpPlan?: string;
+}
+
 export interface HealthRecord {
   heightCm: number;
   weightKg: number;
@@ -12,6 +53,15 @@ export interface HealthRecord {
   bloodType: string;
   notes?: string;
   lastCheckedDate: string;
+  // Extended Clinical Health Record Attributes
+  vaccinations?: VaccinationItem[]; // ប្រវត្តិការចាក់វ៉ាក់សាំងលម្អិត
+  chronicConditions?: ChronicHealthCondition[]; // ជំងឺរ៉ាំរ៉ៃ និងអាឡែកហ្ស៊ី
+  physicalExams?: PhysicalExaminationRecord[]; // ប្រវត្តិពិនិត្យកាយសម្បទា និងសុខភាពតាមកាលកំណត់
+  allergies?: string[]; // អាឡែកហ្ស៊ីចំណីអាហារ/ថ្នាំ
+  hasGlasses?: boolean; // ពាក់វ៉ែនតា
+  hasHearingAid?: boolean; // ឧបករណ៍ជំនួយការស្តាប់
+  emergencyContactName?: string; // ទំនាក់ទំនងសង្គ្រោះបន្ទាន់
+  emergencyContactPhone?: string;
 }
 
 export interface AttendanceSummary {
@@ -158,8 +208,10 @@ export interface Teacher {
   trainingCohort?: string; // វគ្គសិក្សា
   certificateDate?: string; // ថ្ងៃខែទទួលបាន
   schoolCode?: string; // លេខកូដសាលា
-  assignedGrade?: number; // ថ្នាក់បង្រៀន
-  assignedSection?: string; // បន្ទប់
+  assignedGrade?: number; // ថ្នាក់បង្រៀនទី១
+  assignedSection?: string; // បន្ទប់ទី១
+  assignedGrade2?: number; // ថ្នាក់បង្រៀនទី២ (បើមាន)
+  assignedSection2?: string; // បន្ទប់ទី២ (បើមាន)
   teachingShift?: string; // វេនបង្រៀន (ព្រឹក / រសៀល / ពេញមួយថ្ងៃ)
   totalClassesTaught?: number; // ថ្នាក់សរុប
   totalStudentsFemaleTaught?: number; // ស្រី (ស្ថិតិសិស្សស្រីបង្រៀន)
@@ -186,6 +238,7 @@ export interface Teacher {
   documentsNote?: string; // ឯកសារ និងប្រភេទបណ្ណផ្សេងៗ
   avatarUrl?: string; // រូបថត
   schedule: DutyScheduleItem[];
+  academicYear?: string; // ឆ្នាំសិក្សា
 }
 
 export type TransferType = 'out' | 'in'; // ផ្ទេរចេញ | ផ្ទេរចូល
@@ -263,6 +316,8 @@ export interface Classroom {
   homeroomTeacherName: string;
   academicYear: string;
   capacity: number;
+  telegramChatId?: string; // Telegram Group Chat ID e.g. "-10023456789"
+  telegramGroupName?: string; // e.g. "ក្រុមតេលេក្រាម ថ្នាក់ទី១ក"
 }
 
 export interface MonthlySubjectScores {
@@ -330,6 +385,41 @@ export interface DailyAttendanceRecord {
   notes?: string;
 }
 
+export type HealthScreeningStatus = 'normal' | 'monitor' | 'warning' | 'isolate';
+
+export interface DailyHealthCheckRecord {
+  id: string;
+  date: string; // YYYY-MM-DD
+  grade: number;
+  section: string;
+  studentId: string;
+  studentNameKhmer: string;
+  temperature: number; // e.g. 36.5
+  status: HealthScreeningStatus; // 'normal' (🟢), 'monitor' (🟡), 'warning' (🟠), 'isolate' (🔴)
+  symptoms: string[]; // ['ក្តៅខ្លួន', 'ក្អក', 'ហៀរសំបោរ', 'ឈឺក្បាល', 'ឈឺពោះ', 'ភ្នែកក្រហម']
+  session: 'morning' | 'afternoon';
+  checkedAt?: string;
+  notes?: string;
+}
+
+export interface StudentRiskAlert {
+  studentId: string;
+  hasConsecutiveAbsenceAlert: boolean;
+  consecutiveAbsenceCount: number;
+  consecutiveAbsenceDates: string[];
+  hasScoreDropAlert: boolean;
+  scoreDropAmount: number; // e.g. 1.25 points
+  previousPeriodScore: {
+    period: string;
+    average: number;
+  } | null;
+  latestPeriodScore: {
+    period: string;
+    average: number;
+  } | null;
+  alertSummary: string;
+}
+
 export type BudgetSource = 
   | 'ថវិការដ្ឋ (PB)'
   | 'សហគមន៍/សមាគមមាតាបិតា'
@@ -352,6 +442,32 @@ export interface BudgetTransaction {
   status: 'approved' | 'pending';
 }
 
+export interface MonthlyBudgetSourceBreakdown {
+  income: number;
+  expense: number;
+}
+
+export interface MonthlyBudgetSummary {
+  monthName: string;
+  monthNumber?: number;
+  academicYear?: string;
+  incomeRiel: number;
+  expenseRiel: number;
+  balanceRiel: number;
+  incomeUsd: number;
+  expenseUsd: number;
+  balanceUsd: number;
+  transactionCount: number;
+  bySource: {
+    pbStateBudget: MonthlyBudgetSourceBreakdown;
+    sigImprovementGrant: MonthlyBudgetSourceBreakdown;
+    communityParents: MonthlyBudgetSourceBreakdown;
+    ngoPartner: MonthlyBudgetSourceBreakdown;
+  };
+  byCategory: Record<string, number>;
+  transactions?: BudgetTransaction[];
+}
+
 export type GradingScaleType = 'khmer_term' | 'letter';
 
 export interface SchoolProfile {
@@ -370,12 +486,14 @@ export interface SchoolProfile {
   cluster: string;
   email: string;
   logoUrl?: string;
-  bannerUrl?: string; // រូបភាពផ្ទាំងធំ (Banner Image)
-  bannerType?: 'angkor_twilight' | 'angkor_sunrise' | 'angkor_golden' | 'angkor_monument' | 'angkor_vector' | 'custom' | 'gradient'; // ប្រភេទផ្ទាំងធំ
-  bannerOverlayOpacity?: number; // កម្រិតស្រមោលអត្ថបទ
+  principalSignatureUrl?: string; // Digital signature image file URL or data URL
+  principalStampUrl?: string; // Official stamp image file URL
   mapUrl?: string;
   facebookPage?: string;
   gradingScaleType?: GradingScaleType; // 'khmer_term' (ល្អណាស់, ល្អ, ល្អបង្គួរ...) vs 'letter' (A, B, C...)
+  sessionRememberDays?: string; // '1_day' | '7_days' | '14_days' | '30_days' | '90_days' | 'forever' | 'session_only'
+  lastDatabaseBackup?: string; // ISO Timestamp of last manual database snapshot
+  directorPin?: string; // លេខកូដសម្ងាត់នាយកសាលា (Default: 1212)
 }
 
 export type CalendarEventType = 'exam' | 'holiday' | 'vacation' | 'meeting' | 'ceremony' | 'academic';
@@ -396,11 +514,49 @@ export interface AcademicCalendarEvent {
 }
 
 export type UserRole = 
+  | 'super_admin' // ស៊ុបទែអបមីន (Super Administrator)
   | 'director'    // នាយកសាលារៀន
   | 'secretary'   // លេខាធិការ
   | 'librarian'   // បណ្ណារក្ស
   | 'teacher'     // គ្រូបង្រៀន / គ្រូបន្ទុកថ្នាក់
-  | 'student';    // សិស្ស
+  | 'student'     // សិស្ស
+  | 'parent';     // អាណាព្យាបាល
+
+export interface UserSessionInfo {
+  id: string;
+  deviceId: string;
+  deviceName: string;
+  browser: string;
+  os: string;
+  ipAddress?: string;
+  location?: string;
+  lastActive: string;
+  createdAt: string;
+  isCurrent: boolean;
+}
+
+export interface SecurityLoginLog {
+  id: string;
+  userId: string;
+  userEmail: string;
+  timestamp: string;
+  status: 'success' | 'failed';
+  ipAddress: string;
+  device: string;
+  browser: string;
+  os: string;
+  location?: string;
+  method?: 'password' | 'google' | 'mfa_totp' | 'mfa_sms';
+}
+
+export interface UserMfaConfig {
+  enabled: boolean;
+  type: 'sms' | 'totp' | 'email';
+  phoneNumber?: string;
+  backupCodesCount?: number;
+  enrolledAt?: string;
+  lastVerifiedAt?: string;
+}
 
 export interface AppUser {
   id: string;
@@ -420,6 +576,116 @@ export interface AppUser {
   createdBy?: string;
   createdAt: string;
   status: 'active' | 'suspended';
+  passwordUpdatedAt?: string; // ISO Date of last password update
+  passwordHistory?: string[]; // History of last 3+ previous passwords to prevent reuse
+  lastSecurityReviewDate?: string; // ISO Date when user last reviewed their security logs / active sessions
+  forcePasswordChange?: boolean; // When true, forces mandatory password change on login/session
+  mfaConfig?: UserMfaConfig;
+  activeSessions?: UserSessionInfo[];
+  securityLogs?: SecurityLoginLog[];
+}
+
+export interface PasswordPolicyConfig {
+  expirationDays: number; // e.g. 30, 60, 90, 180, or 0 (never)
+  preventRecentPasswordsCount: number; // e.g. 3
+  minLength: number; // e.g. 8
+  requireUppercase: boolean;
+  requireLowercase: boolean;
+  requireNumbers: boolean;
+  requireSpecialChars: boolean;
+  maxFailedAttemptsBeforeLock: number;
+}
+
+export interface SuspiciousActivityAlert {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userNameKhmer: string;
+  userRole: UserRole;
+  reason: string;
+  detectedAt: string;
+  severity: 'high' | 'critical' | 'medium';
+  ipAddresses: string[];
+  locations: string[];
+  failedAttemptsCount: number;
+  dismissed?: boolean;
+}
+
+export interface DeletedAppUser {
+  id: string;
+  entityType?: 'appUser' | 'student' | 'teacher';
+  user?: AppUser;
+  studentProfileBackup?: Student;
+  teacherProfileBackup?: Teacher;
+  deletedAt: string; // ISO string
+  deletedBy: {
+    id?: string;
+    nameKhmer: string;
+    email: string;
+    role: string;
+  };
+  reason: string;
+  expiresAt: string; // ISO string (30 days from deletedAt)
+}
+
+export type AccountAuditEventType =
+  | 'create'
+  | 'delete'
+  | 'restore'
+  | 'permanent_delete'
+  | 'update_role'
+  | 'update_profile'
+  | 'reset_password'
+  | 'toggle_status'
+  | 'force_password_rotation'
+  | 'permission_override';
+
+export interface AccountAuditLog {
+  id: string;
+  timestamp: string; // ISO string
+  eventType: AccountAuditEventType;
+  targetUserId: string;
+  targetUserName: string;
+  targetUserRole: UserRole;
+  targetUserEmail?: string;
+  targetStaffCode?: string;
+  actor: {
+    id?: string;
+    nameKhmer: string;
+    email: string;
+    role: string;
+  };
+  reason?: string;
+  details: string;
+  changesSummary?: {
+    field: string;
+    before?: string | number | boolean;
+    after?: string | number | boolean;
+  }[];
+}
+
+export type PermissionAccessLevel = 'full' | 'scoped' | 'view_only' | 'restricted';
+
+export interface FeatureAccessDetail {
+  id: string;
+  category: string;
+  name: string;
+  description: string;
+  accessLevel: PermissionAccessLevel;
+  scopeNote?: string;
+  canView: boolean;
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canExport: boolean;
+}
+
+export interface SecurityPolicySettings {
+  sessionTimeoutEnabled: boolean;
+  sessionTimeoutMinutes: number; // e.g. 15, 30, 60, 120, 240
+  enforcePasswordRotation: boolean;
+  passwordRotationDays: number; // e.g. 90 days
+  enforceStrongPassword: boolean;
 }
 
 export interface SystemNotification {
@@ -427,24 +693,45 @@ export interface SystemNotification {
   title: string;
   message: string;
   timestamp: string;
-  type: 'password_reset' | 'info' | 'alert' | 'system';
+  type: 'password_reset' | 'info' | 'alert' | 'system' | 'score_deadline' | 'school_event' | 'fcm_push';
   targetRole?: UserRole | 'all';
   targetUserId?: string;
   targetTeacherGrade?: number;
   targetTeacherSection?: string;
   read: boolean;
+  priority?: 'normal' | 'high' | 'urgent';
+  deadlineDate?: string;
+  actionTab?: ActiveTab;
   meta?: {
     studentId?: string;
     studentName?: string;
     actionTime?: string;
+    monthOrSemester?: string;
+    eventDate?: string;
+    fcmMessageId?: string;
+    requesterUserId?: string;
+    requesterName?: string;
+    requesterRole?: string;
+    reason?: string;
+    proposedNewPassword?: string;
+    [key: string]: any;
   };
 }
 
 export type ActiveTab = 
+  | 'super_admin_hub'
+  | 'telegram_bot'
   | 'dashboard'
+  | 'secretary_dashboard'
+  | 'librarian_dashboard'
   | 'homeroom_dashboard'
+  | 'my_classes'
+  | 'teacher_profile'
+  | 'teacher_agenda'
+  | 'equipment_loans'
+  | 'teacher_meetings'
+  | 'teaching_resources'
   | 'ai_teacher'
-  | 'activity_history'
   | 'activity_logs'
   | 'school_admin'
   | 'school_management'
@@ -457,6 +744,7 @@ export type ActiveTab =
   | 'scores'
   | 'attendance_health'
   | 'library'
+  | 'learning_resources'
   | 'calendar'
   | 'finance'
   | 'reports_qr'
@@ -746,7 +1034,7 @@ export type StudentScore = StudentScoreRecord;
 
 export interface LibraryBook {
   id: string;
-  code: string; // កូដសៀវភៅ
+  code: string; // កូដសៀវភៅ ឧ. BK-2024-001
   titleKhmer: string; // ចំណងជើងសៀវភៅ
   titleLatin?: string;
   category: LibraryBookCategory; 
@@ -762,8 +1050,28 @@ export interface LibraryBook {
   coverUrl?: string;
   coverPhotoUrl?: string;
   shelfLocation?: string; // ទីតាំងទូ/ធ្នើ ឬ "តំណភ្ជាប់ឌីជីថល"
+  isbnBarcode?: string; // លេខ ISBN / Barcode
+  bookCondition?: 'good' | 'fair' | 'damaged' | 'lost'; // ស្ថានភាពសៀវភៅ
   description?: string;
   notes?: string;
+  createdAt?: string;
+}
+
+export type LibraryVisitPurpose = 'reading' | 'borrow_return' | 'research' | 'homework' | 'library_class' | 'storytelling';
+
+export interface LibraryVisitorLog {
+  id: string;
+  studentId?: string;
+  studentCode?: string;
+  studentNameKhmer: string;
+  grade: number;
+  section: string;
+  visitDate: string; // YYYY-MM-DD
+  timeIn: string; // HH:mm
+  timeOut?: string; // HH:mm
+  purpose: LibraryVisitPurpose;
+  notes?: string;
+  librarianName?: string;
 }
 
 export interface StudentMonthlyFeedback {
@@ -789,7 +1097,11 @@ export interface LibraryReadingLog {
   studentNameKhmer: string;
   grade: number;
   section: string;
+  // Compatibility helpers
+  studentGrade?: number;
+  studentSection?: string;
   bookId: string;
+  bookCode?: string;
   bookTitle: string;
   bookCategory: string;
   borrowDate: string;
@@ -798,7 +1110,49 @@ export interface LibraryReadingLog {
   status: 'borrowed' | 'returned' | 'overdue';
   pagesRead?: number;
   readingSummary?: string; // សង្ខេបខ្លឹមសាររឿងដែលបានអាន
+  summaryOrImpression?: string;
+  rating?: number; // 1 to 5 stars
+  comprehensionScore?: number; // 1-10
+  conditionOnReturn?: 'good' | 'damaged' | 'lost';
+  librarianName?: string;
   teacherLibrarianSign?: string;
+  notes?: string;
+}
+
+export type SignatureQRStyle = 'classic_square' | 'rounded_modern' | 'dot_pattern' | 'framed_seal' | 'bordered_moeys';
+
+export interface QRScanVerificationLog {
+  id: string;
+  scannedAt: string; // ISO string
+  signatureRef: string;
+  studentId?: string;
+  studentCode: string;
+  studentNameKhmer: string;
+  studentNameLatin?: string;
+  grade: number;
+  section: string;
+  academicYear: string;
+  monthOrSemester?: string;
+  schoolCode: string;
+  schoolNameKhmer: string;
+  principalName: string;
+  issueDate?: string;
+  expiresAt?: string;
+  verificationStatus: 'valid' | 'expired' | 'invalid' | 'tampered';
+  statusReason?: string;
+  deviceInfo: {
+    deviceType: 'mobile' | 'desktop' | 'tablet' | 'scanner';
+    os?: string;
+    browser?: string;
+    userAgent?: string;
+    ipOrLocationHint?: string;
+  };
+  verifierName?: string;
+  verifierRole?: string;
+  scanMethod: 'webcam_scanner' | 'file_upload' | 'manual_input' | 'direct_url';
+  averageScore?: number;
+  rank?: number;
+  totalStudents?: number;
 }
 
 export interface PrintSettings {
@@ -808,7 +1162,14 @@ export interface PrintSettings {
   showRoundStamp?: boolean;
   showDirectorSignature?: boolean;
   showDirectorRedName?: boolean;
+  showRoyalHeader?: boolean;
   showWatermark?: boolean;
+  showPrincipalSignatureQR?: boolean; // បង្ហាញ QR Code ហត្ថលេខាឌីជីថលរបស់នាយកសាលា
+  includePrincipalSignatureQR?: boolean;
+  signatureQRStyle?: SignatureQRStyle; // រចនាប័ទ្ម QR Code ហត្ថលេខាឌីជីថល (ការ៉េ, ជ្រុងមូល, គ្រាប់ចុច, ត្រាសុវត្ថិភាព)
+  signatureExpiryDays?: number; // ចំនួនថ្ងៃសុពលភាព QR Code ហត្ថលេខា (ឧ. ៣០, ៦០, ៩០, ១៨០, ៣៦៥ ថ្ងៃ)
+  paperSize?: 'A4' | 'A5' | 'Letter';
+  orientation?: 'portrait' | 'landscape';
 }
 
 export interface GoogleUserInfo {
@@ -1037,30 +1398,23 @@ export interface StudentBadgeAssignment {
 }
 
 // Activity & Data Change Audit Log Types
-export type ActivityDomain = 'student' | 'teacher' | 'finance' | 'academic' | 'admin' | 'auth' | 'system';
-export type ActivityActionType =
-  | 'create'
-  | 'update'
-  | 'delete'
-  | 'transfer'
-  | 'income'
-  | 'expense'
-  | 'score'
-  | 'attendance'
-  | 'document'
-  | 'approval'
-  | 'login'
-  | 'logout'
-  | 'export'
-  | 'archive'
-  | 'purge'
-  | 'sync';
+export type ActivityDomain = 'student' | 'teacher' | 'finance' | 'academic' | 'admin' | 'health';
+export type ActivityActionType = 'create' | 'update' | 'delete' | 'transfer' | 'income' | 'expense' | 'score' | 'attendance' | 'document' | 'approval' | 'health_check';
 
 export interface ActivityChangeField {
   fieldName: string;
   fieldLabelKhmer: string;
   oldValue?: string | number | boolean | null;
   newValue?: string | number | boolean | null;
+}
+
+export interface ActivityLogComment {
+  id: string;
+  authorName: string;
+  authorRole: string;
+  text: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface ActivityLogItem {
@@ -1072,6 +1426,7 @@ export interface ActivityLogItem {
   entityId: string;
   entityCode?: string;
   entityName: string;
+  actorId?: string;
   actorName: string;
   actorRole: string;
   actorAvatar?: string;
@@ -1083,5 +1438,497 @@ export interface ActivityLogItem {
   targetTab?: ActiveTab;
   tags?: string[];
   details?: Record<string, any>;
+  anomalies?: ActivityAnomaly[];
+  isArchived?: boolean;
+  aiImpactSummary?: string;
+  aiImpactLevel?: 'high' | 'medium' | 'low';
+  comments?: ActivityLogComment[];
+  isHighRisk?: boolean;
+  riskScore?: number; // 0 - 100
+  riskReasons?: string[];
+  riskLevel?: 'critical' | 'high' | 'medium' | 'low';
 }
 
+export type ActivityAnomalyType = 'bulk_deletion' | 'off_hours' | 'high_finance' | 'rapid_actions' | 'sensitive_admin';
+export type AnomalySeverity = 'high' | 'medium' | 'low';
+
+export interface ActivityAnomaly {
+  id: string;
+  type: ActivityAnomalyType;
+  severity: AnomalySeverity;
+  titleKhmer: string;
+  descriptionKhmer: string;
+  detectedAt: string;
+  logId: string;
+}
+
+export interface ActivitySavedView {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  badgeColor?: string;
+  isSystem?: boolean;
+  filters: {
+    searchQuery?: string;
+    selectedDomain?: ActivityDomain | 'all';
+    selectedAction?: ActivityActionType | 'all';
+    selectedRole?: string;
+    selectedActor?: string;
+    dateFilter?: 'all' | 'today' | 'yesterday' | '7days' | '30days' | 'month' | 'last_month' | 'custom';
+    customStartDate?: string;
+    customEndDate?: string;
+    showAnomaliesOnly?: boolean;
+    showHighRiskOnly?: boolean;
+    archiveFilter?: 'active' | 'archived' | 'all';
+    viewMode?: 'table' | 'list';
+  };
+  createdAt: string;
+}
+
+export interface ActivityDriveScheduleConfig {
+  enabled: boolean;
+  frequency: 'weekly' | 'monthly' | 'biweekly';
+  dayOfWeek: number; // 0=Sunday, 1=Monday, ..., 6=Saturday
+  dayOfMonth: number; // 1-31
+  timeOfDay: string; // "08:00"
+  format: 'pdf' | 'html' | 'csv' | 'json';
+  folderName: string;
+  folderId?: string;
+  targetEmail: string;
+  includeAnomalies: boolean;
+  includeComments: boolean;
+  includeHighRiskOnly: boolean;
+  lastRunAt?: string;
+  nextRunAt?: string;
+  runHistory: Array<{
+    id: string;
+    executedAt: string;
+    status: 'success' | 'failed';
+    fileName: string;
+    recordsCount: number;
+    fileSizeKb: number;
+    message: string;
+    downloadUrl?: string;
+  }>;
+}
+
+export interface ActivityHealthMetric {
+  totalLogs: number;
+  healthScore: number; // 0 - 100
+  healthStatus: 'excellent' | 'good' | 'warning' | 'critical';
+  healthStatusKhmer: string;
+  highRiskCount: number;
+  bulkDeletionsCount: number;
+  offHoursCount: number;
+  rapidActionCount: number;
+  highFinanceCount: number;
+  unusualFrequencyCount: number;
+  systemHealthAssessment: string;
+  recommendationsKhmer: string[];
+}
+
+export interface ActivityRetentionConfig {
+  retentionDays: number; // e.g. 30, 60, 90, 180, 365, 0 (0 = keep forever)
+  autoCleanupEnabled: boolean;
+  lastCleanedAt?: string;
+  lastCleanedCount?: number;
+}
+
+// Student Progress Report & Offline Sync Types
+export interface StudentProgressReport {
+  id: string;
+  studentId: string;
+  studentCode: string;
+  nameKhmer: string;
+  grade: number;
+  section: string;
+  academicYear: string;
+  evaluationPeriod: string; // e.g. 'ខែមករា' or 'ឆមាសទី១'
+  averageScore: number;
+  totalScore?: number;
+  rank?: number;
+  attendancePercentage: number;
+  conduct: 'ល្អប្រសើរ' | 'ល្អ' | 'ល្អបង្គួរ' | 'មធ្យម' | 'ត្រូវការពង្រឹង';
+  readingWritingSkill?: 'ស្ទាត់ជំនាញ' | 'មធ្យម' | 'នៅខ្សោយ' | 'មិនទាន់ចេះអាន';
+  mathCalculationSkill?: 'ពូកែ' | 'មធ្យម' | 'ត្រូវការពង្រឹង';
+  socialTeamwork?: 'រួសរាយសហការ' | 'ស្ងៀមស្ងាត់' | 'ត្រូវការជំរុញ';
+  strengths: string;
+  areasForImprovement: string;
+  teacherRecommendations: string;
+  evaluatedByTeacherName: string;
+  createdAt: string;
+  updatedAt: string;
+  syncStatus: 'synced' | 'pending_sync' | 'error';
+  lastSyncedAt?: string;
+}
+
+export interface OfflineSyncQueueItem {
+  id: string;
+  collectionName: string;
+  docId: string;
+  action: 'create' | 'update' | 'delete';
+  payload: any;
+  createdAt: string;
+  retryCount: number;
+  error?: string;
+}
+
+// ----------------------------------------------------
+// 1. SCHOOL EQUIPMENT & TECH LOAN CHECKLIST (បញ្ជីឧបករណ៍ និងការខ្ចី)
+// ----------------------------------------------------
+export type EquipmentCategory =
+  | 'projector'       // ម៉ាស៊ីនបញ្ចាំង (Projector)
+  | 'laptop'          // កុំព្យូទ័រយួរដៃ (Laptop)
+  | 'tablet'          // ថេប្លេត (Tablet / iPad)
+  | 'speaker_mic'     // ធុងបាស និងមីក្រូហ្វូនឥតខ្សែ (Wireless Speaker & Mic)
+  | 'smart_tv'        // ទូរទស្សន៍ឆ្លាតវៃ / អេក្រង់ (Smart TV / Interactive Display)
+  | 'document_camera' // ម៉ាស៊ីនស្កេនឯកសារបង្រៀន (Document Visualizer)
+  | 'solar_power'     // ផ្ទាំងសូឡា / អាគុយផ្ទុកថាមពល (Solar Inverter / Power Bank)
+  | 'science_kit'     // ឧបករណ៍ពិសោធន៍វិទ្យាសាស្ត្រ (Science Lab Kit)
+  | 'other';
+
+export type LoanStatus = 'borrowed' | 'returned' | 'overdue' | 'damaged';
+
+export interface SchoolEquipmentItem {
+  id: string;
+  code: string; // ឧ. TECH-PRJ-01, TECH-LAP-03
+  nameKhmer: string; // ម៉ាស៊ីនបញ្ចាំង Epson EB-X06
+  category: EquipmentCategory;
+  brandModel: string;
+  serialNumber?: string;
+  locationRoom: string; // បន្ទប់កុំព្យូទ័រ, ការិយាល័យ, បណ្ណាល័យ
+  condition: 'good' | 'fair' | 'maintenance' | 'broken';
+  totalQuantity: number;
+  availableQuantity: number;
+  statusNotes?: string;
+}
+
+export interface EquipmentLoanRecord {
+  id: string;
+  loanNumber: string; // ឧ. LN-2024-001
+  equipmentId: string;
+  equipmentCode: string;
+  equipmentName: string;
+  equipmentCategory: EquipmentCategory;
+  teacherId?: string;
+  teacherName: string; // ឈ្មោះគ្រូខ្ចី
+  teacherPhone?: string;
+  gradeSection: string; // ឧ. ថ្នាក់ទី៥ក, បន្ទប់កុំព្យូទ័រ
+  purposeOfUse: string; // គោលបំណង ឧ. បញ្ចាំងស្លាយមេរៀនវិទ្យាសាស្ត្រ, ប្រជុំគ្រូ
+  borrowDate: string; // YYYY-MM-DD
+  borrowTime?: string; // HH:mm
+  expectedReturnDate: string; // YYYY-MM-DD
+  expectedReturnTime?: string;
+  actualReturnDate?: string;
+  status: LoanStatus;
+  conditionBefore: string; // ដំណើរការល្អ
+  conditionAfter?: string; // ដំណើរការល្អ ឬ មានបញ្ហា
+  recordedBy: string; // អ្នកកត់ត្រា/បណ្ណារក្ស
+  syncedToGoogleSheets?: boolean;
+  googleSheetRowIndex?: number;
+  notes?: string;
+  createdAt: string;
+}
+
+// ----------------------------------------------------
+// 2. TEACHER DAILY AGENDA & TASKS (របៀបវារៈប្រចាំថ្ងៃរបស់គ្រូ)
+// ----------------------------------------------------
+export type TaskPriority = 'urgent' | 'high' | 'normal' | 'low';
+export type TaskCategory = 'teaching' | 'exam_grading' | 'meeting' | 'attendance' | 'admin' | 'google_calendar';
+
+export interface TeacherDailyTask {
+  id: string;
+  title: string;
+  description?: string;
+  date: string; // YYYY-MM-DD
+  startTime?: string; // HH:mm
+  endTime?: string;
+  category: TaskCategory;
+  priority: TaskPriority;
+  isCompleted: boolean;
+  completedAt?: string;
+  assignedTeacherName?: string;
+  gradeSection?: string;
+  googleCalendarEventId?: string;
+  googleCalendarHtmlLink?: string;
+  isSyncedToGoogleCalendar?: boolean;
+  createdAt: string;
+}
+
+// ----------------------------------------------------
+// 3. TEACHER MEETING MINUTES & RESOLUTIONS (កំណត់ត្រាការប្រជុំគ្រូ)
+// ----------------------------------------------------
+export type TeacherMeetingType =
+  | 'monthly'          // កិច្ចប្រជុំប្រចាំខែ (Monthly General Staff Meeting)
+  | 'pedagogical'      // កិច្ចប្រជុំបច្ចេកទេស/គរុកោសល្យ (Technical & Pedagogical Meeting)
+  | 'exam_review'      // កិច្ចប្រជុំបូកសរុបលទ្ធផលប្រឡង (Exam & Score Evaluation)
+  | 'emergency'        // កិច្ចប្រជុំបន្ទាន់ (Emergency / Ad-hoc Meeting)
+  | 'semester_opening' // កិច្ចប្រជុំបើកបវេសនកាល/ឆមាស (Semester Kickoff)
+  | 'community_school';// កិច្ចប្រជុំជាមួយគណៈកម្មការទ្រទ្រង់សាលា
+
+export interface MeetingAttendee {
+  id: string;
+  name: string;
+  role: string;
+  present: boolean;
+  permissionReason?: string;
+}
+
+export interface MeetingActionItem {
+  id: string;
+  taskTitle: string;
+  responsiblePerson: string;
+  deadlineDate: string;
+  status: 'pending' | 'in_progress' | 'completed';
+}
+
+export interface TeacherMeetingRecord {
+  id: string;
+  meetingCode: string; // ឧ. MT-2024-10
+  title: string; // កិច្ចប្រជុំប្រចាំខែតុលា បូកសរុបការបង្រៀន និងផែនការប្រឡងឆមាសទី១
+  meetingType: TeacherMeetingType;
+  academicYear: string;
+  meetingDate: string; // YYYY-MM-DD
+  meetingTime: string; // ឧ. 08:30 - 11:30 ព្រឹក
+  location: string; // ឧ. បន្ទប់ប្រជុំធំ សាលាបឋមសិក្សាភ្នំពុំ
+  chairpersonName: string; // ប្រធានអង្គប្រជុំ (លោកនាយក)
+  secretaryName: string; // លេខាអង្គប្រជុំ
+  totalInvited: number;
+  totalPresent: number;
+  attendees: MeetingAttendee[];
+  agendas: string[]; // របៀបវារៈប្រជុំ
+  discussionSummary: string; // សង្ខេបខ្លឹមសារពិភាក្សា
+  resolutions: string[]; // សេចក្ដីសម្រេចចិត្តពីការប្រជុំ (Decisions & Agreed Points)
+  actionItems: MeetingActionItem[]; // ផែនការសកម្មភាពបន្ត និងអ្នកទទួលបន្ទុក
+  googleCalendarEventId?: string;
+  googleCalendarHtmlLink?: string;
+  isSyncedToGoogleCalendar?: boolean;
+  syncedAt?: string;
+  // Google Drive synchronization fields
+  isSyncedToGoogleDrive?: boolean;
+  googleDriveFileId?: string;
+  googleDriveWebViewLink?: string;
+  driveSyncedAt?: string;
+  status: 'draft' | 'approved' | 'published';
+  creatorId?: string;
+  creatorRole?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ----------------------------------------------------
+// 4. GOOGLE DRIVE AUTOMATED SYNC STATE & LOGS
+// ----------------------------------------------------
+export interface DriveAutoSyncConfig {
+  enabled: boolean;
+  intervalMinutes: number; // e.g. 15, 30, 60, 1440
+  syncMeetings: boolean;
+  syncFinances: boolean;
+  syncFullBackup: boolean;
+  syncStudents: boolean;
+  syncScores: boolean;
+  syncHonorRoll: boolean;
+  syncStaffDirectory: boolean;
+  folderId: string;
+  lastAutoSyncTime?: string;
+  autoSyncOnChanges: boolean;
+}
+
+export interface DriveSyncHistoryItem {
+  id: string;
+  title: string;
+  category: 'meeting_minutes' | 'financial_report' | 'database_backup' | 'student_roster' | 'score_ranking' | 'honor_roll' | 'staff_directory' | 'custom_file';
+  categoryLabelKhmer: string;
+  fileName: string;
+  fileSizeBytes?: number;
+  fileSizeFormatted?: string;
+  folderId: string;
+  driveFileId?: string;
+  driveWebViewLink?: string;
+  status: 'success' | 'syncing' | 'failed' | 'pending';
+  errorMessage?: string;
+  syncedAt: string;
+  syncedBy: string;
+}
+
+// ----------------------------------------------------
+// 5. VERSION MISMATCH & CONFLICT RESOLUTION TYPES
+// ----------------------------------------------------
+export interface CloudVersionMetadata {
+  fileId: string;
+  fileName: string;
+  fileSizeBytes?: number;
+  fileSizeFormatted: string;
+  modifiedTime: string;
+  syncedBy?: string;
+  studentCount?: number;
+  teacherCount?: number;
+  scoreCount?: number;
+  classroomCount?: number;
+  meetingCount?: number;
+  budgetCount?: number;
+  academicYear?: string;
+  version?: string;
+  snapshotData?: any;
+}
+
+export interface LocalVersionMetadata {
+  lastModifiedTime: string;
+  studentCount: number;
+  teacherCount: number;
+  scoreCount: number;
+  classroomCount: number;
+  meetingCount: number;
+  budgetCount: number;
+  academicYear: string;
+  version: string;
+}
+
+export type VersionConflictStatus = 'cloud_newer' | 'local_newer' | 'content_different' | 'synced';
+
+export interface VersionConflictState {
+  hasMismatch: boolean;
+  status: VersionConflictStatus;
+  cloudVersion: CloudVersionMetadata | null;
+  localVersion: LocalVersionMetadata;
+  lastCheckedTime: string;
+  isChecking: boolean;
+  dismissed: boolean;
+  conflictReason?: string;
+}
+
+// ----------------------------------------------------
+// 4. TEACHING RESOURCE HUB & GOOGLE DRIVE SHARING (មជ្ឈមណ្ឌលធនធានបង្រៀន)
+// ----------------------------------------------------
+export type ResourceSubject =
+  | 'khmer'            // ភាសាខ្មែរ
+  | 'math'             // គណិតវិទ្យា
+  | 'science'          // វិទ្យាសាស្ត្រ
+  | 'social'           // សិក្សាសង្គម
+  | 'arts_music'       // សិល្បៈ-តន្ត្រី
+  | 'physical_health'  // អប់រំកាយ និងសុខភាព
+  | 'english'          // ភាសាអង់គ្លេស
+  | 'pedagogy_guide'   // ឯកសារគរុកោសល្យ/វិធីសាស្ត្របង្រៀន
+  | 'general_knowledge';
+
+export type ResourceFileType = 'pdf' | 'slide' | 'doc' | 'sheet' | 'image' | 'video' | 'zip' | 'link';
+
+export interface TeachingResourceFile {
+  id: string;
+  titleKhmer: string;
+  description?: string;
+  gradeLevel: number; // 0=ទូទៅ, 1 to 6
+  subject: ResourceSubject;
+  fileType: ResourceFileType;
+  fileSizeBytes?: number;
+  fileSizeFormatted?: string; // ឧ. 2.4 MB
+  originalFileName: string;
+  downloadUrl?: string;
+  driveFileId?: string;
+  driveWebViewLink?: string;
+  driveDownloadLink?: string;
+  authorTeacherName: string;
+  isSharedWithAllTeachers: boolean;
+  tags?: string[];
+  viewsCount: number;
+  downloadsCount: number;
+  syncedToGoogleDrive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// ----------------------------------------------------
+// ----------------------------------------------------
+// 6. ACADEMIC ACHIEVEMENTS & HONOR ROLL AWARDS MODULE
+// ----------------------------------------------------
+export type AchievementAwardType = 
+  | 'honor_roll_first'       // តារាងកិត្តិយសលេខ១ ប្រចាំឆមាស
+  | 'honor_roll_second'      // តារាងកិត្តិយសលេខ២ ប្រចាំឆមាស
+  | 'honor_roll_third'       // តារាងកិត្តិយសលេខ៣ ប្រចាំឆមាស
+  | 'honor_roll_distinction' // សិស្សឆ្នើមប្រចាំឆមាស (Outstanding Academic Distinction)
+  | 'subject_khmer_star'     // ឆ្នើមមុខវិជ្ជាភាសាខ្មែរ (Khmer Language Excellence)
+  | 'subject_math_master'    // ឆ្នើមមុខវិជ្ជាគណិតវិទ្យា (Mathematics Master)
+  | 'subject_science_whiz'   // ឆ្នើមមុខវិជ្ជាវិទ្យាសាស្ត្រ និងសង្គម (Science & Social Excellence)
+  | 'subject_english_champ'  // ឆ្នើមមុខវិជ្ជាភាសាអង់គ្លេស (English Champion)
+  | 'subject_arts_creativity'// ឆ្នើមសិល្បៈ និងគំនូរច្នៃប្រឌិត (Arts & Creativity)
+  | 'perfect_attendance'     // វត្តមានពេញលេញឥតឈប់ (100% Attendance Award)
+  | 'morality_civics_model'  // គំរូសីលធម៌ វិន័យ និងចរិយាសម្បត្តិ (Model Civics & Conduct)
+  | 'sports_athletics'       // ឆ្នើមកីឡា និងកាយសម្បទា (Athletics & Sports Star)
+  | 'reading_advocate'       // ឆ្នើមការអានសៀវភៅបណ្ណាល័យ (Reading Advocate)
+  | 'custom_special';        // ពានរង្វាន់/ការលើកសរសើរពិសេស
+
+export interface AcademicAchievement {
+  id: string;
+  studentId: string;
+  studentCode: string;
+  studentNameKhmer: string;
+  grade: number;
+  section: string;
+  academicYear: string;
+  semester: 'semester_1' | 'semester_2' | 'full_year'; // ឆមាសទី១, ឆមាសទី២, ពេញមួយឆ្នាំ
+  awardType: AchievementAwardType;
+  awardTitleKhmer: string; // ឈ្មោះពានរង្វាន់/កិត្តិយស e.g. "តារាងកិត្តិយសលេខ១ ប្រចាំឆមាសទី១"
+  awardTitleEnglish?: string;
+  subjectTarget?: string; // មុខវិជ្ជាជាក់លាក់ (ប្រសិនបើជា Subject Award)
+  rankPosition?: number; // ចំណាត់ថ្នាក់ (បើមាន ឧ. ១, ២, ៣)
+  gpaScore?: number; // ពិន្ទុមធ្យមភាគ
+  awardedDate: string; // YYYY-MM-DD
+  awardedByTeacherName: string; // គ្រូបង្រៀន/នាយកសាលាដែលប្រគល់
+  remarksOrPraise?: string; // សេចក្តីសរសើរ ឬការលើកទឹកចិត្ត
+  certificateNumber?: string; // លេខសំបុត្រសរសើរផ្លូវការ
+  status: 'published' | 'draft';
+  createdAt: string;
+}
+
+// ----------------------------------------------------
+// 7. SCHOOL GROUP MANAGEMENT & MEMBER ASSIGNMENTS (គ្រប់គ្រងក្រុមសាលារៀន និងការចាត់តាំងសមាជិក)
+// ----------------------------------------------------
+export type SchoolGroupCategory = 
+  | 'academic_year'        // ឆ្នាំសិក្សា / កម្រិតថ្នាក់ (Academic Year / Cohort)
+  | 'extracurricular_club' // ក្លឹបសិក្សា & សកម្មភាពក្រៅម៉ោង (Clubs - STEM, Sports, Arts, Reading, Scouts)
+  | 'internal_department'  // ផ្នែក / ការិយាល័យផ្ទៃក្នុង (Internal Departments - Management, Admin, IT, Sanitation)
+  | 'study_tutoring'       // ក្រុមសិក្សាជំនួយ / បំប៉ន (Tutoring & Peer Study)
+  | 'school_committee'     // គណៈកម្មការ & ក្រុមការងារពិសេស (Taskforce & Committees)
+  | 'other';               // ផ្សេងៗ
+
+export type GroupMemberRole = 
+  | 'leader'        // ប្រធានក្រុម (Leader / President)
+  | 'deputy_leader' // អនុប្រធានក្រុម (Vice Leader / VP)
+  | 'secretary'     // លេខាធិការ (Secretary)
+  | 'treasurer'     // ហិរញ្ញិក (Treasurer)
+  | 'advisor'       // គ្រូទីប្រឹក្សា / គ្រូបង្វឹក (Teacher Advisor / Coach)
+  | 'member';       // សមាជិក (Member)
+
+export interface SchoolGroupMember {
+  id: string; // generated ID or memberId
+  memberType: 'student' | 'teacher';
+  memberId: string; // student.id or teacher.id
+  nameKhmer: string;
+  nameLatin?: string;
+  codeOrStaffId?: string; // student.code or teacher.staffCode
+  gradeOrPosition?: string; // e.g. "ថ្នាក់ទី ៦ ក" or "គ្រូបង្រៀនគណិត"
+  gender?: 'male' | 'female' | 'M' | 'F' | 'ប្រុស' | 'ស្រី';
+  role: GroupMemberRole;
+  joinedDate: string; // YYYY-MM-DD
+  notes?: string;
+}
+
+export interface SchoolGroup {
+  id: string;
+  name: string; // e.g. "ក្លឹបបច្ចេកវិទ្យា និង STEM"
+  nameEnglish?: string;
+  code: string; // e.g. "CLUB-STEM-01"
+  category: SchoolGroupCategory;
+  description?: string;
+  academicYear: string; // e.g. "២០២៤ - ២០២៥"
+  meetingSchedule?: string; // e.g. "រៀងរាល់រសៀលថ្ងៃព្រហស្បតិ៍ ម៉ោង 2:00 - 4:00"
+  locationRoom?: string; // e.g. "បន្ទប់កុំព្យូទ័រ / បណ្ណាល័យ"
+  colorTheme?: 'emerald' | 'sky' | 'indigo' | 'purple' | 'amber' | 'rose' | 'teal';
+  iconName?: string;
+  status: 'active' | 'archived';
+  members: SchoolGroupMember[];
+  createdBy?: string;
+  createdAt: string;
+  updatedAt?: string;
+}

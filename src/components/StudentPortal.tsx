@@ -20,13 +20,23 @@ import {
   FileText,
   ExternalLink,
   Send,
-  BookOpenCheck
+  BookOpenCheck,
+  TrendingUp,
+  Activity,
+  BarChart3,
+  Trophy,
+  Share2,
+  X
 } from 'lucide-react';
 import { LibraryBookCategory } from '../types';
+import { StudentProgressAnalysis } from './StudentProgressAnalysis';
+import { StudentRankingSystem } from './StudentRankingSystem';
 
 export const StudentPortal: React.FC = () => {
   const {
     currentUser,
+    previousTeacherUser,
+    switchToTeacherWithPassword,
     students,
     scores,
     attendanceRecords,
@@ -41,10 +51,13 @@ export const StudentPortal: React.FC = () => {
     getFormattedGrade
   } = useSchool();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'library' | 'feedback'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'ranking' | 'progress' | 'library' | 'feedback'>('overview');
+  const [overviewSubView, setOverviewSubView] = useState<'table' | 'chart'>('chart');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showTeacherPasswordModal, setShowTeacherPasswordModal] = useState(false);
+  const [teacherPasswordInput, setTeacherPasswordInput] = useState('');
 
   // Library browse state in Student Portal (Strictly View-Only)
   const [selectedLibCategory, setSelectedLibCategory] = useState<string>('all');
@@ -195,6 +208,16 @@ export const StudentPortal: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {previousTeacherUser && currentUser?.role !== 'student' && (
+              <button
+                type="button"
+                onClick={() => setShowTeacherPasswordModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold shadow-lg transition-all cursor-pointer"
+              >
+                <span>🔄 ត្រឡប់ទៅគណនីគ្រូវិញ</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => setShowPasswordModal(true)}
@@ -217,7 +240,7 @@ export const StudentPortal: React.FC = () => {
       </div>
 
       {/* Navigation Tabs for Student Portal */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
         <button
           onClick={() => setActiveTab('overview')}
           className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
@@ -228,6 +251,30 @@ export const StudentPortal: React.FC = () => {
         >
           <Award className="w-4 h-4" />
           <span>លទ្ធផលសិក្សា & ព័ត៌មាន</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('ranking')}
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            activeTab === 'ranking'
+              ? 'bg-amber-600 text-white shadow-sm ring-2 ring-amber-400/40'
+              : 'bg-white text-amber-800 hover:bg-amber-50 border border-amber-300'
+          }`}
+        >
+          <Trophy className="w-4 h-4 text-amber-500" />
+          <span>ចំណាត់ថ្នាក់ & Telegram (Rankings & Telegram)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('progress')}
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            activeTab === 'progress'
+              ? 'bg-indigo-900 text-white shadow-sm'
+              : 'bg-white text-indigo-700 hover:bg-indigo-50 border border-indigo-200'
+          }`}
+        >
+          <TrendingUp className="w-4 h-4 text-amber-400" />
+          <span>វិភាគការរីកចម្រើន (Progress Analysis)</span>
         </button>
 
         <button
@@ -246,7 +293,7 @@ export const StudentPortal: React.FC = () => {
           onClick={() => setActiveTab('feedback')}
           className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
             activeTab === 'feedback'
-              ? 'bg-indigo-700 text-white shadow-sm'
+              ? 'bg-purple-900 text-white shadow-sm'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
@@ -273,15 +320,21 @@ export const StudentPortal: React.FC = () => {
               </p>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-              <div className="flex items-center justify-between text-slate-500 text-xs font-bold mb-2">
+            <div
+              onClick={() => setActiveTab('ranking')}
+              className="bg-white p-4 rounded-2xl border border-amber-200 shadow-2xs hover:border-amber-400 hover:shadow-md transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between text-amber-700 text-xs font-bold mb-2">
                 <span>ចំណាត់ថ្នាក់ក្នុងថ្នាក់</span>
-                <Sparkles className="w-4 h-4 text-purple-600" />
+                <Trophy className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
               </div>
-              <p className="text-2xl font-times font-bold text-purple-700">
+              <p className="text-2xl font-times font-bold text-amber-700">
                 {latestScore ? `លេខ ${latestScore.rank}` : 'លេខ ១'} / {students.filter(s => s.grade === studentData?.grade).length || 32}
               </p>
-              <p className="text-[11px] text-slate-500 mt-1">ថ្នាក់ទី {studentData?.grade}{studentData?.section}</p>
+              <p className="text-[11px] text-amber-600 font-semibold mt-1 flex items-center justify-between">
+                <span>ថ្នាក់ទី {studentData?.grade}{studentData?.section}</span>
+                <span className="text-[10px] underline">មើលចំណាត់ថ្នាក់ & Telegram →</span>
+              </p>
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
@@ -306,20 +359,74 @@ export const StudentPortal: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Column: Academic Results Table */}
+            {/* Left Column: Academic Results Table & Progress Analysis */}
             <div className="lg:col-span-8 space-y-6">
               <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
                   <div className="flex items-center gap-2">
                     <FileText className="w-5 h-5 text-blue-700" />
                     <h3 className="font-moul text-sm text-slate-800">តារាងពិន្ទុ និងលទ្ធផលសិក្សាតាមខែ</h3>
                   </div>
-                  <span className="text-xs font-bold text-slate-500">
-                    ឆ្នាំសិក្សា {schoolProfile.academicYear}
-                  </span>
+                  
+                  <div className="flex items-center gap-2">
+                    {/* View mode toggle */}
+                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setOverviewSubView('chart')}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                          overviewSubView === 'chart'
+                            ? 'bg-blue-900 text-white shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <TrendingUp className="w-3.5 h-3.5" />
+                        <span>គំនូសតាង (Chart)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOverviewSubView('table')}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                          overviewSubView === 'table'
+                            ? 'bg-blue-900 text-white shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>តារាងលម្អិត</span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('ranking')}
+                      className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    >
+                      <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                      <span>ចំណាត់ថ្នាក់ & Telegram</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('progress')}
+                      className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    >
+                      <BarChart3 className="w-3.5 h-3.5" />
+                      <span>វិភាគស៊ីជម្រៅ</span>
+                    </button>
+                  </div>
                 </div>
 
-                {studentScores.length === 0 ? (
+                {overviewSubView === 'chart' ? (
+                  <div className="pt-1">
+                    <StudentProgressAnalysis
+                      student={studentData}
+                      scores={scores}
+                      dailyAttendance={attendanceRecords}
+                      academicYear={schoolProfile.academicYear}
+                    />
+                  </div>
+                ) : studentScores.length === 0 ? (
                   <div className="text-center py-12 text-slate-400">
                     <BookOpen className="w-12 h-12 mx-auto mb-2 opacity-40" />
                     <p className="text-xs">មិនទាន់មានទិន្នន័យពិន្ទុសម្រាប់សិស្សរូបនេះទេ។</p>
@@ -330,7 +437,7 @@ export const StudentPortal: React.FC = () => {
                       <div key={sc.id} className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-blue-900 text-xs px-3 py-1 bg-blue-100 rounded-full">
-                            {sc.month} ({sc.semester === 'semester1' ? 'ឆមាសទី១' : 'ឆមាសទី២'})
+                            {sc.monthOrSemester || (sc as any).month} ({sc.monthOrSemester?.includes('ឆមាស') ? sc.monthOrSemester : 'ប្រចាំខែ'})
                           </span>
                           <span className="text-xs font-bold text-slate-700">
                             មធ្យមភាគ៖ <strong className="text-blue-700 font-times text-sm">{sc.averageScore} / 10</strong> (និទ្ទេស <span className="text-amber-600 font-bold">{sc.gradeLetter}</span>)
@@ -340,25 +447,33 @@ export const StudentPortal: React.FC = () => {
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                           <div className="bg-white p-2 rounded-xl border border-slate-200">
                             <span className="text-slate-500 block text-[10px]">ភាសាខ្មែរ៖</span>
-                            <span className="font-bold text-slate-800 font-times">{sc.subjects.khmer ?? '-'} / 10</span>
+                            <span className="font-bold text-slate-800 font-times">
+                              {sc.scores?.khmer ?? sc.scores?.khmerReading ?? (sc as any).subjects?.khmer ?? '-'} / 10
+                            </span>
                           </div>
                           <div className="bg-white p-2 rounded-xl border border-slate-200">
                             <span className="text-slate-500 block text-[10px]">គណិតវិទ្យា៖</span>
-                            <span className="font-bold text-slate-800 font-times">{sc.subjects.math ?? '-'} / 10</span>
+                            <span className="font-bold text-slate-800 font-times">
+                              {sc.scores?.mathematics ?? sc.scores?.math ?? (sc as any).subjects?.math ?? '-'} / 10
+                            </span>
                           </div>
                           <div className="bg-white p-2 rounded-xl border border-slate-200">
                             <span className="text-slate-500 block text-[10px]">វិទ្យាសាស្ត្រ៖</span>
-                            <span className="font-bold text-slate-800 font-times">{sc.subjects.science ?? '-'} / 10</span>
+                            <span className="font-bold text-slate-800 font-times">
+                              {sc.scores?.science ?? sc.scores?.scienceSocial ?? (sc as any).subjects?.science ?? '-'} / 10
+                            </span>
                           </div>
                           <div className="bg-white p-2 rounded-xl border border-slate-200">
                             <span className="text-slate-500 block text-[10px]">សីលធម៌-ពលរដ្ឋ៖</span>
-                            <span className="font-bold text-slate-800 font-times">{sc.subjects.ethics ?? '-'} / 10</span>
+                            <span className="font-bold text-slate-800 font-times">
+                              {sc.scores?.moralCivics ?? sc.scores?.ethics ?? (sc as any).subjects?.ethics ?? '-'} / 10
+                            </span>
                           </div>
                         </div>
 
-                        {sc.teacherComment && (
+                        {(sc.remarks || (sc as any).teacherComment) && (
                           <div className="p-2.5 bg-blue-50/70 border border-blue-200 rounded-xl text-[11px] text-blue-900">
-                            <strong className="font-moul">មតិយោបល់លោកគ្រូអ្នកគ្រូ៖</strong> {sc.teacherComment}
+                            <strong className="font-moul">មតិយោបល់លោកគ្រូអ្នកគ្រូ៖</strong> {sc.remarks || (sc as any).teacherComment}
                           </div>
                         )}
                       </div>
@@ -464,6 +579,30 @@ export const StudentPortal: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* TAB: STUDENT RANKING & TELEGRAM NOTIFICATION */}
+      {activeTab === 'ranking' && studentData && (
+        <div className="space-y-6">
+          <StudentRankingSystem
+            student={studentData}
+            scores={scores}
+            allStudents={students}
+            schoolProfile={schoolProfile}
+          />
+        </div>
+      )}
+
+      {/* TAB: STUDENT PROGRESS & PERFORMANCE ANALYSIS */}
+      {activeTab === 'progress' && (
+        <div className="space-y-6">
+          <StudentProgressAnalysis
+            student={studentData}
+            scores={scores}
+            dailyAttendance={attendanceRecords}
+            academicYear={schoolProfile.academicYear}
+          />
         </div>
       )}
 
@@ -803,6 +942,85 @@ export const StudentPortal: React.FC = () => {
                   className="px-4 py-2 text-xs font-bold text-white bg-blue-700 hover:bg-blue-800 rounded-xl shadow-xs cursor-pointer"
                 >
                   រក្សាទុកពាក្យសម្ងាត់
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Teacher Password Verification Modal for Switching Back */}
+      {showTeacherPasswordModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+                  🔐
+                </div>
+                <div>
+                  <h3 className="font-moul text-sm text-slate-800 dark:text-slate-100">
+                    ផ្ទៀងផ្ទាត់ពាក្យសម្ងាត់គ្រូ
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    សូមបញ្ចូលពាក្យសម្ងាត់គណនីគ្រូ ដើម្បីត្រឡប់ទៅគណនីគ្រូវិញ
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowTeacherPasswordModal(false);
+                  setTeacherPasswordInput('');
+                }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const res = switchToTeacherWithPassword(teacherPasswordInput);
+                if (res.success) {
+                  setShowTeacherPasswordModal(false);
+                  setTeacherPasswordInput('');
+                } else {
+                  showToast(res.message || 'ពាក្យសម្ងាត់គ្រូមិនត្រឹមត្រូវទេ', 'error');
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  ពាក្យសម្ងាត់គណនីគ្រូ (Teacher Password)
+                </label>
+                <input
+                  type="password"
+                  placeholder="បញ្ចូលពាក្យសម្ងាត់គ្រូ..."
+                  value={teacherPasswordInput}
+                  onChange={(e) => setTeacherPasswordInput(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTeacherPasswordModal(false);
+                    setTeacherPasswordInput('');
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  បោះបង់
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md transition-all cursor-pointer"
+                >
+                  បញ្ជាក់ និងត្រឡប់ទៅគ្រូ
                 </button>
               </div>
             </form>

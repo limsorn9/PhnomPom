@@ -1,0 +1,2 @@
+School Code in DB: 02100108027
+Teachers count in DB: 3

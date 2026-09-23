@@ -47,119 +47,87 @@ interface ClassCommitteePrintModalProps {
   classStudents?: Student[];
 }
 
-// Initial Default Template Data matching the official sample screenshots
+// Initial Committee Member slots
 const defaultMembersData: ClassManagementCommitteeMember[] = [
   {
     id: 'cm-1',
     order: 1,
-    honorific: 'លោកស្រី',
-    fullName: 'ហៀម ម៉ុំ',
+    honorific: 'លោក/លោកស្រី',
+    fullName: '',
     gender: 'ស្រី',
     workplace: 'ភូមិភ្នំពុំ',
     occupation: 'កសិករ',
     role: 'president',
     roleTitleKhmer: 'ប្រធាន',
-    phone: '097 538 5753',
-    gradeSection: '3ក',
+    phone: '',
+    gradeSection: '',
     livelihoodStatus: 'ជីវភាពមធ្យម',
     occupationCategory: 'កសិករ',
-    photoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80'
+    photoUrl: ''
   },
   {
     id: 'cm-2',
     order: 2,
-    honorific: 'លោកស្រី',
-    fullName: 'មាស សុខុម',
+    honorific: 'លោក/លោកស្រី',
+    fullName: '',
     gender: 'ស្រី',
     workplace: 'ភូមិភ្នំពុំ',
     occupation: 'កសិករ',
     role: 'deputy_president_1',
-    roleTitleKhmer: 'អនុប្រធាន',
-    phone: '097 5555 001',
-    gradeSection: '3ក',
+    roleTitleKhmer: 'អនុប្រធានទី១',
+    phone: '',
+    gradeSection: '',
     livelihoodStatus: 'ជីវភាពមធ្យម',
     occupationCategory: 'កសិករ',
-    photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
+    photoUrl: ''
   },
   {
     id: 'cm-3',
     order: 3,
-    honorific: 'លោកស្រី',
-    fullName: 'លៀវ សុខណា',
-    gender: 'ស្រី',
+    honorific: 'លោក/លោកស្រី',
+    fullName: '',
+    gender: 'ប្រុស',
     workplace: 'ភូមិភ្នំពុំ',
     occupation: 'កសិករ',
     role: 'deputy_president_2',
-    roleTitleKhmer: 'អនុប្រធាន',
-    phone: '070 314 043',
-    gradeSection: '3ក',
+    roleTitleKhmer: 'អនុប្រធានទី២',
+    phone: '',
+    gradeSection: '',
     livelihoodStatus: 'ជីវភាពមធ្យម',
     occupationCategory: 'កសិករ',
-    photoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80'
+    photoUrl: ''
   },
   {
     id: 'cm-4',
     order: 4,
-    honorific: 'លោកស្រី',
-    fullName: 'ផន យាន',
+    honorific: 'លោក/លោកស្រី',
+    fullName: '',
     gender: 'ស្រី',
     workplace: 'ភូមិភ្នំពុំ',
     occupation: 'កសិករ',
     role: 'member',
     roleTitleKhmer: 'សមាជិក',
-    phone: '012 889 921',
-    gradeSection: '3ក',
+    phone: '',
+    gradeSection: '',
     livelihoodStatus: 'ជីវភាពមធ្យម',
     occupationCategory: 'កសិករ',
-    photoUrl: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150&auto=format&fit=crop&q=80'
+    photoUrl: ''
   },
   {
     id: 'cm-5',
     order: 5,
-    honorific: 'លោក',
-    fullName: 'ឃី ចាន់ថា',
-    gender: 'ប្រុស',
-    workplace: 'ភូមិភ្នំពុំ',
-    occupation: 'កសិករ',
-    role: 'member',
-    roleTitleKhmer: 'សមាជិក',
-    phone: '015 298 995',
-    gradeSection: '3ក',
-    livelihoodStatus: 'ជីវភាពមធ្យម',
-    occupationCategory: 'កសិករ',
-    photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'cm-6',
-    order: 6,
-    honorific: 'លោកស្រី',
-    fullName: 'លាប ឡៃ',
-    gender: 'ស្រី',
-    workplace: 'ភូមិភ្នំពុំ',
-    occupation: 'កសិករ',
-    role: 'member',
-    roleTitleKhmer: 'សមាជិក',
-    phone: '015 445 573',
-    gradeSection: '3ក',
-    livelihoodStatus: 'ជីវភាពមធ្យម',
-    occupationCategory: 'កសិករ',
-    photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'cm-7',
-    order: 7,
     honorific: 'ក្រុមប្រឹក្សាកុមារ',
-    fullName: 'ផៃ សំអាត',
+    fullName: '',
     gender: 'ស្រី',
     workplace: 'ភូមិភ្នំពុំ',
     occupation: 'សិស្ស',
     role: 'member',
-    roleTitleKhmer: 'សមាជិក',
-    phone: '096 272 0170',
-    gradeSection: '3ក',
+    roleTitleKhmer: 'សមាជិក (តំណាងសិស្ស)',
+    phone: '',
+    gradeSection: '',
     livelihoodStatus: 'ជីវភាពមធ្យម',
     occupationCategory: 'សិស្ស',
-    photoUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80'
+    photoUrl: ''
   }
 ];
 
@@ -168,11 +136,12 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
   onClose,
   selectedGrade,
   selectedSection,
-  selectedAcademicYear = '២០២៥-២០២៦',
+  selectedAcademicYear,
   schoolProfile,
   homeroomTeacher,
   classStudents = []
 }) => {
+  const activeAcademicYear = selectedAcademicYear || schoolProfile?.academicYear || '២០២៥-២០២៦';
   // Active View Tab: 'table' (Landscape Table) vs 'tree' (Portrait Org Chart Tree) vs 'editor' (Edit Data)
   const [activeTab, setActiveTab] = useState<'table' | 'tree' | 'editor'>('table');
 
@@ -189,14 +158,15 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
   const [schoolName, setSchoolName] = useState(schoolProfile.nameKhmer || 'សាលាបឋមសិក្សា ភ្នំពុំ');
   const [lunarDate, setLunarDate] = useState('ថ្ងៃអង្គារ ១៣កើត ខែចេត្រ ឆ្នាំម្សាញ់ សប្តស័ក ព.ស.២៥៦៩');
   const [solarDate, setSolarDate] = useState('ភ្នំពុំ, ថ្ងៃទី៣១ ខែមីនា ឆ្នាំ២០២៦');
-  const [teacherName, setTeacherName] = useState(homeroomTeacher?.nameKhmer || 'សែម ស្រីអឿន');
-  const [principalName, setPrincipalName] = useState(schoolProfile.principalName || 'គង់ សុភ័ក្រ');
+  const [teacherName, setTeacherName] = useState(homeroomTeacher?.nameKhmer || '');
+  const [principalName, setPrincipalName] = useState(schoolProfile.principalName || 'លោក លីម សន');
 
   // Customization Options
   const [showHeader, setShowHeader] = useState(true);
   const [showWatermark, setShowWatermark] = useState(true);
   const [showStamp, setShowStamp] = useState(true);
   const [showSignatures, setShowSignatures] = useState(true);
+  const [zoomLevel, setZoomLevel] = useState<number>(100);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
@@ -251,14 +221,20 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
   };
 
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   // Trigger Print & PDF
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const targetId = activeTab === 'tree' ? 'committee-print-tree-canvas' : 'committee-print-table-canvas';
-    printElement(targetId, {
-      landscape: activeTab !== 'tree',
-      pageTitle: `គណៈកម្មការគ្រប់គ្រងថ្នាក់_ថ្នាក់ទី${selectedGrade}${selectedSection}`
-    });
+    setIsPrinting(true);
+    try {
+      await printElement(targetId, {
+        landscape: activeTab !== 'tree',
+        pageTitle: `គណៈកម្មការគ្រប់គ្រងថ្នាក់_ថ្នាក់ទី${selectedGrade}${selectedSection}`
+      });
+    } finally {
+      setIsPrinting(false);
+    }
   };
 
   const handleDownloadPdf = async () => {
@@ -268,7 +244,8 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
       const typeLabel = activeTab === 'tree' ? 'រចនាសម្ព័ន្ធរូបថត' : 'តារាងសមាសភាព';
       const filename = `គណៈកម្មការគ្រប់គ្រងថ្នាក់_${typeLabel}_ថ្នាក់ទី${selectedGrade}${selectedSection}_${schoolProfile.nameKhmer || 'សាលារៀន'}.pdf`;
       await downloadElementAsPdf(targetId, filename, {
-        landscape: activeTab !== 'tree'
+        landscape: activeTab !== 'tree',
+        scale: 2
       });
     } catch (err) {
       console.error('Failed to export Committee PDF:', err);
@@ -345,22 +322,50 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
+            {/* Zoom Controls for Print Preview */}
+            <div className="hidden lg:flex items-center gap-1 bg-white border border-slate-200 rounded-xl px-2 py-1 shadow-xs text-xs">
+              <span className="text-slate-500 text-[11px] font-medium mr-1">ពង្រីក/បង្រួម:</span>
+              <button
+                onClick={() => setZoomLevel(prev => Math.max(70, prev - 10))}
+                className="w-6 h-6 flex items-center justify-center rounded hover:bg-slate-100 text-slate-700 font-bold"
+                title="បង្រួម"
+              >
+                -
+              </button>
+              <button
+                onClick={() => setZoomLevel(100)}
+                className="px-1.5 py-0.5 rounded text-[11px] font-bold text-blue-700 hover:bg-blue-50"
+                title="ទំហំដើម ១០០%"
+              >
+                {zoomLevel}%
+              </button>
+              <button
+                onClick={() => setZoomLevel(prev => Math.min(130, prev + 10))}
+                className="w-6 h-6 flex items-center justify-center rounded hover:bg-slate-100 text-slate-700 font-bold"
+                title="ពង្រីក"
+              >
+                +
+              </button>
+            </div>
+
             <button
               onClick={handleDownloadPdf}
               disabled={isExportingPdf}
               className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
-              title="ទាញយកឯកសារជាទម្រង់ PDF"
+              title="ទាញយកឯកសារជាទម្រង់ PDF គ្មានជាប់របារអូស"
             >
               <Download className="w-4 h-4" />
-              <span>{isExportingPdf ? 'កំពុងបង្កើត...' : 'ទាញយកជា PDF'}</span>
+              <span>{isExportingPdf ? 'កំពុងបង្កើត PDF...' : 'ទាញយកជា PDF'}</span>
             </button>
 
             <button
               onClick={handlePrint}
+              disabled={isPrinting}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              title="បើកផ្ទាំងបោះពុម្ព (Print Preview Dialog)"
             >
               <Printer className="w-4 h-4" />
-              <span>បោះពុម្ព (Print)</span>
+              <span>{isPrinting ? 'កំពុងដំណើរការ...' : 'បោះពុម្ព (Print)'}</span>
             </button>
 
             <button
@@ -447,7 +452,8 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
           {activeTab === 'table' && (
             <div
               id="committee-print-table-canvas"
-              className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-200 w-full max-w-[1100px] print:max-w-none print:w-full print:shadow-none print:border-none print:p-4 print-landscape-mode relative"
+              style={{ zoom: `${zoomLevel}%` }}
+              className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-200 w-full max-w-[1100px] print:max-w-none print:w-full print:shadow-none print:border-none print:p-4 print-landscape-mode relative transition-transform"
             >
               {/* Background Watermark */}
               {showWatermark && <AngkorPageWatermark opacity={0.04} />}
@@ -479,12 +485,12 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
                   សមាសភាពគណៈកម្មការគ្រប់គ្រងថ្នាក់រៀន ( គ.ក.ថ. )
                 </h1>
                 <p className="text-xs font-semibold text-slate-700 font-battambang">
-                  ថ្នាក់ទី {selectedGrade}«{selectedSection}» ឆ្នាំសិក្សា {selectedAcademicYear}
+                  ថ្នាក់ទី {selectedGrade}«{selectedSection}» ឆ្នាំសិក្សា {activeAcademicYear}
                 </p>
               </div>
 
-              {/* Table Matching Screenshot 1 */}
-              <div className="relative z-10 overflow-x-auto mt-4">
+              {/* Table Matching Screenshot 1 with zero-scrollbar styling */}
+              <div className="relative z-10 overflow-x-auto print:overflow-visible no-scrollbar mt-4">
                 <table className="w-full text-[11px] sm:text-xs text-left border-collapse border border-slate-900">
                   <thead>
                     <tr className="bg-slate-100 font-bold text-slate-900 text-center font-battambang">
@@ -568,7 +574,8 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
           {activeTab === 'tree' && (
             <div
               id="committee-print-tree-canvas"
-              className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-200 w-full max-w-[850px] print:max-w-none print:w-full print:shadow-none print:border-none print:p-4 relative"
+              style={{ zoom: `${zoomLevel}%` }}
+              className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-200 w-full max-w-[850px] print:max-w-none print:w-full print:shadow-none print:border-none print:p-4 relative transition-transform"
             >
               {/* Background Watermark */}
               {showWatermark && <AngkorPageWatermark opacity={0.04} />}
@@ -600,7 +607,7 @@ export const ClassCommitteePrintModal: React.FC<ClassCommitteePrintModalProps> =
                   រចនាសម្ព័ន្ធគណៈកម្មការគ្រប់គ្រងថ្នាក់រៀន( គ.ក.ថ. )
                 </h1>
                 <p className="text-xs font-semibold text-slate-700 font-battambang">
-                  ថ្នាក់ទី {selectedGrade}«{selectedSection}» ឆ្នាំសិក្សា {selectedAcademicYear}
+                  ថ្នាក់ទី {selectedGrade}«{selectedSection}» ឆ្នាំសិក្សា {activeAcademicYear}
                 </p>
               </div>
 
