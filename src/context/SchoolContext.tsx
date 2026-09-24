@@ -47,6 +47,22 @@ import {
   initialSchoolGroups
 } from '../data/initialData';
 
+import {
+  backupSchoolDataToDrive,
+  uploadStaffDirectoryToDrive,
+  uploadFinancialReportToDrive,
+  uploadMeetingMinutesToDrive,
+  uploadScoreTableToDrive,
+  uploadHonorRollToDrive,
+  uploadStudentRosterToDrive,
+  downloadDriveFileContent,
+  fetchLatestCloudMasterBackup,
+  performCloudMerge
+} from '../services/googleDrive';
+
+import { getAccessToken, googleSignIn, isGoogleAuthenticated } from '../services/googleAuth';
+
+
 interface SchoolContextType {
   // Navigation & User Auth
   activeTab: ActiveTab;
