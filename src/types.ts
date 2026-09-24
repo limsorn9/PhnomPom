@@ -1990,3 +1990,14 @@ export interface AttendanceRecord {
   recordedBy: string;
   timestamp: string; // ISO string
 }
+
+export type TeacherNavigationTab =
+  | 'overview'        // ទិដ្ឋភាពរួមថ្នាក់ (Home Overview)
+  | 'roster'          // បញ្ជីឈ្មោះសិស្ស (Class & Student Roster)
+  | 'attendance'      // ស្រង់អវត្តមាន (Daily Attendance Tracker)
+  | 'grades'          // បញ្ចូលពិន្ទុ (Monthly Grade Entry)
+  | 'ranking'         // ចំណាត់ថ្នាក់ (Academic Performance & Ranking)
+  | 'leave_requests'  // ច្បាប់ឈប់សម្រាកសិស្ស (Leave Requests)
+  | 'reports'         // របាយការណ៍ (Class Reports)
+  | 'geip'            // កម្មវិធី GEIP
+  | 'profile';        // ព័ត៌មានផ្ទាល់ខ្លួន

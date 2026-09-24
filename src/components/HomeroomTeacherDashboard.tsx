@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { TeacherLayout } from './TeacherLayout';
 import { TeacherProfile } from './TeacherProfile';
-import { Student } from '../types';
+import { Student, TeacherNavigationTab } from '../types';
 import { HomeroomHeader } from './homeroom/HomeroomHeader';
 import { TeacherClassroomHub } from './homeroom/TeacherClassroomHub';
 import { DailyAttendanceTracker } from './homeroom/DailyAttendanceTracker';
@@ -65,16 +65,6 @@ import {
   Upload
 } from 'lucide-react';
 
-export type TeacherNavigationTab =
-  | 'overview'        // ផ្ទាំងរបស់គ្រូ (Home Overview)
-  | 'roster'          // ថ្នាក់ និងសិស្ស (Class & Student Roster)
-  | 'attendance'      // ស្រង់អវត្តមាន (Daily Attendance Tracker)
-  | 'grades'          // ស្រង់ពិន្ទុ (Monthly Grade Entry)
-  | 'ranking'         // លទ្ធផលសិក្សា (Academic Performance & Ranking)
-  | 'leave_requests'  // សំណើសុំច្បាប់សិស្ស (Leave Requests)
-  | 'reports'         // របាយការណ៍ (Class Reports)
-  | 'geip'            // គម្រោង GEIP
-  | 'profile';        // ព័ត៌មានគណនីគ្រូ
 
 export type GradingFramework = 'geip' | 'agreement';
 

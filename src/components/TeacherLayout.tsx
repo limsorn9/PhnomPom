@@ -1,7 +1,7 @@
+import { TeacherNavigationTab } from '../types';
 import React, { useState } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { useAuth } from '../context/AuthContext';
-import { TeacherNavigationTab } from './HomeroomTeacherDashboard';
 import {
   Users,
   Award,
