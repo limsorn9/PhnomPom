@@ -1,4 +1,4 @@
-import { getRetentionConfig, performRetentionCleanup } from '../utils/activityTracker';
+import { getRetentionConfig, performRetentionCleanup, saveActivitiesToStorage } from '../utils/activityTracker';
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 import {
