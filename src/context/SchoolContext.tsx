@@ -1451,13 +1451,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>(() => {
     let stored = [];
     if (!stored || stored.length === 0) {
-      stored = generateSeedActivities(
-        initialStudents,
-        initialTeachers,
-        initialBudgetTransactions,
-        initialTransfers,
-        initialScores
-      );
+      stored = [];
     }
     // Auto-run cleanup on initial load if enabled
     const retentionCfg = getRetentionConfig();
