@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        import React, { useState, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Plus, Building2, UserPlus, ChevronRight, School, ChevronDown } from 'lucide-react';
+import { LogOut, Plus, Building2, UserPlus, ChevronRight, School, ChevronDown, Trash2 } from 'lucide-react';
 import { SchoolProfile } from '../types';
 
 interface SchoolEntry extends Partial<SchoolProfile> {
@@ -39,35 +39,21 @@ export const SuperAdminHub: React.FC = () => {
 
   useEffect(() => {
     // Load from local storage or set default
-    const saved = localStorage.getItem('kroudigital_multi_schools');
+    const saved = localStorage.getItem('kroudigital_multi_schools_v5');
     if (saved) {
       setSchools(JSON.parse(saved));
     } else {
       const defaultSchools: SchoolEntry[] = [
         {
-          id: '1',
-          nameKhmer: 'សាលាបឋមសិក្សា គំរូ',
-          schoolCode: 'PRI-001',
+          id: 'phnom_pom_primary',
+          nameKhmer: 'សាលាបឋមសិក្សាភ្នំពុំ',
+          schoolCode: '02100108027',
           level: 'primary',
-          principalName: 'លោកគ្រូ សុខ សាន្ត'
-        },
-        {
-          id: '2',
-          nameKhmer: 'អនុវិទ្យាល័យ ឯករាជ្យ',
-          schoolCode: 'SEC-001',
-          level: 'secondary',
-          principalName: 'អ្នកគ្រូ ចាន់ ធូ'
-        },
-        {
-          id: '3',
-          nameKhmer: 'វិទ្យាល័យ វិទ្យាសាស្ត្រ',
-          schoolCode: 'HIG-001',
-          level: 'high_school',
-          principalName: 'លោកគ្រូ លឹម សន'
+          principalName: 'លោកគ្រូ លីម សន'
         }
       ];
       setSchools(defaultSchools);
-      localStorage.setItem('kroudigital_multi_schools', JSON.stringify(defaultSchools));
+      localStorage.setItem('kroudigital_multi_schools_v5', JSON.stringify(defaultSchools));
     }
   }, []);
 
@@ -87,7 +73,7 @@ export const SuperAdminHub: React.FC = () => {
     
     const updated = [...schools, newSchool];
     setSchools(updated);
-    localStorage.setItem('kroudigital_multi_schools', JSON.stringify(updated));
+    localStorage.setItem('kroudigital_multi_schools_v5', JSON.stringify(updated));
     setShowAddModal(false);
     showToast('បានបន្ថែមសាលាថ្មីដោយជោគជ័យ!', 'success');
     
@@ -98,15 +84,58 @@ export const SuperAdminHub: React.FC = () => {
   };
 
   const handleSwitchSchool = (school: SchoolEntry) => {
-    updateSchoolProfile({
+    // Save the active school code to dynamically change LOCAL_STORAGE_KEY
+    localStorage.setItem('kroudigital_active_school_code', school.schoolCode || school.id);
+    
+    // Seed the target school's profile directly in localStorage before reloading
+    const targetKey = `kroudigital_school_${school.schoolCode || school.id}_profile`;
+    const existingTargetProfile = localStorage.getItem(targetKey);
+    const parsedProfile = existingTargetProfile ? JSON.parse(existingTargetProfile) : {};
+    
+    localStorage.setItem(targetKey, JSON.stringify({
+      ...parsedProfile,
       nameKhmer: school.nameKhmer,
       schoolCode: school.schoolCode,
       level: school.level,
       principalName: school.principalName
-    });
-    // This will cause App.tsx to unmount SuperAdminHub and mount AdminLayout
-    setIsSuperAdminHub(false); 
+    }));
+
+    // Turn off the hub view so it boots straight into AdminLayout
+    localStorage.setItem('is_super_admin_hub', 'false');
+    
     showToast(`កំពុងចូលមើលសាលា: ${school.nameKhmer}`, 'success');
+    
+    // Force reload to completely swap out LOCAL_STORAGE_KEY in SchoolContext
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 500);
+  };
+
+  const handleDeleteSchool = (id: string, name: string) => {
+    if (window.confirm(`តើអ្នកពិតជាចង់លុបសាលា "${name}" នេះចេញពីប្រព័ន្ធមែនទេ?`)) {
+      const updated = schools.filter(s => s.id !== id);
+      setSchools(updated);
+      localStorage.setItem('kroudigital_multi_schools_v5', JSON.stringify(updated));
+      showToast('សាលាត្រូវបានលុបដោយជោគជ័យ', 'info');
+    }
+  };
+
+
+  const handleResetData = () => {
+    if (window.confirm('តើអ្នកពិតជាចង់កំណត់ទិន្នន័យសាលាឡើងវិញមែនទេ? ទិន្នន័យនេះនឹងលុបសាលាទាំងអស់ដែលបានបញ្ចូល ហើយត្រឡប់ទៅសាលាដើមវិញ។')) {
+      const defaultSchools: SchoolEntry[] = [
+        {
+          id: 'phnom_pom_primary',
+          nameKhmer: 'សាលាបឋមសិក្សាភ្នំពុំ',
+          schoolCode: '02100108027',
+          level: 'primary',
+          principalName: 'លោកគ្រូ លីម សន'
+        }
+      ];
+      setSchools(defaultSchools);
+      localStorage.setItem('kroudigital_multi_schools_v5', JSON.stringify(defaultSchools));
+      showToast('ទិន្នន័យត្រូវបានកំណត់ឡើងវិញ!', 'success');
+    }
   };
 
   const toggleLevel = (level: string) => {
@@ -138,10 +167,15 @@ export const SuperAdminHub: React.FC = () => {
           </div>
         </div>
         
-        <button onClick={logout} className="flex items-center gap-2 px-4 py-2 bg-[#164049] hover:bg-red-500/20 hover:text-red-400 text-slate-300 rounded-lg text-sm font-bold transition">
-          <LogOut className="w-4 h-4" />
-          <span className="hidden sm:inline">ចាកចេញ</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handleResetData} className="flex items-center gap-2 px-4 py-2 bg-[#164049] hover:bg-amber-500/20 hover:text-amber-400 text-slate-300 rounded-lg text-sm font-bold transition">
+            <span className="hidden sm:inline">កំណត់ឡើងវិញ</span>
+          </button>
+          <button onClick={logout} className="flex items-center gap-2 px-4 py-2 bg-[#164049] hover:bg-red-500/20 hover:text-red-400 text-slate-300 rounded-lg text-sm font-bold transition">
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">ចាកចេញ</span>
+          </button>
+        </div>
       </div>
 
       <div className="max-w-4xl mx-auto p-4 sm:p-6 md:p-8 space-y-8 mt-4">
@@ -198,12 +232,21 @@ export const SuperAdminHub: React.FC = () => {
                             <UserPlus className="w-4 h-4 text-cyan-400" />
                             <span className="truncate">នាយក: <span className="font-bold text-slate-200">{school.principalName}</span></span>
                           </div>
-                          <button 
-                            onClick={() => handleSwitchSchool(school)}
-                            className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#164049] group-hover:bg-purple-600 text-white rounded-lg text-sm font-bold transition-colors"
-                          >
-                            ចូលផ្ទាំងគ្រប់គ្រងនាយក <ChevronRight className="w-4 h-4" />
-                          </button>
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => handleSwitchSchool(school)}
+                              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#164049] group-hover:bg-purple-600 text-white rounded-lg text-sm font-bold transition-colors"
+                            >
+                              ចូលផ្ទាំងគ្រប់គ្រងនាយក <ChevronRight className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleDeleteSchool(school.id, school.nameKhmer || ''); }}
+                              className="px-3 py-2.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-lg transition-colors border border-red-500/20"
+                              title="លុបសាលានេះ"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>

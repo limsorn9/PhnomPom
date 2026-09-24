@@ -8,7 +8,6 @@ export const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('Ls12122012@');
   const [showPassword, setShowPassword] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(1);
-  const [selectedRole, setSelectedRole] = useState<'teacher' | 'director' | 'super_admin'>('teacher');
 
   // Auto-slide tablet mockup
   useEffect(() => {
@@ -21,12 +20,7 @@ export const LoginPage: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    let targetUsername = username;
-    if (selectedRole === 'teacher') targetUsername = 'limsorn';
-    if (selectedRole === 'director') targetUsername = 'director';
-    if (selectedRole === 'super_admin') targetUsername = 'superadmin';
-
-    const success = await login(targetUsername, 'Ls12122012@');
+    const success = await login(username, password);
     if (!success) {
       showToast('ឈ្មោះអ្នកប្រើប្រាស់ ឬលេខសម្ងាត់មិនត្រឹមត្រូវ', 'error');
     }
@@ -197,34 +191,6 @@ export const LoginPage: React.FC = () => {
                 <Smartphone className="w-3 h-3" />
                 Scan QR ចូលប្រើប្រាស់
               </a>
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-[#164049]/50 flex justify-center">
-              <div className="relative group">
-                <button className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-300 transition">
-                  ចូលក្នុងនាម {selectedRole === 'teacher' ? 'គ្រូបង្រៀន' : selectedRole === 'director' ? 'នាយកសាលា' : 'Super Admin'} <ChevronDown className="w-3 h-3 ml-1" />
-                </button>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-[#0a2126] border border-[#164049] rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
-                  <button 
-                    onClick={() => setSelectedRole('teacher')}
-                    className={`w-full text-left px-4 py-2.5 text-xs transition ${selectedRole === 'teacher' ? 'bg-emerald-500/20 text-emerald-400 font-bold' : 'text-slate-300 hover:bg-[#10323a]'}`}
-                  >
-                    គ្រូបង្រៀន (លីម សន)
-                  </button>
-                  <button 
-                    onClick={() => setSelectedRole('director')}
-                    className={`w-full text-left px-4 py-2.5 text-xs transition ${selectedRole === 'director' ? 'bg-cyan-500/20 text-cyan-400 font-bold' : 'text-slate-300 hover:bg-[#10323a]'}`}
-                  >
-                    នាយកសាលា
-                  </button>
-                  <button 
-                    onClick={() => setSelectedRole('super_admin')}
-                    className={`w-full text-left px-4 py-2.5 text-xs transition ${selectedRole === 'super_admin' ? 'bg-purple-500/20 text-purple-400 font-bold' : 'text-slate-300 hover:bg-[#10323a]'}`}
-                  >
-                    Super Admin
-                  </button>
-                </div>
-              </div>
             </div>
 
           </div>

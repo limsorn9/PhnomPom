@@ -492,7 +492,10 @@ interface SchoolContextType {
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = 'phnom_pom_primary_school_v2';
+const activeSchoolCode = localStorage.getItem('kroudigital_active_school_code') || 'default';
+export const LOCAL_STORAGE_KEY = (activeSchoolCode === 'default' || activeSchoolCode === '02100108027')
+  ? 'phnom_pom_primary_school_v2' 
+  : `kroudigital_school_${activeSchoolCode}`;
 
 export const safeJsonParse = <T,>(raw: string | null, fallback: T): T => {
   if (!raw) return fallback;
@@ -683,7 +686,14 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
   const [confirmModalConfig, setConfirmModalConfig] = useState<ConfirmActionConfig | null>(null);
-  const [isSuperAdminHub, setIsSuperAdminHub] = useState(true);
+  const [isSuperAdminHub, setIsSuperAdminHub] = useState(() => {
+    return localStorage.getItem('is_super_admin_hub') !== 'false';
+  });
+
+  // Sync it back whenever it changes
+  useEffect(() => {
+    localStorage.setItem('is_super_admin_hub', isSuperAdminHub ? 'true' : 'false');
+  }, [isSuperAdminHub]);
 
   const confirmAction = (config: ConfirmActionConfig) => {
     setConfirmModalConfig(config);

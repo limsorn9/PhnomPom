@@ -94,6 +94,8 @@ export const Header: React.FC<HeaderProps> = ({
     toastMessage,
     showToast,
     currentUser,
+    isSuperAdminHub,
+    setIsSuperAdminHub,
     teachers,
     switchToTeacherAccount,
     logout: logoutApp,
@@ -644,6 +646,26 @@ export const Header: React.FC<HeaderProps> = ({
                       <div className="min-w-0 flex-1">
                         <p className="leading-tight text-amber-950 dark:text-amber-200 font-bold">{language === 'en' ? 'School Profile & Settings' : '🏫 ការកំណត់ព័ត៌មានសាលា'}</p>
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal truncate">ឈ្មោះសាលា, នាយក, ត្រា, ឡូហ្គោ</p>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Return to Super Admin Hub */}
+                  {currentUser?.role === 'super_admin' && !isSuperAdminHub && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSuperAdminHub(true);
+                        setTimeout(() => window.location.href = '/', 100);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs hover:bg-purple-50 dark:hover:bg-purple-900/40 bg-purple-50/50 dark:bg-purple-900/20 transition-colors cursor-pointer mt-1 border border-purple-100 dark:border-purple-800/50 text-left"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-900/60 text-purple-600 dark:text-purple-300 flex items-center justify-center shrink-0">
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="leading-tight text-purple-900 dark:text-purple-200 font-bold">Super Admin Hub</p>
+                        <p className="text-[10px] text-purple-600 dark:text-purple-400 font-normal truncate">ត្រឡប់ទៅផ្ទាំងកណ្តាល</p>
                       </div>
                     </button>
                   )}
