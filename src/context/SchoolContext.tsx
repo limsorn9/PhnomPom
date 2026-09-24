@@ -741,6 +741,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       ...t,
       role: t.role || 'teacher',
       username: t.username || t.phone || t.email || t.staffCode || t.id,
+      password: t.password || t.phone || '12345678',
       status: t.status || 'active',
       createdAt: "2024-01-01"
     } as AppUser));
@@ -749,6 +750,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       ...s,
       role: s.role || 'student',
       username: s.username || s.code || s.id,
+      password: s.password || s.code || '12345678',
       status: s.status || 'active',
       email: s.email || '',
       createdAt: "2024-01-01"
@@ -5288,9 +5290,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
 
     if (targetUser) {
-      setAppUsers(prev =>
-        prev.map(u => (u.id === targetUser!.id ? { ...u, password: newPassword, passwordUpdatedAt: new Date().toISOString() } : u))
-      );
+      updateUser(targetUser!.id, { password: newPassword, passwordUpdatedAt: new Date().toISOString() });
       targetUser = { ...targetUser, password: newPassword, passwordUpdatedAt: new Date().toISOString() };
     } else if (targetTeacher) {
       const newUser: AppUser = {
@@ -5405,9 +5405,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     if (targetUser || targetTeacher) {
       if (targetUser) {
-        setAppUsers(prev =>
-          prev.map(u => (u.id === targetUser.id ? { ...u, password: newPassword, passwordUpdatedAt: new Date().toISOString() } : u))
-        );
+        updateUser(targetUser.id, { password: newPassword, passwordUpdatedAt: new Date().toISOString() });
       } else if (targetTeacher) {
         const newUser: AppUser = {
           id: `u-${Date.now()}`,
@@ -5444,9 +5442,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Direct fallback if email exists in appUsers under any role
     const anyUser = appUsers.find(u => u.email.toLowerCase() === cleanEmail);
     if (anyUser) {
-      setAppUsers(prev =>
-        prev.map(u => (u.id === anyUser.id ? { ...u, password: newPassword, passwordUpdatedAt: new Date().toISOString() } : u))
-      );
+      updateUser(anyUser.id, { password: newPassword, passwordUpdatedAt: new Date().toISOString() });
       return {
         success: true,
         message: `ការផ្ទៀងផ្ទាត់ជោគជ័យ! ពាក្យសម្ងាត់ថ្មីរបស់ ${anyUser.nameKhmer} ត្រូវបានកំណត់ដោយជោគជ័យ។`
@@ -5477,9 +5473,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (targetUser) {
         if (newPassword) {
-          setAppUsers(prev =>
-            prev.map(u => (u.id === targetUser!.id ? { ...u, password: passToSet } : u))
-          );
+          updateUser(targetUser!.id, { password: passToSet });
         }
       } else if (targetTeacher) {
         const newUser: AppUser = {
@@ -5565,9 +5559,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
 
     if (existingUser) {
-      setAppUsers(prev =>
-        prev.map(u => (u.id === existingUser.id ? { ...u, password: newPassword } : u))
-      );
+      updateUser(existingUser.id, { password: newPassword });
     } else {
       const newUser: AppUser = {
         id: `u-${Date.now()}`,
@@ -5751,9 +5743,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!requesterUserId) return { success: false, message: 'រកមិនឃើញអត្តសញ្ញាណអ្នកស្នើសុំទេ' };
 
     const newPass = proposedNewPassword || `reset_pass_${Math.floor(100000 + Math.random() * 900000)}`;
-    setAppUsers(prev =>
-      prev.map(u => (u.id === requesterUserId ? { ...u, password: newPass, passwordUpdatedAt: new Date().toISOString() } : u))
-    );
+    updateUser(requesterUserId, { password: newPass, passwordUpdatedAt: new Date().toISOString() });
 
     markNotificationRead(notificationId);
 

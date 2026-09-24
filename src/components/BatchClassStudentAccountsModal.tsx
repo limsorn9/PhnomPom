@@ -62,7 +62,7 @@ export const BatchClassStudentAccountsModal: React.FC<BatchClassStudentAccountsM
     students,
     addStudent,
     appUsers,
-    setAppUsers,
+    updateUser, updateStudent,
     currentUser,
     schoolProfile,
     showToast,
@@ -521,11 +521,30 @@ export const BatchClassStudentAccountsModal: React.FC<BatchClassStudentAccountsM
         });
       }
 
-      // Commit users to context
+      // Commit users to context (SSOT pattern)
       if (newUsersToAdd.length > 0) {
-        setAppUsers(prev => [...newUsersToAdd, ...prev]);
-      } else if (updated > 0) {
-        setAppUsers(updatedUsers);
+        newUsersToAdd.forEach(user => {
+          if (user.studentId) {
+             updateStudent(user.studentId, {
+               username: user.username,
+               password: user.password,
+               email: user.email,
+               status: user.status
+             });
+          }
+        });
+      }
+      if (updated > 0) {
+        updatedUsers.forEach(user => {
+           if (user.studentId) {
+             updateStudent(user.studentId, {
+               username: user.username,
+               password: user.password,
+               email: user.email,
+               status: user.status
+             });
+          }
+        });
       }
 
       // Security Audit Trail
