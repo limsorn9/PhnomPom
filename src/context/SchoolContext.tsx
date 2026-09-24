@@ -48,6 +48,7 @@ import {
   initialAcademicAchievements,
   initialSchoolGroups
 } from '../data/initialData';
+import { ConfirmActionModal } from '../components/common/ConfirmActionModal';
 
 const isGoogleAuthenticated = () => false;
 const googleSignIn = async () => {};
