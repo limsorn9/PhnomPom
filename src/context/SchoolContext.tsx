@@ -724,44 +724,6 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return 'dashboard';
   };
 
-  // App Users State
-  const appUsers = useMemo(() => {
-    const defaultSuperAdmin: AppUser = {
-      id: "u-super-admin",
-      username: "limsorn",
-      email: "limsorn@school.gov.kh",
-      password: "Ls12122012@",
-      nameKhmer: "នាយកសាលា (Super Admin)",
-      role: "super_admin",
-      status: "active",
-      createdAt: "2024-01-01"
-    };
-
-    const mappedTeachers: AppUser[] = teachers.map(t => ({
-      ...t,
-      role: t.role || 'teacher',
-      username: t.username || t.phone || t.email || t.staffCode || t.id,
-      password: t.password || t.phone || '12345678',
-      status: t.status || 'active',
-      createdAt: "2024-01-01"
-    } as AppUser));
-
-    const mappedStudents: AppUser[] = students.map(s => ({
-      ...s,
-      role: s.role || 'student',
-      username: s.username || s.code || s.id,
-      password: s.password || s.code || '12345678',
-      status: s.status || 'active',
-      email: s.email || '',
-      createdAt: "2024-01-01"
-    } as AppUser));
-
-    return [defaultSuperAdmin, ...mappedTeachers, ...mappedStudents];
-  }, [teachers, students]);
-
-  const setAppUsers = (val: any) => {
-    console.warn("setAppUsers is a no-op in SSOT. Update Student or Teacher directly.");
-  };
 
   // Recently Deleted Users (30-day soft delete retention)
   const [deletedUsers, setDeletedUsers] = useState<DeletedAppUser[]>(() => {
@@ -971,20 +933,51 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
 
   const [teachers, setTeachers] = useState<Teacher[]>(() => {
-    const raw = safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_teachers`), initialTeachers);
-    return ensureStaffInTeachers(raw, appUsers);
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_teachers`), initialTeachers);
   });
 
-  // Automatically synchronize staff accounts into teachers directory whenever appUsers changes
-  useEffect(() => {
-    setTeachers(prev => {
-      const updated = ensureStaffInTeachers(prev, appUsers);
-      if (updated.length !== prev.length) {
-        return updated;
-      }
-      return prev;
-    });
-  }, [appUsers]);
+  // App Users State
+  const appUsers = useMemo(() => {
+    const defaultSuperAdmin: AppUser = {
+      id: "u-super-admin",
+      username: "limsorn",
+      email: "limsorn@school.gov.kh",
+      password: "Ls12122012@",
+      nameKhmer: "នាយកសាលា (Super Admin)",
+      role: "super_admin",
+      status: "active",
+      createdAt: "2024-01-01"
+    };
+
+    const mappedTeachers: AppUser[] = teachers.map(t => ({
+      ...t,
+      role: t.role || 'teacher',
+      username: t.username || t.phone || t.email || t.staffCode || t.id,
+      password: t.password || t.phone || '12345678',
+      status: t.status || 'active',
+      createdAt: "2024-01-01"
+    } as AppUser));
+
+    const mappedStudents: AppUser[] = students.map(s => ({
+      ...s,
+      role: s.role || 'student',
+      username: s.username || s.code || s.id,
+      password: s.password || s.code || '12345678',
+      status: s.status || 'active',
+      email: s.email || '',
+      createdAt: "2024-01-01"
+    } as AppUser));
+
+    return [defaultSuperAdmin, ...mappedTeachers, ...mappedStudents];
+  }, [teachers, students]);
+
+  const setAppUsers = (val: any) => {
+    console.warn("setAppUsers is a no-op in SSOT. Update Student or Teacher directly.");
+  };
+
+
+  // App Users State (SSOT Derived)
+  
 
   const [classrooms, setClassrooms] = useState<Classroom[]>(() => {
     return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_classrooms`), initialClassrooms);
