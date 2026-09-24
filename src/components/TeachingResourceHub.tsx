@@ -3,8 +3,7 @@ import { useSchool } from '../context/SchoolContext';
 import { TeachingResourceFile } from '../types';
 import {
   uploadFileToDrive,
-  getDriveFolderUrl,
-  PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+  getDriveFolderUrl
 } from '../services/googleDrive';
 import { getAccessToken, googleSignIn } from '../services/googleAuth';
 import {
@@ -55,8 +54,7 @@ export const TeachingResourceHub: React.FC = () => {
     grade: 5,
     fileType: 'pdf' as 'pdf' | 'slide' | 'doc' | 'sheet' | 'video' | 'audio' | 'other',
     category: 'lesson_plan' as 'lesson_plan' | 'slide_presentation' | 'worksheet' | 'supplementary_book' | 'assessment_rubric' | 'multimedia',
-    googleDriveFolderId: PRIMARY_SCHOOL_DRIVE_FOLDER_ID,
-    externalUrl: '',
+    googleDriveFolderId: "", externalUrl: '',
     selectedFile: null as File | null
   };
 
@@ -96,7 +94,7 @@ export const TeachingResourceHub: React.FC = () => {
       setFormData({
         ...formData,
         selectedFile: file,
-        titleKhmer: formData.titleKhmer || file.name.replace(/\.[^/.]+$/, "")
+        titleKhmer: formData.titleKhmer || file.name.replace(/\.[^/.]+$/)
       });
     }
   };
@@ -131,11 +129,10 @@ export const TeachingResourceHub: React.FC = () => {
             formData.selectedFile,
             formData.selectedFile.name,
             formData.selectedFile.type || 'application/octet-stream',
-            PRIMARY_SCHOOL_DRIVE_FOLDER_ID,
             formData.description
           );
           driveFileId = driveResult.id;
-          webViewLink = driveResult.webViewLink || getDriveFolderUrl(PRIMARY_SCHOOL_DRIVE_FOLDER_ID);
+          webViewLink = driveResult.webViewLink || getDriveFolderUrl("");
           downloadLink = driveResult.webContentLink || driveResult.webViewLink;
         }
       } catch (err: any) {
@@ -154,7 +151,7 @@ export const TeachingResourceHub: React.FC = () => {
       fileSizeFormatted: fileSizeStr,
       originalFileName: formData.selectedFile?.name || `${formData.titleKhmer}.${formData.fileType === 'pdf' ? 'pdf' : 'docx'}`,
       driveFileId: driveFileId,
-      driveWebViewLink: webViewLink || getDriveFolderUrl(PRIMARY_SCHOOL_DRIVE_FOLDER_ID),
+      driveWebViewLink: webViewLink || getDriveFolderUrl(""),
       driveDownloadLink: downloadLink,
       authorTeacherName: currentUser?.name || 'អ្នកគ្រូ កែវ ផល្លា',
       downloadsCount: 0,
@@ -186,7 +183,7 @@ export const TeachingResourceHub: React.FC = () => {
 
         <div className="flex flex-wrap items-center gap-3">
           <a
-            href={getDriveFolderUrl(PRIMARY_SCHOOL_DRIVE_FOLDER_ID)}
+            href={getDriveFolderUrl("")}
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-2 px-4 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-medium shadow-md transition-all text-sm"
@@ -310,7 +307,7 @@ export const TeachingResourceHub: React.FC = () => {
 
                 <div className="flex items-center gap-2">
                   <a
-                    href={resource.googleDriveWebViewLink || `https://drive.google.com/drive/folders/${PRIMARY_SCHOOL_DRIVE_FOLDER_ID}`}
+                    href={resource.googleDriveWebViewLink || `https://drive.google.com/drive/folders/`}
                     target="_blank"
                     rel="noreferrer"
                     className="flex-1 py-1.5 px-3 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-1.5"

@@ -16,9 +16,9 @@ export interface DriveItem {
 
 import { CloudVersionMetadata } from '../types';
 
-export const PRIMARY_SCHOOL_DRIVE_FOLDER_ID = '1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g';
 
-export const getDriveFolderUrl = (folderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID): string => {
+
+export const getDriveFolderUrl = (folderId: string = ""): string => {
   return `https://drive.google.com/drive/folders/${folderId}`;
 };
 
@@ -193,7 +193,7 @@ export const deleteDriveItem = async (fileId: string): Promise<void> => {
 export const backupSchoolDataToDrive = async (
   schoolData: any,
   schoolName: string,
-  targetFolderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+  targetFolderId: string = ""
 ): Promise<DriveItem> => {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const fileName = `បម្រុងទុកទិន្នន័យ_${schoolName.replace(/\s+/g, '_')}_${timestamp}.json`;
@@ -389,7 +389,7 @@ export const generateMeetingMinutesHtmlDocument = (meeting: any, schoolProfile: 
 export const uploadMeetingMinutesToDrive = async (
   meeting: any,
   schoolProfile: any,
-  targetFolderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+  targetFolderId: string = ""
 ): Promise<DriveItem> => {
   const htmlContent = generateMeetingMinutesHtmlDocument(meeting, schoolProfile);
   const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
@@ -570,7 +570,7 @@ export const uploadFinancialReportToDrive = async (
   transactions: any[],
   schoolProfile: any,
   academicYear: string,
-  targetFolderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+  targetFolderId: string = ""
 ): Promise<DriveItem> => {
   const htmlContent = generateFinancialReportHtmlDocument(monthlySummaries, transactions, schoolProfile, academicYear);
   const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
@@ -744,7 +744,7 @@ export const uploadStudentRosterToDrive = async (
   classroomTitle: string,
   schoolProfile: any,
   academicYear: string,
-  targetFolderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+  targetFolderId: string = ""
 ): Promise<DriveItem> => {
   const htmlContent = generateStudentRosterHtmlDocument(studentsList, classroomTitle, schoolProfile, academicYear);
   const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
@@ -925,7 +925,7 @@ export const uploadScoresToDrive = async (
   monthOrSemester: string,
   schoolProfile: any,
   academicYear: string,
-  targetFolderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+  targetFolderId: string = ""
 ): Promise<DriveItem> => {
   const htmlContent = generateScoresHtmlDocument(scoresList, examSubjects, classroomTitle, monthOrSemester, schoolProfile, academicYear);
   const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
@@ -1055,7 +1055,7 @@ export const uploadHonorRollToDrive = async (
   monthOrSemester: string,
   schoolProfile: any,
   academicYear: string,
-  targetFolderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+  targetFolderId: string = ""
 ): Promise<DriveItem> => {
   const htmlContent = generateHonorRollHtmlDocument(topStudents, classroomTitle, monthOrSemester, schoolProfile, academicYear);
   const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
@@ -1253,7 +1253,7 @@ export const uploadStaffDirectoryToDrive = async (
   teachersList: any[],
   schoolProfile: any,
   academicYear: string,
-  targetFolderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+  targetFolderId: string = ""
 ): Promise<DriveItem> => {
   const htmlContent = generateStaffDirectoryHtmlDocument(teachersList, schoolProfile, academicYear);
   const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
@@ -1274,7 +1274,7 @@ export const listFilesFromDrive = listDriveFiles;
  * Fetch and analyze the latest Cloud Master Backup from Google Drive
  */
 export const fetchLatestCloudMasterBackup = async (
-  folderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+  folderId: string = ""
 ): Promise<CloudVersionMetadata | null> => {
   try {
     const files = await listDriveFiles(folderId);
@@ -1367,7 +1367,7 @@ export const fetchLatestCloudMasterBackup = async (
 export const uploadProfilePhotoToDrive = async (
   file: File | Blob,
   fileName: string = `profile_${Date.now()}.jpg`,
-  parentFolderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+  parentFolderId: string = ""
 ): Promise<{ fileId: string; viewUrl: string; directPhotoUrl: string }> => {
   let token = await getAccessToken();
   if (!token) {

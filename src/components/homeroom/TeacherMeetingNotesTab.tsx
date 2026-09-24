@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useSchool } from '../../context/SchoolContext';
 import { TeacherMeetingRecord, MeetingActionItem } from '../../types';
-import { createTeacherMeetingGoogleCalendarEvent, PRIMARY_SCHOOL_DRIVE_FOLDER_ID } from '../../services/googleCalendar';
+
 import { getAccessToken, googleSignIn } from '../../services/googleAuth';
 import {
   Users,
@@ -79,7 +79,7 @@ export const TeacherMeetingNotesTab: React.FC<TeacherMeetingNotesTabProps> = ({
   const [isFloatingCollapsed, setIsFloatingCollapsed] = useState(false);
   const [isFloatingHidden, setIsFloatingHidden] = useState(false);
 
-  const TARGET_DRIVE_FOLDER_ID = PRIMARY_SCHOOL_DRIVE_FOLDER_ID; // 1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g
+  const TARGET_DRIVE_FOLDER_ID = ""; // 1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g
 
   // Form State
   const initialForm = {

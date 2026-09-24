@@ -33,7 +33,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { User } from 'firebase/auth';
-import { backupSchoolDataToDrive, PRIMARY_SCHOOL_DRIVE_FOLDER_ID } from '../services/googleDrive';
+
 import { isGoogleAuthenticated, loginWithGoogle } from '../services/googleAuth';
 
 interface GoogleDriveSyncModalProps {
@@ -82,7 +82,7 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
   } = useSchool();
 
   const targetEmail = 'limsorn9@gmail.com';
-  const defaultFolderId = driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+  const defaultFolderId = driveAutoSyncConfig.folderId || "";
   const defaultFolderUrl = `https://drive.google.com/drive/folders/${defaultFolderId}?usp=sharing`;
 
   const [activeTab, setActiveTab] = useState<'overview' | 'meetings' | 'finances' | 'students' | 'scores' | 'honor' | 'restore' | 'history' | 'settings'>('overview');
@@ -96,14 +96,14 @@ export const GoogleDriveSyncModal: React.FC<GoogleDriveSyncModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setIsConnected(isGoogleAuthenticated());
-      setFolderIdInput(driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID);
+      setFolderIdInput(driveAutoSyncConfig.folderId || "");
     }
   }, [isOpen, driveAutoSyncConfig.folderId]);
 
   if (!isOpen) return null;
 
   const handleSaveFolderId = () => {
-    const trimmed = folderIdInput.trim() || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    const trimmed = folderIdInput.trim() || "";
     updateDriveAutoSyncConfig({ folderId: trimmed });
     showToast(`បានកំណត់ Folder ID: ${trimmed} សម្រាប់ Google Drive ជោគជ័យ!`, 'success');
   };

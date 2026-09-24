@@ -262,7 +262,7 @@ export const fetchGoogleCalendarEvents = async (
   }));
 };
 
-export const PRIMARY_SCHOOL_DRIVE_FOLDER_ID = '1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g';
+
 
 /**
  * Creates/Syncs a Teacher Meeting with full resolutions & agenda to Google Calendar
@@ -270,7 +270,7 @@ export const PRIMARY_SCHOOL_DRIVE_FOLDER_ID = '1GCMdTew9rgw5lwkBhmsEuy8WBGELNM1g
 export const createTeacherMeetingGoogleCalendarEvent = async (
   meeting: TeacherMeetingRecord,
   schoolProfile: SchoolProfile,
-  driveFolderId: string = PRIMARY_SCHOOL_DRIVE_FOLDER_ID
+  driveFolderId: string = ""
 ): Promise<{ success: boolean; eventId?: string; htmlLink?: string; error?: string }> => {
   const token = await getAccessToken();
   if (!token) {

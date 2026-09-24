@@ -16,7 +16,7 @@ import { GoogleDriveSyncModal } from './GoogleDriveSyncModal';
 import { NewClassroomWizardModal } from './NewClassroomWizardModal';
 import { AddStudentModal } from './AddStudentModal';
 import { BulkImportStudentsModal } from './BulkImportStudentsModal';
-import { PRIMARY_SCHOOL_DRIVE_FOLDER_ID } from '../services/googleDrive';
+
 import {
   Users,
   CheckCircle2,
@@ -245,7 +245,7 @@ export const HomeroomTeacherDashboard: React.FC = () => {
   };
 
   // Google Drive info
-  const targetDriveFolderId = driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+  const targetDriveFolderId = driveAutoSyncConfig.folderId || "";
   const syncedMeetingsCount = teacherMeetings.filter(m => m.isSyncedToGoogleDrive).length;
   const isFinanceSynced = driveSyncHistory.some(h => h.category === 'financial_report' && h.status === 'success');
 

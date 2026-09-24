@@ -2310,8 +2310,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     syncScores: true,
     syncHonorRoll: true,
     syncStaffDirectory: true,
-    folderId: PRIMARY_SCHOOL_DRIVE_FOLDER_ID,
-    autoSyncOnChanges: true,
+    folderId: "", autoSyncOnChanges: true,
     lastAutoSyncTime: undefined
   };
 
@@ -2335,9 +2334,8 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         categoryLabelKhmer: 'កំណត់ហេតុកិច្ចប្រជុំ',
         fileName: 'កំណត់ហេតុ_កិច្ចប្រជុំប្រចាំខែសីហា_២០២៦_2026-08-28.html',
         fileSizeFormatted: '18.4 KB',
-        folderId: PRIMARY_SCHOOL_DRIVE_FOLDER_ID,
-        driveFileId: 'drv-mock-mtg-1',
-        driveWebViewLink: `https://drive.google.com/drive/folders/${PRIMARY_SCHOOL_DRIVE_FOLDER_ID}`,
+        folderId: "", driveFileId: 'drv-mock-mtg-1',
+        driveWebViewLink: `https://drive.google.com/drive/folders/`,
         status: 'success',
         syncedAt: '2026-08-23T18:30:00Z',
         syncedBy: 'limsorn9@gmail.com'
@@ -2349,9 +2347,8 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         categoryLabelKhmer: 'របាយការណ៍ហិរញ្ញវត្ថុ',
         fileName: 'របាយការណ៍ហិរញ្ញវត្ថុ_ថវិកា១២ខែ_2026-2027.html',
         fileSizeFormatted: '24.2 KB',
-        folderId: PRIMARY_SCHOOL_DRIVE_FOLDER_ID,
-        driveFileId: 'drv-mock-fin-1',
-        driveWebViewLink: `https://drive.google.com/drive/folders/${PRIMARY_SCHOOL_DRIVE_FOLDER_ID}`,
+        folderId: "", driveFileId: 'drv-mock-fin-1',
+        driveWebViewLink: `https://drive.google.com/drive/folders/`,
         status: 'success',
         syncedAt: '2026-08-23T18:30:10Z',
         syncedBy: 'limsorn9@gmail.com'
@@ -2386,7 +2383,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setVersionConflictState(prev => ({ ...prev, isChecking: true }));
     try {
-      const targetFolder = driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+      const targetFolder = driveAutoSyncConfig.folderId || "";
       const cloudVersion = await fetchLatestCloudMasterBackup(targetFolder);
       
       if (!cloudVersion) {
@@ -2512,7 +2509,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     setIsDriveSyncing(true);
-    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || "";
     try {
       if (!isGoogleAuthenticated()) {
         await googleSignIn();
@@ -2584,7 +2581,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setIsDriveSyncing(true);
     let successCount = 0;
     let failedCount = 0;
-    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || "";
 
     try {
       if (!isGoogleAuthenticated()) {
@@ -2650,7 +2647,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setIsDriveSyncing(true);
     const targetYear = academicYear || selectedAcademicYear;
     const summaries = getMonthlyBudgetSummaries(targetYear);
-    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || "";
 
     try {
       if (!isGoogleAuthenticated()) {
@@ -2711,7 +2708,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const syncStudentRosterToDrive = async (classroomOrId?: string, folderIdOverride?: string) => {
     setIsDriveSyncing(true);
-    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || "";
     try {
       if (!isGoogleAuthenticated()) {
         await googleSignIn();
@@ -2773,7 +2770,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const syncScoresAndRankingsToDrive = async (grade?: number, section?: string, month?: string, folderIdOverride?: string) => {
     setIsDriveSyncing(true);
-    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || "";
     const targetMonth = month || 'មករា';
 
     try {
@@ -2869,7 +2866,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const syncHonorRollToDrive = async (grade?: number, section?: string, month?: string, folderIdOverride?: string) => {
     setIsDriveSyncing(true);
-    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || "";
     const targetMonth = month || 'មករា';
 
     try {
@@ -2971,7 +2968,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const syncStaffDirectoryToDrive = async (folderIdOverride?: string) => {
     setIsDriveSyncing(true);
-    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    const targetFolder = folderIdOverride || driveAutoSyncConfig.folderId || "";
 
     try {
       if (!isGoogleAuthenticated()) {
@@ -3063,7 +3060,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const triggerDriveAutoSyncAll = async () => {
     setIsDriveSyncing(true);
-    const targetFolder = driveAutoSyncConfig.folderId || PRIMARY_SCHOOL_DRIVE_FOLDER_ID;
+    const targetFolder = driveAutoSyncConfig.folderId || "";
     try {
       if (!isGoogleAuthenticated()) {
         await googleSignIn();
