@@ -50,6 +50,13 @@ import {
 } from '../data/initialData';
 import { ConfirmActionModal } from '../components/common/ConfirmActionModal';
 const subscribeToSchoolData = (cb: any) => { return () => {}; };
+const setupOfflineAutoSync = (...args: any[]) => { return () => {}; };
+const showBrowserPushNotification = (...args: any[]) => { return () => {}; };
+const generateScoreDeadlineReminder = (...args: any[]) => { return () => {}; };
+const generateSchoolActivityReminder = (...args: any[]) => { return () => {}; };
+const notifyTelegramNewStudent = (...args: any[]) => { return () => {}; };
+const notifyTelegramNewTeacher = (...args: any[]) => { return () => {}; };
+const notifyTelegramScoreUpdate = (...args: any[]) => { return () => {}; };
 const fetchSchoolDataFromFirestore = async () => null;
 
 const isGoogleAuthenticated = () => false;
