@@ -725,38 +725,41 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // App Users State
-  const [appUsers, setAppUsers] = useState<AppUser[]>(() => {
-    const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY}_users`);
-    if (saved) {
-      try {
-        const parsed: AppUser[] = JSON.parse(saved);
-        // Ensure super admin credentials are kept up to date with new password
-        const updated = parsed.map(u => {
-          if (u.email?.toLowerCase() === 'limsorn9@gmail.com' || u.username === 'limsorn') {
-            return { ...u, password: 'Ls12122012@' };
-          }
-          return u;
-        });
+  const appUsers = useMemo(() => {
+    const defaultSuperAdmin: AppUser = {
+      id: "u-super-admin",
+      username: "limsorn",
+      email: "limsorn@school.gov.kh",
+      password: "Ls12122012@",
+      nameKhmer: "នាយកសាលា (Super Admin)",
+      role: "super_admin",
+      status: "active",
+      createdAt: "2024-01-01"
+    };
 
-        // Ensure foundational school roles are available
-        const merged = [...updated];
-        for (const initU of initialUsers) {
-          const exists = merged.some(
-            u => u.id === initU.id || 
-                 u.username.toLowerCase() === initU.username.toLowerCase() || 
-                 (u.email && initU.email && u.email.toLowerCase() === initU.email.toLowerCase())
-          );
-          if (!exists) {
-            merged.push(initU);
-          }
-        }
-        return merged;
-      } catch {
-        return initialUsers;
-      }
-    }
-    return initialUsers;
-  });
+    const mappedTeachers: AppUser[] = teachers.map(t => ({
+      ...t,
+      role: t.role || 'teacher',
+      username: t.username || t.phone || t.email || t.staffCode || t.id,
+      status: t.status || 'active',
+      createdAt: "2024-01-01"
+    } as AppUser));
+
+    const mappedStudents: AppUser[] = students.map(s => ({
+      ...s,
+      role: s.role || 'student',
+      username: s.username || s.code || s.id,
+      status: s.status || 'active',
+      email: s.email || '',
+      createdAt: "2024-01-01"
+    } as AppUser));
+
+    return [defaultSuperAdmin, ...mappedTeachers, ...mappedStudents];
+  }, [teachers, students]);
+
+  const setAppUsers = (val: any) => {
+    console.warn("setAppUsers is a no-op in SSOT. Update Student or Teacher directly.");
+  };
 
   // Recently Deleted Users (30-day soft delete retention)
   const [deletedUsers, setDeletedUsers] = useState<DeletedAppUser[]>(() => {
@@ -4906,7 +4909,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const updateUser = (id: string, updated: Partial<AppUser>) => {
     const existing = appUsers.find(u => u.id === id);
-    setAppUsers(prev => prev.map(u => (u.id === id ? { ...u, ...updated } : u)));
+    
     if (currentUser && currentUser.id === id) {
       setCurrentUser(prev => {
         const next = prev ? { ...prev, ...updated } : null;
@@ -5667,7 +5670,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const updatedUser = { ...currentUser, ...finalUpdates };
     setCurrentUser(updatedUser);
-    setAppUsers(prev => prev.map(u => (u.id === currentUser.id ? updatedUser : u)));
+    
     localStorage.setItem(`${LOCAL_STORAGE_KEY}_current_user`, JSON.stringify(updatedUser));
 
     // Synchronize updates across teachers array if not a student
@@ -5936,7 +5939,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const addStudent = (studentData: Omit<Student, 'id' | 'code'>, options?: { skipTelegramNotification?: boolean }) => {
     // Check permissions
-    if (currentUser && !['director', 'super_admin', 'secretary', 'teacher'].includes(currentUser.role)) {
+    if (currentUser && !['director', 'super_admin'].includes(currentUser.role)) {
       showToast('អ្នកគ្មានសិទ្ធិបញ្ចូលសិស្សថ្មីចូលប្រព័ន្ធទេ!', 'error');
       return;
     }
@@ -5950,25 +5953,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
     setStudents(prev => [newStudent, ...prev]);
 
-    // Auto-create an AppUser account for the new student
-    const studentUser: AppUser = {
-      id: `u-${newStudent.id}`,
-      username: code,
-      password: code,
-      nameKhmer: newStudent.nameKhmer,
-      nameLatin: newStudent.nameLatin || '',
-      email: `${code.toLowerCase()}@student.phnompom.edu.kh`,
-      phone: newStudent.guardianPhone || '',
-      role: 'student',
-      studentId: newStudent.id,
-      studentCode: code,
-      assignedGrade: newStudent.grade,
-      assignedSection: newStudent.section,
-      avatarUrl: newStudent.avatarUrl || '',
-      status: 'active',
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-    setAppUsers(prev => [studentUser, ...prev]);
+    
 
     showToast(`បានបញ្ចូលសិស្ស «${newStudent.nameKhmer}» និងបង្កើតគណនី (អត្តលេខ ${code}) ជោគជ័យ!`);
 
@@ -6143,56 +6128,13 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const existing = students.find(s => s.id === id);
     if (!existing) return;
 
-    if (currentUser?.role === 'teacher') {
-      showToast('⚠️ សិទ្ធិលុបទិន្នន័យសិស្សជាផ្លូវការចេញពីប្រព័ន្ធ គឺសម្រាប់តែលោកនាយកសាលា ឬលេខាធិការ (ដោយមានការអនុញ្ញាត) ប៉ុណ្ណោះ!', 'error');
-      return;
-    }
-
-    if (currentUser?.role === 'secretary') {
-      openDirectorPinModal({
-        title: `អនុញ្ញាតការលុបទិន្នន័យសិស្ស «${existing.nameKhmer}» (ទាមទារសិទ្ធិនាយកសាលា)`,
-        callback: () => {
-          setStudents(prev => prev.filter(s => s.id !== id));
-          const deletedRecord: DeletedAppUser = {
-            id: `del-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-            entityType: 'student',
-            studentProfileBackup: existing,
-            deletedAt: new Date().toISOString(),
-            deletedBy: {
-              id: currentUser?.id,
-              nameKhmer: currentUser?.nameKhmer || 'មិនស្គាល់',
-              email: currentUser?.email || '',
-              role: currentUser?.role || 'unknown'
-            },
-            reason: 'លុបចេញពីបញ្ជីសិស្ស (អនុម័តដោយនាយក)',
-            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          };
-          setDeletedUsers(prev => [deletedRecord, ...prev]);
-          showToast('បានលុបទិន្នន័យសិស្ស និងរក្សាទុកក្នុងធុងសំរាម (ដោយមានការអនុញ្ញាតពីនាយក)!', 'info');
-
-          if (existing) {
-            addActivityLog({
-              domain: 'student',
-              actionType: 'delete',
-              title: `បានលុបទិន្នន័យសិស្ស៖ ${existing.nameKhmer}`,
-              description: `អត្តលេខ ${existing.code} • ថ្នាក់ទី ${existing.grade}${existing.section}`,
-              entityId: id,
-              entityCode: existing.code,
-              entityName: existing.nameKhmer,
-              actorName: currentUser?.nameKhmer || 'លេខាធិការ',
-              actorRole: 'លេខាធិការ (អនុញ្ញាតដោយនាយក)',
-              targetTab: 'students',
-              tags: [existing.code, 'អនុម័តដោយនាយក']
-            });
-          }
-        }
-      });
+    if (!currentUser || !['director', 'super_admin'].includes(currentUser.role)) {
+      showToast('អ្នកគ្មានសិទ្ធិលុបសិស្សទេ! អនុញ្ញាតតែនាយកសាលាប៉ុណ្ណោះ។', 'error');
       return;
     }
 
     setStudents(prev => prev.filter(s => s.id !== id));
 
-    // Add to deletedUsers bin
     const deletedRecord: DeletedAppUser = {
       id: `del-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       entityType: 'student',
@@ -6200,30 +6142,29 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       deletedAt: new Date().toISOString(),
       deletedBy: {
         id: currentUser?.id,
-        nameKhmer: currentUser?.nameKhmer || 'មិនស្គាល់',
+        nameKhmer: currentUser?.nameKhmer || 'Super Admin',
         email: currentUser?.email || '',
         role: currentUser?.role || 'unknown'
       },
-      reason: 'លុបចេញពីបញ្ជីសិស្ស',
+      reason: 'លុបពីបញ្ជី (លក្ខខណ្ឌនាយកសាលា)',
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     };
     setDeletedUsers(prev => [deletedRecord, ...prev]);
-
-    showToast('បានលុបទិន្នន័យសិស្ស និងរក្សាទុកក្នុងធុងសំរាម!', 'info');
+    showToast('បានលុបសិស្សដោយជោគជ័យ!', 'info');
 
     if (existing) {
       addActivityLog({
         domain: 'student',
         actionType: 'delete',
-        title: `បានលុបទិន្នន័យសិស្ស៖ ${existing.nameKhmer}`,
-        description: `អត្តលេខ ${existing.code} • ថ្នាក់ទី ${existing.grade}${existing.section}`,
+        title: `លុបទិន្នន័យសិស្ស ${existing.nameKhmer}`,
+        description: `អត្តលេខ ${existing.code} ថ្នាក់ទី ${existing.grade}${existing.section}`,
         entityId: id,
         entityCode: existing.code,
         entityName: existing.nameKhmer,
-        actorName: currentUser?.nameKhmer || 'លោក លីម សន (នាយកសាលា)',
-        actorRole: 'នាយកសាលា',
+        actorName: currentUser?.nameKhmer || 'Admin',
+        actorRole: 'director',
         targetTab: 'students',
-        tags: ['លុបទិន្នន័យ', existing.code]
+        tags: [existing.code, 'deleted']
       });
     }
   };

@@ -73,6 +73,18 @@ export interface AttendanceSummary {
 
 export interface Student {
   id: string;
+
+    // SSOT Auth & Access Data
+    username?: string;
+    password?: string;
+    role?: UserRole;
+    status?: 'active' | 'suspended' | 'transferred' | 'graduated';
+    email?: string;
+    avatarUrl?: string;
+    passwordUpdatedAt?: string;
+    passwordHistory?: string[];
+    lastSecurityReviewDate?: string;
+
   code: string; // អត្តលេខសិស្ស e.g., "STU-2024-001"
   nameKhmer: string; // គោត្តនាម-នាម
   lastNameKhmer?: string; // គោត្តនាម
@@ -152,6 +164,18 @@ export interface DutyScheduleItem {
 
 export interface Teacher {
   id: string;
+
+    // SSOT Auth & Access Data
+    username?: string;
+    password?: string;
+    role?: UserRole;
+    status?: 'active' | 'suspended' | 'transferred' | 'graduated';
+    email?: string;
+    avatarUrl?: string;
+    passwordUpdatedAt?: string;
+    passwordHistory?: string[];
+    lastSecurityReviewDate?: string;
+
   staffCode: string; // អត្តលេខមន្ត្រីរាជការ
   nameKhmer: string; // គោត្តនាម និងនាម
   lastNameKhmer?: string; // គោត្តនាម

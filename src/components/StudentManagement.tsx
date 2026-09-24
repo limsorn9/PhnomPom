@@ -684,7 +684,19 @@ export const StudentManagement: React.FC = () => {
       {/* Top Main Mode Navigation Tabs */}
       <div className="flex items-center justify-between gap-3 bg-white p-2.5 rounded-2xl border border-slate-200 shadow-xs">
         <div className="flex items-center gap-2">
-          <button
+                      {(currentUser?.role === 'director' || currentUser?.role === 'super_admin') && (
+              <button
+                type="button"
+                onClick={() => setIsBulkImportStudentsModalOpen(true)}
+                className="flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95 cursor-pointer ring-2 ring-emerald-300/60"
+                title="នាំចូលសិស្សពីបញ្ជី PLP-SMS"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
+                <span>📥 នាំចូល Excel/CSV ពី PLP</span>
+              </button>
+            )}
+
+<button
             type="button"
             onClick={() => setViewMode('roster')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
