@@ -97,7 +97,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
     specialCharacteristics: '',
     previousSchool: '',
     admissionDate: new Date().toISOString().split('T')[0],
-    status: 'active' as const,
+    status: 'active' as Student['status'],
     avatarUrl: '',
     // Health
     heightCm: 120,
@@ -151,13 +151,13 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
           specialCharacteristics: editingStudent.specialCharacteristics || '',
           previousSchool: editingStudent.previousSchool || '',
           admissionDate: editingStudent.admissionDate || new Date().toISOString().split('T')[0],
-          status: editingStudent.status || 'active',
+          status: (editingStudent.status || 'active') as Student['status'],
           avatarUrl: editingStudent.avatarUrl || '',
-          heightCm: editingStudent.heightCm || 120,
-          weightKg: editingStudent.weightKg || 22,
-          bloodType: editingStudent.bloodType || 'O+',
-          vaccinated: editingStudent.vaccinated !== false,
-          notes: editingStudent.notes || ''
+          heightCm: editingStudent.health?.heightCm || 120,
+          weightKg: editingStudent.health?.weightKg || 22,
+          bloodType: (editingStudent.health?.bloodType as any) || 'O+',
+          vaccinated: editingStudent.health?.vaccinated !== false,
+          notes: editingStudent.remarks || ''
         });
       } else {
         setFormData(prev => ({

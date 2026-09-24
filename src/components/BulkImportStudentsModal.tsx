@@ -135,7 +135,7 @@ export const BulkImportStudentsModal: React.FC<BulkImportStudentsModalProps> = (
 
       const parsedGrade = parseInt(record.gradeLevel, 10) || targetGrade;
       const parsedSection = record.classroom || targetSection;
-      const parsedGender = (record.gender.includes('ស្រី') || record.gender.toLowerCase() === 'f') ? 'female' : 'male';
+      const parsedGender: Gender = (record.gender.includes('ស្រី') || record.gender.toLowerCase() === 'f') ? 'F' : 'M';
 
       const studentData: Partial<Student> = {
         nameKhmer: `${record.lastName} ${record.firstName}`.trim(),

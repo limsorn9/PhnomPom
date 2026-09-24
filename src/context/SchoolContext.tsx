@@ -1,8 +1,73 @@
-import { getRetentionConfig, performRetentionCleanup, saveActivitiesToStorage } from '../utils/activityTracker';
+import { getRetentionConfig, saveRetentionConfig, performRetentionCleanup, saveActivitiesToStorage } from '../utils/activityTracker';
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import type {
+  ActiveTab,
+  UserRole,
+  AppUser,
+  DeletedAppUser,
+  AccountAuditLog,
+  Teacher,
+  Student,
+  Classroom,
+  MonthlySubjectScores,
+  StudentScoreRecord,
+  DailyAttendanceRecord,
+  DailyHealthCheckRecord,
+  BudgetTransaction,
+  AcademicCalendarEvent,
+  SchoolProfile,
+  HouseholdRecord,
+  LibraryBook,
+  LibraryReadingLog,
+  LibraryVisitorLog,
+  StudentTransferRecord,
+  ExamSubject,
+  ProfileEditRequest,
+  LessonPlan,
+  ParentMeeting,
+  ParentRequest,
+  ClassCouncil,
+  StaffAdministrativeRecord,
+  SchoolCommittee,
+  AtRiskStudent,
+  DailyClassLog,
+  BadgeDefinition,
+  StudentBadgeAssignment,
+  TeacherDailyTask,
+  AcademicAchievement,
+  SchoolGroup,
+  SuspiciousActivityAlert,
+  SecurityLoginLog,
+  Gender,
+  HealthRecord,
+  AttendanceSummary,
+  ActivityLogItem,
+  InterventionProgressLog,
+  OfficialCorrespondence,
+  SchoolStrategicPlanItem,
+  ModelSchoolStandardGroup,
+  ModelSchoolStandardCriterion,
+  SchoolAssetItem,
+  SchoolGroupMember,
+  GroupMemberRole,
+  SchoolEquipmentItem,
+  EquipmentLoanRecord,
+  TeacherMeetingRecord,
+  TeachingResourceFile,
+  MonthlyBudgetSummary,
+  DriveAutoSyncConfig,
+  DriveSyncHistoryItem,
+  VersionConflictStatus,
+  AccountAuditEventType,
+  SystemNotification,
+  GradingScaleType,
+  PrintSettings,
+  QRScanVerificationLog,
+  StudentMonthlyFeedback,
+  VersionConflictState
+} from '../types';
 
 import {
-
   initialSchoolProfile,
   initialTeachers,
   initialClassrooms,
@@ -48,19 +113,53 @@ import {
   initialAcademicAchievements,
   initialSchoolGroups
 } from '../data/initialData';
-import { ConfirmActionModal } from '../components/common/ConfirmActionModal';
-const subscribeToSchoolData = (cb: any) => { return () => {}; };
-const setupOfflineAutoSync = (...args: any[]) => { return () => {}; };
-const showBrowserPushNotification = (...args: any[]) => { return () => {}; };
-const generateScoreDeadlineReminder = (...args: any[]) => { return () => {}; };
-const generateSchoolActivityReminder = (...args: any[]) => { return () => {}; };
-const notifyTelegramNewStudent = (...args: any[]) => { return () => {}; };
-const notifyTelegramNewTeacher = (...args: any[]) => { return () => {}; };
-const notifyTelegramScoreUpdate = (...args: any[]) => { return () => {}; };
-const fetchSchoolDataFromFirestore = async () => null;
+import { ConfirmActionModal, ConfirmActionConfig } from '../components/common/ConfirmActionModal';
+import { isGoogleAuthenticated, googleSignIn } from '../services/googleAuth';
+import {
+  subscribeToSchoolData,
+  fetchSchoolDataFromFirestore,
+  syncSchoolDataToFirestore,
+  isFirestoreQuotaExhausted
+} from '../services/firestoreSync';
+import {
+  uploadMeetingMinutesToDrive,
+  uploadFinancialReportToDrive,
+  uploadStudentRosterToDrive,
+  uploadScoresToDrive,
+  uploadHonorRollToDrive,
+  uploadStaffDirectoryToDrive,
+  downloadDriveFileContent,
+  backupSchoolDataToDrive,
+  fetchLatestCloudMasterBackup
+} from '../services/googleDrive';
+import { getTranslation, AppLanguage } from '../utils/translations';
+import { parseQRScanData } from '../utils/qrAuthService';
 
-const isGoogleAuthenticated = () => false;
-const googleSignIn = async () => {};
+const setupOfflineAutoSync = (...args: any[]) => { return () => {}; };
+const showBrowserPushNotification = (...args: any[]) => {};
+const generateScoreDeadlineReminder = (month: string, deadline: string, grade?: number, section?: string): SystemNotification => ({
+  id: `notif-deadline-${Date.now()}`,
+  title: `រំលឹកកាលបរិច្ឆេទបញ្ចូលពិន្ទុ (${month})`,
+  message: `សូមបញ្ចូលពិន្ទុខែ ${month} ឱ្យបានមុនថ្ងៃទី ${deadline}`,
+  type: 'warning',
+  timestamp: new Date().toISOString(),
+  read: false,
+  targetGrade: grade,
+  targetSection: section,
+  targetRole: 'teacher'
+});
+const generateSchoolActivityReminder = (title: string, date: string, location?: string, role?: UserRole | 'all'): SystemNotification => ({
+  id: `notif-activity-${Date.now()}`,
+  title: `ដំណឹងកម្មវិធីសាលា៖ ${title}`,
+  message: `កម្មវិធីប្រព្រឹត្តទៅនៅថ្ងៃ ${date} ${location ? `នៅ ${location}` : ''}`,
+  type: 'info',
+  timestamp: new Date().toISOString(),
+  read: false,
+  targetRole: role || 'all'
+});
+const notifyTelegramNewStudent = async (...args: any[]) => {};
+const notifyTelegramNewTeacher = async (...args: any[]) => {};
+const notifyTelegramScoreUpdate = async (...args: any[]) => {};
 
 
 interface SchoolContextType {
@@ -724,6 +823,60 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return 'dashboard';
   };
 
+  const [students, setStudents] = useState<Student[]>(() => {
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_students`), initialStudents);
+  });
+
+  const [teachers, setTeachers] = useState<Teacher[]>(() => {
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_teachers`), initialTeachers);
+  });
+
+  useEffect(() => {
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_students`, students);
+  }, [students]);
+
+  useEffect(() => {
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_teachers`, teachers);
+  }, [teachers]);
+
+  // App Users State
+  const appUsers = useMemo(() => {
+    const defaultSuperAdmin: AppUser = {
+      id: "u-super-admin",
+      username: "limsorn",
+      email: "limsorn@school.gov.kh",
+      password: "Ls12122012@",
+      nameKhmer: "នាយកសាលា (Super Admin)",
+      role: "super_admin",
+      status: "active",
+      createdAt: "2024-01-01"
+    };
+
+    const mappedTeachers: AppUser[] = teachers.map(t => ({
+      ...t,
+      role: t.role || 'teacher',
+      username: t.username || t.phone || t.email || t.staffCode || t.id,
+      password: t.password || t.phone || '12345678',
+      status: t.status || 'active',
+      createdAt: "2024-01-01"
+    } as AppUser));
+
+    const mappedStudents: AppUser[] = students.map(s => ({
+      ...s,
+      role: s.role || 'student',
+      username: s.username || s.code || s.id,
+      password: s.password || s.code || '12345678',
+      status: s.status || 'active',
+      email: s.email || '',
+      createdAt: "2024-01-01"
+    } as AppUser));
+
+    return [defaultSuperAdmin, ...mappedTeachers, ...mappedStudents];
+  }, [teachers, students]);
+
+  const setAppUsers = (val: any) => {
+    console.warn("setAppUsers is a no-op in SSOT. Update Student or Teacher directly.");
+  };
 
   // Recently Deleted Users (30-day soft delete retention)
   const [deletedUsers, setDeletedUsers] = useState<DeletedAppUser[]>(() => {
@@ -927,57 +1080,6 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     showToast(`ផ្ទៀងផ្ទាត់ជោគជ័យ! បានចូលកាន់មុខងារនាយកសាលា (${directorUser.nameKhmer}) ដែលមានសិទ្ធិពេញលេញ។`, 'success');
     return { success: true, message: 'បានចូលកាន់មុខងារនាយកសាលាជោគជ័យ' };
   };
-
-  const [students, setStudents] = useState<Student[]>(() => {
-    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_students`), initialStudents);
-  });
-
-  const [teachers, setTeachers] = useState<Teacher[]>(() => {
-    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_teachers`), initialTeachers);
-  });
-
-  // App Users State
-  const appUsers = useMemo(() => {
-    const defaultSuperAdmin: AppUser = {
-      id: "u-super-admin",
-      username: "limsorn",
-      email: "limsorn@school.gov.kh",
-      password: "Ls12122012@",
-      nameKhmer: "នាយកសាលា (Super Admin)",
-      role: "super_admin",
-      status: "active",
-      createdAt: "2024-01-01"
-    };
-
-    const mappedTeachers: AppUser[] = teachers.map(t => ({
-      ...t,
-      role: t.role || 'teacher',
-      username: t.username || t.phone || t.email || t.staffCode || t.id,
-      password: t.password || t.phone || '12345678',
-      status: t.status || 'active',
-      createdAt: "2024-01-01"
-    } as AppUser));
-
-    const mappedStudents: AppUser[] = students.map(s => ({
-      ...s,
-      role: s.role || 'student',
-      username: s.username || s.code || s.id,
-      password: s.password || s.code || '12345678',
-      status: s.status || 'active',
-      email: s.email || '',
-      createdAt: "2024-01-01"
-    } as AppUser));
-
-    return [defaultSuperAdmin, ...mappedTeachers, ...mappedStudents];
-  }, [teachers, students]);
-
-  const setAppUsers = (val: any) => {
-    console.warn("setAppUsers is a no-op in SSOT. Update Student or Teacher directly.");
-  };
-
-
-  // App Users State (SSOT Derived)
-  
 
   const [classrooms, setClassrooms] = useState<Classroom[]>(() => {
     return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_classrooms`), initialClassrooms);
@@ -1698,7 +1800,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         awardedDate: details.awardedDate || now,
         academicYear: details.academicYear || selectedAcademicYear,
         term: details.term || 'ឆមាសទី១',
-        awardedBy: details.awardedBy || (currentUser?.name || 'លោកគ្រូ-អ្នកគ្រូ'),
+        awardedBy: details.awardedBy || (currentUser?.nameKhmer || 'លោកគ្រូ-អ្នកគ្រូ'),
         reasonOrEvidence: details.reasonOrEvidence,
         certificateNumber: certNumber,
         createdAt: now
@@ -1830,6 +1932,44 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     return suggestions;
+  };
+
+  const [academicAchievements, setAcademicAchievements] = useState<AcademicAchievement[]>(() => {
+    return safeJsonParse(localStorage.getItem(`${LOCAL_STORAGE_KEY}_academic_achievements`), initialAcademicAchievements);
+  });
+
+  useEffect(() => {
+    safeSetLocalStorage(`${LOCAL_STORAGE_KEY}_academic_achievements`, academicAchievements);
+  }, [academicAchievements]);
+
+  const addAcademicAchievement = (achievement: Omit<AcademicAchievement, 'id' | 'createdAt'>) => {
+    const newAch: AcademicAchievement = {
+      ...achievement,
+      id: `ach-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      createdAt: new Date().toISOString()
+    };
+    setAcademicAchievements(prev => [newAch, ...prev]);
+    return { success: true, message: 'បានកត់ត្រាសមិទ្ធផលជោគជ័យ', id: newAch.id };
+  };
+
+  const updateAcademicAchievement = (id: string, updated: Partial<AcademicAchievement>) => {
+    setAcademicAchievements(prev => prev.map(a => a.id === id ? { ...a, ...updated } : a));
+  };
+
+  const deleteAcademicAchievement = (id: string) => {
+    setAcademicAchievements(prev => prev.filter(a => a.id !== id));
+  };
+
+  const getAchievementsByStudent = (studentId: string) => {
+    return academicAchievements.filter(a => a.studentId === studentId);
+  };
+
+  const getAchievementsByClass = (grade: number, section: string, semester?: string) => {
+    return academicAchievements.filter(a => {
+      const matchClass = a.grade === grade && a.section === section;
+      if (!semester) return matchClass;
+      return matchClass && a.term === semester;
+    });
   };
 
   // School Administration State (សៀវភៅលិខិតចូល-ចេញ)
@@ -2924,49 +3064,40 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       const targetClasses = grade !== undefined && section !== undefined
-        ? classrooms.filter(c => c.gradeLevel === grade && c.section === section)
+        ? classrooms.filter(c => c.grade === grade && c.section === section)
         : classrooms;
 
       let count = 0;
       for (const cls of targetClasses) {
-        const classStudents = students.filter(s => s.gradeLevel === cls.gradeLevel && s.section === cls.section && s.status === 'active');
+        const classStudents = students.filter(s => s.grade === cls.grade && s.section === cls.section && s.status === 'active');
         const classScores = scores.filter(sc => 
-          sc.gradeLevel === cls.gradeLevel && 
+          sc.grade === cls.grade && 
           sc.section === cls.section && 
           (sc.academicYear === selectedAcademicYear || !sc.academicYear)
         );
 
         // Compute top 5 honor students
         const studentSummaries = classStudents.map(st => {
-          const sc = classScores.find(s => s.studentId === st.id);
-          const mScores = sc?.monthlyScores?.[targetMonth];
-          let total = 0;
-          let countSubjects = 0;
-          if (mScores) {
-            Object.values(mScores).forEach((sub: any) => {
-              if (sub && typeof sub.score === 'number') {
-                total += sub.score;
-                countSubjects++;
-              }
-            });
-          }
-          const average = countSubjects > 0 ? total / countSubjects : 0;
+          const sc = classScores.find(s => s.studentId === st.id && s.monthOrSemester === targetMonth);
+          const average = sc ? sc.averageScore : 0;
+          const total = sc ? sc.totalScore : 0;
           return {
             student: st,
             total,
-            average
+            average,
+            gradeLetter: sc?.gradeLetter || 'C'
           };
         }).filter(item => item.average > 0);
 
         studentSummaries.sort((a, b) => b.average - a.average);
         const top5 = studentSummaries.slice(0, 5).map((item, idx) => ({
           rank: idx + 1,
-          studentCode: item.student.studentIdNumber || item.student.id,
-          studentNameKhmer: item.student.fullNameKhmer,
+          studentCode: item.student.code || item.student.id,
+          studentNameKhmer: item.student.nameKhmer,
           gender: item.student.gender,
           averageScore: parseFloat(item.average.toFixed(2)),
-          gradeLetter: item.average >= 9 ? 'A' : item.average >= 8 ? 'B' : 'C',
-          gradeLevel: cls.gradeLevel,
+          gradeLetter: item.gradeLetter,
+          gradeLevel: cls.grade,
           section: cls.section
         }));
 
@@ -2974,7 +3105,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         const driveItem = await uploadHonorRollToDrive(
           top5,
-          `ថ្នាក់ទី ${cls.gradeLevel}${cls.section}`,
+          `ថ្នាក់ទី ${cls.grade}${cls.section}`,
           targetMonth,
           schoolProfile,
           selectedAcademicYear,
@@ -2983,11 +3114,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         const nowIso = new Date().toISOString();
         const historyItem: DriveSyncHistoryItem = {
-          id: `sync-honor-${Date.now()}-${cls.gradeLevel}-${cls.section}`,
-          title: `តារាងកិត្តិយស Top 5 ខែ${targetMonth} ថ្នាក់ទី ${cls.gradeLevel}${cls.section}`,
+          id: `sync-honor-${Date.now()}-${cls.grade}-${cls.section}`,
+          title: `តារាងកិត្តិយស Top 5 ខែ${targetMonth} ថ្នាក់ទី ${cls.grade}${cls.section}`,
           category: 'honor_roll',
           categoryLabelKhmer: 'តារាងកិត្តិយស (Honor Roll)',
-          fileName: driveItem.name || `តារាងកិត្តិយស_ថ្នាក់${cls.gradeLevel}${cls.section}_ខែ${targetMonth}.html`,
+          fileName: driveItem.name || `តារាងកិត្តិយស_ថ្នាក់${cls.grade}${cls.section}_ខែ${targetMonth}.html`,
           fileSizeFormatted: driveItem.size ? `${(parseInt(driveItem.size) / 1024).toFixed(1)} KB` : '22.0 KB',
           folderId: targetFolder,
           driveFileId: driveItem.id,
@@ -3154,10 +3285,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (driveAutoSyncConfig.syncStudents && classrooms.length > 0) {
         for (const cls of classrooms) {
           try {
-            const classStudents = students.filter(s => s.gradeLevel === cls.gradeLevel && s.section === cls.section && s.status === 'active');
+            const classStudents = students.filter(s => s.grade === cls.grade && s.section === cls.section && s.status === 'active');
             await uploadStudentRosterToDrive(
               classStudents,
-              `ថ្នាក់ទី ${cls.gradeLevel}${cls.section}`,
+              `ថ្នាក់ទី ${cls.grade}${cls.section}`,
               schoolProfile,
               selectedAcademicYear,
               targetFolder
@@ -3172,44 +3303,33 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const currentMonth = 'មករា';
         for (const cls of classrooms) {
           try {
-            const classStudents = students.filter(s => s.gradeLevel === cls.gradeLevel && s.section === cls.section && s.status === 'active');
+            const classStudents = students.filter(s => s.grade === cls.grade && s.section === cls.section && s.status === 'active');
             if (classStudents.length === 0) continue;
             const classScores = scores.filter(sc => 
-              sc.gradeLevel === cls.gradeLevel && 
+              sc.grade === cls.grade && 
               sc.section === cls.section && 
               (sc.academicYear === selectedAcademicYear || !sc.academicYear)
             );
             const formattedScoresList = classStudents.map(st => {
-              const sc = classScores.find(s => s.studentId === st.id);
-              const mScores = sc?.monthlyScores?.[currentMonth];
-              let total = 0;
-              let countSubs = 0;
-              const subjectsObj: Record<string, number> = {};
-              if (mScores) {
-                Object.entries(mScores).forEach(([key, sub]: [string, any]) => {
-                  if (sub && typeof sub.score === 'number') {
-                    total += sub.score;
-                    countSubs++;
-                    subjectsObj[key] = sub.score;
-                  }
-                });
-              }
-              const average = countSubs > 0 ? total / countSubs : 0;
+              const sc = classScores.find(s => s.studentId === st.id && s.monthOrSemester === currentMonth);
+              const total = sc ? sc.totalScore : 0;
+              const average = sc ? sc.averageScore : 0;
+              const subjectsObj: Record<string, number> = (sc?.scores as any) || {};
               return {
-                studentCode: st.studentIdNumber || st.id,
-                studentNameKhmer: st.fullNameKhmer,
+                studentCode: st.code || st.id,
+                studentNameKhmer: st.nameKhmer,
                 gender: st.gender,
                 subjects: subjectsObj,
                 totalScore: total,
                 averageScore: parseFloat(average.toFixed(2)),
-                gradeLetter: average >= 9 ? 'A' : average >= 8 ? 'B' : average >= 7 ? 'C' : average >= 6 ? 'D' : average >= 5 ? 'E' : 'F'
+                gradeLetter: sc?.gradeLetter || (average >= 9 ? 'A' : average >= 8 ? 'B' : average >= 7 ? 'C' : average >= 6 ? 'D' : average >= 5 ? 'E' : 'F')
               };
             });
 
             await uploadScoresToDrive(
               formattedScoresList,
               [],
-              `ថ្នាក់ទី ${cls.gradeLevel}${cls.section}`,
+              `ថ្នាក់ទី ${cls.grade}${cls.section}`,
               currentMonth,
               schoolProfile,
               selectedAcademicYear,
@@ -3225,45 +3345,38 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const currentMonth = 'មករា';
         for (const cls of classrooms) {
           try {
-            const classStudents = students.filter(s => s.gradeLevel === cls.gradeLevel && s.section === cls.section && s.status === 'active');
+            const classStudents = students.filter(s => s.grade === cls.grade && s.section === cls.section && s.status === 'active');
             const classScores = scores.filter(sc => 
-              sc.gradeLevel === cls.gradeLevel && 
+              sc.grade === cls.grade && 
               sc.section === cls.section && 
               (sc.academicYear === selectedAcademicYear || !sc.academicYear)
             );
             const studentSummaries = classStudents.map(st => {
-              const sc = classScores.find(s => s.studentId === st.id);
-              const mScores = sc?.monthlyScores?.[currentMonth];
-              let total = 0;
-              let countSubjects = 0;
-              if (mScores) {
-                Object.values(mScores).forEach((sub: any) => {
-                  if (sub && typeof sub.score === 'number') {
-                    total += sub.score;
-                    countSubjects++;
-                  }
-                });
-              }
-              const average = countSubjects > 0 ? total / countSubjects : 0;
-              return { student: st, average };
+              const sc = classScores.find(s => s.studentId === st.id && s.monthOrSemester === currentMonth);
+              const average = sc ? sc.averageScore : 0;
+              return {
+                student: st,
+                average,
+                gradeLetter: sc?.gradeLetter || 'C'
+              };
             }).filter(item => item.average > 0);
 
             studentSummaries.sort((a, b) => b.average - a.average);
             const top5 = studentSummaries.slice(0, 5).map((item, idx) => ({
               rank: idx + 1,
-              studentCode: item.student.studentIdNumber || item.student.id,
-              studentNameKhmer: item.student.fullNameKhmer,
+              studentCode: item.student.code || item.student.id,
+              studentNameKhmer: item.student.nameKhmer,
               gender: item.student.gender,
               averageScore: parseFloat(item.average.toFixed(2)),
-              gradeLetter: item.average >= 9 ? 'A' : item.average >= 8 ? 'B' : 'C',
-              gradeLevel: cls.gradeLevel,
+              gradeLetter: item.gradeLetter,
+              gradeLevel: cls.grade,
               section: cls.section
             }));
 
             if (top5.length > 0) {
               await uploadHonorRollToDrive(
                 top5,
-                `ថ្នាក់ទី ${cls.gradeLevel}${cls.section}`,
+                `ថ្នាក់ទី ${cls.grade}${cls.section}`,
                 currentMonth,
                 schoolProfile,
                 selectedAcademicYear,
@@ -6098,7 +6211,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         entityId: id,
         entityCode: existing.code,
         entityName: updated.nameKhmer || existing.nameKhmer,
-        actorName: currentUser?.nameKhmer || currentUser?.name || 'អ្នកគ្រប់គ្រង',
+        actorName: currentUser?.nameKhmer || 'អ្នកគ្រប់គ្រង',
         actorRole: currentUser?.role === 'director' ? 'នាយកសាលា' : 'គ្រូបន្ទុកថ្នាក់',
         targetTab: 'students',
         tags: [`ថ្នាក់ទី ${updated.grade || existing.grade}${updated.section || existing.section}`, existing.code],
@@ -7133,6 +7246,9 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setProfileEditRequests([]);
     setReleasedResults({});
     setPrintSettings({
+      includeRoundStamp: true,
+      includeDirectorSignature: true,
+      redDirectorName: true,
       showRoundStamp: true,
       showDirectorSignature: true,
       showDirectorRedName: true,
@@ -7141,7 +7257,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       paperSize: 'A4',
       orientation: 'portrait'
     });
-    setCurrentUser(initialUsers[0]);
+    setCurrentUser(initialUsers[0] as AppUser);
     localStorage.clear();
     showToast('បានសម្អាតទិន្នន័យប្រឌិតទាំងអស់រួចរាល់! លោកអ្នកអាចចាប់ផ្តើមបញ្ចូលទិន្នន័យពិតដោយដៃផ្ទាល់។', 'success');
   };
@@ -7443,6 +7559,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         getStudentBadges,
         getStudentTotalPoints,
         autoSuggestBadgesForStudent,
+        academicAchievements,
+        addAcademicAchievement,
+        updateAcademicAchievement,
+        deleteAcademicAchievement,
+        getAchievementsByStudent,
+        getAchievementsByClass,
         activityLogs,
         addActivityLog,
         updateActivityLogs,

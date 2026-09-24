@@ -84,7 +84,7 @@ export const PrincipalAttendanceDashboard: React.FC = () => {
           </div>
           
           <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full bg-blue-500 rounded-full" style={{ width: \`\${studentPresentRate}%\` }} />
+            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${studentPresentRate}%` }} />
           </div>
           
           <div className="flex justify-between text-sm">
@@ -104,7 +104,7 @@ export const PrincipalAttendanceDashboard: React.FC = () => {
           </div>
           
           <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full bg-emerald-500 rounded-full" style={{ width: \`\${staffPresentRate}%\` }} />
+            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${staffPresentRate}%` }} />
           </div>
           
           <div className="flex justify-between text-sm">

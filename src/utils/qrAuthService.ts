@@ -72,12 +72,13 @@ export function buildStudentQRLoginUrl(student: Student, schoolCode: string = '0
  * Build a full web app URL encoded with Smart QR Login payload for teachers and staff.
  */
 export function buildStaffQRLoginUrl(teacher: Teacher, schoolCode: string = '020401015'): string {
+  const tRole = String(teacher.role || '');
   const staffRole: UserRole =
-    teacher.role === 'នាយកសាលា' || teacher.role === 'នាយករង'
+    tRole === 'នាយកសាលា' || tRole === 'នាយករង' || tRole === 'director'
       ? 'director'
-      : teacher.role === 'លេខាធិការ'
+      : tRole === 'លេខាធិការ' || tRole === 'secretary'
       ? 'secretary'
-      : teacher.role === 'បណ្ណារក្ស'
+      : tRole === 'បណ្ណារក្ស' || tRole === 'librarian'
       ? 'librarian'
       : 'teacher';
 

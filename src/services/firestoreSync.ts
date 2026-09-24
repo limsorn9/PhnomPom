@@ -23,7 +23,7 @@ export interface CloudSchoolData {
 }
 
 export const isFirestoreQuotaExhausted = (): boolean => true;
-export const markFirestoreQuotaExhausted = () => {};
+export const markFirestoreQuotaExhausted = (_durationMinutes?: number) => {};
 export const clearFirestoreQuotaCooldown = () => {};
 
 export const syncSchoolDataToFirestore = async (data: Partial<CloudSchoolData>, force = false): Promise<{success: boolean, error?: string}> => {

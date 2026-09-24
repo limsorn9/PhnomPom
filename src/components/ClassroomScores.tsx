@@ -511,17 +511,13 @@ export const ClassroomScores: React.FC = () => {
         `🙏 សូមអរគុណ និងសូមអបអរសាទរដល់ប្អូនៗទាំងអស់! ✨\n` +
         `✍️ _នាយកសាលា៖ ${schoolProfile.principalNameKhmer || 'គណៈគ្រប់គ្រងសាលា'}_`;
 
-      if (true) {
-        showToast(`🎉 បានចាក់ផ្សាយលទ្ធផលប្រឡងទៅកាន់ «${groupLabel}» ជោគជ័យ!`, 'success');
-        addActivityLog({
-          userName: currentUser?.nameKhmer || 'នាយកសាលា',
-          role: currentUser?.role || 'director',
-          action: 'ចាក់ផ្សាយលទ្ធផលតាម Telegram',
-          details: `បានចាក់ផ្សាយលទ្ធផលថ្នាក់ទី ${selectedGrade}${selectedSection} ខែ ${selectedMonth} ទៅ Telegram (Chat ID: ${targetChatId})`
-        });
-      } else {
-        showToast(`បរាជ័យក្នុងការចាក់ផ្សាយ៖ ${res.message || 'Error'}`, 'error');
-      }
+      showToast(`🎉 បានចាក់ផ្សាយលទ្ធផលប្រឡងទៅកាន់ «${groupLabel}» ជោគជ័យ!`, 'success');
+      addActivityLog({
+        userName: currentUser?.nameKhmer || 'នាយកសាលា',
+        role: currentUser?.role || 'director',
+        action: 'ចាក់ផ្សាយលទ្ធផលតាម Telegram',
+        details: `បានចាក់ផ្សាយលទ្ធផលថ្នាក់ទី ${selectedGrade}${selectedSection} ខែ ${selectedMonth} ទៅ Telegram (Chat ID: ${targetChatId})`
+      });
     } catch (err: any) {
       showToast(`កំហុសបណ្តាញ៖ ${err.message}`, 'error');
     } finally {

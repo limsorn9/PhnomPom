@@ -533,8 +533,13 @@ ${customNote || `សិស្សមានការខិតខំប្រឹង
 🕒 _ផ្ញើដោយស្វ័យប្រវត្តិតាមប្រព័ន្ធគ្រប់គ្រងសាលា MoEYS Standard_`;
 }
 
+export interface TelegramSendResult {
+  success: boolean;
+  message: string;
+}
+
 /**
- * Dispatches Telegram Notification via API
+ * Dispatches Telegram Notification via Share URL or API
  */
 export async function dispatchParentTelegramRankingNotification(payload: {
   student: Student;
@@ -545,22 +550,12 @@ export async function dispatchParentTelegramRankingNotification(payload: {
   customNote?: string;
 }): Promise<TelegramSendResult> {
   const messageText = generateParentTelegramRankingMessage(payload);
+  const shareUrl = generateTelegramShareUrl(messageText);
 
-  return await sendTelegramNotification({
-    title: `លទ្ធផលចំណាត់ថ្នាក់ខែ ${payload.monthOrSemester}៖ ${payload.student?.nameKhmer || ''} (លេខ ${payload.rankingDetail?.currentRank || ''})`,
-    message: messageText,
-    category: 'announcement',
-    metadata: {
-      studentId: payload.student?.id || '',
-      studentCode: payload.student?.code || '',
-      grade: payload.student?.grade || 1,
-      section: payload.student?.section || 'ក',
-      month: payload.monthOrSemester,
-      rank: payload.rankingDetail?.currentRank || 0,
-      averageScore: payload.rankingDetail?.averageScore || 0,
-      guardianPhone: payload.student?.guardianPhone || ''
-    }
-  });
+  return {
+    success: true,
+    message: shareUrl
+  };
 }
 
 /**

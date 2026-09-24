@@ -299,7 +299,7 @@ export const AdminLayout: React.FC = () => {
 export default function App() {
   return (
     <SchoolProvider>
-      <MainLayout />
+      <AdminLayout />
     </SchoolProvider>
   );
 }

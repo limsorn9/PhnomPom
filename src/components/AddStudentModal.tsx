@@ -169,7 +169,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
       status: status as any,
       academicYear: selectedAcademicYear,
       avatarUrl: avatarPreview || undefined,
-      specialNotes: [
+      remarks: [
         specialCharacteristics,
         specialSupportItems.length > 0 ? `ជំនួយ៖ ${specialSupportItems.join(', ')}` : '',
         hasEquityCard === 'yes' ? 'មានបណ្ណសមធម៌ (អាហារូបករណ៍ សន្លឹក ៦២)' : ''

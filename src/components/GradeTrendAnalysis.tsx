@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { Student } from '../types';
-import { TrendingUp, AlertTriangle, ShieldCheck, Sparkles, Award, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { ParentNotificationModal } from './ParentNotificationModal';
+import { TrendingUp, AlertTriangle, ShieldCheck, Sparkles, Award, ArrowUpRight, ArrowDownRight, Phone, MessageSquare, X } from 'lucide-react';
 
 interface GradeTrendAnalysisProps {
   students: Student[];
@@ -146,12 +145,47 @@ export const GradeTrendAnalysis: React.FC<GradeTrendAnalysisProps> = ({ students
       </div>
 
       {selectedStudentForMail && (
-        <ParentNotificationModal
-          isOpen={!!selectedStudentForMail}
-          onClose={() => setSelectedStudentForMail(null)}
-          student={selectedStudentForMail}
-          reasonType="grades"
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-slate-800 text-base">ជូនដំណឹងទៅអាណាព្យាបាល</h3>
+              <button onClick={() => setSelectedStudentForMail(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <p className="text-sm text-slate-600">
+                សិស្ស៖ <span className="font-bold text-slate-800">{selectedStudentForMail.nameKhmer}</span> (អត្តលេខ៖ {selectedStudentForMail.code})
+              </p>
+              <p className="text-sm text-slate-600">
+                អាណាព្យាបាល៖ <span className="font-semibold text-slate-700">{selectedStudentForMail.guardianName || selectedStudentForMail.fatherName || 'មិនបានបញ្ជាក់'}</span>
+              </p>
+              <div className="p-4 bg-slate-50 rounded-xl space-y-2">
+                <div className="text-xs text-slate-500 font-medium">លេខទូរស័ព្ទទំនាក់ទំនង</div>
+                <div className="font-mono text-base font-bold text-blue-600">
+                  {selectedStudentForMail.guardianPhone || selectedStudentForMail.fatherPhone || 'មិនមានលេខទូរស័ព្ទ'}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              {(selectedStudentForMail.guardianPhone || selectedStudentForMail.fatherPhone) && (
+                <a
+                  href={`tel:${selectedStudentForMail.guardianPhone || selectedStudentForMail.fatherPhone}`}
+                  className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition"
+                >
+                  <Phone className="w-4 h-4" /> ហៅទូរស័ព្ទ
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setSelectedStudentForMail(null)}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition"
+              >
+                បិទ
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

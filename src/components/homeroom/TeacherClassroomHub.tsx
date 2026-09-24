@@ -73,12 +73,12 @@ export const TeacherClassroomHub: React.FC<TeacherClassroomHubProps> = ({
                 code: '',
                 nameKhmer: '',
                 nameLatin: '',
-                gender: 'male',
+                gender: 'M',
                 dob: '',
                 grade: selectedGrade,
                 section: selectedSection,
                 schoolId: '02100108027'
-              } as Student);
+              } as unknown as Student);
               setIsEditOpen(true);
             }}
             className="flex-1 md:flex-none px-4 py-2.5 bg-blue-900/40 hover:bg-blue-800/60 text-blue-300 border border-blue-800/50 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors">
@@ -332,8 +332,8 @@ export const TeacherClassroomHub: React.FC<TeacherClassroomHubProps> = ({
                     <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
                       <input 
                         type="checkbox" 
-                        checked={selectedStudent.disability || false}
-                        onChange={e => setSelectedStudent({...selectedStudent, disability: e.target.checked})}
+                        checked={!!selectedStudent.disability || !!selectedStudent.isDisability}
+                        onChange={e => setSelectedStudent({...selectedStudent, disability: e.target.checked ? 'មានពិការភាព' : '', isDisability: e.target.checked})}
                         className="w-5 h-5 rounded border-[#164049] bg-[#0a2328] text-cyan-500 focus:ring-cyan-500"
                       />
                       ពិការភាព

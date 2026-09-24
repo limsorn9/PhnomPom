@@ -74,16 +74,13 @@ export interface AttendanceSummary {
 export interface Student {
   id: string;
 
-    // SSOT Auth & Access Data
-    username?: string;
-    password?: string;
-    role?: UserRole;
-    status?: 'active' | 'suspended' | 'transferred' | 'graduated';
-    email?: string;
-    avatarUrl?: string;
-    passwordUpdatedAt?: string;
-    passwordHistory?: string[];
-    lastSecurityReviewDate?: string;
+  // SSOT Auth & Access Data
+  username?: string;
+  password?: string;
+  role?: UserRole;
+  passwordUpdatedAt?: string;
+  passwordHistory?: string[];
+  lastSecurityReviewDate?: string;
 
   code: string; // អត្តលេខសិស្ស e.g., "STU-2024-001"
   nameKhmer: string; // គោត្តនាម-នាម
@@ -108,10 +105,12 @@ export interface Student {
   fatherFirstName?: string; // នាមឪពុក
   fatherName?: string; // ឈ្មោះឪពុកពេញ
   fatherOccupation?: string; // មុខរបរឪពុក
+  fatherPhone?: string; // លេខទូរស័ព្ទឪពុក
   motherLastName?: string; // គោត្តនាមម្តាយ
   motherFirstName?: string; // នាមម្តាយ
   motherName?: string; // ឈ្មោះម្តាយពេញ
   motherOccupation?: string; // មុខរបរម្តាយ
+  motherPhone?: string; // លេខទូរស័ព្ទម្តាយ
   guardianLastName?: string; // គោត្តនាមអាណាព្យាបាល
   guardianFirstName?: string; // នាមអាណាព្យាបាល
   guardianName: string; // គោត្តនាមអាណាព្យាបាល-នាមអាណាព្យាបាល
@@ -145,14 +144,15 @@ export interface Student {
   phone?: string; // លេខទូរស័ព្ទផ្ទាល់
   previousSchool?: string; // មកពីសាលា
   academicYear?: string; // ឆ្នាំសិក្សា
-  admissionDate: string; // ថ្ងៃចូលរៀន
-  status: 'active' | 'transferred' | 'dropped' | 'graduated'; // ស្ថានភាពសិស្ស
+  admissionDate?: string; // ថ្ងៃចូលរៀន
+  status: 'active' | 'transferred' | 'dropped' | 'graduated' | 'suspended'; // ស្ថានភាពសិស្ស
   remarks?: string; // ផ្សេងៗ
   fatherAlive?: boolean; // ឪពុកនៅរស់
   motherAlive?: boolean; // ម្តាយនៅរស់
+  email?: string;
   avatarUrl?: string; // រូបថតសិស្ស
-  health: HealthRecord;
-  attendance: AttendanceSummary;
+  health?: HealthRecord;
+  attendance?: AttendanceSummary;
 }
 
 export interface DutyScheduleItem {
@@ -165,16 +165,12 @@ export interface DutyScheduleItem {
 export interface Teacher {
   id: string;
 
-    // SSOT Auth & Access Data
-    username?: string;
-    password?: string;
-    role?: UserRole;
-    status?: 'active' | 'suspended' | 'transferred' | 'graduated';
-    email?: string;
-    avatarUrl?: string;
-    passwordUpdatedAt?: string;
-    passwordHistory?: string[];
-    lastSecurityReviewDate?: string;
+  // SSOT Auth & Access Data
+  username?: string;
+  password?: string;
+  passwordUpdatedAt?: string;
+  passwordHistory?: string[];
+  lastSecurityReviewDate?: string;
 
   staffCode: string; // អត្តលេខមន្ត្រីរាជការ
   nameKhmer: string; // គោត្តនាម និងនាម
@@ -216,7 +212,7 @@ export interface Teacher {
   
   // Professional Details (ព័ត៌មានវិជ្ជាជីវៈ និងក្របខ័ណ្ឌ)
   teacherId?: string; // អត្តលេខគ្រូបង្រៀន
-  role: string; // តួនាទី (នាយក, នាយករង, គ្រូបន្ទុកថ្នាក់, គ្រូឯកទេស, បណ្ណារក្ស, លេខាធិការ)
+  role: UserRole | string; // តួនាទី (នាយក, នាយករង, គ្រូបន្ទុកថ្នាក់, គ្រូឯកទេស, បណ្ណារក្ស, លេខាធិការ)
   responsibilities?: string; // ភារកិច្ច
   startDate: string; // ថ្ងៃខែចូលបម្រើការងារ
   endDate?: string; // ថ្ងៃខែបញ្ចប់ការងារ (បើមាន)
@@ -261,7 +257,7 @@ export interface Teacher {
   bankAccountNumber?: string; // គណនីបៀវត្ស
   bankName?: string; // ឈ្មោះធនាគារ (កាណាឌីយ៉ា / អេស៊ីលីដា / វីង)
   parentsInfo?: string; // ឈ្មោះ និងមុខរបរឪពុកម្តាយ
-  status: 'active' | 'on_leave' | 'transferred'; // ស្ថានភាពបច្ចុប្បន្ន
+  status: 'active' | 'on_leave' | 'transferred' | 'suspended'; // ស្ថានភាពបច្ចុប្បន្ន
   vaccinated?: boolean; // បានចាក់វ៉ាក់សាំង
   vaccineName?: string; // ឈ្មោះវ៉ាក់សាំង
   lastVaccinatedDate?: string; // ថ្ងៃខែចាក់លើកចុងក្រោយ
@@ -522,6 +518,7 @@ export interface SchoolProfile {
   commune: string;
   village: string;
   principalName: string;
+  principalNameKhmer?: string;
   principalPhone: string;
   deputyPrincipalName: string;
   academicYear: string;
@@ -1709,6 +1706,9 @@ export interface TeacherDailyTask {
 export type TeacherMeetingType =
   | 'monthly'          // កិច្ចប្រជុំប្រចាំខែ (Monthly General Staff Meeting)
   | 'pedagogical'      // កិច្ចប្រជុំបច្ចេកទេស/គរុកោសល្យ (Technical & Pedagogical Meeting)
+  | 'technical'
+  | 'curriculum'
+  | 'disciplinary'
   | 'exam_review'      // កិច្ចប្រជុំបូកសរុបលទ្ធផលប្រឡង (Exam & Score Evaluation)
   | 'emergency'        // កិច្ចប្រជុំបន្ទាន់ (Emergency / Ad-hoc Meeting)
   | 'semester_opening' // កិច្ចប្រជុំបើកបវេសនកាល/ឆមាស (Semester Kickoff)
@@ -1727,7 +1727,8 @@ export interface MeetingActionItem {
   taskTitle: string;
   responsiblePerson: string;
   deadlineDate: string;
-  status: 'pending' | 'in_progress' | 'completed';
+  status?: 'pending' | 'in_progress' | 'completed';
+  isCompleted?: boolean;
 }
 
 export interface TeacherMeetingRecord {

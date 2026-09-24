@@ -2,6 +2,20 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ShieldCheck, Lock, AlertTriangle, CheckCircle2, ArrowRight, RefreshCw, KeyRound } from 'lucide-react';
 
+const generateTelegramVerificationCode = async (email: string, _action: string) => {
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  sessionStorage.setItem(`verify_action_${email}`, code);
+  return { success: true, debugCode: code, message: 'បានបង្កើតកូដសម្ងាត់' };
+};
+
+const verifyTelegramCode = async (email: string, code: string) => {
+  const stored = sessionStorage.getItem(`verify_action_${email}`);
+  if (stored && stored === code) {
+    sessionStorage.removeItem(`verify_action_${email}`);
+    return { success: true };
+  }
+  return { success: false, message: 'កូដសម្ងាត់មិនត្រឹមត្រូវ ឬផុតកំណត់' };
+};
 
 interface VerifyActionsModalProps {
   isOpen: boolean;

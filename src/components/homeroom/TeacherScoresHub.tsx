@@ -217,9 +217,9 @@ export const TeacherScoresHub: React.FC<TeacherScoresHubProps> = ({
                         <td className="p-2 font-bold text-slate-200">{s.nameKhmer}</td>
                         <td className="p-2 text-center">
                           <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                            s.gender === 'female' ? 'bg-pink-900/30 text-pink-400' : 'bg-blue-900/30 text-blue-400'
+                            s.gender === 'F' ? 'bg-pink-900/30 text-pink-400' : 'bg-blue-900/30 text-blue-400'
                           }`}>
-                            {s.gender === 'female' ? 'ស្រី' : 'ប្រុស'}
+                            {s.gender === 'F' ? 'ស្រី' : 'ប្រុស'}
                           </span>
                         </td>
                         

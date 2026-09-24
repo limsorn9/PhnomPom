@@ -1097,7 +1097,23 @@ export const GoogleWorkspaceHub: React.FC = () => {
 
       {/* VIEW 3: Gmail Email Manager */}
       {activeWorkspaceTab === 'gmail' && (
-        <GmailManager />
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-8 text-center space-y-4 shadow-sm">
+          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto">
+            <Mail className="w-8 h-8" />
+          </div>
+          <h3 className="text-base font-bold text-slate-800">សេវាកម្មសារអេឡិចត្រូនិក Gmail</h3>
+          <p className="text-sm text-slate-500 max-w-md mx-auto">
+            អ្នកអាចចូលប្រើប្រាស់ Gmail របស់សាលារៀនដើម្បីផ្ញើ និងទទួលសារលិខិតផ្លូវការ ឬសេចក្តីជូនដំណឹងនានា។
+          </p>
+          <a
+            href="https://mail.google.com"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition shadow-sm"
+          >
+            បើកមើល Gmail <ExternalLink className="w-4 h-4" />
+          </a>
+        </div>
       )}
 
       {/* MANDATORY CONFIRMATION MODAL FOR DELETIONS */}

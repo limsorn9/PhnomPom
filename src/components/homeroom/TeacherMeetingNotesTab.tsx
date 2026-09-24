@@ -3,6 +3,7 @@ import { useSchool } from '../../context/SchoolContext';
 import { TeacherMeetingRecord, MeetingActionItem } from '../../types';
 
 import { getAccessToken, googleSignIn } from '../../services/googleAuth';
+import { createTeacherMeetingGoogleCalendarEvent } from '../../services/googleCalendar';
 import {
   Users,
   Calendar,

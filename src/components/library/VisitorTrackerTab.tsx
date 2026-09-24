@@ -132,7 +132,7 @@ export const VisitorTrackerTab: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.studentNameKhmer) {
-      showToast('សូមជ្រើសរើស ឬបញ្ចូលឈ្មោះសិស្ស!', 'warning');
+      showToast('សូមជ្រើសរើស ឬបញ្ចូលឈ្មោះសិស្ស!', 'error');
       return;
     }
 
