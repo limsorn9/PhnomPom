@@ -49,6 +49,7 @@ import {
   initialSchoolGroups
 } from '../data/initialData';
 import { ConfirmActionModal } from '../components/common/ConfirmActionModal';
+const subscribeToSchoolData = (cb: any) => { return () => {}; };
 const fetchSchoolDataFromFirestore = async () => null;
 
 const isGoogleAuthenticated = () => false;
