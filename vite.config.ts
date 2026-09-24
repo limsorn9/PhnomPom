@@ -50,6 +50,21 @@ export default defineConfig(({ command }) => {
               if (id.includes('lucide-react')) {
                 return 'vendor-icons';
               }
+              if (id.includes('xlsx')) {
+                return 'vendor-xlsx';
+              }
+              if (id.includes('@google/genai') || id.includes('genai')) {
+                return 'vendor-genai';
+              }
+              if (id.includes('fuse.js') || id.includes('fuse')) {
+                return 'vendor-fuse';
+              }
+              if (id.includes('canvas-confetti')) {
+                return 'vendor-confetti';
+              }
+              if (id.includes('jsqr') || id.includes('qrcode')) {
+                return 'vendor-qrcode';
+              }
             }
           },
         },
