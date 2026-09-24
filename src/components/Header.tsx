@@ -1158,11 +1158,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       )}
 
-      {/* Notifications Modal */}
-      <NotificationsModal
-        isOpen={showNotifModal}
-        onClose={() => setShowNotifModal(false)}
-      />
+      
 
       {/* User Profile & Account Settings Modal */}
       <UserProfileSettingsModal
