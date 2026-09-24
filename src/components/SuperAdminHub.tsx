@@ -1,12 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Plus, Building2, UserPlus, ChevronRight, School, Save, X } from 'lucide-react';
+import { LogOut, Plus, Building2, UserPlus, ChevronRight, School, ChevronDown } from 'lucide-react';
 import { SchoolProfile } from '../types';
 
 interface SchoolEntry extends Partial<SchoolProfile> {
   id: string;
 }
+
+const LEVEL_LABELS = {
+  primary: 'បឋមសិក្សា',
+  secondary: 'អនុវិទ្យាល័យ',
+  high_school: 'វិទ្យាល័យ'
+} as const;
+
+const LEVEL_COLORS = {
+  primary: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+  secondary: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+  high_school: 'text-pink-400 bg-pink-500/10 border-pink-500/20'
+} as const;
 
 export const SuperAdminHub: React.FC = () => {
   const { currentUser, updateSchoolProfile, showToast, setIsSuperAdminHub } = useSchool();
@@ -22,27 +34,46 @@ export const SuperAdminHub: React.FC = () => {
   const [newSchoolLevel, setNewSchoolLevel] = useState<'primary' | 'secondary' | 'high_school'>('primary');
   const [newPrincipalName, setNewPrincipalName] = useState('');
 
+  // Expanded levels
+  const [expandedLevels, setExpandedLevels] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     // Load from local storage or set default
     const saved = localStorage.getItem('kroudigital_multi_schools');
     if (saved) {
       setSchools(JSON.parse(saved));
     } else {
-      const defaultSchool: SchoolEntry = {
-        id: '1',
-        nameKhmer: 'សាលាបឋមសិក្សាភ្នំពុំ',
-        schoolCode: '02100108027',
-        level: 'primary',
-        principalName: 'លោក លីម សន'
-      };
-      setSchools([defaultSchool]);
-      localStorage.setItem('kroudigital_multi_schools', JSON.stringify([defaultSchool]));
+      const defaultSchools: SchoolEntry[] = [
+        {
+          id: '1',
+          nameKhmer: 'សាលាបឋមសិក្សា គំរូ',
+          schoolCode: 'PRI-001',
+          level: 'primary',
+          principalName: 'លោកគ្រូ សុខ សាន្ត'
+        },
+        {
+          id: '2',
+          nameKhmer: 'អនុវិទ្យាល័យ ឯករាជ្យ',
+          schoolCode: 'SEC-001',
+          level: 'secondary',
+          principalName: 'អ្នកគ្រូ ចាន់ ធូ'
+        },
+        {
+          id: '3',
+          nameKhmer: 'វិទ្យាល័យ វិទ្យាសាស្ត្រ',
+          schoolCode: 'HIG-001',
+          level: 'high_school',
+          principalName: 'លោកគ្រូ លឹម សន'
+        }
+      ];
+      setSchools(defaultSchools);
+      localStorage.setItem('kroudigital_multi_schools', JSON.stringify(defaultSchools));
     }
   }, []);
 
   const handleAddSchool = () => {
     if (!newSchoolName || !newSchoolCode) {
-      showToast('សូមបំពេញឈ្មោះសាលា និងកូដសាលា', 'error');
+      showToast('សូមបញ្ចូលឈ្មោះ និងលេខកូដសាលា', 'error');
       return;
     }
     
@@ -58,7 +89,7 @@ export const SuperAdminHub: React.FC = () => {
     setSchools(updated);
     localStorage.setItem('kroudigital_multi_schools', JSON.stringify(updated));
     setShowAddModal(false);
-    showToast('បង្កើតសាលាថ្មីបានជោគជ័យ!', 'success');
+    showToast('បានបន្ថែមសាលាថ្មីដោយជោគជ័យ!', 'success');
     
     // Reset form
     setNewSchoolName('');
@@ -73,7 +104,23 @@ export const SuperAdminHub: React.FC = () => {
       level: school.level,
       principalName: school.principalName
     });
-    showToast(`បានប្តូរទៅកាន់: ${school.nameKhmer}`, 'success');
+    // This will cause App.tsx to unmount SuperAdminHub and mount AdminLayout
+    setIsSuperAdminHub(false); 
+    showToast(`កំពុងចូលមើលសាលា: ${school.nameKhmer}`, 'success');
+  };
+
+  const toggleLevel = (level: string) => {
+    setExpandedLevels(prev => ({
+      ...prev,
+      [level]: !prev[level]
+    }));
+  };
+
+  // Group schools by level
+  const groupedSchools = {
+    primary: schools.filter(s => s.level === 'primary'),
+    secondary: schools.filter(s => s.level === 'secondary'),
+    high_school: schools.filter(s => s.level === 'high_school'),
   };
 
   return (
@@ -86,8 +133,8 @@ export const SuperAdminHub: React.FC = () => {
             <Building2 className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white leading-tight">ផ្ទាំងគ្រប់គ្រង Super Admin</h1>
-            <p className="text-purple-400 text-xs">ម្ចាស់ប្រព័ន្ធពហុសាលា (Multi-School System)</p>
+            <h1 className="text-lg font-bold text-white leading-tight">ប្រព័ន្ធគ្រប់គ្រងសាលារៀនកម្រិត Super Admin</h1>
+            <p className="text-purple-400 text-xs">ទិដ្ឋភាពទូទៅនៃសាលារៀនទាំងអស់ (Central Dashboard)</p>
           </div>
         </div>
         
@@ -97,13 +144,13 @@ export const SuperAdminHub: React.FC = () => {
         </button>
       </div>
 
-      <div className="max-w-5xl mx-auto p-4 sm:p-6 md:p-8 space-y-6">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 md:p-8 space-y-8 mt-4">
         
         {/* Actions Bar */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between bg-[#0d282e]/50 p-4 rounded-2xl border border-[#164049]/50">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <School className="w-5 h-5 text-emerald-400" />
-            បញ្ជីសាលារៀនក្នុងប្រព័ន្ធ ({schools.length})
+            <School className="w-5 h-5 text-purple-400" />
+            បណ្តាញសាលារៀនសរុប ({schools.length})
           </h2>
           <button 
             onClick={() => setShowAddModal(true)}
@@ -114,118 +161,134 @@ export const SuperAdminHub: React.FC = () => {
           </button>
         </div>
 
-        {/* Schools List Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {schools.map(school => (
-            <div key={school.id} className="bg-[#0d282e]/80 border border-[#164049]/80 rounded-2xl p-5 backdrop-blur-md shadow-xl flex flex-col hover:border-purple-500/50 transition group">
-              <div className="flex justify-between items-start mb-4">
-                <div className="w-12 h-12 bg-[#07191d] rounded-xl flex items-center justify-center border border-[#164049] group-hover:border-purple-500/30">
-                  <School className={`w-6 h-6 ${school.level === 'high_school' ? 'text-pink-400' : school.level === 'secondary' ? 'text-blue-400' : 'text-emerald-400'}`} />
+        {/* Schools Grouped By Level */}
+        <div className="space-y-4">
+          {(['primary', 'secondary', 'high_school'] as const).map((level) => (
+            <div key={level} className="bg-[#0d282e] border border-[#164049] rounded-2xl overflow-hidden transition-all duration-300">
+              <button 
+                onClick={() => toggleLevel(level)}
+                className="w-full flex items-center justify-between p-6 hover:bg-[#10323a] transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${LEVEL_COLORS[level]}`}>
+                    <School className="w-6 h-6" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-xl font-bold text-white mb-1">{LEVEL_LABELS[level]}</h3>
+                    <p className="text-sm text-slate-400">ចំនួនសាលាសរុប: <span className="font-bold text-white">{groupedSchools[level].length}</span></p>
+                  </div>
                 </div>
-                <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${school.level === 'high_school' ? 'bg-pink-500/20 text-pink-400' : school.level === 'secondary' ? 'bg-blue-500/20 text-blue-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                  {school.level === 'high_school' ? 'វិទ្យាល័យ' : school.level === 'secondary' ? 'អនុវិទ្យាល័យ' : 'បឋមសិក្សា'}
-                </span>
-              </div>
-              
-              <h3 className="text-lg font-bold text-white mb-1">{school.nameKhmer}</h3>
-              <p className="text-slate-400 text-sm mb-4">កូដ: {school.schoolCode}</p>
-              
-              <div className="mt-auto space-y-3">
-                <div className="flex items-center gap-2 text-sm text-slate-300 bg-[#0a2126] px-3 py-2 rounded-lg border border-[#164049]/50">
-                  <UserPlus className="w-4 h-4 text-cyan-400" />
-                  <span className="truncate">នាយក: {school.principalName}</span>
+                <div className={`w-10 h-10 rounded-full bg-[#164049] flex items-center justify-center transition-transform duration-300 ${expandedLevels[level] ? 'rotate-180' : ''}`}>
+                  <ChevronDown className="w-5 h-5 text-slate-300" />
                 </div>
-                
-                <button 
-                  onClick={() => handleSwitchSchool(school)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#164049] hover:bg-purple-600 text-white rounded-xl text-sm font-bold transition"
-                >
-                  ចូលមើលសាលានេះ <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+              </button>
+
+              {expandedLevels[level] && (
+                <div className="p-6 pt-0 border-t border-[#164049]/50 bg-[#0a1e23]">
+                  {groupedSchools[level].length === 0 ? (
+                    <div className="text-center py-8 text-slate-500">
+                      មិនទាន់មានសាលាក្នុងកម្រិតនេះទេ
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                      {groupedSchools[level].map(school => (
+                        <div key={school.id} className="bg-[#0d282e] border border-[#164049]/80 rounded-xl p-5 hover:border-purple-500/50 transition-colors group">
+                          <h4 className="text-lg font-bold text-white mb-3">{school.nameKhmer}</h4>
+                          <div className="flex items-center gap-2 text-sm text-slate-400 mb-4 bg-[#0a1e23] p-2 rounded-lg border border-[#164049]/50">
+                            <UserPlus className="w-4 h-4 text-cyan-400" />
+                            <span className="truncate">នាយក: <span className="font-bold text-slate-200">{school.principalName}</span></span>
+                          </div>
+                          <button 
+                            onClick={() => handleSwitchSchool(school)}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#164049] group-hover:bg-purple-600 text-white rounded-lg text-sm font-bold transition-colors"
+                          >
+                            ចូលផ្ទាំងគ្រប់គ្រងនាយក <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Add School Modal */}
+      {/* Add Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#0d282e] border border-[#164049] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-[#164049] flex items-center justify-between bg-[#0a2126]">
-              <h3 className="text-lg font-bold text-white">បន្ថែមសាលារៀនថ្មី</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white transition">
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
+          <div className="bg-[#0d282e] rounded-2xl shadow-2xl w-full max-w-md relative z-10 border border-[#164049] overflow-hidden">
+            <div className="bg-purple-600 px-6 py-4">
+              <h3 className="text-lg font-bold text-white">បន្ថែមសាលាថ្មីចូលប្រព័ន្ធ</h3>
             </div>
             
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">ឈ្មោះសាលា (Khmer)</label>
+                <label className="block text-sm font-bold text-slate-300 mb-1.5">ឈ្មោះសាលារៀន *</label>
                 <input 
                   type="text" 
                   value={newSchoolName}
-                  onChange={(e) => setNewSchoolName(e.target.value)}
-                  className="w-full bg-[#07191d] border border-[#164049] text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-purple-500"
-                  placeholder="ឧ. វិទ្យាល័យបាត់ដំបង"
+                  onChange={e => setNewSchoolName(e.target.value)}
+                  className="w-full bg-[#0a1e23] border border-[#164049] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                  placeholder="ឧ. វិទ្យាល័យ ហ៊ុនសែន"
                 />
               </div>
               
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">កូដសាលា (School Code)</label>
+                <label className="block text-sm font-bold text-slate-300 mb-1.5">លេខកូដសាលា *</label>
                 <input 
                   type="text" 
                   value={newSchoolCode}
-                  onChange={(e) => setNewSchoolCode(e.target.value)}
-                  className="w-full bg-[#07191d] border border-[#164049] text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-purple-500"
-                  placeholder="ឧ. 02100100000"
+                  onChange={e => setNewSchoolCode(e.target.value)}
+                  className="w-full bg-[#0a1e23] border border-[#164049] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                  placeholder="ឧ. HIG-002"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">កម្រិតសាលា (Level)</label>
-                <select 
-                  value={newSchoolLevel}
-                  onChange={(e) => setNewSchoolLevel(e.target.value as any)}
-                  className="w-full bg-[#07191d] border border-[#164049] text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-purple-500 appearance-none"
-                >
-                  <option value="primary">បឋមសិក្សា (Primary)</option>
-                  <option value="secondary">អនុវិទ្យាល័យ (Secondary)</option>
-                  <option value="high_school">វិទ្យាល័យ (High School)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">ឈ្មោះនាយកសាលា</label>
+                <label className="block text-sm font-bold text-slate-300 mb-1.5">ឈ្មោះនាយកសាលា</label>
                 <input 
                   type="text" 
                   value={newPrincipalName}
-                  onChange={(e) => setNewPrincipalName(e.target.value)}
-                  className="w-full bg-[#07191d] border border-[#164049] text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-purple-500"
-                  placeholder="ឧ. លោក សុខ សាន"
+                  onChange={e => setNewPrincipalName(e.target.value)}
+                  className="w-full bg-[#0a1e23] border border-[#164049] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                  placeholder="ឧ. លោកគ្រូ កង សុវណ្ណ"
                 />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-slate-300 mb-1.5">កម្រិតសិក្សា *</label>
+                <select 
+                  value={newSchoolLevel}
+                  onChange={e => setNewSchoolLevel(e.target.value as any)}
+                  className="w-full bg-[#0a1e23] border border-[#164049] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 appearance-none"
+                >
+                  <option value="primary">បឋមសិក្សា</option>
+                  <option value="secondary">អនុវិទ្យាល័យ</option>
+                  <option value="high_school">វិទ្យាល័យ</option>
+                </select>
               </div>
             </div>
             
-            <div className="px-6 py-4 border-t border-[#164049] flex justify-end gap-3 bg-[#0a2126]">
+            <div className="bg-[#0a1e23] border-t border-[#164049] px-6 py-4 flex justify-end gap-3">
               <button 
                 onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 text-slate-300 hover:text-white transition"
+                className="px-5 py-2.5 text-slate-300 hover:bg-[#164049] rounded-xl font-bold transition"
               >
                 បោះបង់
               </button>
               <button 
                 onClick={handleAddSchool}
-                className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold transition flex items-center gap-2"
+                className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold transition shadow-lg shadow-purple-900/20"
               >
-                <Save className="w-4 h-4" />
                 រក្សាទុក
               </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 };

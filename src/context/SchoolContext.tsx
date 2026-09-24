@@ -64,6 +64,8 @@ const googleSignIn = async () => {};
 
 
 interface SchoolContextType {
+  isSuperAdminHub: boolean;
+  setIsSuperAdminHub: (v: boolean) => void;
   // Navigation & User Auth
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
@@ -7242,6 +7244,8 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   return (
     <SchoolContext.Provider
       value={{
+      isSuperAdminHub,
+      setIsSuperAdminHub,
         activeTab,
         setActiveTab,
         searchQuery,

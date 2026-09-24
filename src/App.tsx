@@ -15,7 +15,8 @@ const MainLayout: React.FC = () => {
     currentUser,
     versionConflictState,
     resolveVersionConflict,
-    showToast
+    showToast,
+    isSuperAdminHub
   } = useSchool();
 
   // Google Auth state (if needed later)
@@ -35,7 +36,11 @@ const MainLayout: React.FC = () => {
   }
 
   // Render based on role
-  if (currentUser.role === 'super_admin' || currentUser.role === 'director' || currentUser.role === 'secretary') {
+  if (currentUser.role === 'super_admin') {
+    return isSuperAdminHub ? <SuperAdminHub /> : <AdminLayout />;
+  }
+
+  if (currentUser.role === 'director' || currentUser.role === 'secretary') {
     return <AdminLayout />;
   }
 
