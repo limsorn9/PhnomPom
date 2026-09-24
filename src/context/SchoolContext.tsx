@@ -5558,6 +5558,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   
 
+  
+  const canAccessTab = (tab) => true;
+  const canAccessStudentDashboard = (student) => ({ allowed: true, reason: '' });
+  const canTeacherAccessClass = (grade, section) => true;
+  const getTeacherAssignedClass = () => null;
+
   // KrouDigital 4.0 Standardized Core State Mappings
   const kdSchoolInfo = schoolProfile;
   const kdTeacherProfile = currentUser && currentUser.role === 'teacher' ? (teachers.find(t => t.id === currentUser.id) || null) : null;
